@@ -25,8 +25,9 @@ export class AppointmentService {
     return this.http.get<Appointment[]>(this.base, { params });
   }
 
-  findByDateRange(from: string, to: string): Observable<Appointment[]> {
-    const params = new HttpParams().set('from', from).set('to', to);
+  findByDateRange(from: string, to: string, providerId?: string | null): Observable<Appointment[]> {
+    let params = new HttpParams().set('from', from).set('to', to);
+    if (providerId) params = params.set('providerId', providerId);
     return this.http.get<Appointment[]>(this.base, { params });
   }
 

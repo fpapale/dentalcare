@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,8 +72,9 @@ public class AppointmentService {
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
     }
 
-    public List<AppointmentDto> findByDateRange(LocalDate from, LocalDate to) {
+    public List<AppointmentDto> findByDateRange(LocalDate from, LocalDate to, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String providerFilter = providerId != null ? "AND provider_id = :providerId\n" : "";
         String sql = """
             SELECT appointment_id, clinic_id, starts_at, ends_at, chair_label,
                    appointment_status, notes,
@@ -82,12 +85,14 @@ public class AppointmentService {
             FROM dentalcare.v_agenda_daily
             WHERE clinic_id = :clinicId
               AND starts_at::date BETWEEN :from AND :to
+            """ + providerFilter + """
             ORDER BY starts_at, chair_label
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
                 .addValue("from", from)
                 .addValue("to", to);
+        if (providerId != null) params.addValue("providerId", providerId);
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
     }
 
@@ -95,7 +100,7 @@ public class AppointmentService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             UPDATE dentalcare.appointments
-            SET status = :status
+            SET status = CAST(:status AS dentalcare.appointment_status)
             WHERE id = :id AND clinic_id = :clinicId
             """;
         jdbc.update(sql, new MapSqlParameterSource()
@@ -107,6 +112,7 @@ public class AppointmentService {
     public UUID create(CreateAppointmentRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
+        checkWorkingDay(clinicId, request);
         checkChairConflict(clinicId, request);
         checkProviderConflict(clinicId, request);
 
@@ -128,6 +134,55 @@ public class AppointmentService {
                 .addValue("notes", request.notes());
         jdbc.update(sql, params);
         return id;
+    }
+
+    private void checkWorkingDay(UUID clinicId, CreateAppointmentRequest request) {
+        LocalDate date = request.startsAt()
+                .atZoneSameInstant(ZoneId.of("Europe/Rome"))
+                .toLocalDate();
+
+        DayOfWeek dow = date.getDayOfWeek();
+        if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) {
+            throw new AppointmentConflictException("WEEKEND",
+                    "Non è possibile prenotare appuntamenti nei giorni di sabato e domenica.");
+        }
+
+        // Resolve state via clinic → city → region → state (nullable chain)
+        String stateQuery = """
+            SELECT s.id
+            FROM dentalcare.clinics cl
+            JOIN dentalcare.cities  ci ON ci.id = cl.city_id
+            JOIN dentalcare.regions r  ON r.id  = ci.region_id
+            JOIN dentalcare.states  s  ON s.id  = r.state_id
+            WHERE cl.id = :clinicId
+            """;
+        List<UUID> stateIds = jdbc.queryForList(stateQuery,
+                new MapSqlParameterSource("clinicId", clinicId), UUID.class);
+
+        if (stateIds.isEmpty()) return; // no geo data → skip holiday check
+
+        String holidayQuery = """
+            SELECT name FROM dentalcare.national_holidays
+            WHERE state_id = :stateId
+              AND (
+                (is_recurring = TRUE  AND month = :month AND day = :day)
+                OR
+                (is_recurring = FALSE AND holiday_date = :date)
+              )
+            LIMIT 1
+            """;
+        List<String> names = jdbc.queryForList(holidayQuery,
+                new MapSqlParameterSource()
+                        .addValue("stateId", stateIds.get(0))
+                        .addValue("month", date.getMonthValue())
+                        .addValue("day",   date.getDayOfMonth())
+                        .addValue("date",  date),
+                String.class);
+
+        if (!names.isEmpty()) {
+            throw new AppointmentConflictException("HOLIDAY",
+                    "Il giorno selezionato è festivo: " + names.get(0) + ".");
+        }
     }
 
     private void checkChairConflict(UUID clinicId, CreateAppointmentRequest request) {

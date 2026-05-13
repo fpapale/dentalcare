@@ -1,7 +1,9 @@
 <div class="flex flex-col h-full">
 
-  <!-- Toolbar -->
+  <!-- ── Toolbar ────────────────────────────────────────────────────────── -->
   <div class="flex items-center gap-3 px-5 py-3 bg-white border-b border-slate-200 shrink-0 flex-wrap">
+
+    <!-- Tab group -->
     <div class="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
       @if (isToday()) {
         <button (click)="viewMode.set('prossimi')"
@@ -19,14 +21,73 @@
       }
     </div>
 
-    <div class="flex items-center gap-2">
-      <button (click)="changeDate(-1)" class="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+    <!-- Date navigation + calendar picker -->
+    <div class="flex items-center gap-1">
+      <button (click)="changePeriod(-1)"
+        class="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
         <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_left</span>
       </button>
-      <span class="text-sm font-semibold text-slate-700 capitalize min-w-[220px] text-center">{{ dateLabel }}</span>
-      <button (click)="changeDate(1)" class="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+
+      <!-- Calendar picker button + dropdown -->
+      <div class="relative">
+        <button (click)="openCalendar()"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+          <span class="material-symbols-outlined text-[16px] text-teal-600">calendar_month</span>
+          <span class="text-sm font-semibold text-slate-700 capitalize min-w-[200px] text-center">{{ dateLabel }}</span>
+        </button>
+
+        @if (calendarOpen()) {
+          <!-- Backdrop -->
+          <div class="fixed inset-0 z-40" (click)="calendarOpen.set(false)"></div>
+          <!-- Dropdown calendar -->
+          <div class="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-3 w-64">
+            <!-- Month navigation -->
+            <div class="flex items-center justify-between mb-2">
+              <button (click)="prevCalMonth(); $event.stopPropagation()"
+                class="p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                <span class="material-symbols-outlined text-[16px] text-slate-600">chevron_left</span>
+              </button>
+              <span class="text-xs font-bold text-slate-700 capitalize">{{ calendarMonthLabel }}</span>
+              <button (click)="nextCalMonth(); $event.stopPropagation()"
+                class="p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                <span class="material-symbols-outlined text-[16px] text-slate-600">chevron_right</span>
+              </button>
+            </div>
+            <!-- Day names -->
+            <div class="grid grid-cols-7 mb-1">
+              @for (n of ['L','M','M','G','V','S','D']; track $index) {
+                <div class="text-center text-[10px] font-bold text-slate-400 py-1">{{ n }}</div>
+              }
+            </div>
+            <!-- Day grid -->
+            @for (week of calendarGrid(); track $index) {
+              <div class="grid grid-cols-7">
+                @for (day of week; track day.getTime()) {
+                  <button
+                    (click)="selectDateFromCalendar(day); $event.stopPropagation()"
+                    class="text-[11px] h-7 w-full rounded flex items-center justify-center transition-colors"
+                    [class]="calendarDayClass(day)">
+                    {{ day.getDate() }}
+                  </button>
+                }
+              </div>
+            }
+            <!-- Oggi button -->
+            <div class="mt-2 pt-2 border-t border-slate-100">
+              <button (click)="selectDateFromCalendar(today); $event.stopPropagation()"
+                class="w-full text-xs text-teal-600 font-semibold py-1 rounded-lg hover:bg-teal-50 transition-colors">
+                Oggi
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <button (click)="changePeriod(1)"
+        class="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
         <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_right</span>
       </button>
+
       @if (!isToday()) {
         <button (click)="goToToday()"
           class="text-xs font-semibold text-teal-600 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors">
@@ -43,8 +104,12 @@
     </div>
   </div>
 
-  <!-- Loading / Error -->
-  @if (loading()) {
+  <!-- ── Loading / Error ─────────────────────────────────────────────────── -->
+  @if (loading() && (viewMode() === 'giorno' || viewMode() === 'prossimi')) {
+    <div class="flex items-center justify-center flex-1">
+      <div class="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  } @else if (loadingRange() && (viewMode() === 'settimana' || viewMode() === 'mese')) {
     <div class="flex items-center justify-center flex-1">
       <div class="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
     </div>
@@ -55,7 +120,9 @@
     </div>
   } @else {
 
-  <!-- ── Vista "Prossimi" (oggi dall'ora corrente in poi) ── -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Vista PROSSIMI                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
   @if (viewMode() === 'prossimi') {
     <div class="flex-1 overflow-auto p-5">
       @if (upcomingAppointments().length === 0) {
@@ -74,14 +141,10 @@
           @for (a of upcomingAppointments(); track a.appointmentId) {
             <a [routerLink]="['/pazienti', a.patientId]"
               class="flex items-stretch gap-0 bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow block">
-
-              <!-- Time column -->
               <div class="flex flex-col items-center justify-center px-4 py-3 bg-slate-50 border-r border-slate-200 shrink-0 w-20">
                 <p class="text-sm font-black text-teal-700 leading-tight">{{ formatTime(a.startsAt) }}</p>
                 <p class="text-[10px] text-slate-400 mt-0.5">{{ formatTime(a.endsAt) }}</p>
               </div>
-
-              <!-- Main content -->
               <div class="flex-1 min-w-0 px-4 py-3">
                 <div class="flex items-center gap-1.5 mb-0.5">
                   @if (a.hasAllergyAlert) {
@@ -95,22 +158,17 @@
                 <p class="text-xs text-slate-500 truncate">{{ a.serviceName ?? 'Visita' }}</p>
                 <div class="flex items-center gap-3 mt-1.5 flex-wrap">
                   <span class="flex items-center gap-1 text-[10px] text-slate-400">
-                    <span class="material-symbols-outlined text-[11px]">chair</span>
-                    {{ a.chairLabel }}
+                    <span class="material-symbols-outlined text-[11px]">chair</span>{{ a.chairLabel }}
                   </span>
                   @if (role() !== 'doctor') {
                     <span class="flex items-center gap-1 text-[10px] text-slate-400">
-                      <span class="material-symbols-outlined text-[11px]">person</span>
-                      {{ a.providerName }}
+                      <span class="material-symbols-outlined text-[11px]">person</span>{{ a.providerName }}
                     </span>
                   }
                 </div>
               </div>
-
-              <!-- Status badge -->
               <div class="flex items-center px-4 shrink-0">
-                <span class="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                  [class]="statusBadgeClass(a)">
+                <span class="text-[10px] font-bold px-2.5 py-1 rounded-full" [class]="statusBadgeClass(a)">
                   {{ statusLabel(a) }}
                 </span>
               </div>
@@ -121,11 +179,12 @@
     </div>
   }
 
-  <!-- ── Vista Giorno (griglia oraria) ── -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Vista GIORNO                                                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
   @if (viewMode() === 'giorno') {
     <div class="flex-1 overflow-auto">
       <div class="flex min-w-[600px]">
-
         <!-- Time axis -->
         <div class="w-16 shrink-0 border-r border-slate-200 bg-white">
           <div class="h-12 border-b border-slate-200"></div>
@@ -135,8 +194,7 @@
             </div>
           }
         </div>
-
-        <!-- Chairs -->
+        <!-- Chair columns -->
         @for (chair of chairs; track chair) {
           <div class="flex-1 min-w-[160px] border-r border-slate-200">
             <div class="h-12 border-b border-slate-200 bg-white px-3 flex flex-col justify-center sticky top-0 z-10">
@@ -176,5 +234,160 @@
     </div>
   }
 
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Vista SETTIMANA                                                       -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (viewMode() === 'settimana') {
+    <div class="flex-1 overflow-auto">
+      <div class="flex min-w-[700px] h-full">
+
+        <!-- Time axis -->
+        <div class="w-14 shrink-0 border-r border-slate-200 bg-white">
+          <div class="h-14 border-b border-slate-200 bg-white sticky top-0 z-10"></div>
+          @for (h of hours; track h) {
+            <div class="h-16 border-b border-slate-100 flex items-start pt-1 justify-end pr-2">
+              <span class="text-[10px] text-slate-400 font-medium">{{ h }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Day columns -->
+        @for (day of weekDays(); track day.getTime()) {
+          <div class="flex-1 min-w-0 border-r border-slate-200 flex flex-col"
+            [class]="isWeekToday(day) ? 'bg-teal-50/30' : ''">
+
+            <!-- Day header -->
+            <div class="h-14 border-b border-slate-200 bg-white px-2 flex flex-col items-center justify-center sticky top-0 z-10 cursor-pointer hover:bg-slate-50 transition-colors"
+              [class]="isWeekToday(day) ? 'bg-teal-50' : ''"
+              (click)="navigateToDay(day)">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase">
+                {{ day.toLocaleDateString('it-IT', {weekday: 'short'}) }}
+              </span>
+              <span class="text-lg font-black leading-tight"
+                [class]="isWeekToday(day) ? 'text-teal-600' : isWeekSelected(day) ? 'text-slate-800' : 'text-slate-600'">
+                {{ day.getDate() }}
+              </span>
+              @if (getAppointmentsForDay(day).length > 0) {
+                <span class="text-[9px] font-bold text-teal-500 mt-0.5">
+                  {{ getAppointmentsForDay(day).length }} apt
+                </span>
+              }
+            </div>
+
+            <!-- Time grid body -->
+            <div class="relative flex-1">
+              @for (h of hours; track h) {
+                <div class="h-16 border-b border-slate-100"></div>
+              }
+              <!-- Today line -->
+              @if (isWeekToday(day)) {
+                <div class="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
+                  [style.top.px]="currentTimeTop() * (64/96)">
+                  <div class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
+                  <div class="flex-1 h-px bg-red-400"></div>
+                </div>
+              }
+              <!-- Appointments -->
+              @for (a of getAppointmentsForDay(day); track a.appointmentId) {
+                <a [routerLink]="['/pazienti', a.patientId]"
+                  class="absolute left-0.5 right-0.5 rounded border-l-2 px-1 overflow-hidden cursor-pointer hover:brightness-95 transition-all block z-10"
+                  [class]="apptColor(a)"
+                  [style.top.px]="topPx(a) * (64/96)"
+                  [style.height.px]="heightPx(a) * (64/96)">
+                  <p class="text-[10px] font-bold truncate leading-tight mt-0.5">{{ a.patientFullName }}</p>
+                  <p class="text-[9px] opacity-70 leading-tight">{{ formatTime(a.startsAt) }}</p>
+                  @if (role() !== 'doctor' && role() !== 'hygienist') {
+                    <p class="text-[9px] opacity-60 truncate leading-tight">{{ a.chairLabel }}</p>
+                  }
+                </a>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
   }
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Vista MESE                                                            -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  @if (viewMode() === 'mese') {
+    <div class="flex-1 overflow-auto p-4">
+
+      <!-- Legend -->
+      <div class="flex items-center gap-4 mb-3 px-1">
+        <p class="text-xs text-slate-400 font-semibold">Occupazione:</p>
+        @for (l of [
+          {color:'bg-green-400', label:'< 40%'},
+          {color:'bg-yellow-400', label:'40–70%'},
+          {color:'bg-orange-400', label:'70–90%'},
+          {color:'bg-red-500', label:'> 90%'}
+        ]; track l.label) {
+          <div class="flex items-center gap-1">
+            <div class="w-2.5 h-2.5 rounded-sm" [class]="l.color"></div>
+            <span class="text-[10px] text-slate-500">{{ l.label }}</span>
+          </div>
+        }
+        <p class="text-[10px] text-slate-400 ml-auto">Clic su un giorno → prima settimana disponibile</p>
+      </div>
+
+      <!-- Calendar grid -->
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+
+        <!-- Header: day names -->
+        <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+          @for (n of ['Lun','Mar','Mer','Gio','Ven','Sab','Dom']; track n) {
+            <div class="text-center text-[11px] font-bold text-slate-500 py-2">{{ n }}</div>
+          }
+        </div>
+
+        <!-- Weeks -->
+        @for (week of monthGrid(); track $index) {
+          <div class="grid grid-cols-7 divide-x divide-slate-100">
+            @for (day of week; track day.getTime()) {
+              <div
+                (click)="isCurrentMonth(day) ? openMonthDay(day) : null"
+                class="border-b border-slate-100 p-2 min-h-[90px] transition-colors"
+                [class]="isCurrentMonth(day) ? 'cursor-pointer hover:bg-teal-50' : 'bg-slate-50/50 cursor-default opacity-50'">
+
+                <!-- Day number -->
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs font-bold flex items-center justify-center w-6 h-6 rounded-full"
+                    [class]="isTodayDate(day) ? 'bg-teal-600 text-white' : 'text-slate-600'">
+                    {{ day.getDate() }}
+                  </span>
+                  @if (isCurrentMonth(day) && dayOccupancyCount(day) > 0) {
+                    <span class="text-[9px] font-semibold text-slate-400">
+                      {{ dayOccupancyCount(day) }}
+                    </span>
+                  }
+                </div>
+
+                <!-- Occupancy bar + pct -->
+                @if (isCurrentMonth(day)) {
+                  @if (dayOccupancyPct(day) > 0) {
+                    <div class="space-y-1">
+                      <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-300"
+                          [class]="dayOccupancyBarClass(day)"
+                          [style.width.%]="dayOccupancyPct(day)">
+                        </div>
+                      </div>
+                      <p class="text-[10px] font-bold" [class]="dayOccupancyTextClass(day)">
+                        {{ dayOccupancyPct(day) }}%
+                      </p>
+                    </div>
+                  } @else {
+                    <p class="text-[10px] text-slate-300 font-medium">Libero</p>
+                  }
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  } <!-- end else (no loading/error) -->
 </div>

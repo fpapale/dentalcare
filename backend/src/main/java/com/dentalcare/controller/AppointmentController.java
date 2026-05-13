@@ -33,7 +33,7 @@ public class AppointmentController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) UUID providerId) {
         if (from != null && to != null) {
-            return appointmentService.findByDateRange(from, to);
+            return appointmentService.findByDateRange(from, to, providerId);
         }
         return appointmentService.findByDate(date != null ? date : LocalDate.now(), providerId);
     }
