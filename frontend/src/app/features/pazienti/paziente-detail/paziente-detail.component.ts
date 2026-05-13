@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute } from '@angular/router';
@@ -40,7 +40,8 @@ export class PazienteDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private patientService: PatientService,
-    private appointmentService: AppointmentService
+    private appointmentService: AppointmentService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -95,6 +96,7 @@ export class PazienteDetailComponent implements OnInit {
       next: detail => {
         this.paziente = this.mapPaziente(detail);
         this.loading.set(false);
+        this.cdr.markForCheck();
       },
       error: () => {
         this.error.set('Paziente non trovato o accesso non autorizzato');
