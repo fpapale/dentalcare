@@ -17,7 +17,7 @@ services:
   frontend:
     container_name: dentalcarepro-frontend-prod
     ports:
-      - "80:80"         # Interfaccia web produzione su porta 80 standard
+      - "${FRONTEND_PORT:-80}:80"  # Default 80; override via .env
     deploy:
       resources:
         limits:
