@@ -1,0 +1,209 @@
+<div class="flex flex-col h-full bg-slate-50">
+
+  <!-- Patient Header -->
+  <div class="bg-white border-b border-slate-200 px-5 py-4 shrink-0">
+    <div class="flex items-start gap-4 max-w-5xl">
+
+      <!-- Back -->
+      <a routerLink="/pazienti" class="mt-1 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+      </a>
+
+      @if (loading()) {
+        <!-- Skeleton header -->
+        <div class="w-14 h-14 rounded-full bg-slate-200 animate-pulse shrink-0"></div>
+        <div class="flex-1 space-y-2 pt-1">
+          <div class="h-5 w-48 bg-slate-200 rounded animate-pulse"></div>
+          <div class="h-3 w-72 bg-slate-100 rounded animate-pulse"></div>
+        </div>
+      } @else if (paziente) {
+        <!-- Avatar -->
+        <div class="w-14 h-14 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xl shrink-0">
+          {{ paziente.initials }}
+        </div>
+        <!-- Info -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-3 flex-wrap">
+            <h1 class="text-xl font-bold text-slate-800">{{ paziente.nome }}</h1>
+            <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-green-100 text-green-700">{{ paziente.status }}</span>
+            @for (allergia of paziente.allergie; track allergia) {
+              <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-600 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[12px]">warning</span> Allergia: {{ allergia }}
+              </span>
+            }
+          </div>
+          <div class="flex flex-wrap gap-x-5 gap-y-1 mt-1 text-sm text-slate-500">
+            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">cake</span> {{ paziente.dataNascita }} ({{ paziente.eta }} anni)</span>
+            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">phone</span> {{ paziente.telefono }}</span>
+            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">mail</span> {{ paziente.email }}</span>
+          </div>
+          @if (paziente.note) {
+            <p class="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 max-w-xl">
+              <span class="material-symbols-outlined text-[13px] align-middle mr-1">info</span>{{ paziente.note }}
+            </p>
+          }
+        </div>
+        <!-- Actions -->
+        <div class="flex gap-2 shrink-0">
+          @if (role() !== 'secretary') {
+            <a [routerLink]="['/pazienti', paziente.id, 'cartella']"
+              class="flex items-center gap-1.5 border border-slate-200 text-slate-600 text-sm font-semibold px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">
+              <span class="material-symbols-outlined text-[17px]">dentistry</span>
+              Odontogramma
+            </a>
+          }
+          <a routerLink="/agenda/nuovo" [queryParams]="{ patientId: paziente.id }"
+            class="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-bold px-3 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+            <span class="material-symbols-outlined text-[17px]">add</span>
+            Appuntamento
+          </a>
+        </div>
+      }
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 mt-4 border-b -mb-4 border-slate-200">
+      @for (tab of [['overview','Panoramica'],['cartella','Cartella Clinica'],['anamnesi','Anamnesi'],['preventivi','Preventivi'],['documenti','Documenti']]; track tab[0]) {
+        @if (role() === 'secretary' && (tab[0] === 'cartella' || tab[0] === 'anamnesi')) {
+          <!-- hidden for secretary -->
+        } @else {
+          <button (click)="activeTab.set($any(tab[0]))"
+            class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px"
+            [class.border-teal-600]="activeTab() === tab[0]"
+            [class.text-teal-600]="activeTab() === tab[0]"
+            [class.border-transparent]="activeTab() !== tab[0]"
+            [class.text-slate-500]="activeTab() !== tab[0]">
+            {{ tab[1] }}
+          </button>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="flex-1 overflow-y-auto p-5">
+
+    @if (error()) {
+      <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-red-500">error</span>
+        <p class="text-sm text-red-700">{{ error() }}</p>
+      </div>
+    } @else if (activeTab() === 'overview') {
+
+      @if (loading()) {
+        <!-- Skeleton overview -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-5xl animate-pulse">
+          <div class="lg:col-span-2 h-48 bg-white rounded-xl border border-slate-200"></div>
+          <div class="h-48 bg-white rounded-xl border border-slate-200"></div>
+        </div>
+      } @else if (paziente) {
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-5xl">
+
+          <!-- Appuntamenti -->
+          <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+              <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[17px] text-teal-600">event</span> Appuntamenti
+              </h2>
+            </div>
+            @if (appuntamenti.length === 0) {
+              <p class="text-sm text-slate-400 text-center py-8">Nessun appuntamento trovato</p>
+            } @else {
+              <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase">Data</th>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase">Trattamento</th>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase hidden md:table-cell">Medico</th>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase text-right">Stato</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  @for (apt of appuntamenti; track apt.data) {
+                    <tr class="hover:bg-slate-50">
+                      <td class="py-3 px-4 text-sm text-slate-700 font-semibold">{{ apt.data }}<span class="text-slate-400 font-normal ml-1 font-mono text-xs">{{ apt.ora }}</span></td>
+                      <td class="py-3 px-4 text-sm text-slate-600">{{ apt.trattamento }}</td>
+                      <td class="py-3 px-4 text-sm text-slate-500 hidden md:table-cell">{{ apt.medico }}</td>
+                      <td class="py-3 px-4 text-right">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold"
+                          [class.bg-teal-100]="apt.stato === 'Confermato'"
+                          [class.text-teal-700]="apt.stato === 'Confermato'"
+                          [class.bg-green-100]="apt.stato === 'Completato'"
+                          [class.text-green-700]="apt.stato === 'Completato'">{{ apt.stato }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+
+          <!-- Dati anagrafici -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Dati anagrafici</h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Cod. Fiscale</span>
+                <span class="font-mono text-xs text-slate-700">{{ paziente.cf }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Indirizzo</span>
+                <span class="text-slate-700 text-right max-w-[60%]">{{ paziente.indirizzo }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Email</span>
+                <span class="text-slate-700 text-right max-w-[60%]">{{ paziente.email }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Telefono</span>
+                <span class="text-slate-700">{{ paziente.telefono }}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      }
+
+    } @else if (activeTab() === 'cartella') {
+      @if (role() === 'secretary') {
+        <div class="flex items-center justify-center h-40 text-slate-400">
+          <div class="text-center">
+            <span class="material-symbols-outlined text-[40px] block mb-2">lock</span>
+            <p class="text-sm font-semibold">Accesso non autorizzato</p>
+            <p class="text-xs mt-1">I dati clinici sono visibili solo ai medici</p>
+          </div>
+        </div>
+      } @else if (paziente) {
+        <app-cartella-tab [paziente]="paziente" [patientId]="paziente.id" (openAnamnesi)="activeTab.set('anamnesi')" />
+      }
+
+    } @else if (activeTab() === 'anamnesi') {
+      @if (role() === 'secretary') {
+        <div class="flex items-center justify-center h-40 text-slate-400">
+          <div class="text-center">
+            <span class="material-symbols-outlined text-[40px] block mb-2">lock</span>
+            <p class="text-sm font-semibold">Accesso non autorizzato</p>
+            <p class="text-xs mt-1">I dati clinici sono visibili solo ai medici</p>
+          </div>
+        </div>
+      } @else if (paziente) {
+        <app-anamnesi-tab
+          [patientId]="paziente.id"
+          [bloodType]="paziente.bloodType"
+          [anamnesisNotes]="paziente.anamnesisNotes"
+          [anamnesisDate]="paziente.anamnesisDate" />
+      }
+
+    } @else {
+      <div class="flex items-center justify-center h-40 text-slate-400">
+        <div class="text-center">
+          <span class="material-symbols-outlined text-[40px] block mb-2">construction</span>
+          <p class="text-sm font-semibold">Sezione in sviluppo</p>
+          <p class="text-xs mt-1">Seleziona "Panoramica" per vedere i dati disponibili</p>
+        </div>
+      </div>
+    }
+
+  </div>
+
+</div>

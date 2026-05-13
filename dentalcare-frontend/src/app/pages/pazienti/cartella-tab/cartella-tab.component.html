@@ -1,0 +1,400 @@
+@if (role() === 'secretary') {
+
+  <!-- Vista limitata per Segreteria -->
+  <div class="space-y-4 max-w-5xl">
+
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+      <span class="material-symbols-outlined text-amber-500 shrink-0 mt-0.5">lock</span>
+      <div>
+        <p class="font-semibold text-amber-800">Accesso clinico limitato</p>
+        <p class="text-sm text-amber-700 mt-0.5">
+          Il tuo ruolo consente la gestione amministrativa e operativa del paziente.
+          I dettagli clinici sono disponibili solo al personale sanitario autorizzato.
+        </p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-4">Riepilogo operativo</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div class="flex justify-between p-3 bg-slate-50 rounded-lg">
+          <span class="text-slate-500">Stato anamnesi</span>
+          <span class="font-semibold"
+            [class.text-green-600]="paziente?.anamnesisDate"
+            [class.text-amber-600]="!paziente?.anamnesisDate">
+            {{ paziente?.anamnesisDate ? 'Compilata' : 'Da completare' }}
+          </span>
+        </div>
+        <div class="flex justify-between p-3 bg-slate-50 rounded-lg">
+          <span class="text-slate-500">Appuntamenti totali</span>
+          <span class="font-semibold text-slate-700">{{ paziente?.totalAppointments ?? 0 }}</span>
+        </div>
+        <div class="flex justify-between p-3 bg-slate-50 rounded-lg">
+          <span class="text-slate-500">Piani di cura</span>
+          <span class="font-semibold text-slate-700">{{ paziente?.treatmentPlansCount ?? 0 }}</span>
+        </div>
+        <div class="flex justify-between p-3 bg-slate-50 rounded-lg">
+          <span class="text-slate-500">Trattamenti aperti</span>
+          <span class="font-semibold"
+            [class.text-amber-600]="(paziente?.openTreatmentItemsCount ?? 0) > 0"
+            [class.text-slate-700]="(paziente?.openTreatmentItemsCount ?? 0) === 0">
+            {{ paziente?.openTreatmentItemsCount ?? 0 }}
+          </span>
+        </div>
+        <div class="flex justify-between p-3 bg-slate-50 rounded-lg">
+          <span class="text-slate-500">Documenti clinici</span>
+          <span class="font-semibold text-slate-400">Non verificabile</span>
+        </div>
+        <div class="flex justify-between p-3 bg-slate-50 rounded-lg">
+          <span class="text-slate-500">Alert clinici</span>
+          <span class="font-semibold"
+            [class.text-red-600]="alerts.length > 0"
+            [class.text-slate-400]="alerts.length === 0">
+            {{ alerts.length > 0 ? alerts.length + ' presenti' : 'Nessuno' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+} @else {
+
+  <!-- Dashboard clinica completa per Dentista / Igienista -->
+  <div class="space-y-4 max-w-5xl">
+
+    <!-- Alert clinici -->
+    @if (alerts.length > 0) {
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px] text-amber-500">notification_important</span>
+          Alert clinici
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          @for (alert of alerts; track alert.label) {
+            <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+              [class.bg-red-100]="alert.type === 'critical'"
+              [class.text-red-700]="alert.type === 'critical'"
+              [class.bg-amber-100]="alert.type === 'warning'"
+              [class.text-amber-700]="alert.type === 'warning'"
+              [class.bg-blue-50]="alert.type === 'info'"
+              [class.text-blue-600]="alert.type === 'info'">
+              <span class="material-symbols-outlined text-[13px]">
+                {{ alert.type === 'critical' ? 'warning' : alert.type === 'warning' ? 'info' : 'pending' }}
+              </span>
+              {{ alert.label }}
+            </span>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Riga 1: Riepilogo clinico + Riepilogo anamnestico -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- Riepilogo clinico -->
+      <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px] text-teal-600">summarize</span>
+          Riepilogo clinico
+        </h3>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <div class="flex justify-between col-span-2 sm:col-span-1">
+            <span class="text-slate-400">Ultima visita</span>
+            <span class="text-slate-700 font-medium">
+              {{ diary().length > 0 ? formatDate(diary()[0].entryDate) : 'Non registrata' }}
+            </span>
+          </div>
+          <div class="flex justify-between col-span-2 sm:col-span-1">
+            <span class="text-slate-400">Appuntamenti totali</span>
+            <span class="text-slate-700 font-medium">{{ paziente?.totalAppointments ?? 0 }}</span>
+          </div>
+          <div class="flex justify-between col-span-2 sm:col-span-1">
+            <span class="text-slate-400">Piani di cura</span>
+            <span class="text-slate-700 font-medium">
+              {{ loadingPlans() ? '…' : treatmentPlans().length }}
+            </span>
+          </div>
+          <div class="flex justify-between col-span-2 sm:col-span-1">
+            <span class="text-slate-400">Trattamenti aperti</span>
+            <span class="font-medium"
+              [class.text-amber-600]="(paziente?.openTreatmentItemsCount ?? 0) > 0"
+              [class.text-slate-700]="(paziente?.openTreatmentItemsCount ?? 0) === 0">
+              {{ paziente?.openTreatmentItemsCount ?? 0 }}
+            </span>
+          </div>
+          <div class="flex justify-between col-span-2 sm:col-span-1">
+            <span class="text-slate-400">Stato anamnesi</span>
+            <span class="font-medium"
+              [class.text-green-600]="paziente?.anamnesisDate"
+              [class.text-amber-600]="!paziente?.anamnesisDate">
+              {{ paziente?.anamnesisDate ? 'Compilata' : 'Da completare' }}
+            </span>
+          </div>
+          <div class="flex justify-between col-span-2 sm:col-span-1">
+            <span class="text-slate-400">Ultimo aggiornamento</span>
+            <span class="text-slate-700 font-medium">{{ formatDate(paziente?.anamnesisDate) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Riepilogo anamnestico -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px] text-teal-600">medical_information</span>
+          Riepilogo anamnestico
+        </h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Allergie</span>
+            <span class="text-right font-medium"
+              [class.text-red-600]="paziente?.allergie?.length > 0"
+              [class.text-slate-500]="!paziente?.allergie?.length">
+              {{ paziente?.allergie?.length > 0 ? paziente.allergie.join(', ') : 'Non registrate' }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Anticoagulanti</span>
+            <span class="font-medium"
+              [class.text-amber-600]="paziente?.takingAnticoagulants"
+              [class.text-slate-500]="!paziente?.takingAnticoagulants">
+              {{ paziente?.takingAnticoagulants ? 'Sì' : 'Non registrati' }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Ipertensione</span>
+            <span class="font-medium"
+              [class.text-amber-600]="paziente?.hypertension"
+              [class.text-slate-500]="!paziente?.hypertension">
+              {{ paziente?.hypertension ? 'Sì' : 'Non indicata' }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Diabete</span>
+            <span class="font-medium"
+              [class.text-amber-600]="paziente?.diabetes"
+              [class.text-slate-500]="!paziente?.diabetes">
+              {{ paziente?.diabetes ? 'Sì' : 'Non indicato' }}
+            </span>
+          </div>
+        </div>
+        <button (click)="openAnamnesi.emit()"
+          class="mt-3 flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-700 transition-colors">
+          <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+          Apri anamnesi completa
+        </button>
+      </div>
+    </div>
+
+    <!-- Riga 2: Odontogramma + Piano di cura -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <!-- Odontogramma -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px] text-teal-600">dentistry</span>
+            Odontogramma
+          </h3>
+          <a [routerLink]="['/pazienti', patientId, 'cartella']"
+            class="text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+            Apri
+          </a>
+        </div>
+        @if (loadingOdonto()) {
+          <div class="h-20 bg-slate-100 rounded-lg animate-pulse"></div>
+        } @else if (odontogram()?.exists) {
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="bg-slate-50 rounded-lg p-3 text-center">
+              <p class="text-2xl font-bold text-slate-700">{{ odontogram()!.totalTeeth }}</p>
+              <p class="text-xs text-slate-400 mt-0.5">Denti registrati</p>
+            </div>
+            <div class="bg-slate-50 rounded-lg p-3 text-center">
+              <p class="text-2xl font-bold text-amber-600">{{ odontogram()!.treatedTeeth }}</p>
+              <p class="text-xs text-slate-400 mt-0.5">Con trattamenti</p>
+            </div>
+            <div class="bg-slate-50 rounded-lg p-3 text-center">
+              <p class="text-2xl font-bold text-red-500">{{ odontogram()!.missingTeeth }}</p>
+              <p class="text-xs text-slate-400 mt-0.5">Mancanti</p>
+            </div>
+            <div class="bg-slate-50 rounded-lg p-3 text-center">
+              <p class="text-2xl font-bold text-green-600">{{ odontogram()!.healthyTeeth }}</p>
+              <p class="text-xs text-slate-400 mt-0.5">Sani</p>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">
+            Ultimo aggiornamento: {{ formatDate(odontogram()!.lastUpdatedAt) }}
+          </p>
+        } @else {
+          <div class="text-center py-6">
+            <span class="material-symbols-outlined text-[36px] text-slate-200 block mb-2">dentistry</span>
+            <p class="text-sm text-slate-400">Nessun odontogramma compilato.</p>
+            <p class="text-xs text-slate-300 mt-1">Apri la cartella per iniziare la valutazione dentale.</p>
+            <a [routerLink]="['/pazienti', patientId, 'cartella']"
+              class="mt-3 inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-700">
+              <span class="material-symbols-outlined text-[14px]">add_circle</span>
+              Nuovo rilievo
+            </a>
+          </div>
+        }
+      </div>
+
+      <!-- Piano di cura -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px] text-teal-600">assignment</span>
+            Piano di cura
+          </h3>
+          <button class="text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">add</span>
+            Crea piano
+          </button>
+        </div>
+        @if (loadingPlans()) {
+          <div class="space-y-2">
+            <div class="h-10 bg-slate-100 rounded-lg animate-pulse"></div>
+            <div class="h-10 bg-slate-100 rounded-lg animate-pulse"></div>
+          </div>
+        } @else if (treatmentPlans().length === 0) {
+          <div class="text-center py-6">
+            <span class="material-symbols-outlined text-[36px] text-slate-200 block mb-2">assignment</span>
+            <p class="text-sm text-slate-400">Nessun piano di cura attivo.</p>
+          </div>
+        } @else {
+          <div class="space-y-2">
+            @for (plan of treatmentPlans(); track plan.planId) {
+              <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-slate-700 truncate">{{ plan.name }}</p>
+                  <p class="text-xs text-slate-400 mt-0.5">
+                    {{ plan.completedItems }}/{{ plan.totalItems }} prestazioni · {{ plan.openItems }} aperte
+                  </p>
+                </div>
+                <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-bold shrink-0"
+                  [class]="planStatusClass(plan.status)">
+                  {{ planStatusLabel(plan.status) }}
+                </span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Riga 3: Diario clinico + colonna destra -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- Diario clinico -->
+      <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="font-bold text-slate-700 flex items-center gap-2">
+            <span class="material-symbols-outlined text-[17px] text-teal-600">history_edu</span>
+            Diario clinico
+          </h3>
+          <button class="flex items-center gap-1.5 text-xs font-bold text-teal-600 border border-teal-200 px-2 py-1.5 rounded-lg hover:bg-teal-50 transition-colors">
+            <span class="material-symbols-outlined text-[14px]">add</span>
+            Nuova visita
+          </button>
+        </div>
+        @if (loadingDiary()) {
+          <div class="p-4 space-y-3">
+            @for (i of [1,2,3]; track i) {
+              <div class="h-14 bg-slate-100 rounded-lg animate-pulse"></div>
+            }
+          </div>
+        } @else if (diary().length === 0) {
+          <div class="text-center py-10">
+            <span class="material-symbols-outlined text-[40px] text-slate-200 block mb-2">history_edu</span>
+            <p class="text-sm text-slate-400">Nessuna nota clinica presente.</p>
+            <p class="text-xs text-slate-300 mt-1">Registra la prima visita del paziente.</p>
+          </div>
+        } @else {
+          <div class="divide-y divide-slate-100">
+            @for (entry of diary(); track entry.entryId) {
+              <div class="p-4 flex items-start gap-3 hover:bg-slate-50 transition-colors">
+                <div class="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[16px] text-teal-600">{{ diaryEntryIcon(entry) }}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-semibold text-slate-700">
+                      {{ entry.serviceName ?? 'Nota clinica' }}
+                    </span>
+                    @if (entry.toothNumber) {
+                      <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-mono font-bold">
+                        Dente {{ entry.toothNumber }}
+                      </span>
+                    }
+                  </div>
+                  <p class="text-xs text-slate-500 mt-0.5 line-clamp-2">{{ entry.clinicalNotes }}</p>
+                  <p class="text-[11px] text-slate-400 mt-1">{{ formatDate(entry.entryDate) }} — {{ entry.providerName }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Colonna destra: Diagnosi + Esami + Prescrizioni -->
+      <div class="space-y-4">
+
+        <!-- Diagnosi attive -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px] text-teal-600">diagnosis</span>
+            Diagnosi attive
+          </h3>
+          <div class="text-center py-4">
+            <span class="material-symbols-outlined text-[30px] text-slate-200 block mb-1">diagnosis</span>
+            <p class="text-xs text-slate-400">Nessuna diagnosi registrata.</p>
+            @if (role() === 'doctor' || role() === 'admin') {
+              <button class="mt-2 text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1 mx-auto">
+                <span class="material-symbols-outlined text-[13px]">add</span>
+                Aggiungi diagnosi
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Esami e documenti -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px] text-teal-600">folder_open</span>
+            Esami e documenti
+          </h3>
+          <div class="text-center py-4">
+            <span class="material-symbols-outlined text-[30px] text-slate-200 block mb-1">folder_open</span>
+            <p class="text-xs text-slate-400">Nessun documento clinico.</p>
+            <button class="mt-2 text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1 mx-auto">
+              <span class="material-symbols-outlined text-[13px]">upload</span>
+              Carica documento
+            </button>
+          </div>
+        </div>
+
+        <!-- Prescrizioni -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px] text-teal-600">medication</span>
+            Prescrizioni
+          </h3>
+          <div class="text-center py-4">
+            <span class="material-symbols-outlined text-[30px] text-slate-200 block mb-1">medication</span>
+            <p class="text-xs text-slate-400">Nessuna prescrizione registrata.</p>
+            @if (role() === 'doctor' || role() === 'admin') {
+              <button class="mt-2 text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1 mx-auto">
+                <span class="material-symbols-outlined text-[13px]">add</span>
+                Nuova prescrizione
+              </button>
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+}

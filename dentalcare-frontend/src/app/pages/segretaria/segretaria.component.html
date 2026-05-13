@@ -1,0 +1,230 @@
+<div class="flex flex-1 overflow-hidden h-full">
+
+  <!-- CHAT AREA -->
+  <main class="flex-1 overflow-hidden flex flex-col">
+
+    <!-- Sub-header -->
+    <div class="flex items-center gap-3 px-5 py-2.5 bg-white border-b border-slate-200 shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center">
+          <span class="material-symbols-outlined text-white text-[16px]">smart_toy</span>
+        </div>
+        <span class="text-sm font-bold text-slate-700">SegretarIA</span>
+        <span class="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">ONLINE</span>
+      </div>
+      <button class="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+        <span class="material-symbols-outlined text-[14px]">history</span> Cronologia
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6 bg-slate-50">
+      @for (msg of messages(); track $index) {
+        @if (msg.role === 'user') {
+          <div class="flex flex-col items-end gap-1">
+            <div class="bg-white text-slate-800 px-4 py-3 rounded-2xl rounded-tr-none max-w-[80%] text-sm font-medium shadow-sm border border-slate-200">
+              {{ msg.text }}
+            </div>
+            <span class="text-[10px] text-slate-400 font-bold px-2 uppercase">Tu • {{ msg.time }}</span>
+          </div>
+        } @else {
+          <div class="flex flex-col items-start gap-3">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
+                <span class="material-symbols-outlined text-[18px]">smart_toy</span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">SegretarIA AI • {{ msg.time }}</span>
+            </div>
+            <div class="bg-white border border-teal-100 p-5 rounded-3xl rounded-tl-none max-w-[90%] shadow-lg space-y-4">
+              <p class="text-sm text-slate-700 leading-relaxed">{{ msg.text }}</p>
+              @if (msg.table) {
+                <div class="overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="bg-slate-100 border-b border-slate-200">
+                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Ora</th>
+                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Paziente</th>
+                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Prestazione</th>
+                        <th class="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Stato</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of msg.table; track row.ora) {
+                        <tr class="border-b border-slate-100 hover:bg-white transition-colors">
+                          <td class="px-4 py-2.5 font-bold text-teal-600">{{ row.ora }}</td>
+                          <td class="px-4 py-2.5 font-medium text-slate-800">{{ row.paziente }}</td>
+                          <td class="px-4 py-2.5 text-slate-500 hidden sm:table-cell">{{ row.prestazione }}</td>
+                          <td class="px-4 py-2.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold" [class]="getStatoClass(row.stato)">{{ row.stato }}</span>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                <div class="flex flex-wrap gap-2 pt-1">
+                  <button class="flex items-center gap-1.5 px-3 py-2 bg-teal-600 text-white rounded-lg text-xs font-bold shadow hover:bg-teal-700 transition-colors">
+                    <span class="material-symbols-outlined text-sm">calendar_month</span> Apri agenda
+                  </button>
+                  <button class="flex items-center gap-1.5 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-200 transition-colors">
+                    <span class="material-symbols-outlined text-sm">search</span> Cerca slot libero
+                  </button>
+                  <button class="flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors">
+                    <span class="material-symbols-outlined text-sm">send</span> Invia promemoria
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+      @if (isTyping()) {
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
+            <span class="material-symbols-outlined text-[18px]">smart_toy</span>
+          </div>
+          <div class="bg-white border border-teal-100 px-4 py-3 rounded-2xl rounded-tl-none shadow-sm">
+            <div class="flex gap-1 items-center">
+              <div class="w-2 h-2 rounded-full bg-teal-400 animate-bounce" style="animation-delay:0ms"></div>
+              <div class="w-2 h-2 rounded-full bg-teal-400 animate-bounce" style="animation-delay:150ms"></div>
+              <div class="w-2 h-2 rounded-full bg-teal-400 animate-bounce" style="animation-delay:300ms"></div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Input bar -->
+    <div class="px-5 py-3 border-t border-slate-200 bg-white shrink-0">
+      <div class="space-y-2">
+        <div class="flex flex-wrap gap-1.5">
+          @for (prompt of quickPrompts; track prompt) {
+            <button (click)="usePrompt(prompt)"
+              class="px-3 py-1 bg-white border border-slate-200 rounded-full text-[11px] font-semibold text-slate-500 hover:border-teal-400 hover:text-teal-600 transition-all">
+              {{ prompt }}
+            </button>
+          }
+        </div>
+        <div class="relative">
+          <input [(ngModel)]="inputText"
+            (keyup.enter)="sendMessage()"
+            placeholder="Chiedi a SegretarIA cosa vuoi sapere..."
+            class="w-full pl-5 pr-28 py-3 bg-white border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-medium transition-all shadow-sm outline-none"/>
+          <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
+            <button class="p-2 text-slate-400 hover:text-teal-500 transition-colors">
+              <span class="material-symbols-outlined">mic</span>
+            </button>
+            <button (click)="sendMessage()"
+              class="p-2 bg-teal-600 text-white rounded-xl shadow hover:bg-teal-700 transition-all active:scale-95">
+              <span class="material-symbols-outlined">send</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="hidden lg:flex w-72 shrink-0 border-l border-slate-200 bg-white flex-col overflow-y-auto p-4 gap-5">
+
+    <!-- Utente e permessi -->
+    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+          <span class="material-symbols-outlined">account_circle</span>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-slate-800">Utente e permessi</h4>
+          <p class="text-[10px] text-slate-400 font-bold uppercase">Giulia Segreteria</p>
+        </div>
+      </div>
+      <div class="space-y-1 pt-2 border-t border-slate-200">
+        <div class="flex justify-between text-[11px]">
+          <span class="text-slate-400">Ruolo</span><span class="font-bold text-slate-700">Segretaria</span>
+        </div>
+        <div class="flex justify-between text-[11px]">
+          <span class="text-slate-400">Sede</span><span class="font-bold text-slate-700">DentalCare Roma</span>
+        </div>
+        <div class="pt-2 flex flex-wrap gap-1">
+          <span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 text-[9px] font-bold">LEGGI_AGENDA</span>
+          <span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 text-[9px] font-bold">MODIFICA_PAZIENTI</span>
+          <span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 text-[9px] font-bold">VISTA_RETELL</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paziente selezionato -->
+    <div class="bg-white p-4 rounded-xl border border-teal-200 shadow-sm space-y-3 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-1 h-full bg-teal-100"></div>
+      <div class="flex items-center justify-between">
+        <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Paziente selezionato</h4>
+        <span class="material-symbols-outlined text-teal-500 text-sm cursor-pointer">open_in_new</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-teal-100 flex items-center justify-center font-bold text-teal-700 text-base shrink-0">SV</div>
+        <div>
+          <h5 class="text-sm font-bold text-slate-800">Simona Verdi</h5>
+          <p class="text-[11px] text-slate-500">ID: #4492 • 32 anni</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-[10px]">
+        <div class="p-2 bg-slate-50 rounded-lg">
+          <p class="text-slate-400 uppercase font-bold text-[8px]">Prossimo App.</p>
+          <p class="font-bold text-teal-600">Oggi, 10:30</p>
+        </div>
+        <div class="p-2 bg-slate-50 rounded-lg">
+          <p class="text-slate-400 uppercase font-bold text-[8px]">Piatto Aperto</p>
+          <p class="font-bold text-yellow-600">€ 140,00</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ultime chiamate -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ultime chiamate Retell</h4>
+        <span class="text-[10px] text-teal-600 font-bold cursor-pointer hover:underline">Vedi tutte</span>
+      </div>
+      @for (call of calls(); track call.name) {
+        <div class="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+              [class.bg-green-100]="call.handled"
+              [class.text-green-600]="call.handled"
+              [class.bg-slate-100]="!call.handled"
+              [class.text-slate-400]="!call.handled">
+              <span class="material-symbols-outlined text-[15px]">{{ call.handled ? 'check_circle' : 'phone_in_talk' }}</span>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-800">{{ call.name }}</p>
+              <p class="text-[9px] italic"
+                [class.text-green-600]="call.handled"
+                [class.font-bold]="call.handled"
+                [class.text-slate-400]="!call.handled">{{ call.snippet }}</p>
+            </div>
+          </div>
+          <span class="text-[10px] text-slate-400 shrink-0">{{ call.time }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- Attività aperte -->
+    <div class="space-y-2">
+      <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Attività aperte</h4>
+      @for (task of tasks(); track task.text) {
+        <div class="p-3 bg-white rounded-xl border border-slate-200 border-l-4"
+          [class.border-l-red-400]="task.urgent"
+          [class.border-l-teal-400]="!task.urgent">
+          <p class="text-xs font-bold text-slate-800">{{ task.text }}</p>
+          <p class="text-[10px] text-slate-500 mt-0.5">{{ task.sub }}</p>
+        </div>
+      }
+    </div>
+
+    <div class="mt-auto pt-4 text-center border-t border-slate-100">
+      <p class="text-[10px] text-slate-400 font-medium">Powered by SegretarIA Engine v2.4</p>
+    </div>
+  </aside>
+
+</div>

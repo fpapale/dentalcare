@@ -1,0 +1,44 @@
+package com.dentalcare.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
+
+public record CreatePatientRequest(
+
+        @NotBlank
+        @Size(max = 100)
+        String firstName,
+
+        @NotBlank
+        @Size(max = 100)
+        String lastName,
+
+        @Size(max = 16)
+        String fiscalCode,
+
+        LocalDate birthDate,
+
+        @Size(max = 20)
+        String phone,
+
+        @Email
+        @Size(max = 160)
+        String email,
+
+        @Size(max = 200)
+        String addressLine1,
+
+        @Size(max = 100)
+        String city,
+
+        @Size(max = 10)
+        String province,
+
+        @Size(max = 10)
+        String postalCode,
+
+        String notes
+) {}

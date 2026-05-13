@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+
+<html class="light" lang="it"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SegretarIA - Console Operativa</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#CBD5E1",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#eaddff",
+                        "outline": "#6e7977",
+                        "surface": "#f7f9fb",
+                        "surface-container-highest": "#CBD5E1",
+                        "on-tertiary-container": "#f1e6ff",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed-variant": "#003ea8",
+                        "inverse-on-surface": "#eff1f3",
+                        "warning": "#D97706",
+                        "surface-container-low": "#F8FAFC",
+                        "surface-tint": "#006a63",
+                        "surface-container-high": "#e6e8ea",
+                        "tooth-fracture": "#EA580C",
+                        "secondary-container": "#DBEAFE",
+                        "on-secondary-container": "#1E3A8A",
+                        "on-surface-variant": "#3e4947",
+                        "surface-dim": "#d8dadc",
+                        "surface-container": "#eceef0",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#b4c5ff",
+                        "on-primary-fixed-variant": "#00504a",
+                        "on-primary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#80d5cb",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#dbe1ff",
+                        "on-primary-container": "#134E4A",
+                        "surface-bright": "#f7f9fb",
+                        "primary-container": "#0f766e",
+                        "tooth-implant": "#16A34A",
+                        "tertiary-fixed-dim": "#d2bbff",
+                        "surface-variant": "#e0e3e5",
+                        "primary": "#005c55",
+                        "error": "#DC2626",
+                        "tertiary": "#6616d7",
+                        "primary-fixed": "#9cf2e8",
+                        "tertiary-container": "#7f3ef0",
+                        "tooth-filling": "#2563EB",
+                        "secondary": "#0051d5",
+                        "on-secondary-fixed": "#00174b",
+                        "success": "#16A34A",
+                        "accent": "#06B6D4",
+                        "primary-fixed-dim": "#80d5cb",
+                        "tooth-missing": "#6B7280",
+                        "tooth-crown": "#B45309",
+                        "tooth-caries": "#DC2626",
+                        "on-background": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "on-tertiary-fixed-variant": "#5a00c6",
+                        "background": "#f7f9fb",
+                        "tooth-devitalized": "#7C3AED",
+                        "on-tertiary-fixed": "#25005a",
+                        "on-primary-fixed": "#00201d",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "md": "16px",
+                        "form-gutter": "20px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "page-padding-desktop": "32px",
+                        "page-padding-tablet": "24px",
+                        "card-gap": "16px",
+                        "xl": "32px",
+                        "unit": "8px",
+                        "touch-target": "44px"
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .clinical-shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface h-screen flex flex-col overflow-hidden">
+<!-- TopNavBar Shell -->
+<header class="flex justify-between items-center px-6 h-16 w-full bg-white border-b border-slate-200 shadow-sm z-50">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="bg-primary text-on-primary w-8 h-8 flex items-center justify-center rounded-lg font-black text-lg" style="">D</span>
+<div class="flex flex-col">
+<h1 class="text-xl font-bold text-teal-700 font-inter tracking-tight leading-none" style="">DentalCare Pro</h1>
+<span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold" style="">Patient Management</span>
+</div>
+</div>
+<div class="h-8 w-px bg-slate-200 mx-2"></div>
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold" style="">
+<span class="material-symbols-outlined text-[14px]" style="">location_on</span>
+                    Studio DentalCare Roma
+                </span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3 pl-4">
+<div class="text-right">
+<p class="text-sm font-bold text-slate-800 leading-tight" style="">Giulia Segreteria</p>
+<p class="text-[11px] text-slate-500 font-medium" style="">Ruolo: Segretaria</p>
+</div>
+<img alt="Giulia Segreteria Profile" class="w-10 h-10 rounded-full object-cover border-2 border-primary-fixed" data-alt="professional portrait of a medical receptionist woman with a kind and confident expression in a bright dental office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhSMmToFCFvMdZNYlcGPzpKSa0rUoFyiLTLc9ePSiBkEfYjKpxxhMdwLi9F-2925FrSiCaegwVdRMlYRFa6og4pQ9gt1ZtSENjRfPOGzcWt7UVhUcSgnuJGrcIP1whnF4oER3oLjviUnXTwQrRIwbzbyj1OPLw1vxGryanVGXUSEqM9IYhTz8Z9uOyCHuvq4ZHy0up3LNTGz8ko4dID0b-uvY8MEkWhIcut7RuEeMLV2-23QgdVGye57skXk8XFZZyJuMfJ8E7daXR" style=""/>
+</div>
+</div>
+</header>
+<div class="flex-1 flex overflow-hidden">
+<!-- Sidebar (Left) -->
+<aside class="w-72 bg-slate-50 border-r border-slate-200 flex flex-col h-full py-4 px-4 overflow-y-auto space-y-6">
+<div>
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-3" style="">Azioni Rapide</h3>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">dashboard</span> Dashboard
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-teal-50 text-teal-700 rounded-lg font-medium text-sm clinical-shadow" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">calendar_today</span> Agenda</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">person_search</span>Pazienti</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">event_available</span> Slot disponibili
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">phone_callback</span> Chiamate da controllare
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">request_quote</span> Preventivi in attesa
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">assignment_turned_in</span> Piani di cura attivi
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">notification_important</span> Appuntamenti da confermare
+                    </a>
+</nav>
+</div>
+<div>
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-3" style="">Canali</h3>
+<nav class="space-y-1">
+<a class="flex items-center justify-between px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="flex items-center gap-3" style=""><span class="material-symbols-outlined text-[20px]" style="">forum</span> Chat interna</span>
+<span class="bg-error text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold" style="">2</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">call</span> Telefonate Retell
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">handyman</span> Attività manuali
+                    </a>
+</nav>
+</div>
+<div class="pt-4 border-t border-slate-200">
+<h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-3" style="">Filtri Console</h3>
+<div class="space-y-3 px-2">
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-slate-500 uppercase" style="">Studio</label>
+<select class="w-full text-xs border-slate-200 rounded-lg bg-white focus:ring-primary focus:border-primary">
+<option>Tutti gli studi</option>
+<option selected="">DentalCare Roma</option>
+</select>
+</div>
+<div class="space-y-1">
+<label class="text-[10px] font-bold text-slate-500 uppercase" style="">Medico</label>
+<select class="w-full text-xs border-slate-200 rounded-lg bg-white focus:ring-primary focus:border-primary">
+<option>Qualsiasi medico</option>
+<option selected="">Dott. Verdi</option>
+</select>
+</div>
+</div>
+</div>
+<div class="mt-auto space-y-1">
+<button class="w-full flex items-center gap-3 px-3 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm transition-all" style="">
+<span class="material-symbols-outlined text-[20px]" style="">help_outline</span> Supporto
+                </button>
+<button class="w-full flex items-center gap-3 px-3 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm transition-all" style="">
+<span class="material-symbols-outlined text-[20px]" style="">settings</span> Impostazioni
+                </button>
+</div>
+</aside>
+<!-- Center: AI Chat Console -->
+<main class="flex-1 flex flex-col bg-white">
+<div class="px-8 py-6 border-b border-slate-100 flex justify-between items-end">
+<div>
+<h2 class="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2" style="">
+                        Console AI operativa
+                        <span class="material-symbols-outlined text-primary" data-weight="fill" style="">verified</span>
+</h2>
+<p class="text-slate-500 text-sm mt-1" style="">Risposte filtrate in base al tuo ruolo di <b>Segretaria</b></p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors" style="">
+<span class="material-symbols-outlined text-sm" style="">history</span> Cronologia sessione
+                    </button>
+</div>
+</div>
+<!-- Conversation Area -->
+<div class="flex-1 overflow-y-auto p-8 space-y-8 scroll-smooth">
+<!-- User Message -->
+<div class="flex flex-col items-end gap-2">
+<div class="bg-slate-100 text-slate-800 px-5 py-3 rounded-2xl rounded-tr-none max-w-[80%] text-sm font-medium shadow-sm border border-slate-200" style="">
+                        Mostrami gli appuntamenti di oggi del dottor Verdi.
+                    </div>
+<span class="text-[10px] text-slate-400 font-bold px-2 uppercase" style="">Tu • 10:42</span>
+</div>
+<!-- AI Response -->
+<div class="flex flex-col items-start gap-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[20px]" data-weight="fill" style="">smart_toy</span>
+</div>
+<span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest" style="">SegretarIA AI • Ora</span>
+</div>
+<div class="bg-white border border-teal-100 p-6 rounded-3xl rounded-tl-none max-w-[90%] shadow-xl shadow-teal-900/5 space-y-4">
+<p class="text-sm text-slate-700 leading-relaxed" style="">
+                            Certamente Giulia. Ecco la lista degli appuntamenti previsti per oggi per il <b>Dottor Verdi</b> presso lo studio di Roma. Ci sono 4 visite confermate e 1 in attesa di conferma telefonica.
+                        </p>
+<div class="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50">
+<table class="w-full text-left text-xs border-collapse">
+<thead>
+<tr class="bg-slate-100/80 border-b border-slate-200">
+<th class="px-4 py-3 font-bold text-slate-600 uppercase tracking-wider" style="">Ora</th>
+<th class="px-4 py-3 font-bold text-slate-600 uppercase tracking-wider" style="">Paziente</th>
+<th class="px-4 py-3 font-bold text-slate-600 uppercase tracking-wider" style="">Prestazione</th>
+<th class="px-4 py-3 font-bold text-slate-600 uppercase tracking-wider" style="">Stato</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-slate-100 hover:bg-white transition-colors">
+<td class="px-4 py-3 font-bold text-primary" style="">09:00</td>
+<td class="px-4 py-3 font-medium" style="">Marco Rossi</td>
+<td class="px-4 py-3 text-slate-500" style="">Igiene dentale</td>
+<td class="px-4 py-3" style="">
+<span class="px-2 py-1 rounded bg-success/10 text-success font-bold text-[10px]" style="">ARRIVATO</span>
+</td>
+</tr>
+<tr class="border-b border-slate-100 hover:bg-white transition-colors">
+<td class="px-4 py-3 font-bold text-primary" style="">10:30</td>
+<td class="px-4 py-3 font-medium" style="">Simona Verdi</td>
+<td class="px-4 py-3 text-slate-500" style="">Controllo ortodonzia</td>
+<td class="px-4 py-3" style="">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary font-bold text-[10px]" style="">IN SALA</span>
+</td>
+</tr>
+<tr class="border-b border-slate-100 hover:bg-white transition-colors">
+<td class="px-4 py-3 font-bold text-primary" style="">11:15</td>
+<td class="px-4 py-3 font-medium" style="">Luca Bianchi</td>
+<td class="px-4 py-3 text-slate-500" style="">Estrazione</td>
+<td class="px-4 py-3" style="">
+<span class="px-2 py-1 rounded bg-blue-100 text-blue-600 font-bold text-[10px]" style="">CONFERMATO</span>
+</td>
+</tr>
+<tr class="hover:bg-white transition-colors">
+<td class="px-4 py-3 font-bold text-primary" style="">12:00</td>
+<td class="px-4 py-3 font-medium" style="">Elena Neri</td>
+<td class="px-4 py-3 text-slate-500" style="">Prima visita</td>
+<td class="px-4 py-3" style="">
+<span class="px-2 py-1 rounded bg-warning/10 text-warning font-bold text-[10px]" style="">IN ATTESA</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="flex flex-wrap gap-2 pt-2">
+<button class="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-md shadow-primary/20 hover:scale-[1.02] transition-transform" style="">
+<span class="material-symbols-outlined text-sm" style="">calendar_month</span> Apri agenda
+                            </button>
+<button class="flex items-center gap-1.5 px-3 py-2 bg-secondary-container text-on-secondary-container rounded-lg text-xs font-bold hover:bg-blue-200 transition-colors" style="">
+<span class="material-symbols-outlined text-sm" style="">search</span> Cerca slot libero
+                            </button>
+<button class="flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors" style="">
+<span class="material-symbols-outlined text-sm" style="">send</span> Invia promemoria
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Bar Area -->
+<div class="p-8 border-t border-slate-100 bg-slate-50/50">
+<div class="max-w-4xl mx-auto space-y-4">
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-semibold text-slate-500 hover:border-primary hover:text-primary transition-all" style="">Chi ha chiamato oggi?</button>
+<button class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-semibold text-slate-500 hover:border-primary hover:text-primary transition-all" style="">Stato preventivo Sig. Rossi</button>
+<button class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-semibold text-slate-500 hover:border-primary hover:text-primary transition-all" style="">Resoconto chiamate perse</button>
+<button class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-semibold text-slate-500 hover:border-primary hover:text-primary transition-all" style="">Prossimo slot disponibile chirurgia</button>
+</div>
+<div class="relative">
+<input class="w-full pl-6 pr-32 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-teal-500/10 focus:border-primary text-sm font-medium transition-all shadow-lg shadow-slate-200/50" placeholder="Chiedi a SegretarIA cosa vuoi sapere..." type="text"/>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors" style=""><span class="material-symbols-outlined" style="">mic</span></button>
+<button class="p-2 bg-primary text-white rounded-xl shadow-lg shadow-primary/30 hover:bg-primary-container transition-all active:scale-95" style="">
+<span class="material-symbols-outlined" style="">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Panel (Right) -->
+<aside class="w-80 bg-slate-50 border-l border-slate-200 p-6 flex flex-col gap-6 overflow-y-auto">
+<!-- User Card -->
+<div class="bg-white p-4 rounded-2xl border border-slate-200 clinical-shadow space-y-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+<span class="material-symbols-outlined" style="">account_circle</span>
+</div>
+<div>
+<h4 class="text-sm font-bold text-slate-800" style="">Utente e permessi</h4>
+<p class="text-[10px] text-slate-400 font-bold uppercase" style="">Giulia Segreteria</p>
+</div>
+</div>
+<div class="space-y-1 pt-2 border-t border-slate-50">
+<div class="flex items-center justify-between text-[11px]">
+<span class="text-slate-500" style="">Ruolo</span>
+<span class="font-bold text-slate-800" style="">Segretaria</span>
+</div>
+<div class="flex items-center justify-between text-[11px]">
+<span class="text-slate-500" style="">Sede</span>
+<span class="font-bold text-slate-800" style="">DentalCare Roma</span>
+</div>
+<div class="pt-2 flex flex-wrap gap-1">
+<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-bold" style="">LEGGI_AGENDA</span>
+<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-bold" style="">MODIFICA_PAZIENTI</span>
+<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-bold" style="">VISTA_RETELL</span>
+</div>
+</div>
+</div>
+<!-- Patient Selected Card -->
+<div class="bg-white p-4 rounded-2xl border border-teal-100 clinical-shadow space-y-4 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-2 h-full bg-primary/10"></div>
+<div class="flex items-center justify-between">
+<h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="">Paziente selezionato</h4>
+<span class="material-symbols-outlined text-primary text-sm" style="">open_in_new</span>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Simona Verdi" class="w-12 h-12 rounded-xl object-cover border border-slate-100" data-alt="portrait of a young woman with a pleasant smile, natural lighting, looking directly at the camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5Oi2BL1_oxkmhoQuLWoqGuVUXSCX0N7aAFol1fyCHNGwyMpr9bB1hkSq0vaF0FudKUF8YRhlyWHViKkIggGcR7laSoCDNMG8n4tzbuRBNuSlYI0QrDfs8x1dUQ7vmlJxaxq2WZ-FSjIdMGBC7CPsOERWtGQygxkgeVN5S4xrS6lB8vX_urHL7n_zKbBw38xaxqxu4dXx5Lx_1k1RENU58qtH1bNKCeYo3tena23IwLg1ze9b3JiGKuzIyBloK4KeXtpSlc-Gw-mKg" style=""/>
+<div>
+<h5 class="text-sm font-bold text-slate-800" style="">Simona Verdi</h5>
+<p class="text-[11px] text-slate-500" style="">ID: #4492 • 32 Anni</p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2 text-[10px]">
+<div class="p-2 bg-slate-50 rounded-lg">
+<p class="text-slate-400 uppercase font-bold text-[8px]" style="">Prossimo App.</p>
+<p class="font-bold text-primary" style="">Oggi, 10:30</p>
+</div>
+<div class="p-2 bg-slate-50 rounded-lg">
+<p class="text-slate-400 uppercase font-bold text-[8px]" style="">Piatto Aperto</p>
+<p class="font-bold text-warning" style="">€ 140,00</p>
+</div>
+</div>
+</div>
+<!-- Recent Calls -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="">Ultime chiamate Retell</h4>
+<span class="text-[10px] text-primary font-bold" style="">Vedi tutte</span>
+</div>
+<div class="space-y-2">
+<div class="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+<span class="material-symbols-outlined text-[18px]" style="">phone_in_talk</span>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-800" style="">+39 342 *** 90</p>
+<p class="text-[9px] text-slate-400 font-medium italic" style="">"Vorrei spostare l'igiene..."</p>
+</div>
+</div>
+<span class="text-[10px] text-slate-400" style="">10:15</span>
+</div>
+<div class="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center text-success">
+<span class="material-symbols-outlined text-[18px]" style="">check_circle</span>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-800" style="">Marco Rossi</p>
+<p class="text-[9px] text-success font-bold uppercase" style="">Gestita da AI</p>
+</div>
+</div>
+<span class="text-[10px] text-slate-400" style="">09:42</span>
+</div>
+</div>
+</div>
+<!-- Tasks Card -->
+<div class="space-y-3">
+<h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="">Attività aperte</h4>
+<div class="space-y-2">
+<div class="p-3 bg-white rounded-xl border border-slate-200 border-l-4 border-l-error">
+<p class="text-xs font-bold text-slate-800" style="">Richiamare Elena Neri</p>
+<p class="text-[10px] text-slate-500 mt-1" style="">Conferma prima visita 12:00</p>
+</div>
+<div class="p-3 bg-white rounded-xl border border-slate-200 border-l-4 border-l-primary">
+<p class="text-xs font-bold text-slate-800" style="">Firma preventivo Bianchi</p>
+<p class="text-[10px] text-slate-500 mt-1" style="">Tablet sala 3 pronto</p>
+</div>
+</div>
+</div>
+<!-- Footer Small -->
+<div class="mt-auto pt-6 text-center">
+<p class="text-[10px] text-slate-400 font-medium" style="">Powered by SegretarIA Engine v2.4.1</p>
+<p class="text-[10px] text-slate-300" style="">© 2024 Innovazione Medica S.r.l.</p>
+</div>
+</aside>
+</div>
+</body></html>

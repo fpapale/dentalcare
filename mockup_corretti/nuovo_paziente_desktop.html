@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="it" class="">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DentalCare Pro - Nuovo Paziente</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#6616d7",
+                        "secondary-container": "#DBEAFE",
+                        "success": "#16A34A",
+                        "surface-container-low": "#f2f4f6",
+                        "on-primary-fixed": "#00201d",
+                        "inverse-surface": "#2d3133",
+                        "tooth-filling": "#2563EB",
+                        "primary-container": "#0f766e",
+                        "tooth-caries": "#DC2626",
+                        "on-surface": "#191c1e",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "primary": "#005c55",
+                        "tooth-implant": "#16A34A",
+                        "surface-tint": "#006a63",
+                        "on-tertiary-container": "#f1e6ff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#00174b",
+                        "tertiary-container": "#7f3ef0",
+                        "on-primary-fixed-variant": "#00504a",
+                        "on-tertiary-fixed-variant": "#5a00c6",
+                        "on-secondary-container": "#1E3A8A",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#25005a",
+                        "surface-container-highest": "#CBD5E1",
+                        "secondary": "#0051d5",
+                        "error-container": "#ffdad6",
+                        "tooth-devitalized": "#7C3AED",
+                        "tooth-crown": "#B45309",
+                        "tertiary-fixed-dim": "#d2bbff",
+                        "error": "#DC2626",
+                        "surface-dim": "#d8dadc",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#80d5cb",
+                        "tertiary-fixed": "#eaddff",
+                        "outline-variant": "#bdc9c6",
+                        "on-secondary-fixed-variant": "#003ea8",
+                        "outline": "#6e7977",
+                        "surface-variant": "#e0e3e5",
+                        "tooth-missing": "#6B7280",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#134E4A",
+                        "tooth-fracture": "#EA580C",
+                        "primary-fixed": "#9cf2e8",
+                        "secondary-fixed": "#dbe1ff",
+                        "on-background": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "background": "#f7f9fb",
+                        "surface-container": "#eceef0",
+                        "warning": "#D97706",
+                        "on-surface-variant": "#3e4947",
+                        "secondary-fixed-dim": "#b4c5ff",
+                        "accent": "#06B6D4",
+                        "primary-fixed-dim": "#80d5cb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "form-gutter": "20px",
+                        "page-padding-tablet": "24px",
+                        "xl": "32px",
+                        "touch-target": "44px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "page-padding-desktop": "32px",
+                        "card-gap": "16px",
+                        "unit": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "clinical-code": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.03em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "title-lg": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "650" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "650" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "clinical-code": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<script>
+(function(){
+  var h=document.documentElement,m=window.matchMedia('(prefers-color-scheme:dark)');
+  function apply(e){h.classList.toggle('dark',e.matches);}
+  apply(m);m.addEventListener('change',apply);
+})();
+</script>
+<style id="dm">
+/* ══ Dark Mode overrides per content estratto da Stitch ══ */
+html.dark body{background-color:#0f172a;color:#f1f5f9}
+html.dark .bg-white{background-color:#1e293b!important}
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-50\/60{background-color:#0f172a!important}
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/80{background-color:#1e293b!important}
+html.dark .bg-slate-200{background-color:#334155!important}
+html.dark .bg-background,
+html.dark .bg-surface{background-color:#0f172a!important}
+html.dark .bg-surface-container-low{background-color:#1e293b!important}
+html.dark .text-slate-900,
+html.dark .text-on-background,
+html.dark .text-on-surface{color:#f8fafc!important}
+html.dark .text-slate-800{color:#f1f5f9!important}
+html.dark .text-slate-700{color:#e2e8f0!important}
+html.dark .text-slate-600{color:#cbd5e1!important}
+html.dark .text-slate-500{color:#94a3b8!important}
+html.dark .text-slate-400{color:#64748b!important}
+html.dark .text-slate-300{color:#475569!important}
+html.dark .text-primary,
+html.dark .text-teal-600{color:#2dd4bf!important}
+html.dark .text-teal-700{color:#5eead4!important}
+html.dark .text-teal-800{color:#99f6e4!important}
+html.dark .text-teal-200{color:#5eead4!important}
+html.dark .border-slate-200{border-color:#334155!important}
+html.dark .border-slate-100{border-color:#1e293b!important}
+html.dark .border-teal-100{border-color:rgba(45,212,191,.2)!important}
+html.dark .border-teal-200{border-color:rgba(45,212,191,.3)!important}
+html.dark .bg-teal-50{background-color:rgba(20,184,166,.08)!important}
+html.dark .bg-teal-100{background-color:rgba(20,184,166,.14)!important}
+html.dark .bg-teal-600{background-color:#0f766e!important}
+html.dark .bg-primary{background-color:#0f766e!important}
+html.dark .bg-primary\/10{background-color:rgba(45,212,191,.1)!important}
+html.dark .bg-secondary-container{background-color:rgba(59,130,246,.15)!important}
+html.dark .text-on-secondary-container{color:#93c5fd!important}
+html.dark .bg-blue-100{background-color:rgba(59,130,246,.15)!important}
+html.dark .text-blue-600{color:#93c5fd!important}
+html.dark .bg-success\/10{background-color:rgba(22,163,74,.15)!important}
+html.dark .bg-warning\/10{background-color:rgba(217,119,6,.15)!important}
+html.dark .bg-error\/10,
+html.dark .bg-error-container{background-color:rgba(220,38,38,.15)!important}
+html.dark .text-success{color:#4ade80!important}
+html.dark .text-warning{color:#fbbf24!important}
+html.dark .text-error{color:#f87171!important}
+html.dark .border-l-error{border-left-color:#f87171!important}
+html.dark .border-l-primary{border-left-color:#2dd4bf!important}
+html.dark .divide-slate-200>*+*{border-color:#334155!important}
+html.dark input,html.dark textarea,html.dark select{
+  background-color:#1e293b!important;
+  border-color:#475569!important;
+  color:#f1f5f9!important}
+html.dark input::placeholder,
+html.dark textarea::placeholder{color:#64748b!important}
+html.dark input:focus,
+html.dark textarea:focus{
+  border-color:#2dd4bf!important;
+  box-shadow:0 0 0 3px rgba(45,212,191,.15)!important}
+html.dark thead tr{background-color:#0f172a!important}
+html.dark th{color:#94a3b8!important}
+html.dark td{color:#e2e8f0!important}
+html.dark tbody tr:hover,
+html.dark .hover\:bg-white:hover{background-color:#334155!important}
+html.dark .shadow-sm{box-shadow:0 1px 4px rgba(0,0,0,.5)!important}
+html.dark .shadow-xl,
+html.dark .shadow-lg{box-shadow:0 10px 30px rgba(0,0,0,.6)!important}
+html.dark .clinical-shadow{box-shadow:0 1px 3px rgba(0,0,0,.4)!important}
+/* Responsive: tabelle scrollabili su mobile */
+@media(max-width:767px){
+  main .overflow-hidden{overflow-x:auto!important}
+  main table{min-width:480px}
+  main .grid-cols-3,main .grid-cols-4{grid-template-columns:repeat(2,1fr)!important}
+  main .grid-cols-2{grid-template-columns:1fr!important}
+}
+@media(min-width:768px) and (max-width:1023px){
+  main .grid-cols-4{grid-template-columns:repeat(2,1fr)!important}
+}
+</style>
+<script>(function(){var h=document.documentElement,m=window.matchMedia("(prefers-color-scheme:dark)");function a(e){h.classList.toggle("dark",e.matches)}a(m);m.addEventListener("change",a)})();</script>
+<style id="dm">
+html.dark body{background-color:#0f172a;color:#f1f5f9}
+html.dark .bg-white{background-color:#1e293b!important}
+html.dark .bg-slate-50,html.dark .bg-slate-50\/50,html.dark .bg-slate-50\/60{background-color:#0f172a!important}
+html.dark .bg-slate-100,html.dark .bg-slate-100\/80{background-color:#1e293b!important}
+html.dark .bg-slate-200{background-color:#334155!important}
+html.dark .bg-background,html.dark .bg-surface{background-color:#0f172a!important}
+html.dark .bg-surface-container-low{background-color:#1e293b!important}
+html.dark .text-slate-900,html.dark .text-on-background,html.dark .text-on-surface{color:#f8fafc!important}
+html.dark .text-slate-800{color:#f1f5f9!important}
+html.dark .text-slate-700{color:#e2e8f0!important}
+html.dark .text-slate-600{color:#cbd5e1!important}
+html.dark .text-slate-500{color:#94a3b8!important}
+html.dark .text-slate-400{color:#64748b!important}
+html.dark .text-primary,html.dark .text-teal-600{color:#2dd4bf!important}
+html.dark .text-teal-700{color:#5eead4!important}
+html.dark .text-teal-800{color:#99f6e4!important}
+html.dark .border-slate-200{border-color:#334155!important}
+html.dark .border-slate-100{border-color:#1e293b!important}
+html.dark .border-teal-100{border-color:rgba(45,212,191,.2)!important}
+html.dark .border-teal-200{border-color:rgba(45,212,191,.3)!important}
+html.dark .bg-teal-50{background-color:rgba(20,184,166,.08)!important}
+html.dark .bg-teal-100{background-color:rgba(20,184,166,.14)!important}
+html.dark .bg-teal-600,html.dark .bg-primary{background-color:#0f766e!important}
+html.dark .bg-primary\/10{background-color:rgba(45,212,191,.1)!important}
+html.dark .bg-secondary-container{background-color:rgba(59,130,246,.15)!important}
+html.dark .text-on-secondary-container,html.dark .text-blue-600{color:#93c5fd!important}
+html.dark .bg-blue-100{background-color:rgba(59,130,246,.15)!important}
+html.dark .bg-success\/10{background-color:rgba(22,163,74,.15)!important}
+html.dark .bg-warning\/10{background-color:rgba(217,119,6,.15)!important}
+html.dark .bg-error\/10,html.dark .bg-error-container{background-color:rgba(220,38,38,.15)!important}
+html.dark .text-success{color:#4ade80!important}
+html.dark .text-warning{color:#fbbf24!important}
+html.dark .text-error{color:#f87171!important}
+html.dark .border-l-error{border-left-color:#f87171!important}
+html.dark .border-l-primary{border-left-color:#2dd4bf!important}
+html.dark .divide-slate-200>*+*{border-color:#334155!important}
+html.dark input,html.dark textarea,html.dark select{background-color:#1e293b!important;border-color:#475569!important;color:#f1f5f9!important}
+html.dark input::placeholder,html.dark textarea::placeholder{color:#64748b!important}
+html.dark input:focus,html.dark textarea:focus{border-color:#2dd4bf!important;box-shadow:0 0 0 3px rgba(45,212,191,.15)!important}
+html.dark thead tr{background-color:#0f172a!important}
+html.dark th{color:#94a3b8!important}
+html.dark td{color:#e2e8f0!important}
+html.dark tbody tr:hover,html.dark .hover\:bg-white:hover{background-color:#334155!important}
+html.dark .shadow-sm{box-shadow:0 1px 4px rgba(0,0,0,.5)!important}
+html.dark .shadow-xl,html.dark .shadow-lg{box-shadow:0 10px 30px rgba(0,0,0,.6)!important}
+html.dark .clinical-shadow{box-shadow:0 1px 3px rgba(0,0,0,.4)!important}
+@media(max-width:767px){main .overflow-hidden{overflow-x:auto!important}main table{min-width:480px}main .grid-cols-3,main .grid-cols-4{grid-template-columns:repeat(2,1fr)!important}main .grid-cols-2{grid-template-columns:1fr!important}}
+@media(min-width:768px)and (max-width:1023px){main .grid-cols-4{grid-template-columns:repeat(2,1fr)!important}}
+</style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans antialiased overflow-hidden" style="height:100vh">
+<div class="flex h-screen overflow-hidden">
+  <aside class="hidden md:flex flex-col flex-shrink-0 h-full z-40 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 w-16 lg:w-[220px] transition-all duration-300">
+    <div class="h-14 border-b border-slate-100 dark:border-slate-700 flex items-center justify-center lg:justify-start lg:px-4 gap-3 shrink-0">
+      <div class="shrink-0"><svg width="36" height="36" viewBox="0 0 88 88" fill="none" aria-hidden="true"><defs><linearGradient id="lb" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#134e4a"/></linearGradient><filter id="lg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="4" y="4" width="80" height="80" rx="20" fill="url(#lb)"/><circle cx="36" cy="44" r="20" fill="#0d9488" opacity="0.15"/><text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf" filter="url(#lg)">D</text><path d="M50 51 Q59 61 68 51" stroke="#2dd4bf" stroke-width="2.8" fill="none" stroke-linecap="round" filter="url(#lg)"/><circle cx="54" cy="43" r="2.5" fill="#5eead4" filter="url(#lg)"/><circle cx="63" cy="43" r="2.5" fill="#5eead4" filter="url(#lg)"/></svg></div>
+      <div class="hidden lg:block min-w-0">
+        <p class="font-bold text-teal-800 dark:text-teal-400 text-sm leading-tight truncate">DentalCare Pro</p>
+        <p class="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Studio Dentistico</p>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5">
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="dashboard_iniziale_desktop.html"><span class="material-symbols-outlined text-[20px] shrink-0">home</span><span class="hidden lg:inline text-sm font-medium">Dashboard</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="segretaria_console_desktop.html"><span class="material-symbols-outlined text-[20px] shrink-0">forum</span><span class="hidden lg:inline text-sm font-medium">SegretarIA</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="agenda_appuntamenti_desktop.html"><span class="material-symbols-outlined text-[20px] shrink-0">event</span><span class="hidden lg:inline text-sm font-medium">Agenda</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start bg-teal-600 dark:bg-teal-900/80 text-white dark:text-teal-300" href="gestione_pazienti_desktop.html"><span class="material-symbols-outlined text-[20px] shrink-0" data-weight="fill">folder_shared</span><span class="hidden lg:inline text-sm font-medium">Pazienti</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="gestione_preventivi_desktop_1.html"><span class="material-symbols-outlined text-[20px] shrink-0">description</span><span class="hidden lg:inline text-sm font-medium">Preventivi</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#"><span class="material-symbols-outlined text-[20px] shrink-0">receipt_long</span><span class="hidden lg:inline text-sm font-medium">Fatturazione</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#"><span class="material-symbols-outlined text-[20px] shrink-0">notifications_active</span><span class="hidden lg:inline text-sm font-medium">Richiami</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#"><span class="material-symbols-outlined text-[20px] shrink-0">inventory_2</span><span class="hidden lg:inline text-sm font-medium">Magazzino</span></a>
+    </nav>
+    <div class="py-3 border-t border-slate-100 dark:border-slate-700">
+      <a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start" href="#"><span class="material-symbols-outlined text-[20px] shrink-0">settings</span><span class="hidden lg:inline text-sm font-medium">Impostazioni</span></a>
+    </div>
+  </aside>
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <div class="flex h-14 shrink-0 z-30 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <button class="md:hidden px-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" onclick="document.getElementById('mob-sb').classList.remove('hidden')" aria-label="Apri menu"><span class="material-symbols-outlined text-[24px]">menu</span></button>
+      <div class="flex-1 flex items-center px-4 md:px-5 gap-3 min-w-0">
+        <h1 class="font-bold text-[17px] md:text-[20px] leading-tight truncate text-slate-800 dark:text-slate-100">Nuovo Paziente</h1>
+        <div class="ml-auto flex items-center gap-0.5 shrink-0">
+          <button class="p-2 rounded-full transition-colors text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300" title="Notifiche"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+          <button class="p-2 rounded-full transition-colors text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300" title="Guida"><span class="material-symbols-outlined text-[22px]">help_outline</span></button>
+        </div>
+      </div>
+      <div class="hidden lg:flex w-[220px] items-center px-4 gap-3 shrink-0 border-l border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40">
+        <div class="flex-1 min-w-0"><p class="font-semibold text-sm leading-none truncate text-slate-800 dark:text-slate-100">Dr. Rossi</p><p class="text-[11px] font-medium mt-0.5 truncate text-teal-600 dark:text-teal-400">Clinica Centrale</p><p class="text-[10px] font-medium truncate text-slate-400 dark:text-slate-500">Amministratore</p></div>
+        <div class="w-9 h-9 rounded-full overflow-hidden shrink-0 cursor-pointer border-2 border-teal-200 dark:border-teal-800 shadow-sm"><img alt="Dr. Rossi" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvS51PG9IOXCvpJtUbhpgCuws3rO6y6-Lva3674M9Swi2HZRoKr5olrjPAfLVMjhS3XB6zH_zazugUpzvanlTTVXwT2AWXzKWYbk7M3nEAHcrun7TEvNqErQhoPUVDqEncX1J-rJSQ1VNxyQ2TiMfQX47FGu0d0J9jt_TmXjsw3YPNmTdG1xVzKJgOSBTFvf9GC1LWzyadCHLMxA3S8uItSARfbWoI4N-qCey_KDEwpiyRRLHQDTrbLAAnaPbWmZ2-BOnPZNlop4f8"/></div>
+      </div>
+    </div>
+    <div class="flex flex-1 overflow-hidden">
+      <main class="flex-1 overflow-y-auto pb-14 md:pb-0 bg-slate-100 dark:bg-slate-900">
+<!-- TopAppBar -->
+
+<!-- Form Canvas -->
+<div class="flex-1 overflow-y-auto p-page-padding-desktop bg-surface-bright">
+<form class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-xl">
+<!-- Left Column: Anagrafica -->
+<div class="space-y-card-gap">
+<section class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container-highest p-6">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-6 border-b border-surface-variant pb-2" style="">Dati Anagrafici</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-form-gutter">
+<div class="flex flex-col gap-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="nome" style="">Nome</label>
+<input class="rounded-lg border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container min-h-[44px] px-4 font-body-md text-body-md" id="nome" placeholder="Inserisci il nome" type="text"/>
+</div>
+<div class="flex flex-col gap-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="cognome" style="">Cognome</label>
+<input class="rounded-lg border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container min-h-[44px] px-4 font-body-md text-body-md" id="cognome" placeholder="Inserisci il cognome" type="text"/>
+</div>
+<div class="flex flex-col gap-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="data_nascita" style="">Data di Nascita</label>
+<input class="rounded-lg border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container min-h-[44px] px-4 font-body-md text-body-md" id="data_nascita" type="date"/>
+</div>
+<div class="flex flex-col gap-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="codice_fiscale" style="">Codice Fiscale</label>
+<input class="rounded-lg border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container min-h-[44px] px-4 font-clinical-code text-clinical-code uppercase" id="codice_fiscale" placeholder="AAABBB11C22D333E" type="text"/>
+</div>
+</div>
+</section>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container-highest p-6">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-6 border-b border-surface-variant pb-2" style="">Contatti</h3>
+<div class="grid grid-cols-1 gap-form-gutter">
+<div class="flex flex-col gap-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="telefono" style="">Telefono</label>
+<input class="rounded-lg border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container min-h-[44px] px-4 font-body-md text-body-md" id="telefono" placeholder="+39" type="tel"/>
+</div>
+<div class="flex flex-col gap-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="email" style="">Email</label>
+<input class="rounded-lg border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container min-h-[44px] px-4 font-body-md text-body-md" id="email" placeholder="email@esempio.it" type="email"/>
+</div>
+<div class="flex flex-col gap-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="indirizzo" style="">Indirizzo</label>
+<input class="rounded-lg border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container min-h-[44px] px-4 font-body-md text-body-md" id="indirizzo" placeholder="Via, Città, CAP" type="text"/>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Amministrazione -->
+<div class="space-y-card-gap">
+<section class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container-highest p-6">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-6 border-b border-surface-variant pb-2" style="">Note Cliniche Pre-Visita</h3>
+<div class="flex flex-col gap-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="note" style="">Osservazioni Generali</label>
+<textarea class="rounded-lg border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container p-4 font-body-md text-body-md resize-none" id="note" placeholder="Inserisci eventuali note rilevanti per il primo appuntamento..." rows="4"></textarea>
+</div>
+</section>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container-highest p-6">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-6 border-b border-surface-variant pb-2" style="">Amministrazione &amp; Consensi</h3>
+<div class="space-y-4">
+<label class="flex items-start gap-3 min-h-[44px] p-2 hover:bg-surface rounded-lg cursor-pointer transition-colors" style="">
+<input class="mt-1 w-5 h-5 rounded border-outline text-primary-container focus:ring-primary-container" type="checkbox"/>
+<div>
+<span class="font-label-md text-label-md text-on-surface block" style="">Consenso Privacy (GDPR)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" style="">Il paziente ha firmato l'informativa sulla privacy.</span>
+</div>
+</label>
+<label class="flex items-start gap-3 min-h-[44px] p-2 hover:bg-surface rounded-lg cursor-pointer transition-colors" style="">
+<input class="mt-1 w-5 h-5 rounded border-outline text-primary-container focus:ring-primary-container" type="checkbox"/>
+<div>
+<span class="font-label-md text-label-md text-on-surface block" style="">Consenso Informato Generale</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" style="">Il paziente ha firmato il consenso alle cure odontoiatriche generali.</span>
+</div>
+</label>
+</div>
+</section>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container-highest p-6">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-6 border-b border-surface-variant pb-2">Firma del Paziente per Consenso</h3>
+<div class="flex flex-col gap-4">
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+      Apporre la firma nello spazio sottostante per confermare l'accettazione dei consensi selezionati.
+    </p>
+<div class="relative w-full aspect-[2/1] bg-white border-2 border-dashed border-outline-variant rounded-lg flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-surface-container-high text-6xl absolute pointer-events-none select-none">draw</span>
+<!-- This area represents where the signature would be drawn -->
+<div class="absolute inset-0 cursor-crosshair"></div>
+</div>
+<div class="flex items-center justify-end gap-3">
+<button class="px-4 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-variant transition-colors min-h-[44px] flex items-center gap-2" type="button">
+<span class="material-symbols-outlined text-[20px]">delete_sweep</span>
+        Cancella
+      </button>
+<button class="px-4 py-2 rounded-lg border border-teal-700 text-teal-700 font-label-md text-label-md hover:bg-teal-50 transition-colors min-h-[44px] flex items-center gap-2" type="button">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+        Conferma Firma
+      </button>
+</div>
+</div>
+</section></div>
+</form>
+</div>
+      </main>
+      <aside class="hidden xl:flex w-[220px] flex-shrink-0 flex-col overflow-y-auto border-l border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40">
+        <div class="p-4 border-b border-slate-100 dark:border-slate-700"><p class="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Navigazione rapida</p></div>
+        <div class="flex-1 p-2 flex flex-col gap-0.5">
+<a href="gestione_pazienti_desktop.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all group text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700/70 hover:text-teal-700 dark:hover:text-teal-400 hover:shadow-sm"><span class="material-symbols-outlined text-[17px] shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors">arrow_back</span><span class="text-[12px] font-medium truncate">Lista pazienti</span></a>
+<a href="agenda_appuntamenti_desktop.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all group text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700/70 hover:text-teal-700 dark:hover:text-teal-400 hover:shadow-sm"><span class="material-symbols-outlined text-[17px] shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors">event</span><span class="text-[12px] font-medium truncate">Agenda</span></a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+  <div id="mob-sb" class="hidden fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onclick="document.getElementById('mob-sb').classList.add('hidden')"></div>
+    <aside class="absolute left-0 top-0 bottom-0 w-[260px] flex flex-col shadow-2xl bg-white dark:bg-slate-800">
+      <div class="h-14 border-b border-slate-100 dark:border-slate-700 px-4 flex items-center gap-3 shrink-0">
+        <svg width="36" height="36" viewBox="0 0 88 88" fill="none" aria-hidden="true"><defs><linearGradient id="lb" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#134e4a"/></linearGradient><filter id="lg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="4" y="4" width="80" height="80" rx="20" fill="url(#lb)"/><circle cx="36" cy="44" r="20" fill="#0d9488" opacity="0.15"/><text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf" filter="url(#lg)">D</text><path d="M50 51 Q59 61 68 51" stroke="#2dd4bf" stroke-width="2.8" fill="none" stroke-linecap="round" filter="url(#lg)"/><circle cx="54" cy="43" r="2.5" fill="#5eead4" filter="url(#lg)"/><circle cx="63" cy="43" r="2.5" fill="#5eead4" filter="url(#lg)"/></svg>
+        <div class="min-w-0"><p class="font-bold text-teal-800 dark:text-teal-400 text-sm leading-tight truncate">DentalCare Pro</p><p class="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Studio Dentistico</p></div>
+        <button class="ml-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[22px]">close</span></button>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5">
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="dashboard_iniziale_desktop.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">home</span><span class="text-sm font-medium">Dashboard</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="segretaria_console_desktop.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">forum</span><span class="text-sm font-medium">SegretarIA</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="agenda_appuntamenti_desktop.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">event</span><span class="text-sm font-medium">Agenda</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 bg-teal-600 dark:bg-teal-900/80 text-white dark:text-teal-300" href="gestione_pazienti_desktop.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0" data-weight="fill">folder_shared</span><span class="text-sm font-medium">Pazienti</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="gestione_preventivi_desktop_1.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">description</span><span class="text-sm font-medium">Preventivi</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">receipt_long</span><span class="text-sm font-medium">Fatturazione</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">notifications_active</span><span class="text-sm font-medium">Richiami</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">inventory_2</span><span class="text-sm font-medium">Magazzino</span></a>
+      </nav>
+      <div class="py-3 border-t border-slate-100 dark:border-slate-700">
+        <a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-lg mx-3 px-3 py-2.5 flex items-center gap-3 cursor-pointer transition-all" href="#" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px]">settings</span><span class="text-sm font-medium">Impostazioni</span></a>
+      </div>
+    </aside>
+  </div>
+<nav class="fixed bottom-0 w-full z-50 md:hidden bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 shadow-lg flex justify-around items-center h-14 px-1">
+  <a class="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 py-1.5 text-slate-500 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400" href="dashboard_iniziale_desktop.html"><span class="material-symbols-outlined text-[22px]">home</span><span>Dashboard</span></a>
+  <a class="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 py-1.5 text-slate-500 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400" href="agenda_appuntamenti_desktop.html"><span class="material-symbols-outlined text-[22px]">event</span><span>Agenda</span></a>
+  <a class="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 py-1.5 text-teal-600 dark:text-teal-400" href="gestione_pazienti_desktop.html"><span class="material-symbols-outlined text-[22px]" data-weight="fill">folder_shared</span><span>Pazienti</span></a>
+  <a class="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 py-1.5 text-slate-500 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400" href="segretaria_console_desktop.html"><span class="material-symbols-outlined text-[22px]">forum</span><span>AI</span></a>
+</nav>
+</body>
+</html>

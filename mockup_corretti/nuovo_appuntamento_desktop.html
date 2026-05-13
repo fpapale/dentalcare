@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="it" class="">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DentalCare Pro - Nuovo Appuntamento</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-low": "#f2f4f6",
+              "surface-container-highest": "#CBD5E1",
+              "on-primary-container": "#a3faef",
+              "tooth-fracture": "#EA580C",
+              "outline-variant": "#bdc9c6",
+              "on-secondary": "#ffffff",
+              "surface-variant": "#e0e3e5",
+              "secondary-fixed-dim": "#b4c5ff",
+              "on-secondary-fixed-variant": "#003ea8",
+              "on-surface-variant": "#3e4947",
+              "surface-container": "#F1F5F9",
+              "tertiary-container": "#7f3ef0",
+              "primary-fixed-dim": "#80d5cb",
+              "on-error": "#ffffff",
+              "tertiary": "#6616d7",
+              "on-tertiary-fixed": "#25005a",
+              "on-surface": "#191c1e",
+              "on-primary-fixed-variant": "#00504a",
+              "warning": "#D97706",
+              "on-tertiary": "#ffffff",
+              "accent": "#06B6D4",
+              "on-error-container": "#93000a",
+              "tooth-missing": "#6B7280",
+              "secondary-container": "#316bf3",
+              "on-secondary-fixed": "#00174b",
+              "error-container": "#ffdad6",
+              "on-background": "#191c1e",
+              "inverse-on-surface": "#eff1f3",
+              "secondary": "#0051d5",
+              "primary": "#005c55",
+              "on-tertiary-container": "#f1e6ff",
+              "on-tertiary-fixed-variant": "#5a00c6",
+              "tooth-filling": "#2563EB",
+              "tooth-caries": "#DC2626",
+              "surface-tint": "#006a63",
+              "primary-container": "#0f766e",
+              "tertiary-fixed": "#eaddff",
+              "outline": "#6e7977",
+              "on-primary-fixed": "#00201d",
+              "on-secondary-container": "#fefcff",
+              "surface-dim": "#d8dadc",
+              "surface-bright": "#f7f9fb",
+              "tooth-implant": "#16A34A",
+              "on-primary": "#ffffff",
+              "background": "#f7f9fb",
+              "surface-container-lowest": "#ffffff",
+              "tertiary-fixed-dim": "#d2bbff",
+              "surface": "#f7f9fb",
+              "secondary-fixed": "#dbe1ff",
+              "surface-container-high": "#e6e8ea",
+              "inverse-surface": "#2d3133",
+              "inverse-primary": "#80d5cb",
+              "success": "#16A34A",
+              "tooth-crown": "#B45309",
+              "primary-fixed": "#9cf2e8",
+              "tooth-devitalized": "#7C3AED",
+              "error": "#DC2626"
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+            spacing: {
+              "touch-target": "44px",
+              "sm": "8px",
+              "page-padding-desktop": "32px",
+              "md": "16px",
+              "xs": "4px",
+              "xl": "32px",
+              "lg": "24px",
+              "form-gutter": "20px",
+              "card-gap": "16px",
+              "page-padding-tablet": "24px",
+              "unit": "8px"
+            },
+            fontFamily: {
+              "title-lg": ["Inter", "sans-serif"],
+              "body-sm": ["Inter", "sans-serif"],
+              "headline-md": ["Inter", "sans-serif"],
+              "label-sm": ["Inter", "sans-serif"],
+              "clinical-code": ["JetBrains Mono", "monospace"],
+              "label-md": ["Inter", "sans-serif"],
+              "display-lg": ["Inter", "sans-serif"],
+              "body-md": ["Inter", "sans-serif"]
+            },
+            fontSize: {
+              "title-lg": ["20px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "650" }],
+              "body-sm": ["14px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "400" }],
+              "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.015em", fontWeight: "650" }],
+              "label-sm": ["12px", { lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "600" }],
+              "clinical-code": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "600" }],
+              "label-md": ["14px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600" }],
+              "display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.03em", fontWeight: "700" }],
+              "body-md": ["16px", { lineHeight: "24px", letterSpacing: "0em", fontWeight: "400" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        /* Custom scrollbar for clinical cleanliness */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+<script>
+(function(){
+  var h=document.documentElement,m=window.matchMedia('(prefers-color-scheme:dark)');
+  function apply(e){h.classList.toggle('dark',e.matches);}
+  apply(m);m.addEventListener('change',apply);
+})();
+</script>
+<style id="dm">
+/* ══ Dark Mode overrides per content estratto da Stitch ══ */
+html.dark body{background-color:#0f172a;color:#f1f5f9}
+html.dark .bg-white{background-color:#1e293b!important}
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-50\/60{background-color:#0f172a!important}
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/80{background-color:#1e293b!important}
+html.dark .bg-slate-200{background-color:#334155!important}
+html.dark .bg-background,
+html.dark .bg-surface{background-color:#0f172a!important}
+html.dark .bg-surface-container-low{background-color:#1e293b!important}
+html.dark .text-slate-900,
+html.dark .text-on-background,
+html.dark .text-on-surface{color:#f8fafc!important}
+html.dark .text-slate-800{color:#f1f5f9!important}
+html.dark .text-slate-700{color:#e2e8f0!important}
+html.dark .text-slate-600{color:#cbd5e1!important}
+html.dark .text-slate-500{color:#94a3b8!important}
+html.dark .text-slate-400{color:#64748b!important}
+html.dark .text-slate-300{color:#475569!important}
+html.dark .text-primary,
+html.dark .text-teal-600{color:#2dd4bf!important}
+html.dark .text-teal-700{color:#5eead4!important}
+html.dark .text-teal-800{color:#99f6e4!important}
+html.dark .text-teal-200{color:#5eead4!important}
+html.dark .border-slate-200{border-color:#334155!important}
+html.dark .border-slate-100{border-color:#1e293b!important}
+html.dark .border-teal-100{border-color:rgba(45,212,191,.2)!important}
+html.dark .border-teal-200{border-color:rgba(45,212,191,.3)!important}
+html.dark .bg-teal-50{background-color:rgba(20,184,166,.08)!important}
+html.dark .bg-teal-100{background-color:rgba(20,184,166,.14)!important}
+html.dark .bg-teal-600{background-color:#0f766e!important}
+html.dark .bg-primary{background-color:#0f766e!important}
+html.dark .bg-primary\/10{background-color:rgba(45,212,191,.1)!important}
+html.dark .bg-secondary-container{background-color:rgba(59,130,246,.15)!important}
+html.dark .text-on-secondary-container{color:#93c5fd!important}
+html.dark .bg-blue-100{background-color:rgba(59,130,246,.15)!important}
+html.dark .text-blue-600{color:#93c5fd!important}
+html.dark .bg-success\/10{background-color:rgba(22,163,74,.15)!important}
+html.dark .bg-warning\/10{background-color:rgba(217,119,6,.15)!important}
+html.dark .bg-error\/10,
+html.dark .bg-error-container{background-color:rgba(220,38,38,.15)!important}
+html.dark .text-success{color:#4ade80!important}
+html.dark .text-warning{color:#fbbf24!important}
+html.dark .text-error{color:#f87171!important}
+html.dark .border-l-error{border-left-color:#f87171!important}
+html.dark .border-l-primary{border-left-color:#2dd4bf!important}
+html.dark .divide-slate-200>*+*{border-color:#334155!important}
+html.dark input,html.dark textarea,html.dark select{
+  background-color:#1e293b!important;
+  border-color:#475569!important;
+  color:#f1f5f9!important}
+html.dark input::placeholder,
+html.dark textarea::placeholder{color:#64748b!important}
+html.dark input:focus,
+html.dark textarea:focus{
+  border-color:#2dd4bf!important;
+  box-shadow:0 0 0 3px rgba(45,212,191,.15)!important}
+html.dark thead tr{background-color:#0f172a!important}
+html.dark th{color:#94a3b8!important}
+html.dark td{color:#e2e8f0!important}
+html.dark tbody tr:hover,
+html.dark .hover\:bg-white:hover{background-color:#334155!important}
+html.dark .shadow-sm{box-shadow:0 1px 4px rgba(0,0,0,.5)!important}
+html.dark .shadow-xl,
+html.dark .shadow-lg{box-shadow:0 10px 30px rgba(0,0,0,.6)!important}
+html.dark .clinical-shadow{box-shadow:0 1px 3px rgba(0,0,0,.4)!important}
+/* Responsive: tabelle scrollabili su mobile */
+@media(max-width:767px){
+  main .overflow-hidden{overflow-x:auto!important}
+  main table{min-width:480px}
+  main .grid-cols-3,main .grid-cols-4{grid-template-columns:repeat(2,1fr)!important}
+  main .grid-cols-2{grid-template-columns:1fr!important}
+}
+@media(min-width:768px) and (max-width:1023px){
+  main .grid-cols-4{grid-template-columns:repeat(2,1fr)!important}
+}
+</style>
+<script>(function(){var h=document.documentElement,m=window.matchMedia("(prefers-color-scheme:dark)");function a(e){h.classList.toggle("dark",e.matches)}a(m);m.addEventListener("change",a)})();</script>
+<style id="dm">
+html.dark body{background-color:#0f172a;color:#f1f5f9}
+html.dark .bg-white{background-color:#1e293b!important}
+html.dark .bg-slate-50,html.dark .bg-slate-50\/50,html.dark .bg-slate-50\/60{background-color:#0f172a!important}
+html.dark .bg-slate-100,html.dark .bg-slate-100\/80{background-color:#1e293b!important}
+html.dark .bg-slate-200{background-color:#334155!important}
+html.dark .bg-background,html.dark .bg-surface{background-color:#0f172a!important}
+html.dark .bg-surface-container-low{background-color:#1e293b!important}
+html.dark .text-slate-900,html.dark .text-on-background,html.dark .text-on-surface{color:#f8fafc!important}
+html.dark .text-slate-800{color:#f1f5f9!important}
+html.dark .text-slate-700{color:#e2e8f0!important}
+html.dark .text-slate-600{color:#cbd5e1!important}
+html.dark .text-slate-500{color:#94a3b8!important}
+html.dark .text-slate-400{color:#64748b!important}
+html.dark .text-primary,html.dark .text-teal-600{color:#2dd4bf!important}
+html.dark .text-teal-700{color:#5eead4!important}
+html.dark .text-teal-800{color:#99f6e4!important}
+html.dark .border-slate-200{border-color:#334155!important}
+html.dark .border-slate-100{border-color:#1e293b!important}
+html.dark .border-teal-100{border-color:rgba(45,212,191,.2)!important}
+html.dark .border-teal-200{border-color:rgba(45,212,191,.3)!important}
+html.dark .bg-teal-50{background-color:rgba(20,184,166,.08)!important}
+html.dark .bg-teal-100{background-color:rgba(20,184,166,.14)!important}
+html.dark .bg-teal-600,html.dark .bg-primary{background-color:#0f766e!important}
+html.dark .bg-primary\/10{background-color:rgba(45,212,191,.1)!important}
+html.dark .bg-secondary-container{background-color:rgba(59,130,246,.15)!important}
+html.dark .text-on-secondary-container,html.dark .text-blue-600{color:#93c5fd!important}
+html.dark .bg-blue-100{background-color:rgba(59,130,246,.15)!important}
+html.dark .bg-success\/10{background-color:rgba(22,163,74,.15)!important}
+html.dark .bg-warning\/10{background-color:rgba(217,119,6,.15)!important}
+html.dark .bg-error\/10,html.dark .bg-error-container{background-color:rgba(220,38,38,.15)!important}
+html.dark .text-success{color:#4ade80!important}
+html.dark .text-warning{color:#fbbf24!important}
+html.dark .text-error{color:#f87171!important}
+html.dark .border-l-error{border-left-color:#f87171!important}
+html.dark .border-l-primary{border-left-color:#2dd4bf!important}
+html.dark .divide-slate-200>*+*{border-color:#334155!important}
+html.dark input,html.dark textarea,html.dark select{background-color:#1e293b!important;border-color:#475569!important;color:#f1f5f9!important}
+html.dark input::placeholder,html.dark textarea::placeholder{color:#64748b!important}
+html.dark input:focus,html.dark textarea:focus{border-color:#2dd4bf!important;box-shadow:0 0 0 3px rgba(45,212,191,.15)!important}
+html.dark thead tr{background-color:#0f172a!important}
+html.dark th{color:#94a3b8!important}
+html.dark td{color:#e2e8f0!important}
+html.dark tbody tr:hover,html.dark .hover\:bg-white:hover{background-color:#334155!important}
+html.dark .shadow-sm{box-shadow:0 1px 4px rgba(0,0,0,.5)!important}
+html.dark .shadow-xl,html.dark .shadow-lg{box-shadow:0 10px 30px rgba(0,0,0,.6)!important}
+html.dark .clinical-shadow{box-shadow:0 1px 3px rgba(0,0,0,.4)!important}
+@media(max-width:767px){main .overflow-hidden{overflow-x:auto!important}main table{min-width:480px}main .grid-cols-3,main .grid-cols-4{grid-template-columns:repeat(2,1fr)!important}main .grid-cols-2{grid-template-columns:1fr!important}}
+@media(min-width:768px)and (max-width:1023px){main .grid-cols-4{grid-template-columns:repeat(2,1fr)!important}}
+</style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans antialiased overflow-hidden" style="height:100vh">
+<div class="flex h-screen overflow-hidden">
+  <aside class="hidden md:flex flex-col flex-shrink-0 h-full z-40 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 w-16 lg:w-[220px] transition-all duration-300">
+    <div class="h-14 border-b border-slate-100 dark:border-slate-700 flex items-center justify-center lg:justify-start lg:px-4 gap-3 shrink-0">
+      <div class="shrink-0"><svg width="36" height="36" viewBox="0 0 88 88" fill="none" aria-hidden="true"><defs><linearGradient id="lb" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#134e4a"/></linearGradient><filter id="lg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="4" y="4" width="80" height="80" rx="20" fill="url(#lb)"/><circle cx="36" cy="44" r="20" fill="#0d9488" opacity="0.15"/><text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf" filter="url(#lg)">D</text><path d="M50 51 Q59 61 68 51" stroke="#2dd4bf" stroke-width="2.8" fill="none" stroke-linecap="round" filter="url(#lg)"/><circle cx="54" cy="43" r="2.5" fill="#5eead4" filter="url(#lg)"/><circle cx="63" cy="43" r="2.5" fill="#5eead4" filter="url(#lg)"/></svg></div>
+      <div class="hidden lg:block min-w-0">
+        <p class="font-bold text-teal-800 dark:text-teal-400 text-sm leading-tight truncate">DentalCare Pro</p>
+        <p class="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Studio Dentistico</p>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5">
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="dashboard_iniziale_desktop.html"><span class="material-symbols-outlined text-[20px] shrink-0">home</span><span class="hidden lg:inline text-sm font-medium">Dashboard</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="segretaria_console_desktop.html"><span class="material-symbols-outlined text-[20px] shrink-0">forum</span><span class="hidden lg:inline text-sm font-medium">SegretarIA</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start bg-teal-600 dark:bg-teal-900/80 text-white dark:text-teal-300" href="agenda_appuntamenti_desktop.html"><span class="material-symbols-outlined text-[20px] shrink-0" data-weight="fill">event</span><span class="hidden lg:inline text-sm font-medium">Agenda</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="gestione_pazienti_desktop.html"><span class="material-symbols-outlined text-[20px] shrink-0">folder_shared</span><span class="hidden lg:inline text-sm font-medium">Pazienti</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="gestione_preventivi_desktop_1.html"><span class="material-symbols-outlined text-[20px] shrink-0">description</span><span class="hidden lg:inline text-sm font-medium">Preventivi</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#"><span class="material-symbols-outlined text-[20px] shrink-0">receipt_long</span><span class="hidden lg:inline text-sm font-medium">Fatturazione</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#"><span class="material-symbols-outlined text-[20px] shrink-0">notifications_active</span><span class="hidden lg:inline text-sm font-medium">Richiami</span></a>
+    <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#"><span class="material-symbols-outlined text-[20px] shrink-0">inventory_2</span><span class="hidden lg:inline text-sm font-medium">Magazzino</span></a>
+    </nav>
+    <div class="py-3 border-t border-slate-100 dark:border-slate-700">
+      <a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start" href="#"><span class="material-symbols-outlined text-[20px] shrink-0">settings</span><span class="hidden lg:inline text-sm font-medium">Impostazioni</span></a>
+    </div>
+  </aside>
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <div class="flex h-14 shrink-0 z-30 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <button class="md:hidden px-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" onclick="document.getElementById('mob-sb').classList.remove('hidden')" aria-label="Apri menu"><span class="material-symbols-outlined text-[24px]">menu</span></button>
+      <div class="flex-1 flex items-center px-4 md:px-5 gap-3 min-w-0">
+        <h1 class="font-bold text-[17px] md:text-[20px] leading-tight truncate text-slate-800 dark:text-slate-100">Nuovo Appuntamento</h1>
+        <div class="ml-auto flex items-center gap-0.5 shrink-0">
+          <button class="p-2 rounded-full transition-colors text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300" title="Notifiche"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+          <button class="p-2 rounded-full transition-colors text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300" title="Guida"><span class="material-symbols-outlined text-[22px]">help_outline</span></button>
+        </div>
+      </div>
+      <div class="hidden lg:flex w-[220px] items-center px-4 gap-3 shrink-0 border-l border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40">
+        <div class="flex-1 min-w-0"><p class="font-semibold text-sm leading-none truncate text-slate-800 dark:text-slate-100">Dr. Rossi</p><p class="text-[11px] font-medium mt-0.5 truncate text-teal-600 dark:text-teal-400">Clinica Centrale</p><p class="text-[10px] font-medium truncate text-slate-400 dark:text-slate-500">Amministratore</p></div>
+        <div class="w-9 h-9 rounded-full overflow-hidden shrink-0 cursor-pointer border-2 border-teal-200 dark:border-teal-800 shadow-sm"><img alt="Dr. Rossi" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvS51PG9IOXCvpJtUbhpgCuws3rO6y6-Lva3674M9Swi2HZRoKr5olrjPAfLVMjhS3XB6zH_zazugUpzvanlTTVXwT2AWXzKWYbk7M3nEAHcrun7TEvNqErQhoPUVDqEncX1J-rJSQ1VNxyQ2TiMfQX47FGu0d0J9jt_TmXjsw3YPNmTdG1xVzKJgOSBTFvf9GC1LWzyadCHLMxA3S8uItSARfbWoI4N-qCey_KDEwpiyRRLHQDTrbLAAnaPbWmZ2-BOnPZNlop4f8"/></div>
+      </div>
+    </div>
+    <div class="flex flex-1 overflow-hidden">
+      <main class="flex-1 overflow-y-auto pb-14 md:pb-0 bg-slate-100 dark:bg-slate-900">
+<!-- Modal Backdrop Overlay -->
+<!-- Navigation shell is suppressed due to the task-focused nature of this view -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/40 backdrop-blur-sm p-4 md:p-page-padding-desktop">
+<!-- Modal Container -->
+<div class="w-full max-w-5xl bg-surface-container-lowest rounded-xl shadow-2xl flex flex-col max-h-full overflow-hidden border border-outline-variant/30 ring-1 ring-black/5">
+<!-- Header -->
+<header class="flex-none px-lg py-md flex items-center justify-between border-b border-surface-variant bg-surface-container-lowest">
+<div class="flex items-center gap-sm text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_add_on</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">Nuovo Appuntamento</h2>
+</div>
+<button aria-label="Chiudi modale" class="h-touch-target w-touch-target flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<!-- Body Area - Two Column Layout -->
+<div class="flex-1 overflow-y-auto">
+<div class="grid grid-cols-1 lg:grid-cols-12 min-h-full">
+<!-- Left Column: Patient & Clinical Details -->
+<div class="lg:col-span-7 p-lg xl:p-xl flex flex-col gap-form-gutter border-b lg:border-b-0 lg:border-r border-surface-variant bg-surface-container-lowest">
+<!-- Section Title -->
+<div class="mb-xs">
+<h3 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">Dettagli Prenotazione</h3>
+</div>
+<!-- Patient Search -->
+<div class="flex flex-col gap-xs">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none">search</span>
+<input class="w-full h-touch-target pl-10 pr-md bg-surface-container-low border border-outline-variant rounded-md font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="patient-search" placeholder="Cerca per nome, cognome o CF..." type="text"/>
+<!-- Simulated Dropdown result state for realism -->
+<div class="absolute top-full left-0 right-0 mt-1 bg-surface-container-lowest border border-outline-variant rounded-md shadow-lg z-10 hidden">
+<!-- Results would go here -->
+</div>
+</div>
+</div>
+<!-- Treatment Type -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="treatment-type">Tipo di Prestazione</label>
+<!-- Quick Chips -->
+<div class="flex flex-wrap gap-xs mb-sm">
+<button class="px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-high transition-colors" type="button">Prima Visita</button>
+<button class="px-3 py-1.5 rounded-full border border-primary bg-primary/10 text-primary font-label-sm text-label-sm" type="button">Igiene Orale</button>
+<button class="px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-high transition-colors" type="button">Controllo</button>
+</div>
+<div class="relative">
+<select class="w-full h-touch-target pl-md pr-10 bg-surface-container-low border border-outline-variant rounded-md font-body-md text-body-md text-on-surface appearance-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="treatment-type">
+<option value="">Seleziona prestazione dal listino...</option>
+<option selected="" value="1">Igiene Orale Professionale (45 min)</option>
+<option value="2">Sbiancamento Dentale (60 min)</option>
+<option value="3">Estrazione Semplice (30 min)</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Doctor Selection (Bento-style Radio Grid) -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Medico Assegnato</label>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+<!-- Option 1 -->
+<label class="relative cursor-pointer group">
+<input checked="" class="peer sr-only" name="doctor" type="radio" value="dr_rossi"/>
+<div class="flex items-center gap-md p-sm border border-outline-variant rounded-lg bg-surface-container-lowest hover:bg-surface-container-low peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary peer-checked:bg-primary/5 transition-all h-full">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center overflow-hidden flex-shrink-0">
+<span class="font-label-md text-label-md">MR</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Dr. Mario Rossi</span>
+<span class="font-body-sm text-label-sm text-on-surface-variant">Igienista</span>
+</div>
+<span class="material-symbols-outlined text-primary ml-auto opacity-0 peer-checked:opacity-100 transition-opacity" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</label>
+<!-- Option 2 -->
+<label class="relative cursor-pointer group">
+<input class="peer sr-only" name="doctor" type="radio" value="dr_bianchi"/>
+<div class="flex items-center gap-md p-sm border border-outline-variant rounded-lg bg-surface-container-lowest hover:bg-surface-container-low peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary peer-checked:bg-primary/5 transition-all h-full">
+<img alt="" class="w-10 h-10 rounded-full object-cover flex-shrink-0" data-alt="Headshot of a female dentist in a clinical setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgFxzUOeIA5VifrO-yVCi3HT_KHVfhvEWdBEuahwWF9WsukJfsG-oSw3qBuc8Uyc53TkFFxd-OoqqpwG90xSq6Zw2joN5RbrGotY8PcFrtHAIJ3JPHdp9j1EUjKIsCyq_riuzw95R6FqHT64hSyPdwOBY90tbfoSBJzXEcbafucKYiHJ911upEgT7Wp3c_gZfohpfXwXB1SbvnXh8HSO5R1_YBtkGuQctf1nsQj-YS2xzfBQFwzjzgwkvSFm4-rsK8htIyYurgSZrx"/>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Dott.ssa Bianchi</span>
+<span class="font-body-sm text-label-sm text-on-surface-variant">Chirurgo</span>
+</div>
+<span class="material-symbols-outlined text-primary ml-auto opacity-0 peer-checked:opacity-100 transition-opacity" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Chair Selection -->
+<div class="flex flex-col gap-xs mt-auto">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="chair-selection">Poltrona Operativa</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none">airline_seat_recline_extra</span>
+<select class="w-full h-touch-target pl-10 pr-10 bg-surface-container-low border border-outline-variant rounded-md font-body-md text-body-md text-on-surface appearance-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="chair-selection">
+<option value="1">Poltrona 1 - Igiene</option>
+<option value="2">Poltrona 2 - Generale</option>
+<option value="3">Poltrona 3 - Chirurgia</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Date & Time Scheduling (Tonal Separation) -->
+<div class="lg:col-span-5 p-lg xl:p-xl bg-surface-container flex flex-col gap-form-gutter">
+<div class="mb-xs">
+<h3 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">Programmazione</h3>
+</div>
+<!-- Mini Calendar Header / Date Picker -->
+<div class="flex flex-col gap-sm bg-surface-container-lowest p-md rounded-lg border border-surface-variant shadow-sm">
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant transition-colors" type="button">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<!-- Simplified Week View Strip -->
+<div class="grid grid-cols-5 gap-xs mt-sm text-center">
+<div class="flex flex-col items-center p-xs rounded-md text-on-surface-variant opacity-50">
+<span class="font-label-sm text-label-sm">Mar</span>
+<span class="font-body-md text-body-md">22</span>
+</div>
+<div class="flex flex-col items-center p-xs rounded-md text-on-surface-variant opacity-50">
+<span class="font-label-sm text-label-sm">Mer</span>
+<span class="font-body-md text-body-md">23</span>
+</div>
+<div class="flex flex-col items-center p-xs rounded-md bg-primary text-on-primary shadow-md ring-2 ring-primary ring-offset-2 ring-offset-surface-container-lowest">
+<span class="font-label-sm text-label-sm">Gio</span>
+<span class="font-body-md text-body-md font-bold">24</span>
+</div>
+<div class="flex flex-col items-center p-xs rounded-md text-on-surface hover:bg-surface-container-low cursor-pointer transition-colors">
+<span class="font-label-sm text-label-sm">Ven</span>
+<span class="font-body-md text-body-md">25</span>
+</div>
+<div class="flex flex-col items-center p-xs rounded-md text-on-surface hover:bg-surface-container-low cursor-pointer transition-colors">
+<span class="font-label-sm text-label-sm">Sab</span>
+<span class="font-body-md text-body-md">26</span>
+</div>
+</div>
+</div>
+<!-- Time Slots Grid -->
+<div class="flex flex-col gap-md flex-1">
+<div class="flex flex-col gap-xs">
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">light_mode</span>
+<span class="font-label-sm text-label-sm uppercase">Mattina</span>
+</div>
+<div class="grid grid-cols-4 gap-sm">
+<!-- Past/Unavailable -->
+<button class="py-sm rounded-md border border-surface-variant bg-surface-container-low text-on-surface-variant/40 font-clinical-code text-clinical-code cursor-not-allowed line-through" disabled="" type="button">09:00</button>
+<button class="py-sm rounded-md border border-surface-variant bg-surface-container-low text-on-surface-variant/40 font-clinical-code text-clinical-code cursor-not-allowed line-through" disabled="" type="button">09:30</button>
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">10:00</button>
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">10:30</button>
+<!-- Selected -->
+<button class="py-sm rounded-md border-2 border-primary bg-primary text-on-primary font-clinical-code text-clinical-code shadow-md transform scale-[1.02] transition-all" type="button">11:00</button>
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">11:30</button>
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">12:00</button>
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">12:30</button>
+</div>
+</div>
+<div class="flex flex-col gap-xs mt-sm">
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">partly_cloudy_day</span>
+<span class="font-label-sm text-label-sm uppercase">Pomeriggio</span>
+</div>
+<div class="grid grid-cols-4 gap-sm">
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">14:00</button>
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">14:30</button>
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">15:00</button>
+<button class="py-sm rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary hover:text-primary hover:bg-primary/5 font-clinical-code text-clinical-code transition-all" type="button">15:30</button>
+</div>
+</div>
+</div>
+<!-- Duration Info Banner -->
+<div class="mt-auto flex items-center gap-sm p-sm rounded-lg bg-surface-container-lowest border border-outline-variant/50">
+<span class="material-symbols-outlined text-secondary">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">L'appuntamento durerà circa <strong class="text-on-surface font-semibold">45 minuti</strong>, terminando alle 11:45.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer / Actions -->
+<footer class="flex-none px-lg py-md border-t border-surface-variant bg-surface-bright flex justify-end items-center gap-md">
+<button class="h-touch-target px-md rounded-md font-label-md text-label-md text-primary hover:bg-surface-container-low transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" type="button">
+                    Annulla
+                </button>
+<button class="h-touch-target px-lg rounded-md bg-primary text-on-primary font-label-md text-label-md flex items-center gap-xs hover:bg-primary-container hover:text-on-primary-container shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" type="button">
+<span class="material-symbols-outlined text-[20px]">event_available</span>
+                    Conferma Prenotazione
+                </button>
+</footer>
+</div>
+</div>
+      </main>
+      <aside class="hidden xl:flex w-[220px] flex-shrink-0 flex-col overflow-y-auto border-l border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40">
+        <div class="p-4 border-b border-slate-100 dark:border-slate-700"><p class="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Navigazione rapida</p></div>
+        <div class="flex-1 p-2 flex flex-col gap-0.5">
+<a href="agenda_appuntamenti_desktop.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all group text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700/70 hover:text-teal-700 dark:hover:text-teal-400 hover:shadow-sm"><span class="material-symbols-outlined text-[17px] shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors">arrow_back</span><span class="text-[12px] font-medium truncate">Torna all agenda</span></a>
+<a href="gestione_pazienti_desktop.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all group text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700/70 hover:text-teal-700 dark:hover:text-teal-400 hover:shadow-sm"><span class="material-symbols-outlined text-[17px] shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors">folder_shared</span><span class="text-[12px] font-medium truncate">Gestione pazienti</span></a>
+<a href="dashboard_paziente_con_abitudini_desktop.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all group text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700/70 hover:text-teal-700 dark:hover:text-teal-400 hover:shadow-sm"><span class="material-symbols-outlined text-[17px] shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors">person</span><span class="text-[12px] font-medium truncate">Scheda Simona Verdi</span></a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+  <div id="mob-sb" class="hidden fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onclick="document.getElementById('mob-sb').classList.add('hidden')"></div>
+    <aside class="absolute left-0 top-0 bottom-0 w-[260px] flex flex-col shadow-2xl bg-white dark:bg-slate-800">
+      <div class="h-14 border-b border-slate-100 dark:border-slate-700 px-4 flex items-center gap-3 shrink-0">
+        <svg width="36" height="36" viewBox="0 0 88 88" fill="none" aria-hidden="true"><defs><linearGradient id="lb" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#134e4a"/></linearGradient><filter id="lg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="4" y="4" width="80" height="80" rx="20" fill="url(#lb)"/><circle cx="36" cy="44" r="20" fill="#0d9488" opacity="0.15"/><text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf" filter="url(#lg)">D</text><path d="M50 51 Q59 61 68 51" stroke="#2dd4bf" stroke-width="2.8" fill="none" stroke-linecap="round" filter="url(#lg)"/><circle cx="54" cy="43" r="2.5" fill="#5eead4" filter="url(#lg)"/><circle cx="63" cy="43" r="2.5" fill="#5eead4" filter="url(#lg)"/></svg>
+        <div class="min-w-0"><p class="font-bold text-teal-800 dark:text-teal-400 text-sm leading-tight truncate">DentalCare Pro</p><p class="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Studio Dentistico</p></div>
+        <button class="ml-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[22px]">close</span></button>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5">
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="dashboard_iniziale_desktop.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">home</span><span class="text-sm font-medium">Dashboard</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="segretaria_console_desktop.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">forum</span><span class="text-sm font-medium">SegretarIA</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 bg-teal-600 dark:bg-teal-900/80 text-white dark:text-teal-300" href="agenda_appuntamenti_desktop.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0" data-weight="fill">event</span><span class="text-sm font-medium">Agenda</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="gestione_pazienti_desktop.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">folder_shared</span><span class="text-sm font-medium">Pazienti</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="gestione_preventivi_desktop_1.html" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">description</span><span class="text-sm font-medium">Preventivi</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">receipt_long</span><span class="text-sm font-medium">Fatturazione</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">notifications_active</span><span class="text-sm font-medium">Richiami</span></a>
+      <a class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60" href="#" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px] shrink-0">inventory_2</span><span class="text-sm font-medium">Magazzino</span></a>
+      </nav>
+      <div class="py-3 border-t border-slate-100 dark:border-slate-700">
+        <a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-lg mx-3 px-3 py-2.5 flex items-center gap-3 cursor-pointer transition-all" href="#" onclick="document.getElementById('mob-sb').classList.add('hidden')"><span class="material-symbols-outlined text-[20px]">settings</span><span class="text-sm font-medium">Impostazioni</span></a>
+      </div>
+    </aside>
+  </div>
+<nav class="fixed bottom-0 w-full z-50 md:hidden bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 shadow-lg flex justify-around items-center h-14 px-1">
+  <a class="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 py-1.5 text-slate-500 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400" href="dashboard_iniziale_desktop.html"><span class="material-symbols-outlined text-[22px]">home</span><span>Dashboard</span></a>
+  <a class="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 py-1.5 text-teal-600 dark:text-teal-400" href="agenda_appuntamenti_desktop.html"><span class="material-symbols-outlined text-[22px]" data-weight="fill">event</span><span>Agenda</span></a>
+  <a class="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 py-1.5 text-slate-500 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400" href="gestione_pazienti_desktop.html"><span class="material-symbols-outlined text-[22px]">folder_shared</span><span>Pazienti</span></a>
+  <a class="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium flex-1 py-1.5 text-slate-500 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400" href="segretaria_console_desktop.html"><span class="material-symbols-outlined text-[22px]">forum</span><span>AI</span></a>
+</nav>
+</body>
+</html>

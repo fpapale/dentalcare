@@ -1,0 +1,253 @@
+<div class="flex flex-col h-full bg-slate-50">
+
+  <!-- Header -->
+  <div class="bg-white border-b border-slate-200 px-5 py-4 shrink-0 flex items-center gap-3">
+    <a routerLink="/agenda" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+    </a>
+    <div>
+      <h1 class="font-bold text-slate-800 text-lg">Nuovo Appuntamento</h1>
+      <p class="text-xs text-slate-400">Registra un nuovo appuntamento in agenda</p>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="flex-1 overflow-y-auto p-5">
+    <div class="max-w-3xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+      <!-- Form principale -->
+      <form [formGroup]="form" class="lg:col-span-2 space-y-5">
+
+        <!-- Paziente -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <h2 class="font-bold text-slate-700 flex items-center gap-2">
+            <span class="material-symbols-outlined text-teal-600 text-[19px]">person</span> Paziente
+          </h2>
+
+          <!-- Autocomplete paziente -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+              Cerca paziente *
+            </label>
+            <div class="relative">
+              <div class="relative flex items-center">
+                <span class="material-symbols-outlined absolute left-3 text-[17px] text-slate-400 pointer-events-none">search</span>
+                <input #patientInput
+                  type="text"
+                  [value]="patientQuery"
+                  (input)="onPatientInput($event)"
+                  (blur)="closeDropdown()"
+                  placeholder="Digita nome o cognome..."
+                  autocomplete="off"
+                  class="w-full border rounded-lg pl-9 pr-10 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"
+                  [class.border-teal-500]="selectedPatient() !== null"
+                  [class.border-slate-200]="selectedPatient() === null"/>
+                @if (selectedPatient()) {
+                  <span class="material-symbols-outlined absolute right-3 text-[17px] text-teal-500">check_circle</span>
+                }
+              </div>
+
+              <!-- Dropdown risultati -->
+              @if (patientDropdownOpen()) {
+                <div class="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                  @for (p of patientResults(); track p.patientId) {
+                    <button type="button" (mousedown)="selectPatient(p)"
+                      class="w-full flex items-center gap-3 px-4 py-3 hover:bg-teal-50 transition-colors text-left border-b border-slate-100 last:border-0">
+                      <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs shrink-0">
+                        {{ p.firstName[0] }}{{ p.lastName[0] }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-slate-700 truncate">{{ p.patientFullName }}</p>
+                        <p class="text-xs text-slate-400 truncate">
+                          @if (p.fiscalCode) { {{ p.fiscalCode }} · }
+                          @if (p.phone) { {{ p.phone }} }
+                        </p>
+                      </div>
+                      @if (p.openTreatmentItemsCount > 0) {
+                        <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full shrink-0">
+                          {{ p.openTreatmentItemsCount }} tratt.
+                        </span>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Paziente selezionato — riepilogo -->
+            @if (selectedPatient(); as p) {
+              <div class="mt-2 flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">
+                <div class="w-7 h-7 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  {{ p.firstName[0] }}{{ p.lastName[0] }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-teal-800">{{ p.patientFullName }}</p>
+                  <p class="text-xs text-teal-600">{{ p.phone ?? '' }}{{ p.phone && p.city ? ' · ' : '' }}{{ p.city ?? '' }}</p>
+                </div>
+                <button type="button" (click)="selectedPatient.set(null); patientQuery = ''"
+                  class="text-teal-400 hover:text-teal-600 transition-colors">
+                  <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Prestazione -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Prestazione</label>
+            <select formControlName="serviceId"
+              class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow">
+              <option value="">Seleziona prestazione...</option>
+              @for (s of services(); track s.serviceId) {
+                <option [value]="s.serviceId">{{ s.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Data e ora -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <h2 class="font-bold text-slate-700 flex items-center gap-2">
+            <span class="material-symbols-outlined text-teal-600 text-[19px]">schedule</span> Data e Ora
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Data *</label>
+              <input formControlName="data" type="date"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Ora *</label>
+              <input formControlName="ora" type="time"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Durata *</label>
+              <select formControlName="durata"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow">
+                @for (d of durate; track d) {
+                  <option [value]="d">{{ d }} min</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Medico e poltrona -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <h2 class="font-bold text-slate-700 flex items-center gap-2">
+            <span class="material-symbols-outlined text-teal-600 text-[19px]">medical_services</span> Medico e Poltrona
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Medico *</label>
+              <select formControlName="providerId"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow">
+                <option value="">Seleziona medico...</option>
+                @for (p of providers(); track p.providerId) {
+                  <option [value]="p.providerId">{{ p.fullName }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Poltrona *</label>
+              <select formControlName="chairLabel"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow">
+                <option value="">Seleziona poltrona...</option>
+                @for (c of chairLabels(); track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <h2 class="font-bold text-slate-700 flex items-center gap-2">
+            <span class="material-symbols-outlined text-teal-600 text-[19px]">edit_note</span> Note
+          </h2>
+          <textarea formControlName="note" rows="3"
+            placeholder="Note per il medico o la segreteria..."
+            class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow resize-none"></textarea>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input formControlName="inviaRicordatorio" type="checkbox"
+              class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"/>
+            <span class="text-sm text-slate-600">Invia promemoria SMS al paziente (24h prima)</span>
+          </label>
+        </div>
+
+        <!-- Errore salvataggio -->
+        @if (saveError()) {
+          <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-red-500 text-[18px]">error</span>
+            <p class="text-sm text-red-700">{{ saveError() }}</p>
+          </div>
+        }
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between">
+          <a routerLink="/agenda"
+            class="px-4 py-2.5 border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-colors">
+            Annulla
+          </a>
+          <button type="button" (click)="save()" [disabled]="!formValid || saving()"
+            class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            @if (saving()) {
+              <span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span> Salvataggio...
+            } @else {
+              <span class="material-symbols-outlined text-[18px]">check</span> Conferma Appuntamento
+            }
+          </button>
+        </div>
+      </form>
+
+      <!-- Sidebar -->
+      <aside class="flex flex-col gap-4">
+        <!-- Riepilogo -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <h3 class="font-bold text-slate-700 text-sm mb-3 flex items-center gap-2">
+            <span class="material-symbols-outlined text-teal-600 text-[17px]">summarize</span>
+            Riepilogo
+          </h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Paziente</span>
+              <span class="text-slate-700 font-semibold text-right max-w-[60%] truncate">
+                {{ selectedPatient()?.patientFullName ?? '—' }}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Data</span>
+              <span class="text-slate-700">{{ form.get('data')?.value || '—' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Ora</span>
+              <span class="text-slate-700">{{ form.get('ora')?.value || '—' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Durata</span>
+              <span class="text-slate-700">{{ form.get('durata')?.value }} min</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Poltrona</span>
+              <span class="text-slate-700">{{ form.get('chairLabel')?.value || '—' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SegretarIA -->
+        <div class="bg-teal-50 rounded-xl border border-teal-100 p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-teal-600 text-[18px]">smart_toy</span>
+            <span class="text-xs font-bold text-teal-700 uppercase tracking-wide">SegretarIA</span>
+          </div>
+          <p class="text-xs text-teal-700 leading-relaxed">
+            Seleziona il paziente per visualizzare suggerimenti basati sulla sua storia clinica.
+          </p>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</div>

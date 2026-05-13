@@ -1,0 +1,202 @@
+<div class="flex flex-col h-full bg-slate-50">
+
+  <!-- Header -->
+  <div class="bg-white border-b border-slate-200 px-5 py-4 shrink-0 flex items-center gap-3">
+    <a routerLink="/pazienti" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+    </a>
+    <div>
+      <h1 class="font-bold text-slate-800 text-lg">Nuovo Paziente</h1>
+      <p class="text-xs text-slate-400">Compila i dati per registrare un nuovo paziente</p>
+    </div>
+  </div>
+
+  <!-- Stepper -->
+  <div class="bg-white border-b border-slate-200 px-5 py-3 shrink-0">
+    <div class="flex items-center gap-2 max-w-lg">
+      @for (step of steps; track $index) {
+        <div class="flex items-center gap-2 flex-1">
+          <button (click)="goToStep($index + 1)" class="flex items-center gap-2 group">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors"
+              [class.bg-teal-600]="activeStep() > $index"
+              [class.text-white]="activeStep() > $index"
+              [class.ring-2]="activeStep() === $index + 1"
+              [class.ring-teal-600]="activeStep() === $index + 1"
+              [class.ring-offset-2]="activeStep() === $index + 1"
+              [class.bg-white]="activeStep() <= $index"
+              [class.border]="activeStep() <= $index"
+              [class.border-slate-300]="activeStep() <= $index"
+              [class.text-slate-500]="activeStep() <= $index">
+              @if (activeStep() > $index + 1) {
+                <span class="material-symbols-outlined text-[14px]">check</span>
+              } @else {
+                {{ $index + 1 }}
+              }
+            </div>
+            <span class="text-sm font-semibold hidden sm:inline"
+              [class.text-teal-600]="activeStep() === $index + 1"
+              [class.text-slate-500]="activeStep() !== $index + 1">{{ step }}</span>
+          </button>
+          @if ($index < steps.length - 1) {
+            <div class="flex-1 h-px mx-2" [class.bg-teal-400]="activeStep() > $index + 1" [class.bg-slate-200]="activeStep() <= $index + 1"></div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="flex-1 overflow-y-auto p-5">
+    <div class="max-w-2xl mx-auto">
+      <form [formGroup]="form">
+
+        <!-- Step 1: Dati Anagrafici -->
+        @if (activeStep() === 1) {
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <h2 class="font-bold text-slate-700 flex items-center gap-2">
+              <span class="material-symbols-outlined text-teal-600 text-[20px]">person</span>
+              Dati Anagrafici
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Cognome *</label>
+                <input formControlName="cognome" type="text" placeholder="Verdi"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Nome *</label>
+                <input formControlName="nome" type="text" placeholder="Simona"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Data di nascita *</label>
+                <input formControlName="dataNascita" type="date"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Sesso *</label>
+                <select formControlName="sesso"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow">
+                  <option value="">Seleziona...</option>
+                  <option value="M">Maschio</option>
+                  <option value="F">Femmina</option>
+                </select>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Codice Fiscale *</label>
+                <input formControlName="cf" type="text" placeholder="VRDSM N90R54H501Q" maxlength="16"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow uppercase"/>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Medico di riferimento</label>
+                <select formControlName="medicoRiferimento"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow">
+                  <option value="">Seleziona...</option>
+                  @for (p of providers(); track p.providerId) {
+                    <option [value]="p.providerId">{{ p.fullName }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Step 2: Contatti -->
+        @if (activeStep() === 2) {
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <h2 class="font-bold text-slate-700 flex items-center gap-2">
+              <span class="material-symbols-outlined text-teal-600 text-[20px]">contact_phone</span>
+              Dati di Contatto
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Telefono *</label>
+                <input formControlName="telefono" type="tel" placeholder="+39 345 1234567"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Email</label>
+                <input formControlName="email" type="email" placeholder="paziente@email.it"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Indirizzo</label>
+                <input formControlName="indirizzo" type="text" placeholder="Via Roma, 42"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Città</label>
+                <input formControlName="citta" type="text" placeholder="Milano"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">CAP</label>
+                <input formControlName="cap" type="text" placeholder="20121" maxlength="5"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Provincia</label>
+                <input formControlName="provincia" type="text" placeholder="MI" maxlength="2"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow uppercase"/>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Step 3: Note cliniche -->
+        @if (activeStep() === 3) {
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <h2 class="font-bold text-slate-700 flex items-center gap-2">
+              <span class="material-symbols-outlined text-teal-600 text-[20px]">medical_information</span>
+              Note Cliniche
+            </h2>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Allergie conosciute</label>
+                <input formControlName="allergie" type="text" placeholder="es. Penicillina, Lattice..."
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"/>
+                <p class="text-[11px] text-slate-400 mt-1">Separare con virgola se multiple</p>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Note generali</label>
+                <textarea formControlName="note" rows="5" placeholder="Annotazioni cliniche, preferenze del paziente..."
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow resize-none"></textarea>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Errore salvataggio -->
+        @if (saveError()) {
+          <div class="mt-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-red-500 text-[18px]">error</span>
+            <p class="text-sm text-red-700">{{ saveError() }}</p>
+          </div>
+        }
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between mt-5">
+          <button type="button" (click)="prevStep()" [disabled]="activeStep() === 1"
+            class="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span> Precedente
+          </button>
+          @if (activeStep() < steps.length) {
+            <button type="button" (click)="nextStep()"
+              class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+              Avanti <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+            </button>
+          } @else {
+            <button type="button" (click)="save()" [disabled]="saving()"
+              class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60">
+              @if (saving()) {
+                <span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span> Salvataggio...
+              } @else {
+                <span class="material-symbols-outlined text-[18px]">save</span> Salva Paziente
+              }
+            </button>
+          }
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

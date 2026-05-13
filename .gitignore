@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Angular build outputs
+dist/
+.angular/
+
+# Java build outputs
+target/
+*.jar
+*.war
+*.class
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+
+# Binary / design assets
+*.zip
+stitch_extracted/
+stitch_screens/
+
+# Claude internal
+.claude/

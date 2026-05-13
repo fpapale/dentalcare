@@ -1,0 +1,608 @@
+{
+  "name": "Agente Vocale Retell AI - DentalCare con modify_appointment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "5f4d1102-a1bb-43f6-af8c-b228ebe67d23",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        144
+      ],
+      "id": "d83f48e5-ecf3-4447-804c-799da98b6357",
+      "name": "Webhook",
+      "webhookId": "5f4d1102-a1bb-43f6-af8c-b228ebe67d23"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=## Ruolo\n\nSei un **verificatore di disponibilità appuntamenti**.\nIl tuo compito è ottenere l’orario richiesto e utilizzare il calendario per controllare la disponibilità per il cliente.\n\n**Data e ora attuali:** {{ $now }}\n**Orario richiesto dal cliente:** {{ $json.body.args.time }}\n\n---\n\n## Dati del calendario\n\n* **Orario lavorativo:** 8:00 - 21:00\n* **Durata di ogni slot:** 1 ora\n\n---\n\n## Processo di prenotazione\n\n1. Controlla se l’orario richiesto dal cliente è disponibile nel calendario.\n2. Se l’orario è disponibile, informa il modello AI e conferma.\n3. Se l’orario non è disponibile, suggerisci fino a **2 slot alternativi** vicini all’orario richiesto, controllando nuovamente la disponibilità.\n4. Se non ci sono slot disponibili nello stesso giorno, cerca nel **giorno feriale successivo** e fornisci **orari alternativi**.\n\n---\n\n## Risposta e output\n\n* Se l’orario richiesto è disponibile, confermalo dicendo qualcosa come:\n\n  > L’orario richiesto delle 10:00 del 22 giugno è disponibile, giusto per confermare, vuoi prenotarlo?\n\n* Se non c’è disponibilità o l’orario richiesto non è disponibile, suggerisci fino a **3 slot alternativi** più vicini possibile all’orario richiesto.\n\n* Se non ci sono slot disponibili nel giorno richiesto, suggerisci **3 orari nel giorno feriale successivo**.\n\n* Il tono deve essere **naturale e conversazionale**, ad esempio:\n\n  > Ciao! L’orario che hai richiesto, le 10:00 del 22 giugno, è disponibile. Vuoi che lo prenoti per te?\n\n---\n\n## Note importanti\n\n* **Non proporre mai orari nel passato.**\n  Controlla sempre la disponibilità in futuro, utilizzando la data e l’ora correnti insieme ai dati richiesti.\n* È **fondamentale** seguire con precisione questi passaggi, poiché la tua accuratezza influisce sulla reputazione dell’azienda.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        224,
+        144
+      ],
+      "id": "61817a5a-c3e1-4445-ae6e-dd4ebf93c646",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        368
+      ],
+      "id": "4191332e-7cec-42a5-b885-1df2a6d81d0b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "PFFN15WYjjdTA4aM",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        656,
+        144
+      ],
+      "id": "1abb5dcd-22f0-4845-86d2-9d348a2a2fc0",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d1b3f0cc-4bf7-41bf-b5b7-f458e540d5fe",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        624
+      ],
+      "id": "b2405c71-3194-4a9d-80f2-48a2c7b8326d",
+      "name": "Webhook1",
+      "webhookId": "d1b3f0cc-4bf7-41bf-b5b7-f458e540d5fe"
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "fabrizio.papale@gmail.com"
+        },
+        "timeMin": "={{ $fromAI('Start_Time', ``, 'string') }}",
+        "timeMax": "={{ $fromAI('End_Time', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        464,
+        368
+      ],
+      "id": "2d09fd6c-f261-43e5-b470-b095782ff131",
+      "name": "Get availability in a calendar in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "WcC2nU9kYDFCPmkt",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=## Ruolo\n\nSei un agente AI per la **prenotazione di appuntamenti** dello **Studio Dentistico DentalCare**.\nIl tuo compito è usare lo strumento **\"Create an event in Google Calendar\"** per creare la prenotazione nel calendario e poi usare **\"Send a message in Gmail\"** per inviare la conferma al paziente.\n\n---\n\n## Dati ricevuti\n\n**Data e ora attuali:** {{ $now }}\n**Paziente:** {{ $json.body.args.name }}\n**Email:** {{ $json.body.args.email }}\n**Telefono:** {{ $json.body.args.phone }}\n**Servizio richiesto:** {{ $json.body.args.service_type }}\n**Orario confermato:** {{ $json.body.args.time }}\n\n---\n\n## Regole operative\n\n1. Usa l’orario confermato come **inizio** dell’appuntamento.\n2. La durata dell’appuntamento è di **1 ora**.\n3. Calcola quindi un orario di **fine** a un’ora dall’inizio.\n4. Crea l’evento nel calendario.\n5. Solo dopo aver creato correttamente l’evento, invia l’email di conferma.\n\n---\n\n## Evento calendario\n\nNel calendario mantieni chiari:\n- nome del paziente\n- email\n- telefono, se presente\n- tipo di prestazione\n- orario dell’appuntamento\n\n---\n\n## Output finale\n\nSe la prenotazione è andata a buon fine, rispondi in modo naturale e breve.\n\nEsempio:\n\"Perfetto, l’appuntamento per {{ $json.body.args.name }} è stato prenotato per {{ $json.body.args.time }} per {{ $json.body.args.service_type }}.\"\n\nNon inventare mai una prenotazione se l’evento non è stato creato davvero.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        192,
+        624
+      ],
+      "id": "0198c2f3-943b-4c3f-af71-a1ab2bee8450",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        64,
+        832
+      ],
+      "id": "de6859bc-ddde-478b-8c73-15ffe697a96f",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "PFFN15WYjjdTA4aM",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "fabrizio.papale@gmail.com",
+          "mode": "list",
+          "cachedResultName": "fabrizio.papale@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "description": "=nome: {{ $json.body.args.name }} \nquando: {{ $json.body.args.time }} \nemail:{{ $json.body.args.email }} \ntipo: {{ $json.body.args.service_type }}",
+          "summary": "=Nuovo appuntamento per {{ $json.body.args.name }} alle {{ $json.body.args.time }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        832
+      ],
+      "id": "1ad813ca-8865-432b-955a-a560302d203c",
+      "name": "Create an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "WcC2nU9kYDFCPmkt",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.args.email }}",
+        "subject": "=Conferma appuntamento DentalCare per {{ $json.body.args.name }} il {{ $json.body.args.time }}",
+        "emailType": "text",
+        "message": "=Ciao {{ $json.body.args.name }}!\\n\\nTi confermiamo il tuo appuntamento presso Studio Dentistico DentalCare in data {{ $json.body.args.time }} per il servizio: {{ $json.body.args.service_type }}.\\n\\nA presto!\\n\\nStudio Dentistico DentalCare",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        272,
+        832
+      ],
+      "id": "9805307c-910e-49af-a282-b5fa02fb1549",
+      "name": "Send a message in Gmail",
+      "webhookId": "77008693-0e80-4af0-967f-e1941a18a41a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "osgkvG7Vg8X6zvTp",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        544,
+        624
+      ],
+      "id": "b113857c-f201-413c-82c6-879ff9b0b8d7",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "content": "## GET AVAILABILITY",
+        "height": 496,
+        "width": 1008
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        32
+      ],
+      "id": "6e452d87-f4db-428c-933d-af36b31aef2e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## BOOK AN APPOINTMENT",
+        "height": 496,
+        "width": 1008,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        560
+      ],
+      "id": "13f64d94-40ab-4c4d-8f0a-c39ebf1f82ba",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "54aeef32-a1e9-4f7c-9fee-d2b761757e34",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        1152
+      ],
+      "id": "9047eada-8e9d-44ba-ad03-0456e3e661f3",
+      "name": "Webhook2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=## Ruolo\n\nSei un agente AI per la **modifica di appuntamenti** dello **Studio Dentistico DentalCare**.\n\nIl tuo compito è:\n1. trovare nel calendario l’appuntamento esistente del paziente;\n2. verificare che il match sia corretto;\n3. usare lo strumento **\"Update an event in Google Calendar\"** per spostarlo;\n4. usare lo strumento **\"Send an updated confirmation in Gmail\"** solo dopo l’aggiornamento.\n\n---\n\n## Dati ricevuti\n\n**Data e ora attuali:** {{ $now }}\n**Paziente:** {{ $json.body.args.name }}\n**Email:** {{ $json.body.args.email }}\n**Telefono:** {{ $json.body.args.phone }}\n**Servizio:** {{ $json.body.args.service_type }}\n**Appuntamento attuale da spostare:** {{ $json.body.args.current_time }}\n**Nuovo orario richiesto:** {{ $json.body.args.new_time }}\n\n---\n\n## Regole operative\n\n### 1. Identifica l’evento corretto\nDevi usare prima lo strumento **\"Get events in Google Calendar\"**.\n\nCerca l’evento:\n- in una finestra temporale centrata su `current_time`;\n- usando il nome e/o l’email del paziente per riconoscere l’evento corretto;\n- controllando summary e description.\n\n### 2. Verifica il match\nAggiorna l’evento solo se trovi **un singolo match chiaramente coerente** con:\n- nome del paziente\n- email del paziente, se presente\n- orario attuale dell’appuntamento\n- tipo di servizio, se presente\n\nSe trovi più eventi plausibili o nessun match affidabile:\n- **non aggiornare nulla**\n- restituisci un messaggio breve che dica che serve verifica manuale\n\n### 3. Aggiorna l’evento\nSe l’evento corretto è stato identificato:\n- usa **\"Update an event in Google Calendar\"**\n- imposta il nuovo **start** usando `new_time`\n- imposta il nuovo **end** a **1 ora dopo**\n- mantieni aggiornati summary e description\n\n### 4. Invio email\nSolo dopo l’update riuscito:\n- usa **\"Send an updated confirmation in Gmail\"**\n\n---\n\n## Vincoli importanti\n\n- **Non creare mai un nuovo evento**: devi solo modificare quello esistente.\n- **Non aggiornare mai l’evento sbagliato**.\n- **Non dire mai che la modifica è riuscita se non hai davvero eseguito l’update**.\n\n---\n\n## Output finale\n\nSe la modifica va a buon fine, rispondi con una frase naturale e breve.\n\nEsempio:\n\"Perfetto, l’appuntamento di {{ $json.body.args.name }} è stato spostato al {{ $json.body.args.new_time }} per {{ $json.body.args.service_type }}.\"\n\nSe non sei riuscito a identificare con certezza l’evento:\n\"Non sono riuscita a identificare con certezza l’appuntamento da modificare. È meglio verificare manualmente i dettagli prima di procedere.\"\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        192,
+        1152
+      ],
+      "id": "330b833e-b131-4f58-9a45-588e24a94dfc",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        64,
+        1360
+      ],
+      "id": "2b1a5e1c-6fc1-4dcc-a696-73f7a3286b15",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "PFFN15WYjjdTA4aM",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "fabrizio.papale@gmail.com",
+          "mode": "list",
+          "cachedResultName": "fabrizio.papale@gmail.com"
+        },
+        "returnAll": true,
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Before', ``, 'string') }}",
+        "options": {
+          "orderBy": "startTime",
+          "query": "={{ $json.body.args.email || $json.body.args.name || '' }}",
+          "recurringEventHandling": "expand"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        1296
+      ],
+      "id": "fec317ce-61c6-4865-bfd8-5c9c9f4f7770",
+      "name": "Get events in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "WcC2nU9kYDFCPmkt",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "fabrizio.papale@gmail.com",
+          "mode": "list",
+          "cachedResultName": "fabrizio.papale@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "updateFields": {
+          "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('New_Start', ``, 'string') }}",
+          "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('New_End', ``, 'string') }}",
+          "summary": "=Appuntamento per {{ $json.body.args.name }} alle {{ $json.body.args.new_time }}",
+          "description": "=nome: {{ $json.body.args.name }}\\nappuntamento originale: {{ $json.body.args.current_time }}\\nnuovo appuntamento: {{ $json.body.args.new_time }}\\nemail: {{ $json.body.args.email }}\\ntelefono: {{ $json.body.args.phone }}\\ntipo: {{ $json.body.args.service_type }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        1360
+      ],
+      "id": "7bbbc15c-e324-42be-84f7-8179f383faff",
+      "name": "Update an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "WcC2nU9kYDFCPmkt",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.args.email }}",
+        "subject": "=Aggiornamento appuntamento DentalCare per {{ $json.body.args.name }}",
+        "emailType": "text",
+        "message": "=Ciao {{ $json.body.args.name }}!\\n\\nTi confermiamo che il tuo appuntamento presso Studio Dentistico DentalCare è stato spostato.\\n\\nAppuntamento precedente: {{ $json.body.args.current_time }}\\nNuovo appuntamento: {{ $json.body.args.new_time }}\\nServizio: {{ $json.body.args.service_type }}\\n\\nA presto!\\n\\nStudio Dentistico DentalCare",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        304,
+        1360
+      ],
+      "id": "c0f39f2e-b70a-44e2-b55d-d3868a1b2049",
+      "name": "Send an updated confirmation in Gmail",
+      "webhookId": "808126c3-0386-4065-9f93-d046a2307268",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "osgkvG7Vg8X6zvTp",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        608,
+        1152
+      ],
+      "id": "821e2d11-d67c-4ad3-a1fb-7f9a72ce66d2",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "content": "## MODIFY AN APPOINTMENT",
+        "height": 560,
+        "width": 1040,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        1088
+      ],
+      "id": "8ec0cf81-e90e-4790-9582-a2cf9c909649",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get availability in a calendar in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get events in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an updated confirmation in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "38627fac-63c1-40a2-adb2-349b04889150",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0bd16329011003e1f5aa97330e40b317c55feaca776908953d3f5bc7029ea057"
+  },
+  "id": "7a3e5e1422b04982",
+  "tags": []
+}

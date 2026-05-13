@@ -1,0 +1,180 @@
+<div class="flex flex-col h-full">
+
+  <!-- Toolbar -->
+  <div class="flex items-center gap-3 px-5 py-3 bg-white border-b border-slate-200 shrink-0 flex-wrap">
+    <div class="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
+      @if (isToday()) {
+        <button (click)="viewMode.set('prossimi')"
+          class="px-3 py-1 text-xs font-semibold rounded-md transition-all"
+          [class]="viewMode() === 'prossimi' ? 'bg-white shadow text-teal-700' : 'text-slate-500 hover:text-slate-700'">
+          Prossimi
+        </button>
+      }
+      @for (v of [['giorno','Giorno'],['settimana','Settimana'],['mese','Mese']]; track v[0]) {
+        <button (click)="viewMode.set($any(v[0]))"
+          class="px-3 py-1 text-xs font-semibold rounded-md transition-all"
+          [class]="viewMode() === v[0] ? 'bg-white shadow text-teal-700' : 'text-slate-500 hover:text-slate-700'">
+          {{ v[1] }}
+        </button>
+      }
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button (click)="changeDate(-1)" class="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+        <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_left</span>
+      </button>
+      <span class="text-sm font-semibold text-slate-700 capitalize min-w-[220px] text-center">{{ dateLabel }}</span>
+      <button (click)="changeDate(1)" class="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+        <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_right</span>
+      </button>
+      @if (!isToday()) {
+        <button (click)="goToToday()"
+          class="text-xs font-semibold text-teal-600 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors">
+          Oggi
+        </button>
+      }
+    </div>
+
+    <div class="ml-auto">
+      <a routerLink="/agenda/nuovo"
+        class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">add</span> Appuntamento
+      </a>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  @if (loading()) {
+    <div class="flex items-center justify-center flex-1">
+      <div class="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  } @else if (error()) {
+    <div class="m-5 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-red-500">error</span>
+      <p class="text-sm text-red-700">{{ error() }}</p>
+    </div>
+  } @else {
+
+  <!-- ── Vista "Prossimi" (oggi dall'ora corrente in poi) ── -->
+  @if (viewMode() === 'prossimi') {
+    <div class="flex-1 overflow-auto p-5">
+      @if (upcomingAppointments().length === 0) {
+        <div class="flex flex-col items-center justify-center h-64 text-slate-400 gap-2">
+          <span class="material-symbols-outlined text-5xl">event_available</span>
+          <p class="text-sm font-semibold text-slate-500">Nessun appuntamento in programma</p>
+          <p class="text-xs text-slate-400">Per il resto della giornata</p>
+        </div>
+      } @else {
+        <div class="max-w-2xl mx-auto space-y-2">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
+            {{ upcomingAppointments().length }}
+            {{ upcomingAppointments().length === 1 ? 'appuntamento' : 'appuntamenti' }}
+            da ora in poi
+          </p>
+          @for (a of upcomingAppointments(); track a.appointmentId) {
+            <a [routerLink]="['/pazienti', a.patientId]"
+              class="flex items-stretch gap-0 bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow block">
+
+              <!-- Time column -->
+              <div class="flex flex-col items-center justify-center px-4 py-3 bg-slate-50 border-r border-slate-200 shrink-0 w-20">
+                <p class="text-sm font-black text-teal-700 leading-tight">{{ formatTime(a.startsAt) }}</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">{{ formatTime(a.endsAt) }}</p>
+              </div>
+
+              <!-- Main content -->
+              <div class="flex-1 min-w-0 px-4 py-3">
+                <div class="flex items-center gap-1.5 mb-0.5">
+                  @if (a.hasAllergyAlert) {
+                    <span class="material-symbols-outlined text-[12px] text-red-600">warning</span>
+                  }
+                  @if (a.hasMedicationAlert) {
+                    <span class="material-symbols-outlined text-[12px] text-orange-500">medication</span>
+                  }
+                  <p class="text-sm font-bold text-slate-800 truncate">{{ a.patientFullName }}</p>
+                </div>
+                <p class="text-xs text-slate-500 truncate">{{ a.serviceName ?? 'Visita' }}</p>
+                <div class="flex items-center gap-3 mt-1.5 flex-wrap">
+                  <span class="flex items-center gap-1 text-[10px] text-slate-400">
+                    <span class="material-symbols-outlined text-[11px]">chair</span>
+                    {{ a.chairLabel }}
+                  </span>
+                  @if (role() !== 'doctor') {
+                    <span class="flex items-center gap-1 text-[10px] text-slate-400">
+                      <span class="material-symbols-outlined text-[11px]">person</span>
+                      {{ a.providerName }}
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Status badge -->
+              <div class="flex items-center px-4 shrink-0">
+                <span class="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  [class]="statusBadgeClass(a)">
+                  {{ statusLabel(a) }}
+                </span>
+              </div>
+            </a>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Vista Giorno (griglia oraria) ── -->
+  @if (viewMode() === 'giorno') {
+    <div class="flex-1 overflow-auto">
+      <div class="flex min-w-[600px]">
+
+        <!-- Time axis -->
+        <div class="w-16 shrink-0 border-r border-slate-200 bg-white">
+          <div class="h-12 border-b border-slate-200"></div>
+          @for (h of hours; track h) {
+            <div class="h-24 border-b border-slate-100 flex items-start pt-1 justify-end pr-2">
+              <span class="text-[10px] text-slate-400 font-medium">{{ h }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Chairs -->
+        @for (chair of chairs; track chair) {
+          <div class="flex-1 min-w-[160px] border-r border-slate-200">
+            <div class="h-12 border-b border-slate-200 bg-white px-3 flex flex-col justify-center sticky top-0 z-10">
+              <p class="text-xs font-bold text-slate-700">{{ chair }}</p>
+            </div>
+            <div class="relative">
+              @for (h of hours; track h) {
+                <div class="h-24 border-b border-slate-100 bg-slate-50/30"></div>
+              }
+              @if (isToday()) {
+                <div class="absolute left-0 right-0 z-20 flex items-center" [style.top.px]="currentTimeTop()">
+                  <div class="w-2 h-2 rounded-full bg-red-500 shrink-0"></div>
+                  <div class="flex-1 h-px bg-red-400"></div>
+                  <span class="text-[9px] text-red-500 font-bold px-1">{{ currentTimeLabel() }}</span>
+                </div>
+              }
+              @for (a of getAppointmentsForChair(chair); track a.appointmentId) {
+                <a [routerLink]="['/pazienti', a.patientId]"
+                  class="absolute left-1 right-1 rounded-lg border-l-4 px-2 py-1 overflow-hidden cursor-pointer hover:brightness-95 transition-all block"
+                  [class]="apptColor(a)"
+                  [style.top.px]="topPx(a)"
+                  [style.height.px]="heightPx(a)">
+                  <div class="flex items-center gap-1">
+                    @if (a.hasAllergyAlert) {
+                      <span class="material-symbols-outlined text-[11px] text-red-600">warning</span>
+                    }
+                    <p class="text-[11px] font-bold truncate">{{ a.patientFullName }}</p>
+                  </div>
+                  <p class="text-[10px] truncate opacity-80">{{ a.serviceName ?? 'Visita' }}</p>
+                  <p class="text-[10px] opacity-70">{{ formatTime(a.startsAt) }} – {{ formatTime(a.endsAt) }}</p>
+                </a>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  }
+</div>
