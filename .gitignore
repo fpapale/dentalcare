@@ -12,6 +12,8 @@ target/
 *.jar
 *.war
 *.class
+startup-out.txt
+startup-err.txt
 
 # Environment
 .env
