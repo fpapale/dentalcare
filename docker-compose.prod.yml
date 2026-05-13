@@ -1,0 +1,24 @@
+# DentalCare Pro — Ambiente di Produzione
+# Avvio: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+services:
+
+  backend:
+    container_name: dentalcarepro-backend-prod
+    ports: []           # Backend NON esposto all'esterno in produzione
+    environment:
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:/app/config/
+      - SPRING_PROFILES_ACTIVE=prod
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  frontend:
+    container_name: dentalcarepro-frontend-prod
+    ports:
+      - "80:80"         # Interfaccia web produzione su porta 80 standard
+    deploy:
+      resources:
+        limits:
+          memory: 256m

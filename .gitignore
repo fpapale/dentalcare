@@ -15,9 +15,10 @@ target/
 startup-out.txt
 startup-err.txt
 
-# Environment
+# Environment — i .example non contengono segreti e vanno in git
 .env
 .env.*
+!.env.example
 
 # OS
 .DS_Store
@@ -31,6 +32,10 @@ Thumbs.db
 *.zip
 stitch_extracted/
 stitch_screens/
+
+# Config files con credenziali (solo i .example vanno in git)
+config/backend/application.properties
+config/frontend/default.conf
 
 # Claude internal
 .claude/

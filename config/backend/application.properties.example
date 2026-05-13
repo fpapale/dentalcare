@@ -1,0 +1,39 @@
+# DentalCare Pro — Backend Configuration
+# Copiare questo file come application.properties e completare i valori reali.
+# NON committare application.properties (contiene credenziali).
+
+spring.application.name=dentalcare-api
+
+# ---- Database (PostgreSQL esterno) ----
+spring.datasource.url=jdbc:postgresql://<DB_HOST>:5432/<DB_NAME>
+spring.datasource.username=<DB_USER>
+spring.datasource.password=<DB_PASSWORD>
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=2
+spring.datasource.hikari.connection-timeout=20000
+
+# ---- JPA ----
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=false
+
+# ---- Flyway (gestito manualmente) ----
+spring.flyway.enabled=false
+
+# ---- Jackson ----
+spring.jackson.serialization.write-dates-as-timestamps=false
+spring.jackson.default-property-inclusion=non_null
+
+# ---- Server ----
+server.port=8080
+
+# ---- Logging ----
+# Collaudo: DEBUG; Produzione: INFO
+logging.level.root=INFO
+logging.level.com.dentalcare=INFO
+logging.level.org.springframework.jdbc.core=WARN
+
+# ---- Errori (disabilitare in produzione) ----
+server.error.include-message=never
+server.error.include-binding-errors=never

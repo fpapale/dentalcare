@@ -1,0 +1,53 @@
+# DentalCare Pro — Ambiente di Collaudo (Staging)
+# Avvio: docker compose up -d --build
+# Il repository deve essere clonato in ~/docker/dentalcarepro/
+# I file di config vanno in ./config/backend/ e ./config/frontend/
+# (copiare i .example e rimuovere l'estensione, poi completare i valori reali)
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        JDK_VERSION: "21"
+    image: dentalcarepro-backend:${VERSION:-latest}
+    container_name: dentalcarepro-backend-staging
+    restart: unless-stopped
+    ports:
+      - "8081:8080"     # Porta API esposta in staging per test diretti
+    volumes:
+      - ./config/backend:/app/config:ro
+    environment:
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:/app/config/
+      - SPRING_PROFILES_ACTIVE=staging
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - dentalcarepro
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: dentalcarepro-frontend:${VERSION:-latest}
+    container_name: dentalcarepro-frontend-staging
+    restart: unless-stopped
+    ports:
+      - "8080:80"       # Interfaccia web staging su porta 8080
+    volumes:
+      - ./config/frontend:/etc/nginx/conf.d:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - dentalcarepro
+
+networks:
+  dentalcarepro:
+    driver: bridge
