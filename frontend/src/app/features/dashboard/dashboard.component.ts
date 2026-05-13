@@ -1,8 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { combineLatest } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject } from 'rxjs';
 import { distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { UserContextService } from '../../core/services/user-context.service';
@@ -19,6 +19,7 @@ import { Appointment } from '../../core/models/appointment.model';
 export class DashboardComponent {
   private readonly dashboardService = inject(DashboardService);
   private readonly userContext      = inject(UserContextService);
+  private readonly destroyRef       = inject(DestroyRef);
 
   today     = new Date();
   dashboard = signal<Dashboard | null>(null);
@@ -28,20 +29,29 @@ export class DashboardComponent {
   readonly role = this.userContext.role;
 
   constructor() {
-    combineLatest([
-      toObservable(this.userContext.providerId),
-      toObservable(this.userContext.role)
-    ]).pipe(
-      takeUntilDestroyed(),
-      distinctUntilChanged(([p1, r1], [p2, r2]) => p1 === p2 && r1 === r2),
-      switchMap(([providerId]) => {
+    const trigger$ = new Subject<string | null>();
+
+    trigger$.pipe(
+      takeUntilDestroyed(this.destroyRef),
+      distinctUntilChanged(),
+      switchMap(providerId => {
         this.loading.set(true);
         this.error.set(null);
         return this.dashboardService.getDashboard(providerId);
       })
     ).subscribe({
-      next: data  => { this.dashboard.set(data); this.loading.set(false); },
-      error: ()   => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
+      next: data => { this.dashboard.set(data); this.loading.set(false); },
+      error: ()  => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
+    });
+
+    // Caricamento immediato con valori correnti (sincrono, nessun ritardo)
+    trigger$.next(this.userContext.providerId());
+
+    // Ricarica quando providerId cambia (es. selezione dottore)
+    effect(() => {
+      const providerId = this.userContext.providerId();
+      this.userContext.role(); // tracked per reattività
+      untracked(() => trigger$.next(providerId));
     });
   }
 
