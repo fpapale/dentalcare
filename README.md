@@ -193,6 +193,56 @@ Frontend disponibile su `http://localhost:4200`.
 
 ---
 
+## Deploy su server remoto (Docker)
+
+### Script `install.sh`
+
+Lo script `install.sh` nella root del repository automatizza il deploy completo su qualsiasi server Linux con Docker installato.
+
+```bash
+# Clona il repo sul server (prima volta)
+git clone https://github.com/fpapale/dentalcare.git ~/docker/dentalcarepro
+cd ~/docker/dentalcarepro
+chmod +x install.sh
+
+# Primo avvio — guida alla configurazione e build
+./install.sh
+
+# Aggiornamento (git pull + rebuild) — config già presenti
+./install.sh --update
+```
+
+**Cosa fa `install.sh`:**
+
+| Step | Azione |
+|---|---|
+| 1 | Verifica prerequisiti: `docker`, `git`, `docker compose` |
+| 2 | Prima volta: clona repo; aggiornamento: `git pull origin master` |
+| 3 | Crea `config/backend/application.properties` e `config/frontend/default.conf` dai template `.example` se assenti; fa pausa se le credenziali DB non sono ancora configurate |
+| 4 | Esegue `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` |
+| 5 | Attende healthcheck backend (max 90s) e stampa URL e stato container |
+
+### File di configurazione (da non committare)
+
+Dopo il primo `./install.sh`, personalizzare:
+
+```
+config/backend/application.properties   ← DB host, username, password
+config/frontend/default.conf            ← nginx (proxy backend, porta)
+.env                                    ← FRONTEND_PORT (default 8081)
+```
+
+### Porta esposta
+
+Per default il frontend è disponibile sulla porta **8081**. Per cambiare:
+
+```bash
+echo "FRONTEND_PORT=80" >> .env
+./install.sh --update
+```
+
+---
+
 ## Database
 
 ### Tecnologie
