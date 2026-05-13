@@ -44,13 +44,11 @@ export class DashboardComponent {
       error: ()  => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
     });
 
-    // Caricamento immediato con valori correnti (sincrono, nessun ritardo)
     trigger$.next(this.userContext.providerId());
 
-    // Ricarica quando providerId cambia (es. selezione dottore)
     effect(() => {
       const providerId = this.userContext.providerId();
-      this.userContext.role(); // tracked per reattività
+      this.userContext.role();
       untracked(() => trigger$.next(providerId));
     });
   }
