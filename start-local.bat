@@ -22,7 +22,7 @@ echo [Press Ctrl+C to stop]
 echo ===============================================
 echo.
 
-cd /d D:\dentalcare\dentalcare-api
+cd /d D:\dentalcare\backend
 
 REM Run the JAR with H2 database (no PostgreSQL needed)
 java -jar target\dentalcare-api-0.0.1-SNAPSHOT.jar
