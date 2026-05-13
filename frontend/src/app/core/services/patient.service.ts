@@ -18,6 +18,20 @@ export interface CreatePatientRequest {
   notes?: string;
 }
 
+export interface UpdatePatientRequest {
+  firstName: string;
+  lastName: string;
+  fiscalCode?: string;
+  birthDate?: string;
+  phone?: string;
+  email?: string;
+  addressLine1?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+  notes?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PatientService {
   private readonly base = `${environment.apiBaseUrl}/patients`;
@@ -39,5 +53,9 @@ export class PatientService {
 
   create(request: CreatePatientRequest): Observable<void> {
     return this.http.post<void>(this.base, request);
+  }
+
+  update(id: string, request: UpdatePatientRequest): Observable<void> {
+    return this.http.put<void>(`${this.base}/${id}`, request);
   }
 }

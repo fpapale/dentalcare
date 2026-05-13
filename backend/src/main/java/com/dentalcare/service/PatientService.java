@@ -3,6 +3,7 @@ package com.dentalcare.service;
 import com.dentalcare.dto.CreatePatientRequest;
 import com.dentalcare.dto.PatientDetailDto;
 import com.dentalcare.dto.PatientListDto;
+import com.dentalcare.dto.UpdatePatientRequest;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -78,6 +79,40 @@ public class PatientService {
                 .addValue("notes", request.notes());
         jdbc.update(sql, params);
         return patientId;
+    }
+
+    public void update(UUID patientId, UpdatePatientRequest request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String sql = """
+            UPDATE dentalcare.patients
+            SET first_name    = :firstName,
+                last_name     = :lastName,
+                fiscal_code   = :fiscalCode,
+                birth_date    = :birthDate,
+                phone         = :phone,
+                email         = :email,
+                address_line1 = :addressLine1,
+                city          = :city,
+                province      = :province,
+                postal_code   = :postalCode,
+                notes         = :notes
+            WHERE id = :id AND clinic_id = :clinicId
+            """;
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("firstName",   request.firstName())
+                .addValue("lastName",    request.lastName())
+                .addValue("fiscalCode",  request.fiscalCode())
+                .addValue("birthDate",   request.birthDate())
+                .addValue("phone",       request.phone())
+                .addValue("email",       request.email())
+                .addValue("addressLine1",request.addressLine1())
+                .addValue("city",        request.city())
+                .addValue("province",    request.province())
+                .addValue("postalCode",  request.postalCode())
+                .addValue("notes",       request.notes())
+                .addValue("id",          patientId)
+                .addValue("clinicId",    clinicId);
+        jdbc.update(sql, params);
     }
 
     public Optional<PatientDetailDto> findById(UUID patientId, UUID providerId) {
