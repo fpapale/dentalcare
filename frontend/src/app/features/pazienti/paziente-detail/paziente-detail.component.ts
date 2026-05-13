@@ -9,11 +9,12 @@ import { PatientDetail } from '../../../core/models/patient.model';
 import { CartellaClinicalTabComponent } from '../cartella-tab/cartella-tab.component';
 import { AnamnesiTabComponent } from '../anamnesi-tab/anamnesi-tab.component';
 import { OdontogrammaTabComponent } from '../odontogramma-tab/odontogramma-tab.component';
+import { PianoCuraTabComponent } from '../piano-cura-tab/piano-cura-tab.component';
 
 @Component({
   selector: 'app-paziente-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CartellaClinicalTabComponent, AnamnesiTabComponent, OdontogrammaTabComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CartellaClinicalTabComponent, AnamnesiTabComponent, OdontogrammaTabComponent, PianoCuraTabComponent],
   templateUrl: './paziente-detail.component.html',
   styleUrl: './paziente-detail.component.css'
 })
@@ -22,7 +23,7 @@ export class PazienteDetailComponent implements OnInit {
 
   readonly role = this.userContext.role;
 
-  activeTab = signal<'overview' | 'cartella' | 'anamnesi' | 'odontogramma' | 'preventivi' | 'documenti'>('overview');
+  activeTab = signal<'overview' | 'cartella' | 'anamnesi' | 'odontogramma' | 'pianiCura' | 'preventivi' | 'documenti'>('overview');
   loading = signal(true);
   error = signal<string | null>(null);
   editAnagrafica = signal(false);
@@ -46,6 +47,8 @@ export class PazienteDetailComponent implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab) this.activeTab.set(tab as any);
     this.loadPatient(id);
     this.loadAppointments(id);
   }

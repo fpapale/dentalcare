@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
@@ -9,9 +9,16 @@ import { PatientService } from '../../../core/services/patient.service';
 import { ProviderService } from '../../../core/services/provider.service';
 import { ServiceCatalogService } from '../../../core/services/service-catalog.service';
 import { AppointmentService } from '../../../core/services/appointment.service';
+import { TreatmentPlanService } from '../../../core/services/treatment-plan.service';
 import { PatientListItem } from '../../../core/models/patient.model';
 import { Provider } from '../../../core/models/provider.model';
 import { ServiceItem } from '../../../core/models/service.model';
+
+function notWeekendValidator(ctrl: AbstractControl): ValidationErrors | null {
+  if (!ctrl.value) return null;
+  const d = new Date(ctrl.value + 'T12:00:00');
+  return d.getDay() === 0 || d.getDay() === 6 ? { weekend: true } : null;
+}
 
 @Component({
   selector: 'app-nuovo-appuntamento',
@@ -40,6 +47,10 @@ export class NuovoAppuntamentoComponent implements OnInit {
 
   readonly durate = [15, 30, 45, 60, 90, 120];
 
+  // Plan linking (from piano-cura-detail)
+  planId: string | null = null;
+  planItemId: string | null = null;
+
   form: FormGroup;
 
   constructor(
@@ -49,11 +60,12 @@ export class NuovoAppuntamentoComponent implements OnInit {
     private patientService: PatientService,
     private providerService: ProviderService,
     private serviceCatalogService: ServiceCatalogService,
-    private appointmentService: AppointmentService
+    private appointmentService: AppointmentService,
+    private treatmentPlanService: TreatmentPlanService
   ) {
     const today = new Date().toISOString().split('T')[0];
     this.form = this.fb.group({
-      data: [today, Validators.required],
+      data: [today, [Validators.required, notWeekendValidator]],
       ora: ['', Validators.required],
       durata: [30, Validators.required],
       providerId: ['', Validators.required],
@@ -81,8 +93,20 @@ export class NuovoAppuntamentoComponent implements OnInit {
       this.patientDropdownOpen.set(results.length > 0);
     });
 
-    // Pre-seleziona il paziente se arriva dalla scheda paziente
+    // Pre-seleziona il paziente se arriva dalla scheda paziente o dal piano di cura
     const patientId = this.route.snapshot.queryParamMap.get('patientId');
+    this.planId     = this.route.snapshot.queryParamMap.get('planId');
+    this.planItemId = this.route.snapshot.queryParamMap.get('planItemId');
+
+    const serviceId = this.route.snapshot.queryParamMap.get('serviceId');
+    const duration  = this.route.snapshot.queryParamMap.get('duration');
+
+    if (duration) {
+      const d = Number(duration);
+      if (this.durate.includes(d)) this.form.patchValue({ durata: d });
+      else this.form.patchValue({ durata: this.durate.reduce((prev, cur) => Math.abs(cur - d) < Math.abs(prev - d) ? cur : prev) });
+    }
+
     if (patientId) {
       this.patientService.findById(patientId).subscribe(detail => {
         const asListItem: PatientListItem = {
@@ -104,6 +128,14 @@ export class NuovoAppuntamentoComponent implements OnInit {
         };
         this.selectedPatient.set(asListItem);
         this.patientQuery = detail.fullName;
+        // Pre-select service after services are loaded
+        if (serviceId) {
+          this.serviceCatalogService.findAll().subscribe(svcs => {
+            this.services.set(svcs);
+            const svc = svcs.find(s => s.serviceId === serviceId);
+            if (svc) this.form.patchValue({ serviceId: svc.serviceId });
+          });
+        }
       });
     }
   }
@@ -133,6 +165,10 @@ export class NuovoAppuntamentoComponent implements OnInit {
 
   get formValid(): boolean {
     return this.form.valid && this.selectedPatient() !== null;
+  }
+
+  get dataErrors(): { weekend?: boolean } {
+    return (this.form.get('data')?.errors ?? {}) as { weekend?: boolean };
   }
 
   save(): void {
@@ -167,8 +203,15 @@ export class NuovoAppuntamentoComponent implements OnInit {
       notes: notesParts.join(' — ') || undefined,
     }).subscribe({
       next: () => {
-        this.saving.set(false);
-        this.router.navigate(['/agenda']);
+        if (this.planId && this.planItemId) {
+          this.treatmentPlanService.updateItemStatus(this.planId, this.planItemId, 'scheduled').subscribe({
+            next: () => { this.saving.set(false); this.router.navigate(['/agenda']); },
+            error: () => { this.saving.set(false); this.router.navigate(['/agenda']); }
+          });
+        } else {
+          this.saving.set(false);
+          this.router.navigate(['/agenda']);
+        }
       },
       error: (err) => {
         this.saving.set(false);

@@ -4,4 +4,5 @@ export interface ServiceItem {
   name: string;
   category: string | null;
   defaultPrice: number;
+  durationMinutes: number | null;
 }

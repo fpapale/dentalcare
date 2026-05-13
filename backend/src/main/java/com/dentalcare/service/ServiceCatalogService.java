@@ -21,7 +21,7 @@ public class ServiceCatalogService {
     public List<ServiceDto> findAll() {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
-            SELECT id, code, name, category, default_price
+            SELECT id, code, name, category, default_price, duration_minutes
             FROM dentalcare.service_catalog
             WHERE clinic_id = :clinicId
               AND active = true
@@ -33,7 +33,8 @@ public class ServiceCatalogService {
                 rs.getString("code"),
                 rs.getString("name"),
                 rs.getString("category"),
-                rs.getBigDecimal("default_price")
+                rs.getBigDecimal("default_price"),
+                rs.getObject("duration_minutes", Integer.class)
         ));
     }
 }

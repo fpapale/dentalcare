@@ -31,6 +31,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/pazienti/paziente-detail/paziente-detail.component').then(m => m.PazienteDetailComponent)
   },
   {
+    path: 'pazienti/:id/piano-cura/:planId',
+    loadComponent: () => import('./features/pazienti/piano-cura-detail/piano-cura-detail.component').then(m => m.PianoCuraDetailComponent)
+  },
+  {
     path: 'preventivi',
     loadComponent: () => import('./features/preventivi/preventivi.component').then(m => m.PreventiviComponent)
   },

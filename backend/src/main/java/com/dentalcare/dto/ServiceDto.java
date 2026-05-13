@@ -8,5 +8,6 @@ public record ServiceDto(
         String code,
         String name,
         String category,
-        BigDecimal defaultPrice
+        BigDecimal defaultPrice,
+        Integer durationMinutes
 ) {}
