@@ -347,7 +347,48 @@ Usare interceptor per:
 - centralizzare logging minimo lato client;
 - intercettare `401`, `403`, `500`.
 
-## 5.8 Internazionalizzazione (locale)
+## 5.8 Layout a tre colonne — pannello destro
+
+Il layout applicativo prevede tre colonne: menu laterale | contenuto centrale | pannello destro opzionale.
+
+Il pannello destro (KPI, indicatori, shortcuts) è gestito tramite `LayoutService`:
+
+```typescript
+// Usare in ogni feature component che vuole un pannello destro
+import { AfterViewInit, OnDestroy, TemplateRef, ViewChild, inject } from '@angular/core';
+import { LayoutService } from '../../core/services/layout.service';
+
+export class MyFeatureComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('rightPanel') rightPanelTpl!: TemplateRef<unknown>;
+  private readonly layout = inject(LayoutService);
+
+  ngAfterViewInit(): void { this.layout.setRightPanel(this.rightPanelTpl); }
+  ngOnDestroy():     void { this.layout.setRightPanel(null); }
+}
+```
+
+Template del componente:
+```html
+<!-- Pannello destro (registrato via LayoutService) -->
+<ng-template #rightPanel>
+  <div class="p-4 space-y-4">
+    <!-- KPI cards, indicatori, ecc. -->
+  </div>
+</ng-template>
+
+<!-- Contenuto principale del componente -->
+<div class="p-4 lg:p-6">
+  ...
+</div>
+```
+
+Regole:
+- Se nessun componente registra un template, la colonna centrale si estende a destra automaticamente
+- Il pannello destro è visibile solo da `lg` in su (nascosto su mobile/tablet)
+- Larghezza: `w-72` (lg) / `w-80` (xl)
+- Ogni componente deve chiamare `setRightPanel(null)` in `ngOnDestroy` per pulire
+
+## 5.9 Internazionalizzazione (locale)
 
 Il progetto usa la locale italiana. Registrarla in `app.config.ts` è obbligatorio, altrimenti il `DatePipe` con `'it'` lancia `NG0701` a runtime e il template non si renderizza.
 

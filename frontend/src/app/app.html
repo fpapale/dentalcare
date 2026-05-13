@@ -85,11 +85,21 @@
       </div>
     </div>
 
-    <!-- Contenuto -->
-    <div class="flex flex-1 overflow-hidden">
-      <main class="flex-1 overflow-y-auto pb-14 md:pb-0 bg-slate-100 dark:bg-slate-900">
+    <!-- Contenuto: center + optional right panel -->
+    <div class="flex flex-1 overflow-hidden min-w-0">
+
+      <!-- Centro (main content) -->
+      <main class="flex-1 min-w-0 overflow-y-auto pb-14 md:pb-0 bg-slate-100 dark:bg-slate-900">
         <router-outlet />
       </main>
+
+      <!-- Destra: pannello KPI/indicatori (opzionale) -->
+      @if (rightPanel()) {
+        <aside class="hidden lg:flex w-72 xl:w-80 shrink-0 flex-col border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-y-auto">
+          <ng-container *ngTemplateOutlet="rightPanel()" />
+        </aside>
+      }
+
     </div>
   </div>
 </div>

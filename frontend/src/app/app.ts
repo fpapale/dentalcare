@@ -1,19 +1,23 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { UserContextService, UserRole } from './core/services/user-context.service';
 import { ProviderService } from './core/services/provider.service';
 import { Provider } from './core/models/provider.model';
+import { LayoutService } from './core/services/layout.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, NgTemplateOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit {
-  private readonly userContext = inject(UserContextService);
+  private readonly userContext   = inject(UserContextService);
   private readonly providerService = inject(ProviderService);
+  private readonly layoutService = inject(LayoutService);
+
+  readonly rightPanel = this.layoutService.rightPanel;
 
   title = 'dentalcare-frontend';
 
