@@ -1,4 +1,4 @@
-﻿package com.dentalcare.controller;
+package com.dentalcare.controller;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

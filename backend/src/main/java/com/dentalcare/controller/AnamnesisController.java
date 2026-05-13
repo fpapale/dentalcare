@@ -1,4 +1,4 @@
-﻿package com.dentalcare.controller;
+package com.dentalcare.controller;
 
 import com.dentalcare.dto.AnamnesisCategoryDto;
 import com.dentalcare.dto.SaveAnamnesisRequest;

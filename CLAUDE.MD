@@ -133,6 +133,9 @@ project-root/
     │   └── test/
     └── Dockerfile
 ├── directives/
+    ├── *.md
+└── database/
+    ├── *.sql
 ```
 
 Tutti files markdown ad eccezione di CLAUDE.md vanno nel folder project-root/directives/

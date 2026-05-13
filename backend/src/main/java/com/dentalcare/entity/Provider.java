@@ -1,4 +1,4 @@
-﻿package com.dentalcare.entity;
+package com.dentalcare.entity;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
