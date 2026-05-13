@@ -1,6 +1,9 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { combineLatest } from 'rxjs';
+import { distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { UserContextService } from '../../core/services/user-context.service';
 import { Dashboard } from '../../core/models/dashboard.model';
@@ -25,20 +28,20 @@ export class DashboardComponent {
   readonly role = this.userContext.role;
 
   constructor() {
-    effect(() => {
-      const providerId = this.userContext.providerId();
-      this.userContext.role();
-      this.loadDashboard(providerId);
-    });
-  }
-
-  private loadDashboard(providerId: string | null): void {
-    this.loading.set(true);
-    this.error.set(null);
-
-    this.dashboardService.getDashboard(providerId).subscribe({
-      next: data => { this.dashboard.set(data); this.loading.set(false); },
-      error: () => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
+    combineLatest([
+      toObservable(this.userContext.providerId),
+      toObservable(this.userContext.role)
+    ]).pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(([p1, r1], [p2, r2]) => p1 === p2 && r1 === r2),
+      switchMap(([providerId]) => {
+        this.loading.set(true);
+        this.error.set(null);
+        return this.dashboardService.getDashboard(providerId);
+      })
+    ).subscribe({
+      next: data  => { this.dashboard.set(data); this.loading.set(false); },
+      error: ()   => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
     });
   }
 
