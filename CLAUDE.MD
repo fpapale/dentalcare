@@ -115,7 +115,7 @@ project-root/
     ├── src/
     │   ├── main/
     │   │   ├── java/
-    │   │   │   └── it/company/project/
+    │   │   │   └── com/dentalcare/
     │   │   │       ├── config/
     │   │   │       ├── controller/
     │   │   │       ├── dto/
@@ -125,7 +125,7 @@ project-root/
     │   │   │       ├── repository/
     │   │   │       ├── security/
     │   │   │       ├── service/
-    │   │   │       └── Application.java
+    │   │   │       └── DentalcareApiApplication.java
     │   │   └── resources/
     │   │       ├── application.yml
     │   │       └── db/
@@ -346,6 +346,27 @@ Usare interceptor per:
 - gestire eventuale refresh token;
 - centralizzare logging minimo lato client;
 - intercettare `401`, `403`, `500`.
+
+## 5.8 Internazionalizzazione (locale)
+
+Il progetto usa la locale italiana. Registrarla in `app.config.ts` è obbligatorio, altrimenti il `DatePipe` con `'it'` lancia `NG0701` a runtime e il template non si renderizza.
+
+```typescript
+import { LOCALE_ID } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeIt from '@angular/common/locales/it';
+
+registerLocaleData(localeIt);
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // ...
+    { provide: LOCALE_ID, useValue: 'it' }
+  ]
+};
+```
+
+Senza questa configurazione i pipe `date`, `number`, `currency` con locale `'it'` falliscono silenziosamente mostrando una pagina vuota.
 
 ---
 
