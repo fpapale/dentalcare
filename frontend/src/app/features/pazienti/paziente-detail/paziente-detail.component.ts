@@ -7,11 +7,12 @@ import { UserContextService } from '../../../core/services/user-context.service'
 import { PatientDetail } from '../../../core/models/patient.model';
 import { CartellaClinicalTabComponent } from '../cartella-tab/cartella-tab.component';
 import { AnamnesiTabComponent } from '../anamnesi-tab/anamnesi-tab.component';
+import { OdontogrammaTabComponent } from '../odontogramma-tab/odontogramma-tab.component';
 
 @Component({
   selector: 'app-paziente-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, CartellaClinicalTabComponent, AnamnesiTabComponent],
+  imports: [CommonModule, RouterLink, CartellaClinicalTabComponent, AnamnesiTabComponent, OdontogrammaTabComponent],
   templateUrl: './paziente-detail.component.html',
   styleUrl: './paziente-detail.component.css'
 })
@@ -20,7 +21,7 @@ export class PazienteDetailComponent implements OnInit {
 
   readonly role = this.userContext.role;
 
-  activeTab = signal<'overview' | 'cartella' | 'anamnesi' | 'preventivi' | 'documenti'>('overview');
+  activeTab = signal<'overview' | 'cartella' | 'anamnesi' | 'odontogramma' | 'preventivi' | 'documenti'>('overview');
   loading = signal(true);
   error = signal<string | null>(null);
 

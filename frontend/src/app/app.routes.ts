@@ -31,10 +31,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/pazienti/paziente-detail/paziente-detail.component').then(m => m.PazienteDetailComponent)
   },
   {
-    path: 'pazienti/:id/cartella',
-    loadComponent: () => import('./features/pazienti/cartella-clinica/cartella-clinica.component').then(m => m.CartellaClinciComponent)
-  },
-  {
     path: 'preventivi',
     loadComponent: () => import('./features/preventivi/preventivi.component').then(m => m.PreventiviComponent)
   },

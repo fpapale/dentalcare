@@ -45,13 +45,6 @@
         </div>
         <!-- Actions -->
         <div class="flex gap-2 shrink-0">
-          @if (role() !== 'secretary') {
-            <a [routerLink]="['/pazienti', paziente.id, 'cartella']"
-              class="flex items-center gap-1.5 border border-slate-200 text-slate-600 text-sm font-semibold px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <span class="material-symbols-outlined text-[17px]">dentistry</span>
-              Odontogramma
-            </a>
-          }
           <a routerLink="/agenda/nuovo" [queryParams]="{ patientId: paziente.id }"
             class="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-bold px-3 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
             <span class="material-symbols-outlined text-[17px]">add</span>
@@ -63,8 +56,8 @@
 
     <!-- Tabs -->
     <div class="flex gap-1 mt-4 border-b -mb-4 border-slate-200">
-      @for (tab of [['overview','Panoramica'],['cartella','Cartella Clinica'],['anamnesi','Anamnesi'],['preventivi','Preventivi'],['documenti','Documenti']]; track tab[0]) {
-        @if (role() === 'secretary' && (tab[0] === 'cartella' || tab[0] === 'anamnesi')) {
+      @for (tab of [['overview','Panoramica'],['cartella','Cartella Clinica'],['anamnesi','Anamnesi'],['odontogramma','Odontogramma'],['preventivi','Preventivi'],['documenti','Documenti']]; track tab[0]) {
+        @if (role() === 'secretary' && (tab[0] === 'cartella' || tab[0] === 'anamnesi' || tab[0] === 'odontogramma')) {
           <!-- hidden for secretary -->
         } @else {
           <button (click)="activeTab.set($any(tab[0]))"
@@ -192,6 +185,11 @@
           [bloodType]="paziente.bloodType"
           [anamnesisNotes]="paziente.anamnesisNotes"
           [anamnesisDate]="paziente.anamnesisDate" />
+      }
+
+    } @else if (activeTab() === 'odontogramma') {
+      @if (paziente) {
+        <app-odontogramma-tab [patientId]="paziente.id" />
       }
 
     } @else {
