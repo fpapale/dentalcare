@@ -30,8 +30,16 @@ export class AppointmentService {
     return this.http.get<Appointment[]>(this.base, { params });
   }
 
-  findByPatient(patientId: string): Observable<Appointment[]> {
-    return this.http.get<Appointment[]>(`${this.base}/patient/${patientId}`);
+  findByPatient(patientId: string, providerId?: string | null): Observable<Appointment[]> {
+    let params = new HttpParams();
+    if (providerId) params = params.set('providerId', providerId);
+    return this.http.get<Appointment[]>(`${this.base}/patient/${patientId}`, { params });
+  }
+
+  updateStatus(appointmentId: string, status: string): Observable<void> {
+    return this.http.patch<void>(`${this.base}/${appointmentId}/status`, null, {
+      params: new HttpParams().set('status', status)
+    });
   }
 
   findChairLabels(): Observable<string[]> {

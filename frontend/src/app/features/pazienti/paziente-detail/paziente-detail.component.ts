@@ -106,15 +106,33 @@ export class PazienteDetailComponent implements OnInit {
   }
 
   private loadAppointments(id: string): void {
-    this.appointmentService.findByPatient(id).subscribe({
+    const role = this.userContext.role();
+    const providerId = role === 'doctor' || role === 'hygienist' ? this.userContext.providerId() : null;
+    this.appointmentService.findByPatient(id, providerId).subscribe({
       next: data => {
         this.appuntamenti = data.map(a => ({
+          id: a.appointmentId,
           data: new Date(a.startsAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
           ora: new Date(a.startsAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
           trattamento: a.serviceName ?? 'Visita',
           medico: a.providerName,
+          rawStatus: a.appointmentStatus,
           stato: this.mapStato(a.appointmentStatus)
         }));
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  updateAppointmentStatus(apt: any, newRawStatus: string): void {
+    const prev = apt.rawStatus;
+    apt.rawStatus = newRawStatus;
+    apt.stato = this.mapStato(newRawStatus);
+    this.appointmentService.updateStatus(apt.id, newRawStatus).subscribe({
+      error: () => {
+        apt.rawStatus = prev;
+        apt.stato = this.mapStato(prev);
+        this.cdr.markForCheck();
       }
     });
   }

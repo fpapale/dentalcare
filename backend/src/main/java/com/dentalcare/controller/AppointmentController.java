@@ -4,7 +4,9 @@ import com.dentalcare.dto.AppointmentDto;
 import com.dentalcare.dto.CreateAppointmentRequest;
 import com.dentalcare.service.AppointmentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -37,8 +39,18 @@ public class AppointmentController {
     }
 
     @GetMapping("/patient/{patientId}")
-    public List<AppointmentDto> findByPatient(@PathVariable UUID patientId) {
-        return appointmentService.findByPatient(patientId);
+    public List<AppointmentDto> findByPatient(
+            @PathVariable UUID patientId,
+            @RequestParam(required = false) UUID providerId) {
+        return appointmentService.findByPatient(patientId, providerId);
+    }
+
+    @PatchMapping("/{id}/status")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateStatus(
+            @PathVariable UUID id,
+            @RequestParam String status) {
+        appointmentService.updateStatus(id, status);
     }
 
     @GetMapping("/chairs")

@@ -43,14 +43,6 @@
             </p>
           }
         </div>
-        <!-- Actions -->
-        <div class="flex gap-2 shrink-0">
-          <a routerLink="/agenda/nuovo" [queryParams]="{ patientId: paziente.id }"
-            class="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-bold px-3 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-[17px]">add</span>
-            Appuntamento
-          </a>
-        </div>
       }
     </div>
 
@@ -98,6 +90,11 @@
               <h2 class="font-bold text-slate-700 flex items-center gap-2">
                 <span class="material-symbols-outlined text-[17px] text-teal-600">event</span> Appuntamenti
               </h2>
+              <a routerLink="/agenda/nuovo" [queryParams]="{ patientId: paziente.id }"
+                class="flex items-center gap-1.5 bg-teal-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[15px]">add</span>
+                Nuovo
+              </a>
             </div>
             @if (appuntamenti.length === 0) {
               <p class="text-sm text-slate-400 text-center py-8">Nessun appuntamento trovato</p>
@@ -107,22 +104,43 @@
                   <tr>
                     <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase">Data</th>
                     <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase">Trattamento</th>
-                    <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase hidden md:table-cell">Medico</th>
+                    @if (role() === 'secretary') {
+                      <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase hidden md:table-cell">Medico</th>
+                    }
                     <th class="py-2.5 px-4 text-xs font-bold text-slate-400 uppercase text-right">Stato</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                  @for (apt of appuntamenti; track apt.data) {
+                  @for (apt of appuntamenti; track apt.id) {
                     <tr class="hover:bg-slate-50">
-                      <td class="py-3 px-4 text-sm text-slate-700 font-semibold">{{ apt.data }}<span class="text-slate-400 font-normal ml-1 font-mono text-xs">{{ apt.ora }}</span></td>
+                      <td class="py-3 px-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
+                        {{ apt.data }}<span class="text-slate-400 font-normal ml-1 font-mono text-xs">{{ apt.ora }}</span>
+                      </td>
                       <td class="py-3 px-4 text-sm text-slate-600">{{ apt.trattamento }}</td>
-                      <td class="py-3 px-4 text-sm text-slate-500 hidden md:table-cell">{{ apt.medico }}</td>
+                      @if (role() === 'secretary') {
+                        <td class="py-3 px-4 text-sm text-slate-500 hidden md:table-cell">{{ apt.medico }}</td>
+                      }
                       <td class="py-3 px-4 text-right">
-                        <span class="px-2 py-0.5 rounded-full text-xs font-bold"
-                          [class.bg-teal-100]="apt.stato === 'Confermato'"
-                          [class.text-teal-700]="apt.stato === 'Confermato'"
-                          [class.bg-green-100]="apt.stato === 'Completato'"
-                          [class.text-green-700]="apt.stato === 'Completato'">{{ apt.stato }}</span>
+                        <select
+                          [value]="apt.rawStatus"
+                          (change)="updateAppointmentStatus(apt, $any($event.target).value)"
+                          class="text-xs font-bold rounded-full px-2 py-0.5 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-400"
+                          [class.bg-slate-100]="apt.rawStatus === 'scheduled'"
+                          [class.text-slate-600]="apt.rawStatus === 'scheduled'"
+                          [class.bg-teal-100]="apt.rawStatus === 'confirmed'"
+                          [class.text-teal-700]="apt.rawStatus === 'confirmed'"
+                          [class.bg-green-100]="apt.rawStatus === 'completed'"
+                          [class.text-green-700]="apt.rawStatus === 'completed'"
+                          [class.bg-red-100]="apt.rawStatus === 'cancelled'"
+                          [class.text-red-700]="apt.rawStatus === 'cancelled'"
+                          [class.bg-orange-100]="apt.rawStatus === 'no_show'"
+                          [class.text-orange-700]="apt.rawStatus === 'no_show'">
+                          <option value="scheduled">Programmato</option>
+                          <option value="confirmed">Confermato</option>
+                          <option value="completed">Completato</option>
+                          <option value="cancelled">Cancellato</option>
+                          <option value="no_show">Non presentato</option>
+                        </select>
                       </td>
                     </tr>
                   }

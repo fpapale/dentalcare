@@ -46,8 +46,9 @@ public class AppointmentService {
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
     }
 
-    public List<AppointmentDto> findByPatient(UUID patientId) {
+    public List<AppointmentDto> findByPatient(UUID patientId, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String providerFilter = providerId != null ? "AND provider_id = :providerId\n" : "";
         String sql = """
             SELECT appointment_id, clinic_id, starts_at, ends_at, chair_label,
                    appointment_status, notes,
@@ -58,12 +59,14 @@ public class AppointmentService {
             FROM dentalcare.v_agenda_daily
             WHERE clinic_id = :clinicId
               AND patient_id = :patientId
+            """ + providerFilter + """
             ORDER BY starts_at DESC
             LIMIT 50
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
                 .addValue("patientId", patientId);
+        if (providerId != null) params.addValue("providerId", providerId);
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
     }
 
@@ -86,6 +89,19 @@ public class AppointmentService {
                 .addValue("from", from)
                 .addValue("to", to);
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
+    }
+
+    public void updateStatus(UUID appointmentId, String status) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String sql = """
+            UPDATE dentalcare.appointments
+            SET status = :status
+            WHERE id = :id AND clinic_id = :clinicId
+            """;
+        jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("id", appointmentId)
+                .addValue("clinicId", clinicId)
+                .addValue("status", status));
     }
 
     public UUID create(CreateAppointmentRequest request) {
