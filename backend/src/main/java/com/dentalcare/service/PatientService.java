@@ -35,8 +35,10 @@ public class PatientService {
                    v.treatment_plans_count, v.open_treatment_items_count,
                    v.accepted_estimates_amount,
                    (SELECT COUNT(*) FROM dentalcare.appointments a
-                    WHERE a.patient_id = v.patient_id AND a.clinic_id = v.clinic_id) AS total_appointments
+                    WHERE a.patient_id = v.patient_id AND a.clinic_id = v.clinic_id) AS total_appointments,
+                   pat.photo_url
             FROM dentalcare.v_patient_dashboard v
+            JOIN dentalcare.patients pat ON pat.id = v.patient_id
             WHERE v.clinic_id = :clinicId
               AND (CAST(:search AS text) IS NULL
                    OR v.patient_full_name ILIKE '%' || CAST(:search AS text) || '%'
@@ -165,7 +167,8 @@ public class PatientService {
                 rs.getLong("treatment_plans_count"),
                 rs.getLong("open_treatment_items_count"),
                 rs.getLong("total_appointments"),
-                rs.getBigDecimal("accepted_estimates_amount")
+                rs.getBigDecimal("accepted_estimates_amount"),
+                rs.getString("photo_url")
         );
     }
 
