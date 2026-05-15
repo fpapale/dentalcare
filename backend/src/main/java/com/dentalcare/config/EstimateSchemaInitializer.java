@@ -28,6 +28,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             applyInventorySeed();
             applyRecallSchema();
             applyPatientPhotoSchema();
+            applyProviderPhotoSchema();
             log.info("EstimateSchemaInitializer: schema OK");
         } catch (Exception e) {
             log.error("EstimateSchemaInitializer failed", e);
@@ -734,6 +735,13 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
     private void applyPatientPhotoSchema() {
         jdbc.execute("""
             ALTER TABLE dentalcare.patients
+            ADD COLUMN IF NOT EXISTS photo_url TEXT
+            """);
+    }
+
+    private void applyProviderPhotoSchema() {
+        jdbc.execute("""
+            ALTER TABLE dentalcare.providers
             ADD COLUMN IF NOT EXISTS photo_url TEXT
             """);
     }

@@ -24,5 +24,6 @@ public record ProviderDto(
         String billingPec,
         String billingIban,
         String billingSdiCode,
-        String invoicePrefix
+        String invoicePrefix,
+        String photoUrl
 ) {}

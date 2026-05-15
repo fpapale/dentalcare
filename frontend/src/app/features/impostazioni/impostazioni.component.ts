@@ -560,4 +560,113 @@ export class ImpostazioniComponent implements OnInit {
     const days = this.appSettings.workDays;
     this.appSettings.workDays = days.includes(d) ? days.filter(x => x !== d) : [...days, d].sort();
   }
+
+  // ── Provider photo ─────────────────────────────────────────────────────────
+  showProviderPhotoModal = signal(false);
+  providerPhotoMode = signal<'idle' | 'webcam'>('idle');
+  providerWebcamStream: MediaStream | null = null;
+  capturedProviderPhoto = signal<string | null>(null);
+  savingProviderPhoto = signal(false);
+
+  openProviderPhotoModal(): void {
+    this.capturedProviderPhoto.set(null);
+    this.providerPhotoMode.set('idle');
+    this.showProviderPhotoModal.set(true);
+  }
+
+  closeProviderPhotoModal(): void {
+    this.stopProviderWebcam();
+    this.showProviderPhotoModal.set(false);
+    this.capturedProviderPhoto.set(null);
+    this.providerPhotoMode.set('idle');
+  }
+
+  async startProviderWebcam(): Promise<void> {
+    this.providerPhotoMode.set('webcam');
+    this.capturedProviderPhoto.set(null);
+    try {
+      this.providerWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 400, facingMode: 'user' } });
+      setTimeout(() => {
+        const video = document.getElementById('provider-webcam-video') as HTMLVideoElement;
+        if (video) video.srcObject = this.providerWebcamStream;
+      }, 100);
+    } catch {
+      this.providerPhotoMode.set('idle');
+    }
+  }
+
+  captureProviderWebcam(): void {
+    const video = document.getElementById('provider-webcam-video') as HTMLVideoElement;
+    if (!video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d')!;
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    const ox = (video.videoWidth - size) / 2;
+    const oy = (video.videoHeight - size) / 2;
+    ctx.drawImage(video, ox, oy, size, size, 0, 0, 400, 400);
+    this.capturedProviderPhoto.set(canvas.toDataURL('image/jpeg', 0.85));
+    this.stopProviderWebcam();
+    this.providerPhotoMode.set('idle');
+  }
+
+  stopProviderWebcam(): void {
+    if (this.providerWebcamStream) {
+      this.providerWebcamStream.getTracks().forEach(t => t.stop());
+      this.providerWebcamStream = null;
+    }
+  }
+
+  onProviderFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 400; canvas.height = 400;
+        const ctx = canvas.getContext('2d')!;
+        const s = Math.min(img.width, img.height);
+        const ox = (img.width - s) / 2;
+        const oy = (img.height - s) / 2;
+        ctx.drawImage(img, ox, oy, s, s, 0, 0, 400, 400);
+        this.capturedProviderPhoto.set(canvas.toDataURL('image/jpeg', 0.85));
+        this.providerPhotoMode.set('idle');
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  saveProviderPhoto(): void {
+    const p = this.selectedProvider();
+    const photo = this.capturedProviderPhoto();
+    if (!p || !photo || this.savingProviderPhoto()) return;
+    this.savingProviderPhoto.set(true);
+    this.providerService.updatePhoto(p.providerId, photo).subscribe({
+      next: () => {
+        const updated = { ...p, photoUrl: photo };
+        this.selectedProvider.set(updated);
+        this.providers.update(list => list.map(x => x.providerId === p.providerId ? updated : x));
+        this.savingProviderPhoto.set(false);
+        this.closeProviderPhotoModal();
+      },
+      error: () => this.savingProviderPhoto.set(false)
+    });
+  }
+
+  removeProviderPhoto(): void {
+    const p = this.selectedProvider();
+    if (!p || !confirm('Rimuovere la foto?')) return;
+    this.providerService.updatePhoto(p.providerId, '').subscribe({
+      next: () => {
+        const updated = { ...p, photoUrl: null };
+        this.selectedProvider.set(updated);
+        this.providers.update(list => list.map(x => x.providerId === p.providerId ? updated : x));
+      }
+    });
+  }
 }

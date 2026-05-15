@@ -2,6 +2,7 @@ package com.dentalcare.controller;
 
 import com.dentalcare.dto.CreateProviderRequest;
 import com.dentalcare.dto.ProviderDto;
+import com.dentalcare.dto.UpdatePhotoRequest;
 import com.dentalcare.dto.UpdateProviderBillingRequest;
 import com.dentalcare.dto.UpdateProviderProfileRequest;
 import com.dentalcare.service.ProviderService;
@@ -56,5 +57,11 @@ public class ProviderController {
     public void updateBilling(@PathVariable UUID id,
                               @RequestBody UpdateProviderBillingRequest request) {
         providerService.updateBilling(id, request);
+    }
+
+    @PutMapping("/{id}/photo")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updatePhoto(@PathVariable UUID id, @RequestBody UpdatePhotoRequest request) {
+        providerService.updatePhoto(id, request.photoDataUrl());
     }
 }

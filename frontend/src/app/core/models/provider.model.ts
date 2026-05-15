@@ -19,6 +19,7 @@ export interface Provider {
   billingIban: string | null;
   billingSdiCode: string | null;
   invoicePrefix: string | null;
+  photoUrl?: string | null;
 }
 
 export interface CreateProviderRequest {

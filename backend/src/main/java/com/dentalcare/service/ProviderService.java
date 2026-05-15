@@ -33,7 +33,7 @@ public class ProviderService {
                    role, phone, email, active,
                    vat_number, fiscal_code, professional_register, register_number,
                    billing_address_street, billing_address_zip, billing_address_city, billing_address_province,
-                   billing_pec, billing_iban, billing_sdi_code, invoice_prefix
+                   billing_pec, billing_iban, billing_sdi_code, invoice_prefix, photo_url
             FROM dentalcare.providers
             WHERE clinic_id = :clinicId
               AND (:activeOnly = false OR active = true)
@@ -54,7 +54,7 @@ public class ProviderService {
                    role, phone, email, active,
                    vat_number, fiscal_code, professional_register, register_number,
                    billing_address_street, billing_address_zip, billing_address_city, billing_address_province,
-                   billing_pec, billing_iban, billing_sdi_code, invoice_prefix
+                   billing_pec, billing_iban, billing_sdi_code, invoice_prefix, photo_url
             FROM dentalcare.providers
             WHERE id = :id AND clinic_id = :clinicId
             """;
@@ -178,7 +178,23 @@ public class ProviderService {
                 rs.getString("billing_pec"),
                 rs.getString("billing_iban"),
                 rs.getString("billing_sdi_code"),
-                rs.getString("invoice_prefix")
+                rs.getString("invoice_prefix"),
+                rs.getString("photo_url")
         );
+    }
+
+    @Transactional
+    public void updatePhoto(UUID providerId, String photoDataUrl) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update("""
+            UPDATE dentalcare.providers
+            SET photo_url  = :photoUrl,
+                updated_at = now()
+            WHERE id = :id AND clinic_id = :clinicId
+            """,
+            new MapSqlParameterSource()
+                .addValue("photoUrl", photoDataUrl == null || photoDataUrl.isBlank() ? null : photoDataUrl)
+                .addValue("id", providerId)
+                .addValue("clinicId", clinicId));
     }
 }
