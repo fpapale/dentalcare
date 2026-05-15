@@ -1,13 +1,14 @@
 import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { RouterLink, Router } from '@angular/router';
 import { TreatmentPlanService } from '../../../core/services/treatment-plan.service';
 import { TreatmentPlanSummary, TreatmentPlanStatus } from '../../../core/models/treatment-plan.model';
 
 @Component({
   selector: 'app-piano-cura-tab',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './piano-cura-tab.component.html'
 })
 export class PianoCuraTabComponent implements OnInit {
@@ -17,7 +18,17 @@ export class PianoCuraTabComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
 
-  constructor(private planService: TreatmentPlanService) {}
+  confirmDeletePlanId = signal<string | null>(null);
+  deletingPlanId = signal<string | null>(null);
+
+  editingPlanId = signal<string | null>(null);
+  savingNameId = signal<string | null>(null);
+  editNameValue = '';
+
+  constructor(
+    private planService: TreatmentPlanService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.planService.findByPatient(this.patientId).subscribe({
@@ -47,5 +58,50 @@ export class PianoCuraTabComponent implements OnInit {
   progressPct(p: TreatmentPlanSummary): number {
     if (p.totalItems === 0) return 0;
     return Math.round((p.completedItems / p.totalItems) * 100);
+  }
+
+  navigateToPlan(planId: string): void {
+    this.router.navigate(['/pazienti', this.patientId, 'piano-cura', planId]);
+  }
+
+  startEditName(plan: TreatmentPlanSummary): void {
+    this.editNameValue = plan.name;
+    this.editingPlanId.set(plan.planId);
+  }
+
+  cancelEditName(): void {
+    this.editingPlanId.set(null);
+  }
+
+  saveNameEdit(planId: string): void {
+    const name = this.editNameValue.trim();
+    if (!name) return;
+    this.savingNameId.set(planId);
+    this.planService.updateName(planId, name).subscribe({
+      next: () => {
+        this.plans.update(list => list.map(p => p.planId === planId ? { ...p, name } : p));
+        this.savingNameId.set(null);
+        this.editingPlanId.set(null);
+      },
+      error: () => {
+        this.savingNameId.set(null);
+        this.error.set('Errore nel salvataggio del nome');
+      }
+    });
+  }
+
+  deletePlan(planId: string): void {
+    this.deletingPlanId.set(planId);
+    this.planService.deletePlan(planId).subscribe({
+      next: () => {
+        this.deletingPlanId.set(null);
+        this.confirmDeletePlanId.set(null);
+        this.plans.update(list => list.filter(p => p.planId !== planId));
+      },
+      error: () => {
+        this.deletingPlanId.set(null);
+        this.error.set('Errore nella eliminazione del piano di cura');
+      }
+    });
   }
 }

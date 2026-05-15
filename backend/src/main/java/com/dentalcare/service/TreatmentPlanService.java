@@ -5,6 +5,7 @@ import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -79,10 +80,18 @@ public class TreatmentPlanService {
                    tpi.provider_id, concat_ws(' ', prov.last_name, prov.first_name) AS provider_name,
                    tpi.tooth_number, tpi.quadrant, tpi.planned_price,
                    tpi.status::text, tpi.priority, tpi.planned_date, tpi.clinical_notes,
-                   tpi.created_at
+                   tpi.created_at,
+                   tc.condition AS odontogram_condition
             FROM dentalcare.treatment_plan_items tpi
+            JOIN dentalcare.treatment_plans tp ON tp.id = tpi.treatment_plan_id AND tp.clinic_id = tpi.clinic_id
             JOIN dentalcare.service_catalog sc ON sc.id = tpi.service_id AND sc.clinic_id = tpi.clinic_id
             LEFT JOIN dentalcare.providers prov ON prov.id = tpi.provider_id AND prov.clinic_id = tpi.clinic_id
+            LEFT JOIN dentalcare.tooth_conditions tc
+                ON tpi.tooth_number ~ '^[0-9]+$'
+               AND CAST(tpi.tooth_number AS integer) = tc.tooth_fdi
+               AND tc.surface = 'WHOLE'
+               AND tc.patient_id = tp.patient_id
+               AND tc.clinic_id = tpi.clinic_id
             WHERE tpi.treatment_plan_id = :planId AND tpi.clinic_id = :clinicId
             ORDER BY tpi.priority, tpi.created_at
             """;
@@ -170,16 +179,129 @@ public class TreatmentPlanService {
                 .addValue("planId", planId)
                 .addValue("clinicId", clinicId)
                 .addValue("status", status));
+        if ("completed".equals(status)) {
+            syncToothOnCompletion(planId, itemId, clinicId);
+        }
+    }
+
+    @Transactional
+    public UUID createFromOdontogram(CreatePlanFromOdontogramRequest request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        UUID planId = UUID.randomUUID();
+
+        jdbc.update("""
+            INSERT INTO dentalcare.treatment_plans
+                (id, clinic_id, patient_id, name, description, status)
+            VALUES (:id, :clinicId, :patientId, :name, :description, 'draft')
+            """,
+            new MapSqlParameterSource()
+                .addValue("id", planId)
+                .addValue("clinicId", clinicId)
+                .addValue("patientId", request.patientId())
+                .addValue("name", request.name())
+                .addValue("description", "Generato da odontogramma"));
+
+        List<OdontogramPlanItemRequest> items = request.items();
+        for (int i = 0; i < items.size(); i++) {
+            OdontogramPlanItemRequest item = items.get(i);
+            java.math.BigDecimal price = resolveServiceDefaults(item.serviceId(), clinicId).price();
+            jdbc.update("""
+                INSERT INTO dentalcare.treatment_plan_items
+                    (id, clinic_id, treatment_plan_id, service_id, tooth_number, quadrant,
+                     planned_price, status, priority, clinical_notes)
+                VALUES
+                    (:id, :clinicId, :planId, :serviceId, :toothNumber, :quadrant,
+                     :plannedPrice, 'planned', :priority, :clinicalNotes)
+                """,
+                new MapSqlParameterSource()
+                    .addValue("id", UUID.randomUUID())
+                    .addValue("clinicId", clinicId)
+                    .addValue("planId", planId)
+                    .addValue("serviceId", item.serviceId())
+                    .addValue("toothNumber", String.valueOf(item.toothFdi()))
+                    .addValue("quadrant", item.toothFdi() / 10)
+                    .addValue("plannedPrice", price)
+                    .addValue("priority", (i + 1) * 10)
+                    .addValue("clinicalNotes", item.clinicalNotes()));
+        }
+        return planId;
+    }
+
+    private void syncToothOnCompletion(UUID planId, UUID itemId, UUID clinicId) {
+        List<Map<String, Object>> rows = jdbc.queryForList("""
+            SELECT tpi.tooth_number, tp.patient_id
+            FROM dentalcare.treatment_plan_items tpi
+            JOIN dentalcare.treatment_plans tp
+                ON tp.id = tpi.treatment_plan_id AND tp.clinic_id = tpi.clinic_id
+            WHERE tpi.id = :itemId AND tpi.treatment_plan_id = :planId AND tpi.clinic_id = :clinicId
+            """,
+            new MapSqlParameterSource()
+                .addValue("itemId", itemId)
+                .addValue("planId", planId)
+                .addValue("clinicId", clinicId));
+        if (rows.isEmpty()) return;
+
+        String toothStr = (String) rows.get(0).get("tooth_number");
+        Object patientIdObj = rows.get(0).get("patient_id");
+        if (toothStr == null || patientIdObj == null) return;
+
+        int fdi;
+        try { fdi = Integer.parseInt(toothStr.trim()); } catch (NumberFormatException e) { return; }
+
+        UUID patientId = patientIdObj instanceof UUID u ? u : UUID.fromString(patientIdObj.toString());
+        MapSqlParameterSource p = new MapSqlParameterSource()
+                .addValue("clinicId", clinicId)
+                .addValue("patientId", patientId)
+                .addValue("fdi", fdi);
+
+        int updated = jdbc.update("""
+            UPDATE dentalcare.tooth_conditions
+            SET condition = 'extracted'
+            WHERE clinic_id = :clinicId AND patient_id = :patientId AND tooth_fdi = :fdi
+              AND surface = 'WHOLE' AND condition = 'to_extract'
+            """, p);
+        if (updated > 0) return;
+
+        jdbc.update("""
+            UPDATE dentalcare.tooth_conditions
+            SET condition = 'filling'
+            WHERE clinic_id = :clinicId AND patient_id = :patientId AND tooth_fdi = :fdi
+              AND condition = 'cavity'
+            """, p);
     }
 
     public void deleteItem(UUID planId, UUID itemId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        String sql = """
+        jdbc.update("""
             DELETE FROM dentalcare.treatment_plan_items
             WHERE id = :id AND treatment_plan_id = :planId AND clinic_id = :clinicId
-            """;
-        jdbc.update(sql, new MapSqlParameterSource()
+            """,
+            new MapSqlParameterSource()
                 .addValue("id", itemId)
+                .addValue("planId", planId)
+                .addValue("clinicId", clinicId));
+    }
+
+    public void updateName(UUID planId, String name) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update("""
+            UPDATE dentalcare.treatment_plans
+            SET name = :name, updated_at = now()
+            WHERE id = :id AND clinic_id = :clinicId
+            """,
+            new MapSqlParameterSource()
+                .addValue("id", planId)
+                .addValue("clinicId", clinicId)
+                .addValue("name", name));
+    }
+
+    public void deletePlan(UUID planId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update("""
+            DELETE FROM dentalcare.treatment_plans
+            WHERE id = :planId AND clinic_id = :clinicId
+            """,
+            new MapSqlParameterSource()
                 .addValue("planId", planId)
                 .addValue("clinicId", clinicId));
     }
@@ -223,7 +345,8 @@ public class TreatmentPlanService {
                 rs.getObject("priority", Integer.class),
                 rs.getDate("planned_date") != null ? rs.getDate("planned_date").toLocalDate() : null,
                 rs.getString("clinical_notes"),
-                rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant().atOffset(ZoneOffset.UTC) : null
+                rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant().atOffset(ZoneOffset.UTC) : null,
+                rs.getString("odontogram_condition")
         );
     }
 }

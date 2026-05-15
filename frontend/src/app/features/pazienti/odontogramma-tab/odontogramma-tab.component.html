@@ -53,6 +53,11 @@
             Salva
           </button>
         }
+        <button (click)="openPianifica(); $event.stopPropagation()"
+          class="flex items-center gap-1.5 bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+          <span class="material-symbols-outlined text-[17px]">assignment_add</span>
+          Genera Piano di Cura
+        </button>
       </div>
     </div>
 
@@ -211,6 +216,218 @@
   </div>
 
 </div>
+
+<!-- Pianifica overlay -->
+@if (pianificaMode()) {
+  <div class="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4"
+    (click)="closePianifica()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+      (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <span class="material-symbols-outlined text-indigo-600">assignment_add</span>
+          Genera Piano di Cura
+        </h2>
+        <button (click)="closePianifica()"
+          class="text-slate-400 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+
+        <!-- Mode toggle -->
+        <div class="flex rounded-lg border border-slate-200 overflow-hidden text-sm font-semibold">
+          <button (click)="pianificaModeType.set('new')"
+            class="flex-1 py-2 transition-colors"
+            [class.bg-indigo-600]="pianificaModeType() === 'new'"
+            [class.text-white]="pianificaModeType() === 'new'"
+            [class.bg-white]="pianificaModeType() !== 'new'"
+            [class.text-slate-600]="pianificaModeType() !== 'new'">
+            Nuovo piano
+          </button>
+          <button (click)="pianificaModeType.set('existing')"
+            class="flex-1 py-2 transition-colors border-l border-slate-200"
+            [class.bg-indigo-600]="pianificaModeType() === 'existing'"
+            [class.text-white]="pianificaModeType() === 'existing'"
+            [class.bg-white]="pianificaModeType() !== 'existing'"
+            [class.text-slate-600]="pianificaModeType() !== 'existing'">
+            Aggiungi a piano esistente
+          </button>
+        </div>
+
+        <!-- New plan name -->
+        @if (pianificaModeType() === 'new') {
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nome piano</label>
+            <input type="text"
+              [ngModel]="pianificaName()"
+              (ngModelChange)="pianificaName.set($event)"
+              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              placeholder="Nome piano di cura" />
+          </div>
+        }
+
+        <!-- Existing plan selector -->
+        @if (pianificaModeType() === 'existing') {
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Piano di cura</label>
+            @if (existingPlansLoading()) {
+              <div class="flex items-center gap-2 text-sm text-slate-400 py-2">
+                <div class="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+                Caricamento piani...
+              </div>
+            } @else if (existingPlans().length === 0) {
+              <p class="text-sm text-slate-400 py-2">Nessun piano attivo trovato per questo paziente.</p>
+            } @else {
+              <select
+                [ngModel]="selectedExistingPlanId()"
+                (ngModelChange)="selectedExistingPlanId.set($event)"
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                <option value="">— Seleziona piano —</option>
+                @for (plan of existingPlans(); track plan.planId) {
+                  <option [value]="plan.planId">
+                    {{ plan.name }} ({{ plan.openItems }} aperti · {{ plan.status }})
+                  </option>
+                }
+              </select>
+            }
+          </div>
+        }
+
+        <!-- Items -->
+        @if (servicesLoading()) {
+          <div class="flex items-center justify-center py-8">
+            <div class="w-6 h-6 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        } @else if (pianificaItems().length === 0) {
+          <div class="flex flex-col items-center justify-center py-8 gap-2 text-slate-400">
+            <span class="material-symbols-outlined text-4xl">sentiment_neutral</span>
+            <p class="text-sm">Nessun dente con condizione trattabile trovato nell'odontogramma.</p>
+            <p class="text-xs">Condizioni rilevate: carie, da estrarre, devitalizzato, mancante.</p>
+          </div>
+        } @else {
+          <div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+              Prestazioni ({{ uniquePianificaFdis().length }} denti · {{ pianificaItems().length }} righe)
+            </p>
+            <div class="space-y-3">
+              @for (tooth of uniquePianificaFdis(); track tooth.fdi) {
+                <div class="rounded-xl border border-slate-200 overflow-hidden">
+                  <!-- Tooth header -->
+                  <div class="flex items-center gap-3 px-3 py-2 bg-slate-50 border-b border-slate-200">
+                    <div class="w-9 h-9 rounded-lg flex flex-col items-center justify-center shrink-0"
+                      [style.background-color]="CONDITIONS[tooth.condition]?.fill ?? '#f1f5f9'"
+                      [style.border]="'1.5px solid ' + (CONDITIONS[tooth.condition]?.border ?? '#cbd5e1')">
+                      <span class="text-xs font-bold text-slate-700 leading-none">{{ tooth.fdi }}</span>
+                      <span class="text-[8px] text-slate-500 leading-none mt-0.5">{{ CONDITION_TREATMENT_HINT[tooth.condition] ?? '' }}</span>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-600 flex-1">
+                      {{ CONDITIONS[tooth.condition]?.label ?? tooth.condition }}
+                    </span>
+                    <button (click)="addRowForFdi(tooth.fdi, tooth.condition)"
+                      class="flex items-center gap-1 text-xs text-indigo-600 font-semibold hover:text-indigo-800 transition-colors">
+                      <span class="material-symbols-outlined text-[15px]">add</span>
+                      Aggiungi
+                    </button>
+                  </div>
+                  <!-- Rows for this tooth -->
+                  <div class="divide-y divide-slate-100">
+                    @for (row of rowsForFdi(tooth.fdi); track row.rowId) {
+                      <div class="flex items-center gap-2 px-3 py-2"
+                        [class.bg-indigo-50]="row.isSuggested">
+                        @if (row.isSuggested) {
+                          <span class="material-symbols-outlined text-[14px] text-indigo-400 shrink-0">auto_awesome</span>
+                        } @else {
+                          <span class="w-[14px] shrink-0"></span>
+                        }
+                        <select
+                          [ngModel]="row.serviceId"
+                          (ngModelChange)="updateServiceForRow(row.rowId, $event)"
+                          class="flex-1 border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                          [class.border-red-300]="!row.serviceId"
+                          [class.border-slate-300]="!!row.serviceId">
+                          <option value="">— Seleziona prestazione —</option>
+                          @for (group of servicesCatForTooth(tooth.fdi); track group.category) {
+                            <optgroup [label]="group.category">
+                              @for (svc of group.items; track svc.serviceId) {
+                                <option [value]="svc.serviceId">{{ svc.name }}</option>
+                              }
+                            </optgroup>
+                          }
+                        </select>
+                        @if (row.isSuggested) {
+                          <span class="text-[10px] text-indigo-500 font-semibold shrink-0 whitespace-nowrap">suggerito</span>
+                        }
+                        <button (click)="removeRow(row.rowId)"
+                          class="shrink-0 text-slate-300 hover:text-red-500 transition-colors"
+                          title="Rimuovi riga">
+                          <span class="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Plan created success -->
+        @if (planCreatedId()) {
+          <div class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-green-600">check_circle</span>
+            <p class="text-sm text-green-700 font-semibold">Piano di cura creato con successo.</p>
+          </div>
+        }
+
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200">
+        <button (click)="closePianifica()"
+          class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
+          Annulla
+        </button>
+        @if (!planCreatedId()) {
+          @if (pianificaModeType() === 'new') {
+            <button (click)="createPlanFromOdontogram()"
+              [disabled]="!canCreatePlan() || creatingPlan()"
+              class="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              @if (creatingPlan()) {
+                <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              } @else {
+                <span class="material-symbols-outlined text-[17px]">add_task</span>
+              }
+              Crea Piano di Cura
+            </button>
+          } @else {
+            <button (click)="addItemsToExistingPlan()"
+              [disabled]="!canAddToExistingPlan() || creatingPlan()"
+              class="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              @if (creatingPlan()) {
+                <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              } @else {
+                <span class="material-symbols-outlined text-[17px]">playlist_add</span>
+              }
+              Aggiungi al Piano
+            </button>
+          }
+        } @else {
+          <button (click)="closePianifica()"
+            class="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+            <span class="material-symbols-outlined text-[17px]">check</span>
+            Chiudi
+          </button>
+        }
+      </div>
+
+    </div>
+  </div>
+}
 
 <!-- Floating condition picker -->
 @if (selectedFdi() !== null) {

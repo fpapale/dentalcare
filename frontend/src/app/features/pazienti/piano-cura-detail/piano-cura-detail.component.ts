@@ -9,6 +9,8 @@ import { PatientService } from '../../../core/services/patient.service';
 import { TreatmentPlan, TreatmentPlanItem, TreatmentPlanStatus, TreatmentItemStatus } from '../../../core/models/treatment-plan.model';
 import { ServiceItem } from '../../../core/models/service.model';
 import { Provider } from '../../../core/models/provider.model';
+import { EstimateService } from '../../../core/services/estimate.service';
+import { PlanItemCoverage, Estimate } from '../../../core/models/estimate.model';
 
 @Component({
   selector: 'app-piano-cura-detail',
@@ -46,8 +48,25 @@ export class PianoCuraDetailComponent implements OnInit {
   services = signal<ServiceItem[]>([]);
   providers = signal<Provider[]>([]);
 
-  // Delete confirm
+  // Delete item confirm
   deletingItemId = signal<string | null>(null);
+
+  // Edit plan name
+  editingName = signal(false);
+  savingName = signal(false);
+  editNameValue = '';
+
+  // Delete plan confirm
+  confirmDeletePlan = signal(false);
+  deletingPlan = signal(false);
+
+  // Estimate coverage per plan item
+  planCoverage = signal<PlanItemCoverage[]>([]);
+
+  // Estimate picker (when clicking "Preventivo" button)
+  showEstimatePicker = signal(false);
+  planEstimates = signal<Estimate[]>([]);
+  loadingEstimates = signal(false);
 
   constructor(
     private route: ActivatedRoute,
@@ -55,7 +74,8 @@ export class PianoCuraDetailComponent implements OnInit {
     private planService: TreatmentPlanService,
     private serviceCatalogService: ServiceCatalogService,
     private providerService: ProviderService,
-    private patientService: PatientService
+    private patientService: PatientService,
+    private estimateService: EstimateService
   ) {}
 
   ngOnInit(): void {
@@ -76,7 +96,14 @@ export class PianoCuraDetailComponent implements OnInit {
   private loadPlan(): void {
     this.loading.set(true);
     this.planService.findById(this.planId).subscribe({
-      next: data => { this.plan.set(data); this.loading.set(false); },
+      next: data => {
+        this.plan.set(data);
+        this.loading.set(false);
+        this.estimateService.getPlanCoverage(this.planId).subscribe({
+          next: cov => this.planCoverage.set(cov),
+          error: () => {}
+        });
+      },
       error: () => { this.error.set('Errore nel caricamento del piano'); this.loading.set(false); }
     });
   }
@@ -137,6 +164,44 @@ export class PianoCuraDetailComponent implements OnInit {
     });
   }
 
+  startEditName(): void {
+    this.editNameValue = this.plan()?.name ?? '';
+    this.editingName.set(true);
+  }
+
+  cancelEditName(): void {
+    this.editingName.set(false);
+  }
+
+  saveNameEdit(): void {
+    const name = this.editNameValue.trim();
+    if (!name) return;
+    this.savingName.set(true);
+    this.planService.updateName(this.planId, name).subscribe({
+      next: () => {
+        this.savingName.set(false);
+        this.editingName.set(false);
+        this.loadPlan();
+      },
+      error: () => {
+        this.savingName.set(false);
+        this.error.set('Errore nel salvataggio del nome');
+      }
+    });
+  }
+
+  deletePlan(): void {
+    this.deletingPlan.set(true);
+    this.planService.deletePlan(this.planId).subscribe({
+      next: () => this.router.navigate(['/pazienti', this.patientId], { queryParams: { tab: 'pianiCura' } }),
+      error: () => {
+        this.deletingPlan.set(false);
+        this.confirmDeletePlan.set(false);
+        this.error.set('Errore nella eliminazione del piano di cura');
+      }
+    });
+  }
+
   updatePlanStatus(status: string): void {
     this.planService.updateStatus(this.planId, status).subscribe({
       next: () => this.loadPlan(),
@@ -175,6 +240,36 @@ export class PianoCuraDetailComponent implements OnInit {
     }
   }
 
+  odontogramConditionLabel(c: string | null): string {
+    if (!c) return '';
+    const map: Record<string, string> = {
+      cavity: 'Carie',
+      to_extract: 'Da estrarre',
+      root_canal: 'Devitalizzato',
+      missing: 'Mancante',
+      filling: 'Otturazione',
+      crown: 'Corona',
+      implant: 'Impianto',
+      bridge_pillar: 'Bridge pil.',
+      bridge_pontic: 'Bridge pont.',
+      extracted: 'Estratto'
+    };
+    return map[c] ?? c;
+  }
+
+  odontogramConditionClass(c: string | null): string {
+    switch (c) {
+      case 'cavity':        return 'bg-red-100 text-red-700 border-red-300';
+      case 'to_extract':    return 'bg-orange-100 text-orange-700 border-orange-300';
+      case 'root_canal':    return 'bg-amber-100 text-amber-700 border-amber-300';
+      case 'missing':       return 'bg-slate-100 text-slate-600 border-slate-300';
+      case 'filling':       return 'bg-blue-100 text-blue-700 border-blue-300';
+      case 'crown':         return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+      case 'implant':       return 'bg-purple-100 text-purple-700 border-purple-300';
+      default:              return 'bg-slate-100 text-slate-600 border-slate-300';
+    }
+  }
+
   canSchedule(item: TreatmentPlanItem): boolean {
     return item.status === 'planned' || item.status === 'accepted';
   }
@@ -192,6 +287,46 @@ export class PianoCuraDetailComponent implements OnInit {
         duration
       }
     });
+  }
+
+  itemCoverage(itemId: string): PlanItemCoverage | undefined {
+    return this.planCoverage().find(c => c.planItemId === itemId);
+  }
+
+  openEstimatePicker(): void {
+    if (this.showEstimatePicker()) { this.showEstimatePicker.set(false); return; }
+    this.loadingEstimates.set(true);
+    this.showEstimatePicker.set(true);
+    this.estimateService.findByPlan(this.planId).subscribe({
+      next: list => {
+        this.planEstimates.set(list);
+        this.loadingEstimates.set(false);
+        if (list.length === 0) {
+          this.showEstimatePicker.set(false);
+          this.router.navigate(['/preventivi', 'nuovo'], {
+            queryParams: { patientId: this.patientId, planId: this.planId }
+          });
+        }
+      },
+      error: () => { this.loadingEstimates.set(false); this.showEstimatePicker.set(false); }
+    });
+  }
+
+  estimateStatusLabel(s: string): string {
+    const map: Record<string, string> = {
+      draft: 'Bozza', sent: 'Inviato', accepted: 'Accettato',
+      expired: 'Scaduto'
+    };
+    return map[s] ?? s;
+  }
+
+  estimateStatusClass(s: string): string {
+    switch (s) {
+      case 'sent':     return 'bg-blue-100 text-blue-700';
+      case 'accepted': return 'bg-green-100 text-green-700';
+      case 'expired':  return 'bg-orange-100 text-orange-600';
+      default:         return 'bg-slate-100 text-slate-600';
+    }
   }
 
   openItemsCount(): number {

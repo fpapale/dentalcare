@@ -1,8 +1,10 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { EstimateService } from '../../core/services/estimate.service';
 import { Estimate } from '../../core/models/estimate.model';
+import { UserContextService } from '../../core/services/user-context.service';
 
 @Component({
   selector: 'app-preventivi',
@@ -27,7 +29,11 @@ export class PreventiviComponent implements OnInit {
     { key: 'expired', label: 'Scaduto' },
   ];
 
-  constructor(private estimateService: EstimateService) {}
+  constructor(
+    private estimateService: EstimateService,
+    private router: Router,
+    private userContext: UserContextService
+  ) {}
 
   ngOnInit(): void {
     this.loadEstimates();
@@ -36,7 +42,11 @@ export class PreventiviComponent implements OnInit {
   loadEstimates(): void {
     this.loading.set(true);
     const status = this.activeFilter() === 'tutti' ? undefined : this.activeFilter();
-    this.estimateService.findAll(status).subscribe({
+    const role = this.userContext.role();
+    const providerId = (role === 'doctor' || role === 'hygienist')
+      ? (this.userContext.providerId() ?? undefined)
+      : undefined;
+    this.estimateService.findAll(status, providerId).subscribe({
       next: data => { this.estimates.set(data); this.loading.set(false); },
       error: () => { this.error.set('Errore nel caricamento preventivi'); this.loading.set(false); }
     });
@@ -45,6 +55,10 @@ export class PreventiviComponent implements OnInit {
   setFilter(key: string): void {
     this.activeFilter.set(key);
     this.loadEstimates();
+  }
+
+  openEstimate(estimateId: string): void {
+    this.router.navigate(['/preventivi', estimateId]);
   }
 
   get filteredEstimates(): Estimate[] {
@@ -64,6 +78,23 @@ export class PreventiviComponent implements OnInit {
     return this.estimates().filter(e => e.estimateStatus === 'sent')
       .reduce((s, e) => s + e.totalAmount, 0);
   }
+
+  get totalAmount(): number { return this.estimates().reduce((s, e) => s + e.totalAmount, 0); }
+
+  get draftCount(): number { return this.estimates().filter(e => e.estimateStatus === 'draft').length; }
+  get sentCount(): number { return this.estimates().filter(e => e.estimateStatus === 'sent').length; }
+  get acceptedCount(): number { return this.estimates().filter(e => e.estimateStatus === 'accepted').length; }
+  get rejectedCount(): number { return this.estimates().filter(e => e.estimateStatus === 'rejected').length; }
+  get expiredCount(): number { return this.estimates().filter(e => e.estimateStatus === 'expired').length; }
+
+  get draftAmount(): number { return this.estimates().filter(e => e.estimateStatus === 'draft').reduce((s, e) => s + e.totalAmount, 0); }
+  get sentAmount(): number { return this.estimates().filter(e => e.estimateStatus === 'sent').reduce((s, e) => s + e.totalAmount, 0); }
+  get acceptedAmount(): number { return this.estimates().filter(e => e.estimateStatus === 'accepted').reduce((s, e) => s + e.totalAmount, 0); }
+  get rejectedAmount(): number { return this.estimates().filter(e => e.estimateStatus === 'rejected').reduce((s, e) => s + e.totalAmount, 0); }
+  get expiredAmount(): number { return this.estimates().filter(e => e.estimateStatus === 'expired').reduce((s, e) => s + e.totalAmount, 0); }
+
+  countFlex(n: number): number { return this.estimates().length > 0 ? n / this.estimates().length : 0; }
+  amountFlex(a: number): number { return this.totalAmount > 0 ? a / this.totalAmount : 0; }
 
   statoLabel(status: string): string {
     const map: Record<string, string> = {

@@ -39,6 +39,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/preventivi/preventivi.component').then(m => m.PreventiviComponent)
   },
   {
+    path: 'preventivi/:estimateId',
+    loadComponent: () => import('./features/preventivi/preventivo-detail/preventivo-detail.component').then(m => m.PreventivoDetailComponent)
+  },
+  {
     path: 'fatturazione',
     loadComponent: () => import('./features/fatturazione/fatturazione.component').then(m => m.FatturazioneComponent)
   },

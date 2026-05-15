@@ -1,6 +1,12 @@
 import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { OdontogramService } from '../../../core/services/odontogram.service';
+import { ServiceCatalogService } from '../../../core/services/service-catalog.service';
+import { TreatmentPlanService } from '../../../core/services/treatment-plan.service';
+import { TreatmentPlanSummary } from '../../../core/models/treatment-plan.model';
+import { ServiceItem } from '../../../core/models/service.model';
 
 const TOOTH = 32;
 const STEP  = 34;
@@ -62,6 +68,22 @@ const SURFACE_CONDITIONS = ['healthy', 'cavity', 'filling'];
 const WHOLE_CONDITIONS   = ['none', 'crown', 'missing', 'extracted', 'implant',
                              'bridge_pillar', 'bridge_pontic', 'root_canal', 'to_extract'];
 
+const ACTIONABLE = new Set([
+  'cavity', 'to_extract', 'root_canal', 'missing',
+  'bridge_pillar', 'bridge_pontic', 'crown', 'implant',
+]);
+
+const CONDITION_TREATMENT_HINT: Record<string, string> = {
+  cavity:        'Conservativa',
+  to_extract:    'Chirurgia',
+  root_canal:    'Endodonzia',
+  missing:       'Implantologia',
+  bridge_pillar: 'Protesi',
+  bridge_pontic: 'Protesi',
+  crown:         'Protesi',
+  implant:       'Implantologia',
+};
+
 interface ToothSurface { key: string; points: string; label: string; }
 interface ToothCell {
   fdi: number; pos: number; x: number; y: number;
@@ -69,23 +91,33 @@ interface ToothCell {
   surfaces: ToothSurface[];
 }
 
+interface PianificaItem {
+  rowId: string;
+  fdi: number;
+  condition: string;
+  serviceId: string;
+  isSuggested: boolean;
+  parentRowId?: string;
+}
+
 @Component({
   selector: 'app-odontogramma-tab',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './odontogramma-tab.component.html',
 })
 export class OdontogrammaTabComponent implements OnInit {
   @Input() patientId!: string;
 
-  readonly SVG_W            = SVG_W;
-  readonly SVG_H            = SVG_H;
-  readonly CHILD_SVG_W      = CHILD_SVG_W;
-  readonly CONDITIONS       = CONDITIONS;
+  readonly SVG_W              = SVG_W;
+  readonly SVG_H              = SVG_H;
+  readonly CHILD_SVG_W        = CHILD_SVG_W;
+  readonly CONDITIONS         = CONDITIONS;
   readonly SURFACE_CONDITIONS = SURFACE_CONDITIONS;
-  readonly WHOLE_CONDITIONS = WHOLE_CONDITIONS;
-  readonly TOOTH_PATHS      = TOOTH_PATHS;
-  readonly TOOTH_POS_KEYS   = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+  readonly WHOLE_CONDITIONS   = WHOLE_CONDITIONS;
+  readonly TOOTH_PATHS        = TOOTH_PATHS;
+  readonly TOOTH_POS_KEYS     = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+  readonly CONDITION_TREATMENT_HINT = CONDITION_TREATMENT_HINT;
 
   activeArch  = signal<'adult' | 'child'>('adult');
   loading     = signal(true);
@@ -100,10 +132,27 @@ export class OdontogrammaTabComponent implements OnInit {
   panelX          = signal(0);
   panelY          = signal(0);
 
+  // Pianifica mode
+  pianificaMode          = signal(false);
+  pianificaModeType      = signal<'new' | 'existing'>('new');
+  pianificaName          = signal('Piano di cura da odontogramma');
+  pianificaItems         = signal<PianificaItem[]>([]);
+  servicesByFdi          = signal<Map<number, ServiceItem[]>>(new Map());
+  servicesLoading        = signal(false);
+  creatingPlan           = signal(false);
+  planCreatedId          = signal<string | null>(null);
+  existingPlans          = signal<TreatmentPlanSummary[]>([]);
+  existingPlansLoading   = signal(false);
+  selectedExistingPlanId = signal<string>('');
+
   readonly teeth:      ToothCell[] = this.buildArch([[...Q1], [...Q2]], [[...Q4], [...Q3]], 8);
   readonly childTeeth: ToothCell[] = this.buildArch([[...Q5], [...Q6]], [[...Q8], [...Q7]], 5);
 
-  constructor(private readonly odontogramService: OdontogramService) {}
+  constructor(
+    private readonly odontogramService: OdontogramService,
+    private readonly serviceCatalogService: ServiceCatalogService,
+    private readonly treatmentPlanService: TreatmentPlanService,
+  ) {}
 
   ngOnInit(): void {
     this.loadOdontogram();
@@ -245,6 +294,219 @@ export class OdontogrammaTabComponent implements OnInit {
         this.saving.set(false);
         this.error.set('Errore nel salvataggio');
       }
+    });
+  }
+
+  // ── Pianifica ─────────────────────────────────────────────────────────────
+
+  openPianifica(): void {
+    const map = this.conditionMap();
+    const wholeByFdi = new Map<number, string>();
+    const surfaceByFdi = new Map<number, string>();
+
+    for (const [key, condition] of map.entries()) {
+      if (!ACTIONABLE.has(condition)) continue;
+      const us      = key.indexOf('_');
+      const fdi     = Number(key.slice(0, us));
+      const surface = key.slice(us + 1);
+      if (surface === 'WHOLE') {
+        wholeByFdi.set(fdi, condition);
+      } else if (!surfaceByFdi.has(fdi)) {
+        surfaceByFdi.set(fdi, condition);
+      }
+    }
+
+    const combined = new Map<number, string>(wholeByFdi);
+    for (const [fdi, cond] of surfaceByFdi.entries()) {
+      if (!combined.has(fdi)) combined.set(fdi, cond);
+    }
+
+    const sourceItems = [...combined.entries()]
+      .map(([fdi, condition]) => ({ fdi, condition }))
+      .sort((a, b) => a.fdi - b.fdi);
+
+    this.pianificaItems.set([]);
+    this.planCreatedId.set(null);
+    this.error.set(null);
+    this.pianificaModeType.set('new');
+    this.selectedExistingPlanId.set('');
+    this.pianificaMode.set(true);
+    this.servicesLoading.set(true);
+
+    this.existingPlansLoading.set(true);
+    this.treatmentPlanService.findByPatient(this.patientId).subscribe({
+      next: plans => {
+        this.existingPlans.set(plans.filter(p => p.status !== 'completed' && p.status !== 'rejected'));
+        this.existingPlansLoading.set(false);
+      },
+      error: () => this.existingPlansLoading.set(false),
+    });
+
+    const uniqueFdis = [...new Set(sourceItems.map(i => i.fdi))];
+    const uniqueConditions = [...new Set(sourceItems.map(i => i.condition))];
+    const requests: Record<string, ReturnType<typeof this.serviceCatalogService.findAll>> = {};
+    for (const fdi of uniqueFdis) requests[`s_${fdi}`] = this.serviceCatalogService.findAll(fdi);
+    for (const c of uniqueConditions) requests[`d_${c}`] = this.serviceCatalogService.findConditionDefaults(c);
+
+    forkJoin(requests).subscribe({
+      next: (result: Record<string, ServiceItem[]>) => {
+        const svcMap = new Map<number, ServiceItem[]>();
+        for (const fdi of uniqueFdis) svcMap.set(fdi, result[`s_${fdi}`] ?? []);
+        this.servicesByFdi.set(svcMap);
+
+        const rows: PianificaItem[] = [];
+        for (const src of sourceItems) {
+          const defaults: ServiceItem[] = result[`d_${src.condition}`] ?? [];
+          const primaryId = crypto.randomUUID();
+          rows.push({ rowId: primaryId, fdi: src.fdi, condition: src.condition,
+                      serviceId: defaults[0]?.serviceId ?? '', isSuggested: false });
+          for (let i = 1; i < defaults.length; i++) {
+            rows.push({ rowId: crypto.randomUUID(), fdi: src.fdi, condition: src.condition,
+                        serviceId: defaults[i].serviceId, isSuggested: true, parentRowId: primaryId });
+          }
+        }
+        this.pianificaItems.set(rows);
+        this.servicesLoading.set(false);
+      },
+      error: () => this.servicesLoading.set(false),
+    });
+  }
+
+  closePianifica(): void {
+    this.pianificaMode.set(false);
+  }
+
+  updateServiceForRow(rowId: string, serviceId: string): void {
+    this.pianificaItems.update(items =>
+      items.map(i => i.rowId === rowId ? { ...i, serviceId } : i)
+    );
+    // remove old suggested children, then load new bundle
+    this.pianificaItems.update(items => items.filter(i => i.parentRowId !== rowId));
+    if (!serviceId) return;
+    this.serviceCatalogService.findBundle(serviceId).subscribe({
+      next: bundle => {
+        if (!bundle.length) return;
+        const row = this.pianificaItems().find(i => i.rowId === rowId);
+        if (!row) return;
+        const suggested: PianificaItem[] = bundle.map(s => ({
+          rowId: crypto.randomUUID(),
+          fdi: row.fdi,
+          condition: row.condition,
+          serviceId: s.serviceId,
+          isSuggested: true,
+          parentRowId: rowId,
+        }));
+        const idx = this.pianificaItems().findIndex(i => i.rowId === rowId);
+        this.pianificaItems.update(items => [
+          ...items.slice(0, idx + 1),
+          ...suggested,
+          ...items.slice(idx + 1),
+        ]);
+      },
+    });
+  }
+
+  removeRow(rowId: string): void {
+    this.pianificaItems.update(items =>
+      items.filter(i => i.rowId !== rowId && i.parentRowId !== rowId)
+    );
+  }
+
+  addRowForFdi(fdi: number, condition: string): void {
+    const newRow: PianificaItem = { rowId: crypto.randomUUID(), fdi, condition, serviceId: '', isSuggested: false };
+    const lastIdx = this.pianificaItems().map((i, idx) => i.fdi === fdi ? idx : -1).filter(x => x >= 0).at(-1) ?? -1;
+    this.pianificaItems.update(items => [
+      ...items.slice(0, lastIdx + 1),
+      newRow,
+      ...items.slice(lastIdx + 1),
+    ]);
+  }
+
+  uniquePianificaFdis(): { fdi: number; condition: string }[] {
+    const seen = new Map<number, string>();
+    for (const item of this.pianificaItems()) {
+      if (!seen.has(item.fdi)) seen.set(item.fdi, item.condition);
+    }
+    return [...seen.entries()].map(([fdi, condition]) => ({ fdi, condition }));
+  }
+
+  rowsForFdi(fdi: number): PianificaItem[] {
+    return this.pianificaItems().filter(i => i.fdi === fdi);
+  }
+
+  servicesCatForTooth(fdi: number): { category: string; items: ServiceItem[] }[] {
+    const svcs = this.servicesByFdi().get(fdi) ?? [];
+    const map = new Map<string, ServiceItem[]>();
+    for (const s of svcs) {
+      const cat = s.category ?? 'Altro';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(s);
+    }
+    return [...map.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([category, items]) => ({ category, items }));
+  }
+
+  canCreatePlan(): boolean {
+    const items = this.pianificaItems();
+    return items.length > 0 &&
+           !!this.pianificaName().trim() &&
+           items.every(i => !!i.serviceId) &&
+           this.uniquePianificaFdis().length > 0;
+  }
+
+  createPlanFromOdontogram(): void {
+    if (!this.canCreatePlan()) return;
+    this.creatingPlan.set(true);
+    this.treatmentPlanService.createFromOdontogram({
+      patientId: this.patientId,
+      name: this.pianificaName(),
+      items: this.pianificaItems().map(i => ({
+        toothFdi: i.fdi,
+        condition: i.condition,
+        serviceId: i.serviceId,
+        clinicalNotes: i.isSuggested ? 'Aggiunto automaticamente' : undefined,
+      })),
+    }).subscribe({
+      next: (planId: any) => {
+        this.creatingPlan.set(false);
+        this.planCreatedId.set(String(planId));
+      },
+      error: () => {
+        this.creatingPlan.set(false);
+        this.error.set('Errore nella creazione del piano di cura');
+      },
+    });
+  }
+
+  canAddToExistingPlan(): boolean {
+    const items = this.pianificaItems();
+    return items.length > 0 &&
+           !!this.selectedExistingPlanId() &&
+           items.every(i => !!i.serviceId);
+  }
+
+  addItemsToExistingPlan(): void {
+    const planId = this.selectedExistingPlanId();
+    if (!this.canAddToExistingPlan() || !planId) return;
+    this.creatingPlan.set(true);
+    const requests = this.pianificaItems().map(i =>
+      this.treatmentPlanService.addItem(planId, {
+        serviceId: i.serviceId,
+        toothNumber: String(i.fdi),
+        quadrant: Math.floor(i.fdi / 10),
+        clinicalNotes: i.isSuggested ? 'Aggiunto automaticamente' : undefined,
+      })
+    );
+    forkJoin(requests).subscribe({
+      next: () => {
+        this.creatingPlan.set(false);
+        this.planCreatedId.set(planId);
+      },
+      error: () => {
+        this.creatingPlan.set(false);
+        this.error.set('Errore nell\'aggiornamento del piano di cura');
+      },
     });
   }
 }

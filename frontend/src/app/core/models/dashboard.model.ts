@@ -13,4 +13,8 @@ export interface Dashboard {
   todayCompleted: number;
   todayCancelled: number;
   todayAppointments: Appointment[];
+  plansDraft: number;
+  plansProposed: number;
+  plansAccepted: number;
+  plansRejected: number;
 }

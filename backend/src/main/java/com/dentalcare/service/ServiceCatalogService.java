@@ -19,15 +19,35 @@ public class ServiceCatalogService {
     }
 
     public List<ServiceDto> findAll() {
+        return findAll(null);
+    }
+
+    public List<ServiceDto> findAll(Integer toothFdi) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("clinicId", clinicId);
+
+        String toothFilter = "";
+        if (toothFdi != null) {
+            int digit = toothFdi % 10;
+            boolean isDeciduous = toothFdi / 10 >= 5;
+            params.addValue("digit", digit);
+            params.addValue("isDeciduous", isDeciduous);
+            toothFilter = """
+                AND (min_tooth_digit IS NULL OR :digit >= min_tooth_digit)
+                AND (max_tooth_digit IS NULL OR :digit <= max_tooth_digit)
+                AND (:isDeciduous = false OR applicable_to_deciduous = true)
+                """;
+        }
+
         String sql = """
             SELECT id, code, name, category, default_price, duration_minutes
             FROM dentalcare.service_catalog
             WHERE clinic_id = :clinicId
               AND active = true
+            """ + toothFilter + """
             ORDER BY category, name
             """;
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("clinicId", clinicId);
+
         return jdbc.query(sql, params, (rs, n) -> new ServiceDto(
                 rs.getObject("id", UUID.class),
                 rs.getString("code"),
@@ -36,5 +56,47 @@ public class ServiceCatalogService {
                 rs.getBigDecimal("default_price"),
                 rs.getObject("duration_minutes", Integer.class)
         ));
+    }
+
+    public List<ServiceDto> findConditionDefaults(String conditionName) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String sql = """
+            SELECT sc.id, sc.code, sc.name, sc.category, sc.default_price, sc.duration_minutes
+            FROM dentalcare.condition_service_defaults csd
+            JOIN dentalcare.service_catalog sc ON sc.id = csd.service_id AND sc.clinic_id = csd.clinic_id
+            WHERE csd.condition_name = :conditionName AND csd.clinic_id = :clinicId AND sc.active = true
+            ORDER BY csd.sort_order
+            """;
+        return jdbc.query(sql,
+                new MapSqlParameterSource().addValue("conditionName", conditionName).addValue("clinicId", clinicId),
+                (rs, n) -> new ServiceDto(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("code"),
+                        rs.getString("name"),
+                        rs.getString("category"),
+                        rs.getBigDecimal("default_price"),
+                        rs.getObject("duration_minutes", Integer.class)
+                ));
+    }
+
+    public List<ServiceDto> findBundleItems(UUID serviceId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String sql = """
+            SELECT sc.id, sc.code, sc.name, sc.category, sc.default_price, sc.duration_minutes
+            FROM dentalcare.service_bundle_items sbi
+            JOIN dentalcare.service_catalog sc ON sc.id = sbi.child_service_id AND sc.clinic_id = sbi.clinic_id
+            WHERE sbi.parent_service_id = :serviceId AND sbi.clinic_id = :clinicId AND sc.active = true
+            ORDER BY sbi.sort_order
+            """;
+        return jdbc.query(sql,
+                new MapSqlParameterSource().addValue("serviceId", serviceId).addValue("clinicId", clinicId),
+                (rs, n) -> new ServiceDto(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("code"),
+                        rs.getString("name"),
+                        rs.getString("category"),
+                        rs.getBigDecimal("default_price"),
+                        rs.getObject("duration_minutes", Integer.class)
+                ));
     }
 }

@@ -6,7 +6,8 @@
       <h1 class="font-bold text-slate-800">Preventivi</h1>
       <p class="text-xs text-slate-400 mt-0.5">Gestione preventivi e offerte economiche</p>
     </div>
-    <button class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+    <button (click)="openEstimate('nuovo')"
+      class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
       <span class="material-symbols-outlined text-[18px]">add</span> Nuovo Preventivo
     </button>
   </div>
@@ -26,8 +27,39 @@
       <p class="text-2xl font-bold text-blue-600 mt-1">€ {{ totaleInAttesa | number:'1.0-0' }}</p>
     </div>
     <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Filtrati</p>
-      <p class="text-2xl font-bold text-slate-800 mt-1">{{ filteredEstimates.length }}</p>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Distribuzione</p>
+      <!-- Count bar -->
+      <div class="mt-2.5">
+        <p class="text-[10px] text-slate-400 mb-1">N° preventivi</p>
+        <div class="h-2 flex rounded-full overflow-hidden gap-px">
+          @if (estimates().length === 0) { <div class="bg-slate-200 flex-1"></div> }
+          @if (draftCount > 0) { <div class="bg-slate-400" [style.flex]="countFlex(draftCount)"></div> }
+          @if (sentCount > 0) { <div class="bg-blue-400" [style.flex]="countFlex(sentCount)"></div> }
+          @if (acceptedCount > 0) { <div class="bg-green-500" [style.flex]="countFlex(acceptedCount)"></div> }
+          @if (rejectedCount > 0) { <div class="bg-red-400" [style.flex]="countFlex(rejectedCount)"></div> }
+          @if (expiredCount > 0) { <div class="bg-orange-400" [style.flex]="countFlex(expiredCount)"></div> }
+        </div>
+      </div>
+      <!-- Amount bar -->
+      <div class="mt-2">
+        <p class="text-[10px] text-slate-400 mb-1">Importi €</p>
+        <div class="h-2 flex rounded-full overflow-hidden gap-px">
+          @if (totalAmount === 0) { <div class="bg-slate-200 flex-1"></div> }
+          @if (draftAmount > 0) { <div class="bg-slate-400" [style.flex]="amountFlex(draftAmount)"></div> }
+          @if (sentAmount > 0) { <div class="bg-blue-400" [style.flex]="amountFlex(sentAmount)"></div> }
+          @if (acceptedAmount > 0) { <div class="bg-green-500" [style.flex]="amountFlex(acceptedAmount)"></div> }
+          @if (rejectedAmount > 0) { <div class="bg-red-400" [style.flex]="amountFlex(rejectedAmount)"></div> }
+          @if (expiredAmount > 0) { <div class="bg-orange-400" [style.flex]="amountFlex(expiredAmount)"></div> }
+        </div>
+      </div>
+      <!-- Legend -->
+      <div class="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span><span class="text-slate-500 flex-1">Bozza</span><span class="font-bold text-slate-700">{{ draftCount }}</span></div>
+        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400 shrink-0"></span><span class="text-slate-500 flex-1">Inviato</span><span class="font-bold text-slate-700">{{ sentCount }}</span></div>
+        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500 shrink-0"></span><span class="text-slate-500 flex-1">Accettato</span><span class="font-bold text-slate-700">{{ acceptedCount }}</span></div>
+        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span><span class="text-slate-500 flex-1">Rifiutato</span><span class="font-bold text-slate-700">{{ rejectedCount }}</span></div>
+        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-400 shrink-0"></span><span class="text-slate-500 flex-1">Scaduto</span><span class="font-bold text-slate-700">{{ expiredCount }}</span></div>
+      </div>
     </div>
   </div>
 
@@ -79,7 +111,7 @@
               <tr><td colspan="7" class="py-12 text-center text-sm text-slate-400">Nessun preventivo trovato</td></tr>
             }
             @for (e of filteredEstimates; track e.estimateId) {
-              <tr class="hover:bg-slate-50 transition-colors">
+              <tr class="hover:bg-slate-50 transition-colors cursor-pointer" (click)="openEstimate(e.estimateId)">
                 <td class="py-3.5 px-4">
                   <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs shrink-0">

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { TreatmentPlan, TreatmentPlanSummary } from '../models/treatment-plan.model';
+import { CreatePlanFromOdontogramRequest, TreatmentPlan, TreatmentPlanSummary } from '../models/treatment-plan.model';
 
 @Injectable({ providedIn: 'root' })
 export class TreatmentPlanService {
@@ -20,6 +20,10 @@ export class TreatmentPlanService {
 
   create(patientId: string, name: string, description?: string): Observable<string> {
     return this.http.post<string>(this.base, { patientId, name, description });
+  }
+
+  updateName(planId: string, name: string): Observable<void> {
+    return this.http.patch<void>(`${this.base}/${planId}/name`, { name });
   }
 
   updateStatus(planId: string, status: string): Observable<void> {
@@ -45,5 +49,13 @@ export class TreatmentPlanService {
 
   deleteItem(planId: string, itemId: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/${planId}/items/${itemId}`);
+  }
+
+  deletePlan(planId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${planId}`);
+  }
+
+  createFromOdontogram(request: CreatePlanFromOdontogramRequest): Observable<string> {
+    return this.http.post<string>(`${this.base}/from-odontogram`, request);
   }
 }

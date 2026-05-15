@@ -87,8 +87,8 @@ CREATE TABLE IF NOT EXISTS appointments (
         REFERENCES providers(id, clinic_id)
         ON DELETE RESTRICT,
     CONSTRAINT fk_appointments_treatment_item
-        FOREIGN KEY (treatment_plan_item_id, clinic_id)
-        REFERENCES treatment_plan_items(id, clinic_id)
+        FOREIGN KEY (treatment_plan_item_id)
+        REFERENCES treatment_plan_items(id)
         ON DELETE SET NULL
 );
 

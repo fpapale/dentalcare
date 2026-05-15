@@ -25,6 +25,7 @@ export interface TreatmentPlanItem {
   plannedDate: string | null;
   clinicalNotes: string | null;
   createdAt: string;
+  odontogramCondition: string | null;
 }
 
 export interface TreatmentPlan {
@@ -43,3 +44,16 @@ export interface TreatmentPlan {
 
 export type TreatmentPlanStatus = 'draft' | 'proposed' | 'accepted' | 'completed' | 'rejected';
 export type TreatmentItemStatus = 'planned' | 'accepted' | 'scheduled' | 'completed' | 'cancelled';
+
+export interface OdontogramPlanItem {
+  toothFdi: number;
+  condition: string;
+  serviceId: string;
+  clinicalNotes?: string;
+}
+
+export interface CreatePlanFromOdontogramRequest {
+  patientId: string;
+  name: string;
+  items: OdontogramPlanItem[];
+}

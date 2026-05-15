@@ -36,6 +36,7 @@ stitch_screens/
 # Config files con credenziali (solo i .example vanno in git)
 config/backend/application.properties
 config/frontend/default.conf
+backend/config/
 
 # Claude internal
 .claude/

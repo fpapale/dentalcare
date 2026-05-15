@@ -20,5 +20,6 @@ public record TreatmentPlanItemDto(
         Integer priority,
         LocalDate plannedDate,
         String clinicalNotes,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        String odontogramCondition
 ) {}

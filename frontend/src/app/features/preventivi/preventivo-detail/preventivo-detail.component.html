@@ -1,0 +1,460 @@
+<div class="flex flex-col h-full bg-slate-50">
+
+  <!-- Header -->
+  <div class="bg-white border-b border-slate-200 px-5 py-4 shrink-0 flex items-center gap-3">
+    <a routerLink="/preventivi"
+      class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+    </a>
+    <span class="material-symbols-outlined text-orange-500 text-[22px]">receipt_long</span>
+    <div class="flex-1 min-w-0">
+      @if (isNew) {
+        <h1 class="font-bold text-slate-800 text-lg">Nuovo Preventivo</h1>
+      } @else {
+        <p class="text-[11px] text-slate-400 font-mono leading-none mb-0.5">{{ estimate()?.estimateNumber }}</p>
+        <h1 class="font-bold text-slate-800 text-lg truncate">{{ estimate()?.title ?? '…' }}</h1>
+        @if (estimate()?.patientFullName) {
+          <p class="text-xs text-slate-400">{{ estimate()?.patientFullName }}</p>
+        }
+      }
+    </div>
+    @if (!isNew && estimate()) {
+      <div class="ml-auto flex items-center gap-2">
+        <select [ngModel]="estimate()?.status" (ngModelChange)="updateStatus($event)"
+          [class]="'text-sm font-semibold border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer transition-colors ' + statusSelectClass(estimate()?.status ?? '')">
+          <option value="draft">Bozza</option>
+          <option value="sent">Inviato</option>
+          <option value="accepted">Accettato</option>
+          <option value="rejected">Rifiutato</option>
+          <option value="expired">Scaduto</option>
+        </select>
+        <button (click)="startEditHeader()" title="Modifica intestazione"
+          class="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-[20px]">edit</span>
+        </button>
+        <button (click)="confirmDelete.set(true)" title="Elimina preventivo"
+          class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-[20px]">delete</span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Body -->
+  <div class="flex-1 overflow-y-auto p-5">
+    <div class="max-w-4xl mx-auto space-y-5">
+
+      <!-- Error -->
+      @if (error()) {
+        <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <span class="material-symbols-outlined text-red-500">error</span>
+          <p class="text-sm text-red-700">{{ error() }}</p>
+          <button (click)="error.set(null)" class="ml-auto text-red-400 hover:text-red-600">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      }
+
+      <!-- Delete confirm -->
+      @if (confirmDelete()) {
+        <div class="flex items-center gap-3 bg-red-50 border border-red-300 rounded-xl px-4 py-3">
+          <span class="material-symbols-outlined text-red-500">warning</span>
+          <p class="text-sm text-red-700 flex-1">Eliminare definitivamente il preventivo?</p>
+          <button (click)="deleteEstimate()" [disabled]="deleting()"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 disabled:opacity-60 transition-colors shrink-0">
+            @if (deleting()) {
+              <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            } @else {
+              <span class="material-symbols-outlined text-[15px]">delete</span>
+            }
+            Elimina
+          </button>
+          <button (click)="confirmDelete.set(false)" [disabled]="deleting()"
+            class="px-3 py-1.5 border border-slate-200 text-slate-600 text-sm rounded-lg hover:bg-slate-50 disabled:opacity-60 shrink-0">
+            Annulla
+          </button>
+        </div>
+      }
+
+      <!-- ═══ NEW ESTIMATE FORM ═══ -->
+      @if (isNew) {
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <h2 class="font-bold text-slate-700">Informazioni preventivo</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Titolo</label>
+              <input [(ngModel)]="newTitle" type="text"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Valido fino al</label>
+              <input [(ngModel)]="newValidUntil" type="date"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Note</label>
+              <textarea [(ngModel)]="newNotes" rows="2" placeholder="Note per il paziente..."
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 pt-1">
+            <a routerLink="/preventivi"
+              class="px-4 py-2.5 border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-colors">
+              Annulla
+            </a>
+            <button (click)="createEstimate()" [disabled]="!newPatientId || creating()"
+              class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-sm">
+              @if (creating()) {
+                <span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+              } @else {
+                <span class="material-symbols-outlined text-[18px]">add</span>
+              }
+              Crea preventivo
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- ═══ EXISTING ESTIMATE ═══ -->
+      @if (!isNew) {
+        @if (loading()) {
+          <div class="flex items-center justify-center py-16">
+            <div class="w-6 h-6 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        } @else if (estimate(); as est) {
+
+          <!-- Info card (view / edit mode) -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            @if (editingHeader()) {
+              <div class="space-y-3">
+                <h3 class="font-bold text-slate-700 text-sm">Modifica intestazione</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Titolo</label>
+                    <input [(ngModel)]="headerForm.title" type="text"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Valido fino al</label>
+                    <input [(ngModel)]="headerForm.validUntil" type="date"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Note</label>
+                    <textarea [(ngModel)]="headerForm.notes" rows="2"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+                  </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                  <button (click)="cancelEditHeader()"
+                    class="px-3 py-1.5 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">Annulla</button>
+                  <button (click)="saveHeader()" [disabled]="savingHeader()"
+                    class="flex items-center gap-1.5 px-4 py-1.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50">
+                    @if (savingHeader()) {
+                      <span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                    } @else {
+                      <span class="material-symbols-outlined text-[16px]">check</span>
+                    }
+                    Salva
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Paziente</p>
+                  <p class="font-semibold text-slate-800 mt-0.5">{{ est.patientFullName }}</p>
+                </div>
+                @if (est.treatmentPlanName) {
+                  <div>
+                    <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Piano di cura</p>
+                    <p class="font-semibold text-slate-800 mt-0.5 truncate">{{ est.treatmentPlanName }}</p>
+                  </div>
+                }
+                <div>
+                  <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Valido fino al</p>
+                  <p class="font-semibold mt-0.5" [class]="est.validUntil ? 'text-slate-800' : 'text-slate-400'">
+                    {{ est.validUntil ? formatDate(est.validUntil) : 'Non specificato' }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Creato</p>
+                  <p class="font-semibold text-slate-800 mt-0.5">{{ formatDate(est.createdAt) }}</p>
+                </div>
+                @if (est.notes) {
+                  <div class="col-span-2 sm:col-span-4">
+                    <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Note</p>
+                    <p class="text-slate-600 mt-0.5 text-sm italic">{{ est.notes }}</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Lines card -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-symbols-outlined text-teal-600 text-[18px]">list</span>
+                Prestazioni
+              </h2>
+              <button (click)="showAddLine.set(!showAddLine())"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">{{ showAddLine() ? 'close' : 'add' }}</span>
+                {{ showAddLine() ? 'Chiudi' : 'Aggiungi' }}
+              </button>
+            </div>
+
+            <!-- Add line form -->
+            @if (showAddLine()) {
+              <div class="px-5 py-4 bg-teal-50 border-b border-teal-100 space-y-3">
+                <h3 class="text-sm font-bold text-teal-700">Nuova riga</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Prestazione *</label>
+                    <select [(ngModel)]="addLineForm.serviceId" (change)="onAddLineServiceChange()"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                      <option value="">Seleziona...</option>
+                      @for (s of services(); track s.serviceId) {
+                        <option [value]="s.serviceId">{{ s.name }}@if (s.category) { — {{ s.category }}}</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Dente</label>
+                    <input [(ngModel)]="addLineForm.toothSnapshot" type="text" placeholder="es. 16"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Q.tà</label>
+                    <input [(ngModel)]="addLineForm.quantity" type="number" min="1" step="1"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Prezzo unitario (€)</label>
+                    <input [(ngModel)]="addLineForm.unitPrice" type="number" min="0" step="0.01"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Sconto (€)</label>
+                    <input [(ngModel)]="addLineForm.discountAmount" type="number" min="0" step="0.01"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">IVA (%)</label>
+                    <input [(ngModel)]="addLineForm.vatRate" type="number" min="0" step="1"
+                      class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                  </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
+                  <button (click)="showAddLine.set(false)"
+                    class="px-3 py-1.5 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">Annulla</button>
+                  <button (click)="submitAddLine()" [disabled]="!addLineForm.serviceId || addingLine()"
+                    class="flex items-center gap-1.5 px-4 py-1.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50">
+                    @if (addingLine()) {
+                      <span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                    } @else {
+                      <span class="material-symbols-outlined text-[16px]">check</span>
+                    }
+                    Aggiungi
+                  </button>
+                </div>
+              </div>
+            }
+
+            <!-- Lines table -->
+            @if (est.lines.length === 0) {
+              <div class="px-5 py-10 text-center text-slate-400 text-sm">
+                Nessuna riga. Usa "Aggiungi"@if (est.treatmentPlanId) { o "Importa da piano"}.
+              </div>
+            } @else {
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th class="py-2.5 px-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">#</th>
+                      <th class="py-2.5 px-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Prestazione</th>
+                      <th class="py-2.5 px-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Dente</th>
+                      <th class="py-2.5 px-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wide hidden md:table-cell">Q.tà</th>
+                      <th class="py-2.5 px-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">Prezzo</th>
+                      <th class="py-2.5 px-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wide hidden md:table-cell">Sconto</th>
+                      <th class="py-2.5 px-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">Totale</th>
+                      <th class="py-2.5 px-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    @for (line of est.lines; track line.lineId) {
+                      <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-3 px-4 text-slate-400 text-xs">{{ line.linePosition }}</td>
+                        <td class="py-3 px-4">
+                          <p class="font-semibold text-slate-800">{{ line.descriptionSnapshot }}</p>
+                          @if (line.treatmentPlanItemId) {
+                            <span class="text-[10px] text-teal-600 font-semibold">● Piano di cura</span>
+                          }
+                        </td>
+                        <td class="py-3 px-4 text-center text-slate-600 hidden sm:table-cell">
+                          {{ line.toothSnapshot ?? '—' }}
+                        </td>
+                        <td class="py-3 px-4 text-right text-slate-600 hidden md:table-cell">{{ line.quantity }}</td>
+                        <td class="py-3 px-4 text-right text-slate-600">€ {{ line.unitPrice | number:'1.2-2' }}</td>
+                        <td class="py-3 px-4 text-right hidden md:table-cell">
+                          @if ((line.discountAmount ?? 0) > 0) {
+                            <span class="text-red-600">− € {{ line.discountAmount | number:'1.2-2' }}</span>
+                          } @else {
+                            <span class="text-slate-400">—</span>
+                          }
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-800">€ {{ line.lineTotal | number:'1.2-2' }}</td>
+                        <td class="py-3 px-4 text-right">
+                          @if (deletingLineId() === line.lineId) {
+                            <button (click)="deleteLine(line.lineId)"
+                              class="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                              <span class="material-symbols-outlined text-[16px]">check</span>
+                            </button>
+                            <button (click)="deletingLineId.set(null)"
+                              class="p-1 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
+                              <span class="material-symbols-outlined text-[16px]">close</span>
+                            </button>
+                          } @else {
+                            <button (click)="deletingLineId.set(line.lineId)"
+                              class="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                              <span class="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+
+          <!-- Import from plan -->
+          @if (est.treatmentPlanId) {
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-teal-600 text-[18px]">assignment</span>
+                  Importa dal Piano di Cura
+                  @if (est.treatmentPlanName) {
+                    <span class="text-xs text-slate-400 font-normal">{{ est.treatmentPlanName }}</span>
+                  }
+                </h2>
+                <button (click)="toggleImportPlan()"
+                  class="text-xs text-teal-600 font-semibold hover:underline">
+                  {{ showImportPlan() ? 'Chiudi ▲' : 'Apri ▼' }}
+                </button>
+              </div>
+
+              @if (showImportPlan()) {
+                @if (planLoading()) {
+                  <div class="flex justify-center py-8">
+                    <div class="w-5 h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                } @else if (linkedPlan(); as plan) {
+                  <!-- Selection toolbar -->
+                  <div class="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                    <p class="text-xs text-slate-500">
+                      @if (selectedImportItems().length > 0) {
+                        <span class="font-semibold text-teal-700">{{ selectedImportItems().length }}</span> selezionate
+                      } @else {
+                        Seleziona le prestazioni da includere in questo preventivo
+                      }
+                    </p>
+                  </div>
+
+                  <!-- Items -->
+                  <div class="divide-y divide-slate-100">
+                    @for (item of plan.items; track item.itemId) {
+                      <div class="px-5 py-3 flex items-center gap-3"
+                        [class.opacity-40]="item.status === 'cancelled'">
+
+                        <!-- Checkbox or spacer -->
+                        @if (!planItemInEstimate(item.itemId) && item.status !== 'cancelled') {
+                          <input type="checkbox"
+                            [checked]="isItemSelectedForImport(item.itemId)"
+                            (change)="toggleImportItemSelection(item.itemId)"
+                            class="w-4 h-4 rounded accent-teal-600 cursor-pointer shrink-0"/>
+                        } @else {
+                          <span class="w-4 h-4 shrink-0"></span>
+                        }
+
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-semibold text-slate-800">{{ item.serviceName }}</p>
+                          <div class="flex gap-3 text-xs text-slate-400 mt-0.5">
+                            @if (item.toothNumber) { <span>Dente {{ item.toothNumber }}</span> }
+                            <span>€ {{ item.plannedPrice | number:'1.2-2' }}</span>
+                          </div>
+                        </div>
+
+                        <!-- Status badges -->
+                        @if (planItemInEstimate(item.itemId)) {
+                          <span class="flex items-center gap-1 text-xs text-teal-600 font-semibold shrink-0">
+                            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                            In questo preventivo
+                          </span>
+                        } @else if (itemCoverageInfo(item.itemId); as cov) {
+                          <a [routerLink]="['/preventivi', cov.estimateId]"
+                            title="Già incluso in {{ cov.estimateTitle }}"
+                            class="flex items-center gap-1 text-xs text-orange-500 font-semibold shrink-0 hover:underline">
+                            <span class="material-symbols-outlined text-[14px]">receipt_long</span>
+                            {{ cov.estimateNumber }}
+                          </a>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Footer: add selected button -->
+                  @if (selectedImportItems().length > 0) {
+                    <div class="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+                      <button (click)="addSelectedPlanItems()" [disabled]="addingMultiple()"
+                        class="flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-sm">
+                        @if (addingMultiple()) {
+                          <span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                          Aggiunta in corso...
+                        } @else {
+                          <span class="material-symbols-outlined text-[16px]">add</span>
+                          Aggiungi {{ selectedImportItems().length }} prestazioni
+                        }
+                      </button>
+                    </div>
+                  }
+                }
+              }
+            </div>
+          }
+
+          <!-- Totals -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 ml-auto max-w-xs w-full">
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between text-slate-600">
+                <span>Subtotale</span>
+                <span class="font-semibold">€ {{ est.subtotalAmount | number:'1.2-2' }}</span>
+              </div>
+              @if ((est.discountAmount ?? 0) > 0) {
+                <div class="flex justify-between text-red-600">
+                  <span>Sconto</span>
+                  <span class="font-semibold">− € {{ est.discountAmount | number:'1.2-2' }}</span>
+                </div>
+              }
+              @if ((est.vatAmount ?? 0) > 0) {
+                <div class="flex justify-between text-slate-600">
+                  <span>IVA</span>
+                  <span class="font-semibold">€ {{ est.vatAmount | number:'1.2-2' }}</span>
+                </div>
+              }
+              <div class="flex justify-between text-base font-bold text-slate-800 pt-2 border-t border-slate-200">
+                <span>Totale</span>
+                <span>€ {{ est.totalAmount | number:'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+
+        }
+      }
+
+    </div>
+  </div>
+</div>

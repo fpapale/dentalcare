@@ -106,4 +106,13 @@ export class DashboardComponent {
   alertAppts(appts: Appointment[]): Appointment[] {
     return appts.filter(a => a.hasAllergyAlert || a.hasMedicationAlert).slice(0, 3);
   }
+
+  plansTotal(d: Dashboard): number {
+    return d.plansDraft + d.plansProposed + d.plansAccepted + d.plansRejected;
+  }
+
+  planBarFlex(count: number, d: Dashboard): number {
+    const total = this.plansTotal(d);
+    return total === 0 ? 0 : count;
+  }
 }

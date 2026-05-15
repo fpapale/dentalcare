@@ -10,7 +10,18 @@ export class ServiceCatalogService {
 
   constructor(private http: HttpClient) {}
 
-  findAll(): Observable<ServiceItem[]> {
+  findAll(toothFdi?: number): Observable<ServiceItem[]> {
+    if (toothFdi != null) {
+      return this.http.get<ServiceItem[]>(this.base, { params: { toothFdi: String(toothFdi) } });
+    }
     return this.http.get<ServiceItem[]>(this.base);
+  }
+
+  findConditionDefaults(condition: string): Observable<ServiceItem[]> {
+    return this.http.get<ServiceItem[]>(`${this.base}/condition-defaults`, { params: { condition } });
+  }
+
+  findBundle(serviceId: string): Observable<ServiceItem[]> {
+    return this.http.get<ServiceItem[]>(`${this.base}/${serviceId}/bundle`);
   }
 }

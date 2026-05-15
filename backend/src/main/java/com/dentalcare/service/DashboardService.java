@@ -38,6 +38,17 @@ public class DashboardService {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("clinicId", clinicId);
         Map<String, Object> row = jdbc.queryForMap(sql, params);
 
+        String plansSql = """
+            SELECT
+              COUNT(*) FILTER (WHERE status = 'draft')    AS plans_draft,
+              COUNT(*) FILTER (WHERE status = 'proposed') AS plans_proposed,
+              COUNT(*) FILTER (WHERE status = 'accepted') AS plans_accepted,
+              COUNT(*) FILTER (WHERE status = 'rejected') AS plans_rejected
+            FROM dentalcare.treatment_plans
+            WHERE clinic_id = :clinicId AND status <> 'completed'
+            """;
+        Map<String, Object> planRow = jdbc.queryForMap(plansSql, params);
+
         List<AppointmentDto> todayAppts = appointmentService.findByDate(LocalDate.now(), providerId);
 
         long todayTotal = todayAppts.size();
@@ -60,7 +71,11 @@ public class DashboardService {
                 todayConfirmed,
                 todayCompleted,
                 todayCancelled,
-                todayAppts
+                todayAppts,
+                toLong(planRow.get("plans_draft")),
+                toLong(planRow.get("plans_proposed")),
+                toLong(planRow.get("plans_accepted")),
+                toLong(planRow.get("plans_rejected"))
         );
     }
 

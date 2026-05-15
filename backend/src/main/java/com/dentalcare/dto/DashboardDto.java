@@ -15,5 +15,9 @@ public record DashboardDto(
         long todayConfirmed,
         long todayCompleted,
         long todayCancelled,
-        List<AppointmentDto> todayAppointments
+        List<AppointmentDto> todayAppointments,
+        long plansDraft,
+        long plansProposed,
+        long plansAccepted,
+        long plansRejected
 ) {}

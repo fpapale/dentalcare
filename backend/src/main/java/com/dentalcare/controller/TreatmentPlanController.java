@@ -35,6 +35,13 @@ public class TreatmentPlanController {
         return treatmentPlanService.create(request);
     }
 
+    @PatchMapping("/{id}/name")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateName(@PathVariable UUID id,
+                           @Valid @RequestBody UpdatePlanNameRequest request) {
+        treatmentPlanService.updateName(id, request.name());
+    }
+
     @PatchMapping("/{id}/status")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateStatus(@PathVariable UUID id,
@@ -61,5 +68,17 @@ public class TreatmentPlanController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteItem(@PathVariable UUID planId, @PathVariable UUID itemId) {
         treatmentPlanService.deleteItem(planId, itemId);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePlan(@PathVariable UUID id) {
+        treatmentPlanService.deletePlan(id);
+    }
+
+    @PostMapping("/from-odontogram")
+    @ResponseStatus(HttpStatus.CREATED)
+    public UUID createFromOdontogram(@Valid @RequestBody CreatePlanFromOdontogramRequest request) {
+        return treatmentPlanService.createFromOdontogram(request);
     }
 }
