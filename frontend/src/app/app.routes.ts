@@ -47,6 +47,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/fatturazione/fatturazione.component').then(m => m.FatturazioneComponent)
   },
   {
+    path: 'fatturazione/:invoiceId',
+    loadComponent: () => import('./features/fatturazione/fattura-detail/fattura-detail.component').then(m => m.FatturaDetailComponent)
+  },
+  {
+    path: 'impostazioni',
+    loadComponent: () => import('./features/impostazioni/impostazioni.component').then(m => m.ImpostazioniComponent)
+  },
+  {
     path: 'richiami',
     loadComponent: () => import('./features/richiami/richiami.component').then(m => m.RichiamiComponent)
   },

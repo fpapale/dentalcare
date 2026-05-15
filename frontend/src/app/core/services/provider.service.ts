@@ -13,4 +13,12 @@ export class ProviderService {
   findAll(activeOnly = true): Observable<Provider[]> {
     return this.http.get<Provider[]>(this.base, { params: { activeOnly: String(activeOnly) } });
   }
+
+  findById(id: string): Observable<Provider> {
+    return this.http.get<Provider>(`${this.base}/${id}`);
+  }
+
+  updateBilling(id: string, req: Partial<Provider>): Observable<void> {
+    return this.http.put<void>(`${this.base}/${id}/billing`, req);
+  }
 }
