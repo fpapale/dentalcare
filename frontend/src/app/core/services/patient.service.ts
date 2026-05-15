@@ -58,4 +58,8 @@ export class PatientService {
   update(id: string, request: UpdatePatientRequest): Observable<void> {
     return this.http.put<void>(`${this.base}/${id}`, request);
   }
+
+  updatePhoto(patientId: string, photoDataUrl: string): Observable<void> {
+    return this.http.put<void>(`${this.base}/${patientId}/photo`, { photoDataUrl });
+  }
 }

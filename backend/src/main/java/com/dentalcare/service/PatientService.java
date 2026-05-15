@@ -135,7 +135,7 @@ public class PatientService {
                     JOIN dentalcare.treatment_plans tp2 ON tp2.id = tpi.treatment_plan_id AND tp2.clinic_id = tpi.clinic_id
                     WHERE tp2.patient_id = p.patient_id AND tpi.clinic_id = p.clinic_id
                       AND tpi.status IN ('planned','accepted','scheduled')) AS open_treatment_items_count,
-                   pat.address_line1, pat.postal_code
+                   pat.address_line1, pat.postal_code, pat.photo_url
             FROM dentalcare.v_patient_clinical_card p
             JOIN dentalcare.patients pat ON pat.id = p.patient_id
             WHERE p.patient_id = :patientId
@@ -201,7 +201,22 @@ public class PatientService {
                         ? rs.getTimestamp("anamnesis_date").toInstant().atOffset(java.time.ZoneOffset.UTC) : null,
                 rs.getLong("total_appointments"),
                 rs.getLong("treatment_plans_count"),
-                rs.getLong("open_treatment_items_count")
+                rs.getLong("open_treatment_items_count"),
+                rs.getString("photo_url")
         );
+    }
+
+    public void updatePhoto(UUID patientId, String photoDataUrl) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String sql = """
+            UPDATE dentalcare.patients
+            SET photo_url = :photoUrl
+            WHERE id = :id AND clinic_id = :clinicId
+            """;
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("photoUrl", photoDataUrl)
+                .addValue("id", patientId)
+                .addValue("clinicId", clinicId);
+        jdbc.update(sql, params);
     }
 }

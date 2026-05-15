@@ -1,7 +1,9 @@
 package com.dentalcare.service;
 
+import com.dentalcare.dto.CreateProviderRequest;
 import com.dentalcare.dto.ProviderDto;
 import com.dentalcare.dto.UpdateProviderBillingRequest;
+import com.dentalcare.dto.UpdateProviderProfileRequest;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -60,6 +62,61 @@ public class ProviderService {
                 new MapSqlParameterSource().addValue("id", providerId).addValue("clinicId", clinicId),
                 (rs, n) -> mapRow(rs));
         return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    @Transactional
+    public ProviderDto create(CreateProviderRequest request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+            INSERT INTO dentalcare.providers
+                (id, clinic_id, first_name, last_name, role, phone, email, active)
+            VALUES
+                (:id, :clinicId, :firstName, :lastName, :role::dentalcare.provider_role, :phone, :email, true)
+            """,
+            new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("clinicId", clinicId)
+                .addValue("firstName", request.firstName())
+                .addValue("lastName", request.lastName())
+                .addValue("role", request.role())
+                .addValue("phone", request.phone())
+                .addValue("email", request.email()));
+        return findById(id);
+    }
+
+    @Transactional
+    public void updateProfile(UUID providerId, UpdateProviderProfileRequest request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update("""
+            UPDATE dentalcare.providers
+            SET first_name = :firstName,
+                last_name  = :lastName,
+                role       = :role::dentalcare.provider_role,
+                phone      = :phone,
+                email      = :email,
+                active     = :active,
+                updated_at = now()
+            WHERE id = :id AND clinic_id = :clinicId
+            """,
+            new MapSqlParameterSource()
+                .addValue("id", providerId)
+                .addValue("clinicId", clinicId)
+                .addValue("firstName", request.firstName())
+                .addValue("lastName", request.lastName())
+                .addValue("role", request.role())
+                .addValue("phone", request.phone())
+                .addValue("email", request.email())
+                .addValue("active", request.active()));
+    }
+
+    @Transactional
+    public void delete(UUID providerId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update("DELETE FROM dentalcare.providers WHERE id = :id AND clinic_id = :clinicId",
+            new MapSqlParameterSource()
+                .addValue("id", providerId)
+                .addValue("clinicId", clinicId));
     }
 
     @Transactional

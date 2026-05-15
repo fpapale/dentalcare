@@ -36,5 +36,6 @@ public record PatientDetailDto(
         // Stats
         Long totalAppointments,
         Long treatmentPlansCount,
-        Long openTreatmentItemsCount
+        Long openTreatmentItemsCount,
+        String photoUrl
 ) {}

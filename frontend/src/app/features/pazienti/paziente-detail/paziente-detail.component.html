@@ -17,9 +17,19 @@
           <div class="h-3 w-72 bg-slate-100 rounded animate-pulse"></div>
         </div>
       } @else if (paziente) {
-        <!-- Avatar -->
-        <div class="w-14 h-14 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xl shrink-0">
-          {{ paziente.initials }}
+        <!-- Avatar / Photo -->
+        <div class="relative w-14 h-14 shrink-0 group cursor-pointer" (click)="openPhotoModal()">
+          @if (paziente.photoUrl) {
+            <img [src]="paziente.photoUrl" alt="Foto paziente"
+              class="w-14 h-14 rounded-full object-cover border-2 border-teal-200">
+          } @else {
+            <div class="w-14 h-14 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xl">
+              {{ paziente.initials }}
+            </div>
+          }
+          <div class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <span class="material-symbols-outlined text-white text-[18px]">photo_camera</span>
+          </div>
         </div>
         <!-- Info -->
         <div class="flex-1 min-w-0">
@@ -328,5 +338,78 @@
     }
 
   </div>
+
+  <!-- Photo Modal -->
+  @if (showPhotoModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" (click)="closePhotoModal()">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-slate-800 text-lg">Foto paziente</h3>
+          <button (click)="closePhotoModal()" class="p-1 text-slate-400 hover:text-slate-600">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- Preview -->
+        @if (capturedPhoto()) {
+          <div class="flex justify-center mb-4">
+            <img [src]="capturedPhoto()!" class="w-48 h-48 rounded-full object-cover border-4 border-teal-200">
+          </div>
+          <div class="flex gap-2">
+            <button (click)="capturedPhoto.set(null); photoMode.set('idle')"
+              class="flex-1 py-2 text-sm font-semibold border border-slate-300 text-slate-600 rounded-xl hover:bg-slate-50">
+              Riprendi
+            </button>
+            <button (click)="savePhoto()" [disabled]="savingPhoto()"
+              class="flex-1 py-2 text-sm font-semibold bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50">
+              {{ savingPhoto() ? 'Salvataggio...' : 'Salva foto' }}
+            </button>
+          </div>
+        } @else if (photoMode() === 'webcam') {
+          <!-- Webcam view -->
+          <div class="flex justify-center mb-4">
+            <div class="relative w-48 h-48 rounded-full overflow-hidden bg-slate-900">
+              <video id="webcam-video" autoplay playsinline class="w-full h-full object-cover"></video>
+            </div>
+          </div>
+          <button (click)="captureWebcam()"
+            class="w-full py-2.5 text-sm font-semibold bg-teal-600 text-white rounded-xl hover:bg-teal-700 flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">camera</span>
+            Scatta foto
+          </button>
+        } @else {
+          <!-- Current photo or placeholder -->
+          <div class="flex justify-center mb-5">
+            @if (paziente.photoUrl) {
+              <img [src]="paziente.photoUrl" class="w-32 h-32 rounded-full object-cover border-2 border-teal-200">
+            } @else {
+              <div class="w-32 h-32 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-4xl">
+                {{ paziente.initials }}
+              </div>
+            }
+          </div>
+          <!-- Actions -->
+          <div class="space-y-2">
+            <button (click)="startWebcam()"
+              class="w-full py-2.5 text-sm font-semibold bg-teal-600 text-white rounded-xl hover:bg-teal-700 flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">videocam</span>
+              Scatta con webcam
+            </button>
+            <label class="w-full py-2.5 text-sm font-semibold border-2 border-teal-600 text-teal-700 rounded-xl hover:bg-teal-50 flex items-center justify-center gap-2 cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">upload</span>
+              Carica da file
+              <input type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)">
+            </label>
+            @if (paziente.photoUrl) {
+              <button (click)="removePhoto()"
+                class="w-full py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl">
+                Rimuovi foto
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
 
 </div>

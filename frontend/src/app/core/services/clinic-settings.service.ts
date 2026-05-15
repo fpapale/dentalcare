@@ -17,4 +17,12 @@ export class ClinicSettingsService {
   update(data: Partial<ClinicBilling>): Observable<void> {
     return this.http.put<void>(this.base, data);
   }
+
+  findAll(): Observable<ClinicBilling[]> {
+    return this.http.get<ClinicBilling[]>(`${environment.apiBaseUrl}/settings/clinics`);
+  }
+
+  create(data: Partial<ClinicBilling>): Observable<ClinicBilling> {
+    return this.http.post<ClinicBilling>(`${environment.apiBaseUrl}/settings/clinics`, data);
+  }
 }

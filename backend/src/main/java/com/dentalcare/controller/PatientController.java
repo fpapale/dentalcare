@@ -4,6 +4,7 @@ import com.dentalcare.dto.CreatePatientRequest;
 import com.dentalcare.dto.PatientDetailDto;
 import com.dentalcare.dto.PatientListDto;
 import com.dentalcare.dto.UpdatePatientRequest;
+import com.dentalcare.dto.UpdatePhotoRequest;
 import com.dentalcare.service.PatientService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -46,6 +47,12 @@ public class PatientController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void update(@PathVariable UUID id, @Valid @RequestBody UpdatePatientRequest request) {
         patientService.update(id, request);
+    }
+
+    @PutMapping("/{id}/photo")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updatePhoto(@PathVariable UUID id, @RequestBody UpdatePhotoRequest request) {
+        patientService.updatePhoto(id, request.photoDataUrl());
     }
 
     @PostMapping

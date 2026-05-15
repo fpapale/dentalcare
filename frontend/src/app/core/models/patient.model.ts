@@ -44,6 +44,7 @@ export interface PatientDetail {
   otherAllergies: string | null;
   anamnesisNotes: string | null;
   anamnesisDate: string | null;
+  photoUrl?: string | null;
   totalAppointments: number;
   treatmentPlansCount: number;
   openTreatmentItemsCount: number;

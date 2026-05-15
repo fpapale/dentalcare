@@ -9,7 +9,7 @@
   <!-- Tabs -->
   <div class="bg-white border-b border-slate-200 px-5 shrink-0 flex gap-1 overflow-x-auto">
     @for (tab of tabs; track tab.key) {
-      <button (click)="activeTab.set(tab.key)"
+      <button (click)="setTab(tab.key)"
         class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
         [class]="activeTab() === tab.key ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-700'">
         <span class="material-symbols-outlined text-[16px] align-middle mr-1">{{ tab.icon }}</span>{{ tab.label }}
@@ -114,38 +114,116 @@
     <!-- PROFESSIONISTI TAB -->
     @if (activeTab() === 'professionisti') {
       <div class="flex gap-5 h-full">
-        <!-- Provider list -->
-        <div class="w-64 shrink-0">
+        <!-- Left panel: list + create button -->
+        <div class="w-64 shrink-0 flex flex-col gap-2">
+          <button (click)="showNewProvider.set(true)"
+            class="w-full flex items-center gap-2 justify-center py-2 bg-teal-600 text-white text-sm font-bold rounded-xl hover:bg-teal-700 transition-colors">
+            <span class="material-symbols-outlined text-[18px]">person_add</span> Nuovo Professionista
+          </button>
           @if (loadingProviders()) {
-            <div class="flex items-center justify-center h-40">
+            <div class="flex items-center justify-center h-24">
               <div class="w-6 h-6 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
           } @else {
-            <div class="space-y-2">
+            <div class="space-y-1.5">
               @for (p of providers(); track p.providerId) {
                 <button (click)="selectProvider(p)"
-                  class="w-full text-left p-3 rounded-xl border transition-colors"
+                  class="w-full text-left px-3 py-2.5 rounded-xl border transition-colors"
                   [class]="selectedProvider()?.providerId === p.providerId
                     ? 'bg-teal-50 border-teal-300'
                     : 'bg-white border-slate-200 hover:border-slate-300'">
-                  <div class="font-semibold text-sm text-slate-800">{{ p.fullName }}</div>
-                  <div class="text-xs text-slate-500 mt-0.5">{{ roleLabel(p.role) }}</div>
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="font-semibold text-sm text-slate-800 truncate">{{ p.fullName }}</span>
+                    @if (!p.active) {
+                      <span class="text-[10px] text-slate-400 font-semibold shrink-0">inattivo</span>
+                    }
+                  </div>
+                  <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[11px] font-semibold" [class]="roleColor(p.role)">
+                    {{ roleLabel(p.role) }}
+                  </span>
                 </button>
               }
             </div>
           }
         </div>
 
-        <!-- Billing form -->
-        <div class="flex-1">
+        <!-- Right panel: edit form -->
+        <div class="flex-1 space-y-4">
           @if (!selectedProvider()) {
             <div class="flex items-center justify-center h-40 text-slate-400 text-sm">
-              Seleziona un professionista
+              Seleziona un professionista o creane uno nuovo
             </div>
           } @else {
+            <!-- Profilo anagrafico -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-xl">
-              <h2 class="font-bold text-slate-700 mb-1">{{ selectedProvider()!.fullName }}</h2>
-              <p class="text-xs text-slate-400 mb-4">{{ roleLabel(selectedProvider()!.role) }}</p>
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 class="font-bold text-slate-700">Profilo Anagrafico</h2>
+                  <p class="text-xs text-slate-400 mt-0.5">Nome, ruolo, contatti, stato</p>
+                </div>
+                <button (click)="deleteProvider(selectedProvider()!)" [disabled]="deletingProvider()"
+                  class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors">
+                  <span class="material-symbols-outlined text-[14px]">delete</span> Elimina
+                </button>
+              </div>
+              <div class="grid grid-cols-1 gap-4">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Nome</label>
+                    <input [(ngModel)]="profileForm.firstName" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Cognome</label>
+                    <input [(ngModel)]="profileForm.lastName" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">Ruolo</label>
+                  <div class="flex flex-wrap gap-1.5 mt-1">
+                    @for (r of providerRoles; track r.value) {
+                      <button type="button" (click)="profileForm.role = r.value"
+                        class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
+                        [class]="profileForm.role === r.value
+                          ? 'bg-teal-600 text-white border-teal-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                        {{ r.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Telefono</label>
+                    <input [(ngModel)]="profileForm.phone" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Email</label>
+                    <input [(ngModel)]="profileForm.email" type="email" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" [(ngModel)]="profileForm.active" id="providerActive"
+                    class="w-4 h-4 accent-teal-600" />
+                  <label for="providerActive" class="text-sm font-semibold text-slate-600">Professionista attivo</label>
+                </div>
+              </div>
+              <div class="mt-5 flex items-center gap-3">
+                <button (click)="saveProviderProfile()" [disabled]="savingProvider()"
+                  class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
+                  {{ savingProvider() ? 'Salvataggio...' : 'Salva profilo' }}
+                </button>
+                @if (providerSaved()) {
+                  <span class="text-sm text-green-600 font-semibold flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">check_circle</span>Salvato
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Dati fatturazione -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-xl">
+              <h2 class="font-bold text-slate-700 mb-1">Dati Fatturazione</h2>
+              <p class="text-xs text-slate-400 mb-4">Usati nell'emissione delle parcelle a nome del professionista</p>
               <div class="grid grid-cols-1 gap-4">
                 <div class="grid grid-cols-2 gap-4">
                   <div>
@@ -209,7 +287,7 @@
               <div class="mt-5 flex items-center gap-3">
                 <button (click)="saveProviderBilling()" [disabled]="savingProvider()"
                   class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
-                  {{ savingProvider() ? 'Salvataggio...' : 'Salva' }}
+                  {{ savingProvider() ? 'Salvataggio...' : 'Salva fatturazione' }}
                 </button>
                 @if (providerSaved()) {
                   <span class="text-sm text-green-600 font-semibold flex items-center gap-1">
@@ -220,6 +298,504 @@
             </div>
           }
         </div>
+      </div>
+
+      <!-- Modal: Nuovo Professionista -->
+      @if (showNewProvider()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-bold text-slate-800 text-lg">Nuovo Professionista</h2>
+              <button (click)="showNewProvider.set(false)" class="text-slate-400 hover:text-slate-600">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">Nome *</label>
+                  <input [(ngModel)]="newProviderForm.firstName" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">Cognome *</label>
+                  <input [(ngModel)]="newProviderForm.lastName" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Ruolo *</label>
+                <div class="flex flex-wrap gap-1.5 mt-1">
+                  @for (r of providerRoles; track r.value) {
+                    <button type="button" (click)="newProviderForm.role = r.value"
+                      class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
+                      [class]="newProviderForm.role === r.value
+                        ? 'bg-teal-600 text-white border-teal-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                      {{ r.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">Telefono</label>
+                  <input [(ngModel)]="newProviderForm.phone" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">Email</label>
+                  <input [(ngModel)]="newProviderForm.email" type="email" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3 mt-5">
+              <button (click)="createProvider()" [disabled]="creatingProvider() || !newProviderForm.firstName || !newProviderForm.lastName"
+                class="flex-1 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
+                {{ creatingProvider() ? 'Creazione...' : 'Crea Professionista' }}
+              </button>
+              <button (click)="showNewProvider.set(false)" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- ANAGRAFICHE TAB -->
+    @if (activeTab() === 'anagrafiche') {
+      <div class="flex flex-col gap-4 h-full">
+
+        <!-- Sub-tab bar -->
+        <div class="flex gap-1 border-b border-slate-200 -mt-1">
+          <button (click)="setAnagraficaSubTab('centri')"
+            class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors"
+            [class]="anagraficaSubTab() === 'centri' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
+            <span class="material-symbols-outlined text-[16px] align-middle mr-1">business</span>Centri
+          </button>
+          <button (click)="setAnagraficaSubTab('anamnesi')"
+            class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors"
+            [class]="anagraficaSubTab() === 'anamnesi' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
+            <span class="material-symbols-outlined text-[16px] align-middle mr-1">medical_information</span>Anamnesi
+          </button>
+        </div>
+
+        <!-- CENTRI sub-tab -->
+        @if (anagraficaSubTab() === 'centri') {
+          <div class="flex gap-5 flex-1">
+            <!-- Left: clinics list -->
+            <div class="w-64 shrink-0 flex flex-col gap-2">
+              <button (click)="showNewClinic.set(true)"
+                class="w-full flex items-center gap-2 justify-center py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">add_business</span> Nuovo Centro
+              </button>
+              @if (loadingClinics()) {
+                <div class="flex items-center justify-center h-24">
+                  <div class="w-6 h-6 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              } @else {
+                <div class="space-y-1.5">
+                  @for (c of clinics(); track c.id) {
+                    <button (click)="selectClinic(c)"
+                      class="w-full text-left px-3 py-2.5 rounded-xl border transition-colors"
+                      [class]="selectedClinic()?.id === c.id
+                        ? 'bg-indigo-50 border-indigo-300'
+                        : 'bg-white border-slate-200 hover:border-slate-300'">
+                      <div class="font-semibold text-sm text-slate-800 truncate">{{ c.name }}</div>
+                      @if (c.city) {
+                        <div class="text-xs text-slate-400 mt-0.5">{{ c.city }}</div>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Right: edit form -->
+            <div class="flex-1">
+              @if (!selectedClinic()) {
+                <div class="flex items-center justify-center h-40 text-slate-400 text-sm">
+                  Seleziona un centro o creane uno nuovo
+                </div>
+              } @else {
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-xl">
+                  <h2 class="font-bold text-slate-700 mb-4">{{ selectedClinic()!.name }}</h2>
+                  <div class="grid grid-cols-1 gap-4">
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Nome</label>
+                        <input [(ngModel)]="clinicEditForm.name" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Ragione Sociale</label>
+                        <input [(ngModel)]="clinicEditForm.legalName" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Partita IVA</label>
+                        <input [(ngModel)]="clinicEditForm.vatNumber" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Codice Fiscale</label>
+                        <input [(ngModel)]="clinicEditForm.fiscalCode" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-500 mb-1">Indirizzo</label>
+                      <input [(ngModel)]="clinicEditForm.addressLine1" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">CAP</label>
+                        <input [(ngModel)]="clinicEditForm.postalCode" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Città</label>
+                        <input [(ngModel)]="clinicEditForm.city" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Prov.</label>
+                        <input [(ngModel)]="clinicEditForm.province" maxlength="2" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Telefono</label>
+                        <input [(ngModel)]="clinicEditForm.phone" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Email</label>
+                        <input [(ngModel)]="clinicEditForm.email" type="email" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-5 flex items-center gap-3">
+                    <button (click)="saveClinicEdit()" [disabled]="savingClinicEdit()"
+                      class="px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                      {{ savingClinicEdit() ? 'Salvataggio...' : 'Salva' }}
+                    </button>
+                    @if (clinicEditSaved()) {
+                      <span class="text-sm text-green-600 font-semibold flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">check_circle</span>Salvato
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Modal: Nuovo Centro -->
+          @if (showNewClinic()) {
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="font-bold text-slate-800 text-lg">Nuovo Centro</h2>
+                  <button (click)="showNewClinic.set(false)" class="text-slate-400 hover:text-slate-600">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Nome centro *</label>
+                    <input [(ngModel)]="newClinicForm.name" placeholder="es. Studio Dentistico Rossi" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Indirizzo</label>
+                    <input [(ngModel)]="newClinicForm.addressLine1" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-500 mb-1">Città</label>
+                      <input [(ngModel)]="newClinicForm.city" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-500 mb-1">Telefono</label>
+                      <input [(ngModel)]="newClinicForm.phone" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-3 mt-5">
+                  <button (click)="createClinic()" [disabled]="creatingClinic() || !newClinicForm.name"
+                    class="flex-1 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                    {{ creatingClinic() ? 'Creazione...' : 'Crea Centro' }}
+                  </button>
+                  <button (click)="showNewClinic.set(false)" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    Annulla
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        }
+
+        <!-- ANAMNESI sub-tab -->
+        @if (anagraficaSubTab() === 'anamnesi') {
+          <div class="flex gap-5 flex-1 min-h-0">
+
+            <!-- Left: categories -->
+            <div class="w-56 shrink-0 flex flex-col gap-2">
+              <button (click)="showNewAnamnesisCategory.set(true)"
+                class="w-full flex items-center gap-2 justify-center py-2 bg-violet-600 text-white text-sm font-bold rounded-xl hover:bg-violet-700 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">add</span> Nuova Categoria
+              </button>
+              @if (loadingAnamnesisCategories()) {
+                <div class="flex justify-center py-8">
+                  <div class="w-6 h-6 border-4 border-violet-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              } @else {
+                <div class="space-y-1 overflow-y-auto">
+                  @for (cat of anamnesisCategories(); track cat.id) {
+                    <button (click)="selectAnamnesisCategory(cat)"
+                      class="w-full text-left px-3 py-2.5 rounded-xl border transition-colors"
+                      [class]="selectedAnamnesisCategory()?.id === cat.id
+                        ? 'bg-violet-50 border-violet-300'
+                        : 'bg-white border-slate-200 hover:border-slate-300'">
+                      <div class="flex items-center justify-between gap-1">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                          @if (cat.icon) {
+                            <span class="material-symbols-outlined text-[16px] text-slate-400 shrink-0">{{ cat.icon }}</span>
+                          }
+                          <span class="font-semibold text-sm text-slate-800 truncate">{{ cat.name }}</span>
+                        </div>
+                        <span class="text-xs text-slate-400 shrink-0">{{ cat.itemsCount }}</span>
+                      </div>
+                      @if (!cat.enabled) {
+                        <span class="text-[10px] text-slate-400">disabilitata</span>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Right: category detail + items -->
+            <div class="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
+              @if (!selectedAnamnesisCategory()) {
+                <div class="flex items-center justify-center h-40 text-slate-400 text-sm">
+                  Seleziona una categoria o creane una nuova
+                </div>
+              } @else {
+                <!-- Category edit card -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 max-w-2xl">
+                  <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-slate-700">{{ selectedAnamnesisCategory()!.name }}</h3>
+                    <button (click)="deleteAnamnesisCategory(selectedAnamnesisCategory()!)"
+                      class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                      <span class="material-symbols-outlined text-[14px]">delete</span> Elimina
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-500 mb-1">Nome</label>
+                      <input [(ngModel)]="editCategoryForm.name" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-500 mb-1">Icona (Material Symbol)</label>
+                      <input [(ngModel)]="editCategoryForm.icon" placeholder="es. warning" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    </div>
+                    <div class="col-span-2">
+                      <label class="block text-xs font-semibold text-slate-500 mb-1">Descrizione</label>
+                      <input [(ngModel)]="editCategoryForm.description" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-500 mb-1">Ordinamento</label>
+                      <input type="number" [(ngModel)]="editCategoryForm.sortOrder" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    </div>
+                    <div class="flex items-end pb-2">
+                      <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" [(ngModel)]="editCategoryForm.enabled" class="w-4 h-4 accent-violet-600" />
+                        <span class="text-sm font-semibold text-slate-600">Abilitata</span>
+                      </label>
+                    </div>
+                  </div>
+                  <button (click)="saveAnamnesisCategory()" [disabled]="savingAnamnesisCategory()"
+                    class="mt-3 px-4 py-1.5 bg-violet-600 text-white text-sm font-bold rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                    {{ savingAnamnesisCategory() ? 'Salvataggio...' : 'Salva categoria' }}
+                  </button>
+                </div>
+
+                <!-- Items list -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm max-w-2xl">
+                  <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+                    <h3 class="font-bold text-slate-700 text-sm">Voci ({{ anamnesisItems().length }})</h3>
+                    <button (click)="showNewAnamnesisItem.set(true)"
+                      class="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white text-xs font-bold rounded-lg hover:bg-violet-700 transition-colors">
+                      <span class="material-symbols-outlined text-[14px]">add</span> Nuova voce
+                    </button>
+                  </div>
+                  @if (loadingAnamnesisItems()) {
+                    <div class="flex justify-center py-8">
+                      <div class="w-6 h-6 border-4 border-violet-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  } @else if (anamnesisItems().length === 0) {
+                    <p class="text-sm text-slate-400 text-center py-8">Nessuna voce in questa categoria</p>
+                  } @else {
+                    <div class="divide-y divide-slate-100">
+                      @for (item of anamnesisItems(); track item.id) {
+                        <div class="flex items-center justify-between px-5 py-3 hover:bg-slate-50">
+                          <div class="flex items-center gap-2 min-w-0">
+                            @if (item.isAlert) {
+                              <span class="material-symbols-outlined text-[14px] text-red-500 shrink-0">warning</span>
+                            }
+                            <div class="min-w-0">
+                              <p class="text-sm font-semibold text-slate-800 truncate">{{ item.label }}</p>
+                              <p class="text-xs text-slate-400 font-mono">{{ item.code }}</p>
+                            </div>
+                            @if (!item.enabled) {
+                              <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-400 rounded">disabilitata</span>
+                            }
+                          </div>
+                          <div class="flex items-center gap-1 shrink-0">
+                            <button (click)="openEditItem(item)"
+                              class="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors">
+                              <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <button (click)="deleteAnamnesisItem(item)"
+                              class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                              <span class="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Modal: Nuova Categoria Anamnesi -->
+          @if (showNewAnamnesisCategory()) {
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="font-bold text-slate-800">Nuova Categoria Anamnesi</h2>
+                  <button (click)="showNewAnamnesisCategory.set(false)" class="text-slate-400 hover:text-slate-600">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Codice * (es. ALLERGIE)</label>
+                    <input [(ngModel)]="newCategoryForm.code" placeholder="CODICE" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 uppercase" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Nome *</label>
+                    <input [(ngModel)]="newCategoryForm.name" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Icona Material Symbol</label>
+                    <input [(ngModel)]="newCategoryForm.icon" placeholder="es. warning, medication..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Ordinamento</label>
+                    <input type="number" [(ngModel)]="newCategoryForm.sortOrder" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                </div>
+                <div class="flex gap-3 mt-5">
+                  <button (click)="createAnamnesisCategory()" [disabled]="savingAnamnesisCategory() || !newCategoryForm.name || !newCategoryForm.code"
+                    class="flex-1 py-2 bg-violet-600 text-white text-sm font-bold rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                    {{ savingAnamnesisCategory() ? 'Creazione...' : 'Crea Categoria' }}
+                  </button>
+                  <button (click)="showNewAnamnesisCategory.set(false)" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    Annulla
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Modal: Nuova Voce Anamnesi -->
+          @if (showNewAnamnesisItem()) {
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="font-bold text-slate-800">Nuova Voce — {{ selectedAnamnesisCategory()?.name }}</h2>
+                  <button (click)="showNewAnamnesisItem.set(false)" class="text-slate-400 hover:text-slate-600">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Codice * (es. ALLERG_LATEX)</label>
+                    <input [(ngModel)]="newItemForm.code" placeholder="CODICE_VOCE" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 uppercase" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Etichetta *</label>
+                    <input [(ngModel)]="newItemForm.label" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Descrizione</label>
+                    <input [(ngModel)]="newItemForm.description" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Ordinamento</label>
+                    <input type="number" [(ngModel)]="newItemForm.sortOrder" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" [(ngModel)]="newItemForm.isAlert" class="w-4 h-4 accent-red-500" />
+                    <span class="text-sm font-semibold text-red-600">Voce di allerta (richiede attenzione clinica)</span>
+                  </label>
+                </div>
+                <div class="flex gap-3 mt-5">
+                  <button (click)="createAnamnesisItem()" [disabled]="savingAnamnesisItem() || !newItemForm.label || !newItemForm.code"
+                    class="flex-1 py-2 bg-violet-600 text-white text-sm font-bold rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                    {{ savingAnamnesisItem() ? 'Creazione...' : 'Crea Voce' }}
+                  </button>
+                  <button (click)="showNewAnamnesisItem.set(false)" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    Annulla
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Modal: Modifica Voce -->
+          @if (showEditAnamnesisItem() && editingAnamnesisItem()) {
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="font-bold text-slate-800">Modifica Voce</h2>
+                  <button (click)="showEditAnamnesisItem.set(false)" class="text-slate-400 hover:text-slate-600">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Etichetta *</label>
+                    <input [(ngModel)]="editItemForm.label" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Descrizione</label>
+                    <input [(ngModel)]="editItemForm.description" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Ordinamento</label>
+                    <input type="number" [(ngModel)]="editItemForm.sortOrder" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" [(ngModel)]="editItemForm.isAlert" class="w-4 h-4 accent-red-500" />
+                    <span class="text-sm font-semibold text-red-600">Voce di allerta</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" [(ngModel)]="editItemForm.enabled" class="w-4 h-4 accent-violet-600" />
+                    <span class="text-sm font-semibold text-slate-600">Abilitata</span>
+                  </label>
+                </div>
+                <div class="flex gap-3 mt-5">
+                  <button (click)="saveAnamnesisItem(editingAnamnesisItem()!)" [disabled]="savingAnamnesisItem()"
+                    class="flex-1 py-2 bg-violet-600 text-white text-sm font-bold rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                    {{ savingAnamnesisItem() ? 'Salvataggio...' : 'Salva' }}
+                  </button>
+                  <button (click)="showEditAnamnesisItem.set(false)" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    Annulla
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        }
+
       </div>
     }
 
@@ -459,6 +1035,55 @@
               <span class="material-symbols-outlined text-[16px]">check_circle</span>Salvato
             </span>
           }
+        </div>
+      </div>
+    }
+
+    <!-- SISTEMA TAB -->
+    @if (activeTab() === 'sistema') {
+      <div class="max-w-xl space-y-6">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Lingua dell'interfaccia</h2>
+          <p class="text-xs text-slate-400 mb-4">La modifica richiede il riavvio dell'applicazione per essere applicata</p>
+          <div class="flex flex-wrap gap-2">
+            @for (loc of localeOptions; track loc.value) {
+              <button type="button" (click)="appSettings.locale = loc.value; localePendingReload.set(false)"
+                class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors"
+                [class]="appSettings.locale === loc.value
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                {{ loc.label }}
+              </button>
+            }
+          </div>
+          <div class="mt-4 flex items-center gap-3">
+            <button (click)="saveLocale()"
+              class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors">
+              Salva lingua
+            </button>
+            @if (localePendingReload()) {
+              <button (click)="reloadApp()"
+                class="flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-lg hover:bg-amber-600 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">refresh</span>
+                Riavvia per applicare
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Versione applicazione</h2>
+          <p class="text-xs text-slate-400 mt-1">DentalCare Pro — Build corrente</p>
+          <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+            <div class="bg-slate-50 rounded-lg px-3 py-2">
+              <p class="text-xs text-slate-400">Frontend</p>
+              <p class="font-semibold text-slate-700">Angular 21</p>
+            </div>
+            <div class="bg-slate-50 rounded-lg px-3 py-2">
+              <p class="text-xs text-slate-400">Backend</p>
+              <p class="font-semibold text-slate-700">Spring Boot 3.5</p>
+            </div>
+          </div>
         </div>
       </div>
     }

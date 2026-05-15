@@ -20,3 +20,20 @@ export interface Provider {
   billingSdiCode: string | null;
   invoicePrefix: string | null;
 }
+
+export interface CreateProviderRequest {
+  firstName: string;
+  lastName: string;
+  role: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface UpdateProviderProfileRequest {
+  firstName: string;
+  lastName: string;
+  role: string;
+  phone?: string;
+  email?: string;
+  active: boolean;
+}

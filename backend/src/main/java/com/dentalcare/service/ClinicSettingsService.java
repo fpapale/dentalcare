@@ -1,6 +1,7 @@
 package com.dentalcare.service;
 
 import com.dentalcare.dto.ClinicBillingDto;
+import com.dentalcare.dto.CreateClinicRequest;
 import com.dentalcare.dto.UpdateClinicBillingRequest;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -48,6 +49,62 @@ public class ClinicSettingsService {
                         rs.getString("country")
                 ));
         return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClinicBillingDto> findAll() {
+        return jdbc.query("""
+            SELECT id, name, legal_name, vat_number, fiscal_code,
+                   phone, email, address_line1, address_line2,
+                   city, province, postal_code, country
+            FROM dentalcare.clinics
+            ORDER BY name
+            """,
+            new MapSqlParameterSource(),
+            (rs, n) -> new ClinicBillingDto(
+                    rs.getObject("id", UUID.class),
+                    rs.getString("name"),
+                    rs.getString("legal_name"),
+                    rs.getString("vat_number"),
+                    rs.getString("fiscal_code"),
+                    rs.getString("phone"),
+                    rs.getString("email"),
+                    rs.getString("address_line1"),
+                    rs.getString("address_line2"),
+                    rs.getString("city"),
+                    rs.getString("province"),
+                    rs.getString("postal_code"),
+                    rs.getString("country")
+            ));
+    }
+
+    @Transactional
+    public ClinicBillingDto create(CreateClinicRequest request) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+            INSERT INTO dentalcare.clinics
+                (id, name, legal_name, vat_number, fiscal_code, phone, email,
+                 address_line1, city, province, postal_code, country)
+            VALUES
+                (:id, :name, :legalName, :vatNumber, :fiscalCode, :phone, :email,
+                 :addressLine1, :city, :province, :postalCode, 'IT')
+            """,
+            new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("name", request.name())
+                .addValue("legalName", request.legalName())
+                .addValue("vatNumber", request.vatNumber())
+                .addValue("fiscalCode", request.fiscalCode())
+                .addValue("phone", request.phone())
+                .addValue("email", request.email())
+                .addValue("addressLine1", request.addressLine1())
+                .addValue("city", request.city())
+                .addValue("province", request.province())
+                .addValue("postalCode", request.postalCode()));
+        return findAll().stream()
+                .filter(c -> c.id().equals(id))
+                .findFirst()
+                .orElseThrow();
     }
 
     @Transactional

@@ -29,6 +29,11 @@ export class PazienteDetailComponent implements OnInit {
   editAnagrafica = signal(false);
   saving = signal(false);
   saveError = signal<string | null>(null);
+  showPhotoModal = signal(false);
+  photoMode = signal<'idle' | 'webcam' | 'upload'>('idle');
+  webcamStream: MediaStream | null = null;
+  capturedPhoto = signal<string | null>(null);
+  savingPhoto = signal(false);
 
   paziente: any = null;
   appuntamenti: any[] = [];
@@ -175,6 +180,7 @@ export class PazienteDetailComponent implements OnInit {
       // Anamnesi fields — passati a cartella-tab e anamnesi-tab
       bloodType: d.bloodType,
       anamnesisDate: d.anamnesisDate,
+      photoUrl: d.photoUrl ?? null,
       anamnesisNotes: d.anamnesisNotes,
       allergyPenicillin: d.allergyPenicillin,
       allergyLatex: d.allergyLatex,
@@ -202,5 +208,103 @@ export class PazienteDetailComponent implements OnInit {
       no_show: 'Non presentato'
     };
     return map[status] ?? status;
+  }
+
+  openPhotoModal(): void {
+    this.capturedPhoto.set(null);
+    this.photoMode.set('idle');
+    this.showPhotoModal.set(true);
+  }
+
+  closePhotoModal(): void {
+    this.stopWebcam();
+    this.showPhotoModal.set(false);
+    this.photoMode.set('idle');
+    this.capturedPhoto.set(null);
+  }
+
+  async startWebcam(): Promise<void> {
+    this.photoMode.set('webcam');
+    this.capturedPhoto.set(null);
+    try {
+      this.webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 400, facingMode: 'user' } });
+      setTimeout(() => {
+        const video = document.getElementById('webcam-video') as HTMLVideoElement;
+        if (video) video.srcObject = this.webcamStream;
+      }, 100);
+    } catch {
+      this.photoMode.set('idle');
+    }
+  }
+
+  captureWebcam(): void {
+    const video = document.getElementById('webcam-video') as HTMLVideoElement;
+    if (!video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d')!;
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    const ox = (video.videoWidth - size) / 2;
+    const oy = (video.videoHeight - size) / 2;
+    ctx.drawImage(video, ox, oy, size, size, 0, 0, 400, 400);
+    this.capturedPhoto.set(canvas.toDataURL('image/jpeg', 0.85));
+    this.stopWebcam();
+    this.photoMode.set('idle');
+  }
+
+  stopWebcam(): void {
+    if (this.webcamStream) {
+      this.webcamStream.getTracks().forEach(t => t.stop());
+      this.webcamStream = null;
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const size = 400;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d')!;
+        const s = Math.min(img.width, img.height);
+        const ox = (img.width - s) / 2;
+        const oy = (img.height - s) / 2;
+        ctx.drawImage(img, ox, oy, s, s, 0, 0, size, size);
+        this.capturedPhoto.set(canvas.toDataURL('image/jpeg', 0.85));
+        this.photoMode.set('idle');
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  savePhoto(): void {
+    const photo = this.capturedPhoto();
+    if (!photo || this.savingPhoto()) return;
+    this.savingPhoto.set(true);
+    this.patientService.updatePhoto(this.paziente.id, photo).subscribe({
+      next: () => {
+        this.paziente = { ...this.paziente, photoUrl: photo };
+        this.savingPhoto.set(false);
+        this.closePhotoModal();
+      },
+      error: () => this.savingPhoto.set(false)
+    });
+  }
+
+  removePhoto(): void {
+    if (!confirm('Rimuovere la foto?')) return;
+    this.patientService.updatePhoto(this.paziente.id, '').subscribe({
+      next: () => {
+        this.paziente = { ...this.paziente, photoUrl: null };
+      }
+    });
   }
 }
