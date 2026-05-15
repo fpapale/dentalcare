@@ -1,3 +1,49 @@
+<!-- Right panel template -->
+<ng-template #rightPanel>
+  <div class="p-4 space-y-4">
+    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Riepilogo Richiami</h3>
+
+    <div class="space-y-2">
+      <div class="bg-white rounded-xl p-4 border border-red-100 shadow-sm">
+        <p class="text-xs font-semibold text-red-400 uppercase tracking-wide">Da contattare</p>
+        <p class="text-2xl font-bold text-red-500 mt-1">{{ daContattareCount() }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-yellow-100 shadow-sm">
+        <p class="text-xs font-semibold text-yellow-500 uppercase tracking-wide">In gestione</p>
+        <p class="text-2xl font-bold text-yellow-500 mt-1">{{ contattatoCount() }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-green-100 shadow-sm">
+        <p class="text-xs font-semibold text-green-500 uppercase tracking-wide">Confermati</p>
+        <p class="text-2xl font-bold text-green-600 mt-1">{{ confermatoCount() }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-orange-100 shadow-sm">
+        <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide">Scaduti</p>
+        <p class="text-2xl font-bold text-orange-500 mt-1">{{ scadutiCount() }}</p>
+      </div>
+    </div>
+
+    @if (urgentList().length > 0) {
+      <div class="mt-2">
+        <h4 class="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Priorità alta</h4>
+        <div class="space-y-2">
+          @for (r of urgentList(); track r.recallId) {
+            <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p class="text-xs font-semibold text-red-800 truncate">{{ r.patientFullName }}</p>
+              <p class="text-xs text-red-500 mt-0.5">{{ r.recallType }}</p>
+              @if (isOverdue(r.dueDate)) {
+                <p class="text-xs text-red-400 mt-0.5">Scaduto da {{ daysOverdue(r.dueDate) }} gg</p>
+              } @else {
+                <p class="text-xs text-slate-400 mt-0.5">Scadenza {{ formatDate(r.dueDate) }}</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<!-- Main content -->
 <div class="flex flex-col h-full bg-slate-50">
 
   <!-- Header -->
@@ -6,83 +52,452 @@
       <h1 class="font-bold text-slate-800">Richiami Pazienti</h1>
       <p class="text-xs text-slate-400 mt-0.5">Gestione dei richiami periodici e follow-up</p>
     </div>
-    <button class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
-      <span class="material-symbols-outlined text-[18px]">add</span> Nuovo Richiamo
-    </button>
+    <div class="flex items-center gap-2">
+      <button (click)="generateRecalls()" [disabled]="generating()"
+        class="flex items-center gap-2 bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-sm">
+        @if (generating()) {
+          <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        } @else {
+          <span class="material-symbols-outlined text-[18px]">autorenew</span>
+        }
+        Genera Richiami
+      </button>
+      <button (click)="openNewRecallModal()"
+        class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">add</span> Nuovo Richiamo
+      </button>
+    </div>
   </div>
+
+  <!-- Generate result banner -->
+  @if (generateResult()) {
+    <div class="mx-5 mt-3 shrink-0 flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+      <span class="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
+      <p class="text-sm text-green-700 font-medium">{{ generateResult()!.message }} — Generati: {{ generateResult()!.generated }}, saltati: {{ generateResult()!.skipped }}</p>
+    </div>
+  }
 
   <!-- KPI strip -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 px-5 py-4 shrink-0">
-    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Da contattare</p>
-      <p class="text-2xl font-bold text-red-500 mt-1">{{ richiami().length }}</p>
+    <div class="bg-white rounded-xl p-4 border border-red-100 shadow-sm">
+      <p class="text-xs font-semibold text-red-400 uppercase tracking-wide">Da contattare</p>
+      <p class="text-2xl font-bold text-red-500 mt-1">{{ daContattareCount() }}</p>
     </div>
-    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Confermati</p>
-      <p class="text-2xl font-bold text-green-600 mt-1">1</p>
+    <div class="bg-white rounded-xl p-4 border border-yellow-100 shadow-sm">
+      <p class="text-xs font-semibold text-yellow-500 uppercase tracking-wide">In gestione</p>
+      <p class="text-2xl font-bold text-yellow-500 mt-1">{{ contattatoCount() }}</p>
     </div>
-    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">In attesa risposta</p>
-      <p class="text-2xl font-bold text-blue-600 mt-1">2</p>
+    <div class="bg-white rounded-xl p-4 border border-green-100 shadow-sm">
+      <p class="text-xs font-semibold text-green-500 uppercase tracking-wide">Confermati</p>
+      <p class="text-2xl font-bold text-green-600 mt-1">{{ confermatoCount() }}</p>
     </div>
-    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Questo mese</p>
-      <p class="text-2xl font-bold text-slate-700 mt-1">3</p>
+    <div class="bg-white rounded-xl p-4 border border-orange-100 shadow-sm">
+      <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide">Scaduti</p>
+      <p class="text-2xl font-bold text-orange-500 mt-1">{{ scadutiCount() }}</p>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="px-5 pb-3 shrink-0 flex flex-col sm:flex-row gap-3">
+    <div class="flex items-center gap-2">
+      <label class="text-xs font-semibold text-slate-500 whitespace-nowrap">Stato</label>
+      <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event); loadRecalls()"
+        class="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+        <option value="">Tutti</option>
+        <option value="da_contattare">Da contattare</option>
+        <option value="contattato">Contattato</option>
+        <option value="in_attesa">In attesa</option>
+        <option value="confermato">Confermato</option>
+        <option value="chiuso">Chiuso</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2">
+      <label class="text-xs font-semibold text-slate-500 whitespace-nowrap">Priorità</label>
+      <select [ngModel]="priorityFilter()" (ngModelChange)="priorityFilter.set($event); loadRecalls()"
+        class="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+        <option value="">Tutte</option>
+        <option value="alta">Alta</option>
+        <option value="media">Media</option>
+        <option value="bassa">Bassa</option>
+      </select>
     </div>
   </div>
 
   <!-- Table -->
   <div class="flex-1 overflow-y-auto px-5 pb-5">
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <table class="w-full text-left border-collapse">
-        <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-          <tr>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Paziente</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Tipo richiamo</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Ultima visita</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Scadenza</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Stato</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          @for (r of richiami(); track r.paziente) {
-            <tr class="hover:bg-slate-50 transition-colors">
-              <td class="py-3.5 px-4">
-                <div class="flex items-center gap-3">
-                  <div class="relative shrink-0">
-                    <div class="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs">{{ r.initials }}</div>
-                    <div class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white" [class]="urgenzaDot(r.urgenza)"></div>
-                  </div>
-                  <div>
-                    <p class="font-semibold text-sm text-slate-800">{{ r.paziente }}</p>
-                    <p class="text-xs text-slate-400">{{ r.telefono }}</p>
-                  </div>
-                </div>
-              </td>
-              <td class="py-3.5 px-4 text-sm text-slate-600 hidden md:table-cell">{{ r.tipo }}</td>
-              <td class="py-3.5 px-4 text-sm text-slate-500 hidden lg:table-cell">{{ r.ultimaVisita }}</td>
-              <td class="py-3.5 px-4 text-sm font-semibold text-slate-700">{{ r.scadenza }}</td>
-              <td class="py-3.5 px-4 text-center">
-                <span class="px-2.5 py-1 rounded-full text-xs font-bold" [class]="statoClass(r.stato)">{{ r.stato }}</span>
-              </td>
-              <td class="py-3.5 px-4 text-right">
-                <div class="flex items-center gap-1 justify-end">
-                  <button class="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors" title="Chiama">
-                    <span class="material-symbols-outlined text-[17px]">phone</span>
-                  </button>
-                  <button class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="SMS">
-                    <span class="material-symbols-outlined text-[17px]">sms</span>
-                  </button>
-                  <button class="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Prenota">
-                    <span class="material-symbols-outlined text-[17px]">event_available</span>
-                  </button>
-                </div>
-              </td>
+    @if (loading()) {
+      <div class="flex items-center justify-center h-40">
+        <div class="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    } @else if (error()) {
+      <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-red-500">error</span>
+        <p class="text-sm text-red-700">{{ error() }}</p>
+      </div>
+    } @else {
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+            <tr>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Paziente</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Tipo richiamo</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Ultima visita</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Scadenza</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Stato</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center hidden md:table-cell">Contatti</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Azioni</th>
             </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @if (filteredRecalls().length === 0) {
+              <tr>
+                <td colspan="7" class="py-12 text-center text-sm text-slate-400">Nessun richiamo trovato</td>
+              </tr>
+            }
+            @for (r of filteredRecalls(); track r.recallId) {
+              <tr class="hover:bg-slate-50 transition-colors"
+                [class.bg-red-50]="isOverdue(r.dueDate) && r.status === 'da_contattare'">
+                <!-- Paziente -->
+                <td class="py-3.5 px-4">
+                  <div class="flex items-center gap-3">
+                    <div class="relative shrink-0">
+                      <div class="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs">
+                        {{ initials(r.patientFullName) }}
+                      </div>
+                      <div class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white"
+                        [class]="priorityDotClass(r.priority)"></div>
+                    </div>
+                    <div>
+                      <p class="font-semibold text-sm text-slate-800">{{ r.patientFullName }}</p>
+                      <p class="text-xs text-slate-400">{{ r.patientPhone ?? '—' }}</p>
+                    </div>
+                  </div>
+                </td>
+                <!-- Tipo -->
+                <td class="py-3.5 px-4 text-sm text-slate-600 hidden md:table-cell">{{ r.recallType }}</td>
+                <!-- Ultima visita -->
+                <td class="py-3.5 px-4 text-sm text-slate-500 hidden lg:table-cell">{{ formatDate(r.sourceAppointmentDate) }}</td>
+                <!-- Scadenza -->
+                <td class="py-3.5 px-4 text-sm font-semibold"
+                  [class]="isOverdue(r.dueDate) ? 'text-red-600' : 'text-slate-700'">
+                  {{ formatDate(r.dueDate) }}
+                  @if (isOverdue(r.dueDate)) {
+                    <span class="block text-xs font-normal text-red-400">{{ daysOverdue(r.dueDate) }} gg fa</span>
+                  }
+                </td>
+                <!-- Stato badge con dropdown -->
+                <td class="py-3.5 px-4 text-center">
+                  <div class="relative inline-block group">
+                    <button class="px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-opacity hover:opacity-75"
+                      [class]="statusBadgeClass(r.status)">
+                      @if (updatingStatus() === r.recallId) {
+                        <span class="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin align-middle"></span>
+                      } @else {
+                        {{ statusLabel(r.status) }}
+                      }
+                    </button>
+                    <div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-20 hidden group-hover:block bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[140px]">
+                      @for (s of allStatuses; track s.key) {
+                        <button (click)="updateStatus(r, s.key)"
+                          class="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 transition-colors"
+                          [class.font-bold]="r.status === s.key">
+                          {{ s.label }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <!-- N. Contatti -->
+                <td class="py-3.5 px-4 text-center text-sm text-slate-500 hidden md:table-cell">
+                  {{ r.contactCount }}
+                </td>
+                <!-- Azioni -->
+                <td class="py-3.5 px-4 text-right">
+                  <div class="flex items-center gap-1 justify-end">
+                    <button (click)="openEditModal(r)"
+                      class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Modifica">
+                      <span class="material-symbols-outlined text-[17px]">edit</span>
+                    </button>
+                    <button (click)="openContactModal(r)"
+                      class="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors" title="Registra contatto">
+                      <span class="material-symbols-outlined text-[17px]">phone</span>
+                    </button>
+                    <button (click)="openContactsDrawer(r)"
+                      class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Storico contatti">
+                      <span class="material-symbols-outlined text-[17px]">history</span>
+                    </button>
+                    <button (click)="deleteRecall(r.recallId)"
+                      class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Elimina">
+                      <span class="material-symbols-outlined text-[17px]">delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </div>
 </div>
+
+<!-- Contact modal -->
+@if (showContactModal()) {
+  <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" (click)="closeContactModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" (click)="$event.stopPropagation()">
+      <div class="mb-4">
+        <h2 class="font-bold text-slate-800 text-lg">Registra Contatto</h2>
+        @if (selectedRecall()) {
+          <p class="text-sm text-slate-500 mt-0.5">{{ selectedRecall()!.patientFullName }} — {{ selectedRecall()!.recallType }}</p>
+        }
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-2">Tipo contatto</label>
+          <div class="flex gap-2 flex-wrap">
+            @for (ct of [
+              {key:'telefono', icon:'phone', label:'Telefono'},
+              {key:'sms', icon:'sms', label:'SMS'},
+              {key:'email', icon:'email', label:'Email'},
+              {key:'whatsapp', icon:'chat', label:'WhatsApp'}
+            ]; track ct.key) {
+              <button (click)="contactForm.contactType = ct.key"
+                class="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-colors"
+                [class]="contactForm.contactType === ct.key ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'">
+                <span class="material-symbols-outlined text-[16px]">{{ ct.icon }}</span>
+                {{ ct.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Esito</label>
+          <select [(ngModel)]="contactForm.outcome"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="risposto">Risposto</option>
+            <option value="non_risposto">Non risponde</option>
+            <option value="messaggio_lasciato">Messaggio lasciato</option>
+            <option value="confermato">Confermato</option>
+            <option value="rifiutato">Rifiutato</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Note</label>
+          <textarea [(ngModel)]="contactForm.notes" rows="3" placeholder="Annotazioni sul contatto..."
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-5 flex gap-3">
+        <button (click)="saveContact()" [disabled]="savingContact()"
+          class="flex-1 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
+          {{ savingContact() ? 'Salvataggio...' : 'Salva' }}
+        </button>
+        <button (click)="closeContactModal()" class="px-4 py-2.5 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+          Annulla
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- New recall modal -->
+@if (showNewRecallModal()) {
+  <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" (click)="closeNewRecallModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" (click)="$event.stopPropagation()">
+      <h2 class="font-bold text-slate-800 text-lg mb-4">Nuovo Richiamo</h2>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Paziente *</label>
+          <input type="text" [ngModel]="patientSearch()" (ngModelChange)="patientSearch.set($event)"
+            placeholder="Cerca per nome o codice fiscale..."
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 mb-1" />
+          <select [(ngModel)]="newRecallForm.patientId"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            size="5">
+            <option value="">— seleziona —</option>
+            @for (p of filteredPatients(); track p.patientId) {
+              <option [value]="p.patientId">{{ p.patientFullName }}{{ p.fiscalCode ? ' · ' + p.fiscalCode : '' }}</option>
+            }
+          </select>
+          @if (newRecallForm.patientId) {
+            <p class="text-xs text-teal-600 mt-1 font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-[13px]">check_circle</span>
+              {{ patients().find(p => p.patientId === newRecallForm.patientId)?.patientFullName }}
+            </p>
+          }
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo richiamo</label>
+          <input type="text" [(ngModel)]="newRecallForm.recallType"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Data scadenza *</label>
+          <input type="date" [(ngModel)]="newRecallForm.dueDate"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Priorità</label>
+          <select [(ngModel)]="newRecallForm.priority"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="bassa">Bassa</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Note</label>
+          <textarea [(ngModel)]="newRecallForm.notes" rows="2" placeholder="Note aggiuntive..."
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-5 flex gap-3">
+        <button (click)="saveNewRecall()" [disabled]="!newRecallForm.patientId || !newRecallForm.dueDate || savingRecall()"
+          class="flex-1 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
+          {{ savingRecall() ? 'Salvataggio...' : 'Crea Richiamo' }}
+        </button>
+        <button (click)="closeNewRecallModal()" class="px-4 py-2.5 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+          Annulla
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Edit recall modal -->
+@if (showEditModal()) {
+  <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" (click)="closeEditModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" (click)="$event.stopPropagation()">
+      <div class="mb-4">
+        <h2 class="font-bold text-slate-800 text-lg">Modifica Richiamo</h2>
+        @if (editingRecall()) {
+          <p class="text-sm text-slate-500 mt-0.5">{{ editingRecall()!.patientFullName }}</p>
+        }
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo richiamo</label>
+          <input type="text" [(ngModel)]="editForm.recallType"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Data scadenza</label>
+          <input type="date" [(ngModel)]="editForm.dueDate"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Priorità</label>
+          <div class="flex gap-2">
+            @for (p of [{key:'alta',label:'Alta'},{key:'media',label:'Media'},{key:'bassa',label:'Bassa'}]; track p.key) {
+              <button (click)="editForm.priority = p.key"
+                class="flex-1 py-2 text-xs font-bold rounded-lg border transition-colors"
+                [class]="editForm.priority === p.key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'">
+                {{ p.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Stato</label>
+          <select [(ngModel)]="editForm.status"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            @for (s of allStatuses; track s.key) {
+              <option [value]="s.key">{{ s.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Note</label>
+          <textarea [(ngModel)]="editForm.notes" rows="3" placeholder="Note aggiuntive..."
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-5 flex gap-3">
+        <button (click)="saveEdit()" [disabled]="savingEdit()"
+          class="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+          {{ savingEdit() ? 'Salvataggio...' : 'Salva modifiche' }}
+        </button>
+        <button (click)="closeEditModal()" class="px-4 py-2.5 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+          Annulla
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Contacts drawer -->
+@if (showContactsDrawer()) {
+  <div class="fixed inset-0 z-50 flex justify-end">
+    <div class="fixed inset-0 bg-black/30" (click)="closeContactsDrawer()"></div>
+    <div class="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
+      <!-- Drawer header -->
+      <div class="px-5 py-4 border-b border-slate-200 shrink-0">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-800">Storico Contatti</h3>
+            @if (drawerRecall()) {
+              <p class="text-xs text-slate-500 mt-0.5">{{ drawerRecall()!.patientFullName }} — {{ drawerRecall()!.recallType }}</p>
+            }
+          </div>
+          <button (click)="closeContactsDrawer()" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contacts list -->
+      <div class="flex-1 overflow-y-auto px-5 py-4">
+        @if (loadingContacts()) {
+          <div class="flex items-center justify-center h-24">
+            <div class="w-6 h-6 border-3 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        } @else if (drawerContacts().length === 0) {
+          <div class="text-center py-10">
+            <span class="material-symbols-outlined text-slate-300 text-[40px]">phone_missed</span>
+            <p class="text-sm text-slate-400 mt-2">Nessun contatto registrato</p>
+          </div>
+        } @else {
+          <div class="space-y-3">
+            @for (c of drawerContacts(); track c.contactId) {
+              <div class="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[16px]">{{ contactTypeIcon(c.contactType) }}</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-xs font-semibold text-slate-700 capitalize">{{ c.contactType }}</span>
+                      <span class="px-2 py-0.5 rounded-full text-xs font-bold" [class]="outcomeBadgeClass(c.outcome)">
+                        {{ outcomeLabel(c.outcome) }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ formatDate(c.contactAt) }}</p>
+                    @if (c.notes) {
+                      <p class="text-xs text-slate-600 mt-1 italic">{{ c.notes }}</p>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

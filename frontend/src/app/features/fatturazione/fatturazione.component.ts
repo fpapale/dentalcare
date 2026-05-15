@@ -111,6 +111,18 @@ export class FatturazioneComponent implements OnInit {
     this.newForm = { estimateId: '', issuerType: 'clinic', providerId: '', documentType: 'fattura', dueDate: '', notes: '', paymentMethod: '' };
   }
 
+  onEstimateChange(): void {
+    const est = this.acceptedEstimates().find(e => e.estimateId === this.newForm.estimateId);
+    if (!est) return;
+    if (est.createdByProviderId) {
+      this.newForm.issuerType = 'provider';
+      this.newForm.providerId = est.createdByProviderId;
+    } else {
+      this.newForm.issuerType = 'clinic';
+      this.newForm.providerId = '';
+    }
+  }
+
   createInvoice(): void {
     if (!this.newForm.estimateId) return;
     this.creating.set(true);

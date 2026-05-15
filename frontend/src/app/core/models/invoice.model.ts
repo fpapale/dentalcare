@@ -16,6 +16,10 @@ export interface Invoice {
 }
 
 export interface InvoiceDetail extends Invoice {
+  subtotalAmount: number;
+  discountAmount: number;
+  taxableAmount: number;
+  vatAmount: number;
   issuerName: string;
   issuerVatNumber: string | null;
   issuerFiscalCode: string | null;

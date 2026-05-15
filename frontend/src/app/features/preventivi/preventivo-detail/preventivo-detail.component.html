@@ -298,7 +298,7 @@
                         <td class="py-3 px-4 text-right text-slate-600 hidden md:table-cell">{{ line.quantity }}</td>
                         <td class="py-3 px-4 text-right text-slate-600">€ {{ line.unitPrice | number:'1.2-2' }}</td>
                         <td class="py-3 px-4 text-right hidden md:table-cell">
-                          @if ((line.discountAmount ?? 0) > 0) {
+                          @if (line.discountAmount > 0) {
                             <span class="text-red-600">− € {{ line.discountAmount | number:'1.2-2' }}</span>
                           } @else {
                             <span class="text-slate-400">—</span>
@@ -433,13 +433,13 @@
                 <span>Subtotale</span>
                 <span class="font-semibold">€ {{ est.subtotalAmount | number:'1.2-2' }}</span>
               </div>
-              @if ((est.discountAmount ?? 0) > 0) {
+              @if (est.discountAmount > 0) {
                 <div class="flex justify-between text-red-600">
                   <span>Sconto</span>
                   <span class="font-semibold">− € {{ est.discountAmount | number:'1.2-2' }}</span>
                 </div>
               }
-              @if ((est.vatAmount ?? 0) > 0) {
+              @if (est.vatAmount > 0) {
                 <div class="flex justify-between text-slate-600">
                   <span>IVA</span>
                   <span class="font-semibold">€ {{ est.vatAmount | number:'1.2-2' }}</span>

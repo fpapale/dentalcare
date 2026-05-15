@@ -34,7 +34,14 @@
     </nav>
     <!-- Impostazioni -->
     <div class="py-3 border-t border-slate-100 dark:border-slate-700">
-      <a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start" href="#">
+      <a routerLink="/impostazioni"
+         routerLinkActive="bg-teal-600 dark:bg-teal-900/80 text-white dark:text-teal-300"
+         #rlaSet="routerLinkActive"
+         [class.text-slate-600]="!rlaSet.isActive"
+         [class.dark:text-slate-400]="!rlaSet.isActive"
+         [class.hover:bg-slate-100]="!rlaSet.isActive"
+         [class.dark:hover:bg-slate-700/60]="!rlaSet.isActive"
+         class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-1 py-2.5 px-0 lg:px-3 justify-center lg:justify-start">
         <span class="material-symbols-outlined text-[20px] shrink-0">settings</span>
         <span class="hidden lg:inline text-sm font-medium">Impostazioni</span>
       </a>

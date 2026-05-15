@@ -73,7 +73,7 @@ const ACTIONABLE = new Set([
   'bridge_pillar', 'bridge_pontic', 'crown', 'implant',
 ]);
 
-const CONDITION_TREATMENT_HINT: Record<string, string> = {
+const CONDITION_TREATMENT_HINT: Record<string, string | undefined> = {
   cavity:        'Conservativa',
   to_extract:    'Chirurgia',
   root_canal:    'Endodonzia',

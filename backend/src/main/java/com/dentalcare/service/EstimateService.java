@@ -45,7 +45,8 @@ public class EstimateService {
                 + " currency, subtotal_amount, discount_amount, taxable_amount,"
                 + " vat_amount, total_amount,"
                 + " patient_id, patient_full_name, patient_fiscal_code, patient_phone,"
-                + " issued_at, sent_at, valid_until, accepted_at, rejected_at, estimate_created_at"
+                + " issued_at, sent_at, valid_until, accepted_at, rejected_at, estimate_created_at,"
+                + " created_by_provider_id"
                 + " FROM dentalcare.v_patient_estimates_summary"
                 + " WHERE clinic_id = :clinicId"
                 + filter
@@ -60,7 +61,8 @@ public class EstimateService {
                    currency, subtotal_amount, discount_amount, taxable_amount,
                    vat_amount, total_amount,
                    patient_id, patient_full_name, patient_fiscal_code, patient_phone,
-                   issued_at, sent_at, valid_until, accepted_at, rejected_at, estimate_created_at
+                   issued_at, sent_at, valid_until, accepted_at, rejected_at, estimate_created_at,
+                   created_by_provider_id
             FROM dentalcare.v_patient_estimates_summary
             WHERE clinic_id = :clinicId AND patient_id = :patientId
             ORDER BY estimate_created_at DESC
@@ -86,7 +88,8 @@ public class EstimateService {
                    NULL::text         AS patient_fiscal_code,
                    NULL::text         AS patient_phone,
                    e.issued_at, e.sent_at, e.valid_until, e.accepted_at, e.rejected_at,
-                   e.created_at       AS estimate_created_at
+                   e.created_at       AS estimate_created_at,
+                   e.created_by_provider_id
             FROM dentalcare.estimates e
             JOIN dentalcare.patients p
               ON p.id = e.patient_id AND p.clinic_id = e.clinic_id
@@ -393,7 +396,8 @@ public class EstimateService {
                 rs.getDate("valid_until") != null ? rs.getDate("valid_until").toLocalDate() : null,
                 rs.getTimestamp("accepted_at") != null ? rs.getTimestamp("accepted_at").toInstant().atOffset(ZoneOffset.UTC) : null,
                 rs.getTimestamp("rejected_at") != null ? rs.getTimestamp("rejected_at").toInstant().atOffset(ZoneOffset.UTC) : null,
-                rs.getTimestamp("estimate_created_at") != null ? rs.getTimestamp("estimate_created_at").toInstant().atOffset(ZoneOffset.UTC) : null
+                rs.getTimestamp("estimate_created_at") != null ? rs.getTimestamp("estimate_created_at").toInstant().atOffset(ZoneOffset.UTC) : null,
+                rs.getObject("created_by_provider_id", UUID.class)
         );
     }
 

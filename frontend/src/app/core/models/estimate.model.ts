@@ -20,6 +20,7 @@ export interface Estimate {
   acceptedAt: string | null;
   rejectedAt: string | null;
   estimateCreatedAt: string;
+  createdByProviderId: string | null;
 }
 
 export interface EstimateLine {

@@ -3,21 +3,18 @@
   <!-- Header -->
   <div class="bg-white border-b border-slate-200 px-5 py-3 shrink-0">
     <h1 class="font-bold text-slate-800">Impostazioni</h1>
-    <p class="text-xs text-slate-400 mt-0.5">Dati dello studio e dei professionisti</p>
+    <p class="text-xs text-slate-400 mt-0.5">Parametri dello studio, professionisti e applicazione</p>
   </div>
 
   <!-- Tabs -->
-  <div class="bg-white border-b border-slate-200 px-5 shrink-0 flex gap-1">
-    <button (click)="activeTab.set('studio')"
-      class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors"
-      [class]="activeTab() === 'studio' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-700'">
-      <span class="material-symbols-outlined text-[16px] align-middle mr-1">business</span>Studio
-    </button>
-    <button (click)="activeTab.set('professionisti')"
-      class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors"
-      [class]="activeTab() === 'professionisti' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-700'">
-      <span class="material-symbols-outlined text-[16px] align-middle mr-1">stethoscope</span>Professionisti
-    </button>
+  <div class="bg-white border-b border-slate-200 px-5 shrink-0 flex gap-1 overflow-x-auto">
+    @for (tab of tabs; track tab.key) {
+      <button (click)="activeTab.set(tab.key)"
+        class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
+        [class]="activeTab() === tab.key ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-700'">
+        <span class="material-symbols-outlined text-[16px] align-middle mr-1">{{ tab.icon }}</span>{{ tab.label }}
+      </button>
+    }
   </div>
 
   <div class="flex-1 overflow-y-auto p-5">
@@ -79,6 +76,24 @@
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Email</label>
                 <input [(ngModel)]="clinicForm.email" type="email" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
               </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-1">Sito Web</label>
+              <input [(ngModel)]="clinicForm.website" placeholder="https://..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">PEC</label>
+                <input [(ngModel)]="clinicForm.pec" type="email" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Codice SDI</label>
+                <input [(ngModel)]="clinicForm.sdiCode" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-1">IBAN</label>
+              <input [(ngModel)]="clinicForm.iban" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
             </div>
           </div>
           <div class="mt-5 flex items-center gap-3">
@@ -203,6 +218,246 @@
                 }
               </div>
             </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- AGENDA TAB -->
+    @if (activeTab() === 'agenda') {
+      <div class="max-w-xl space-y-6">
+
+        <!-- Durata slot -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Durata Slot Appuntamento</h2>
+          <p class="text-xs text-slate-400 mb-4">Granularità della griglia in agenda</p>
+          <div class="flex gap-2 flex-wrap">
+            @for (opt of slotOptions; track opt.value) {
+              <button (click)="appSettings.slotDurationMin = opt.value"
+                class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors"
+                [class]="appSettings.slotDurationMin === opt.value
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Orario di lavoro -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-4">Orario di Lavoro</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-1">Inizio</label>
+              <input type="time" [(ngModel)]="appSettings.workStartTime"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-1">Fine</label>
+              <input type="time" [(ngModel)]="appSettings.workEndTime"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Giorni lavorativi -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Giorni Lavorativi</h2>
+          <p class="text-xs text-slate-400 mb-4">Giorni visibili in agenda</p>
+          <div class="flex gap-2">
+            @for (label of dayLabels; track $index) {
+              <button (click)="toggleWorkDay($index)"
+                class="w-10 h-10 rounded-full text-xs font-bold border transition-colors"
+                [class]="isWorkDay($index)
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-500 border-slate-200 hover:border-teal-400'">
+                {{ label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button (click)="saveAppSettings()"
+            class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors">
+            Salva
+          </button>
+          @if (appSettingsSaved()) {
+            <span class="text-sm text-green-600 font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">check_circle</span>Salvato
+            </span>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- PREVENTIVI TAB -->
+    @if (activeTab() === 'preventivi') {
+      <div class="max-w-xl space-y-6">
+
+        <!-- Validità preventivo -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-4">Validità Preventivo</h2>
+          <div class="flex items-center gap-3">
+            <input type="number" [(ngModel)]="appSettings.estimateValidityDays" min="1" max="365"
+              class="w-24 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            <span class="text-sm text-slate-500">giorni dalla data di emissione</span>
+          </div>
+        </div>
+
+        <!-- Prefisso numero preventivo -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Prefisso Numero Preventivo</h2>
+          <p class="text-xs text-slate-400 mb-4">Es: PRV → PRV-2025-001</p>
+          <input [(ngModel)]="appSettings.estimatePrefix" maxlength="8" placeholder="PRV"
+            class="w-36 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 uppercase" />
+        </div>
+
+        <!-- Aliquota IVA predefinita -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Aliquota IVA Predefinita</h2>
+          <p class="text-xs text-slate-400 mb-4">Applicata automaticamente alle nuove voci</p>
+          <div class="flex gap-2 flex-wrap">
+            @for (rate of vatRates; track rate) {
+              <button (click)="appSettings.defaultVatRate = rate"
+                class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors"
+                [class]="appSettings.defaultVatRate === rate
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                {{ rate }}%
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button (click)="saveAppSettings()"
+            class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors">
+            Salva
+          </button>
+          @if (appSettingsSaved()) {
+            <span class="text-sm text-green-600 font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">check_circle</span>Salvato
+            </span>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- FATTURAZIONE TAB -->
+    @if (activeTab() === 'fatturazione') {
+      <div class="max-w-xl space-y-6">
+
+        <!-- Metodo pagamento predefinito -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Metodo di Pagamento Predefinito</h2>
+          <p class="text-xs text-slate-400 mb-4">Selezionato automaticamente nelle nuove fatture</p>
+          <div class="flex gap-2 flex-wrap">
+            @for (method of paymentMethods; track method) {
+              <button (click)="appSettings.defaultPaymentMethod = method"
+                class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors"
+                [class]="appSettings.defaultPaymentMethod === method
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                {{ method }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Scadenza predefinita -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-4">Scadenza Predefinita Fattura</h2>
+          <div class="flex items-center gap-3">
+            <input type="number" [(ngModel)]="appSettings.defaultDueDays" min="0" max="365"
+              class="w-24 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            <span class="text-sm text-slate-500">giorni dalla data di emissione</span>
+          </div>
+        </div>
+
+        <!-- Prefisso fatture studio -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Prefisso Fatture Studio</h2>
+          <p class="text-xs text-slate-400 mb-4">Usato quando l'emittente è lo studio (es. FATT → FATT-2025-001)</p>
+          <input [(ngModel)]="appSettings.studioInvoicePrefix" maxlength="8" placeholder="FATT"
+            class="w-36 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 uppercase" />
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button (click)="saveAppSettings()"
+            class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors">
+            Salva
+          </button>
+          @if (appSettingsSaved()) {
+            <span class="text-sm text-green-600 font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">check_circle</span>Salvato
+            </span>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- RICHIAMI TAB -->
+    @if (activeTab() === 'richiami') {
+      <div class="max-w-xl space-y-6">
+
+        <!-- Primo richiamo -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Intervallo Primo Richiamo</h2>
+          <p class="text-xs text-slate-400 mb-4">Mesi dall'ultima visita per generare il primo richiamo</p>
+          <div class="flex gap-2 flex-wrap">
+            @for (m of [3, 6, 9, 12]; track m) {
+              <button (click)="appSettings.recallIntervalMonths = m"
+                class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors"
+                [class]="appSettings.recallIntervalMonths === m
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                {{ m }} mesi
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Secondo richiamo -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Intervallo Secondo Richiamo</h2>
+          <p class="text-xs text-slate-400 mb-4">Mesi dall'ultima visita per il richiamo di sollecito</p>
+          <div class="flex gap-2 flex-wrap">
+            @for (m of [6, 12, 18, 24]; track m) {
+              <button (click)="appSettings.recallSecondIntervalMonths = m"
+                class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors"
+                [class]="appSettings.recallSecondIntervalMonths === m
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                {{ m }} mesi
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Template messaggio -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Template Messaggio Richiamo</h2>
+          <p class="text-xs text-slate-400 mb-3">
+            Variabili: <code class="bg-slate-100 px-1 rounded text-[11px]">{{'{'}}paziente{{'}'}}</code>
+            <code class="bg-slate-100 px-1 rounded text-[11px]">{{'{'}}studio{{'}'}}</code>
+            <code class="bg-slate-100 px-1 rounded text-[11px]">{{'{'}}telefono{{'}'}}</code>
+          </p>
+          <textarea [(ngModel)]="appSettings.recallMessageTemplate" rows="4"
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+          <div class="mt-2 text-xs text-slate-400">{{ appSettings.recallMessageTemplate.length }} / 500 caratteri</div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button (click)="saveAppSettings()"
+            class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors">
+            Salva
+          </button>
+          @if (appSettingsSaved()) {
+            <span class="text-sm text-green-600 font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">check_circle</span>Salvato
+            </span>
           }
         </div>
       </div>

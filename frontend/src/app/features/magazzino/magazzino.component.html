@@ -1,3 +1,46 @@
+<!-- Right panel template -->
+<ng-template #rightPanel>
+  <div class="p-4 space-y-4">
+    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Riepilogo Scorte</h3>
+
+    <div class="space-y-2">
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Totale prodotti</p>
+        <p class="text-2xl font-bold text-slate-800 mt-1">{{ products().length }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-red-100 shadow-sm">
+        <p class="text-xs font-semibold text-red-400 uppercase tracking-wide">Scorta critica</p>
+        <p class="text-2xl font-bold text-red-500 mt-1">{{ criticoCount() }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-yellow-100 shadow-sm">
+        <p class="text-xs font-semibold text-yellow-500 uppercase tracking-wide">Scorta bassa</p>
+        <p class="text-2xl font-bold text-yellow-500 mt-1">{{ bassoCount() }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-green-100 shadow-sm">
+        <p class="text-xs font-semibold text-green-500 uppercase tracking-wide">Adeguati</p>
+        <p class="text-2xl font-bold text-green-600 mt-1">{{ okCount() }}</p>
+      </div>
+    </div>
+
+    @if (criticiList().length > 0) {
+      <div class="mt-4">
+        <h4 class="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Riordino urgente</h4>
+        <div class="space-y-2">
+          @for (p of criticiList(); track p.productId) {
+            <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p class="text-xs font-semibold text-red-800 truncate">{{ p.name }}</p>
+              <p class="text-xs text-red-500 mt-0.5">
+                Scorta: <span class="font-bold">{{ p.currentStock }}</span> / min {{ p.minStockQuantity }} {{ p.unit }}
+              </p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<!-- Main content -->
 <div class="flex flex-col h-full bg-slate-50">
 
   <!-- Header -->
@@ -6,96 +49,528 @@
       <h1 class="font-bold text-slate-800">Magazzino & Scorte</h1>
       <p class="text-xs text-slate-400 mt-0.5">Monitoraggio materiali e forniture dello studio</p>
     </div>
-    <button class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
-      <span class="material-symbols-outlined text-[18px]">add</span> Nuovo Prodotto
+    <div class="flex items-center gap-2">
+      @if (activeTab() === 'fornitori') {
+        <button (click)="showNewSupplier.set(true)"
+          class="flex items-center gap-2 bg-slate-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">add</span> Nuovo Fornitore
+        </button>
+      }
+      <button (click)="showNewProduct.set(true)"
+        class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">add</span> Nuovo Prodotto
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="bg-white border-b border-slate-200 px-5 shrink-0 flex gap-1">
+    <button (click)="setTab('prodotti')"
+      class="flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors"
+      [class]="activeTab() === 'prodotti' ? 'border-teal-600 text-teal-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
+      <span class="material-symbols-outlined text-[18px]">inventory_2</span> Prodotti
+    </button>
+    <button (click)="setTab('movimenti')"
+      class="flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors"
+      [class]="activeTab() === 'movimenti' ? 'border-teal-600 text-teal-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
+      <span class="material-symbols-outlined text-[18px]">swap_vert</span> Movimenti
+    </button>
+    <button (click)="setTab('fornitori')"
+      class="flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors"
+      [class]="activeTab() === 'fornitori' ? 'border-teal-600 text-teal-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
+      <span class="material-symbols-outlined text-[18px]">local_shipping</span> Fornitori
     </button>
   </div>
 
-  <!-- KPI strip -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 px-5 py-4 shrink-0">
-    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Prodotti totali</p>
-      <p class="text-2xl font-bold text-slate-800 mt-1">{{ prodotti().length }}</p>
-    </div>
-    <div class="bg-white rounded-xl p-4 border border-red-100 shadow-sm">
-      <p class="text-xs font-semibold text-red-400 uppercase tracking-wide">Scorta critica</p>
-      <p class="text-2xl font-bold text-red-500 mt-1">{{ criticoCount }}</p>
-    </div>
-    <div class="bg-white rounded-xl p-4 border border-yellow-100 shadow-sm">
-      <p class="text-xs font-semibold text-yellow-500 uppercase tracking-wide">Scorta bassa</p>
-      <p class="text-2xl font-bold text-yellow-500 mt-1">{{ bassoCount }}</p>
-    </div>
-    <div class="bg-white rounded-xl p-4 border border-green-100 shadow-sm">
-      <p class="text-xs font-semibold text-green-500 uppercase tracking-wide">Adeguati</p>
-      <p class="text-2xl font-bold text-green-600 mt-1">{{ okCount }}</p>
-    </div>
-  </div>
+  <!-- Body -->
+  <div class="flex-1 overflow-y-auto">
 
-  <!-- Alertbar scorte critiche -->
-  @if (hasCritici) {
-    <div class="mx-5 mb-4 shrink-0 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-      <span class="material-symbols-outlined text-red-500 text-[20px]">warning</span>
-      <p class="text-sm text-red-700 font-semibold">
-        Attenzione: {{ criticoCount }} prodotti sotto scorta minima. Ordinare al più presto.
-      </p>
-      <button class="ml-auto text-xs font-bold text-red-600 hover:underline shrink-0">Genera ordine →</button>
-    </div>
-  }
+    @if (loading()) {
+      <div class="flex items-center justify-center h-40">
+        <div class="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    } @else if (error()) {
+      <div class="m-5 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-red-500">error</span>
+        <p class="text-sm text-red-700">{{ error() }}</p>
+      </div>
+    } @else {
 
-  <!-- Prodotti -->
-  <div class="flex-1 overflow-y-auto px-5 pb-5">
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <table class="w-full text-left border-collapse">
-        <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-          <tr>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prodotto</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Categoria</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Scorta attuale</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Livello</th>
-            <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Stato</th>
-            <th class="py-3 px-4"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          @for (p of prodotti(); track p.nome) {
-            <tr class="hover:bg-slate-50 transition-colors" [class.bg-red-50]="p.stato === 'critico'">
-              <td class="py-3.5 px-4">
-                <div class="flex items-center gap-2">
-                  @if (p.stato === 'critico') {
-                    <span class="material-symbols-outlined text-[16px] text-red-500">warning</span>
-                  }
-                  <span class="font-semibold text-sm text-slate-800">{{ p.nome }}</span>
-                </div>
-              </td>
-              <td class="py-3.5 px-4 hidden md:table-cell">
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{{ p.categoria }}</span>
-              </td>
-              <td class="py-3.5 px-4">
-                <span class="font-bold text-sm" [class.text-red-600]="p.stato === 'critico'" [class.text-yellow-600]="p.stato === 'basso'" [class.text-slate-800]="p.stato === 'ok'">
-                  {{ p.scorta }}
-                </span>
-                <span class="text-xs text-slate-400 ml-1">/ min {{ p.minimo }} {{ p.unita }}</span>
-              </td>
-              <td class="py-3.5 px-4 hidden lg:table-cell">
-                <div class="flex items-center gap-2">
-                  <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden min-w-[80px]">
-                    <div class="h-full rounded-full transition-all" [class]="barColor(p.stato)" [style.width.%]="barWidth(p.scorta, p.minimo)"></div>
-                  </div>
-                  <span class="text-xs text-slate-400 shrink-0">{{ barWidth(p.scorta, p.minimo) }}%</span>
-                </div>
-              </td>
-              <td class="py-3.5 px-4 text-center">
-                <span class="px-2.5 py-1 rounded-full text-xs font-bold capitalize" [class]="statoClass(p.stato)">{{ p.stato }}</span>
-              </td>
-              <td class="py-3.5 px-4 text-right">
-                <button class="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
-                  <span class="material-symbols-outlined text-[17px]">edit</span>
+      <!-- PRODOTTI TAB -->
+      @if (activeTab() === 'prodotti') {
+        <div class="px-5 py-4 flex flex-col gap-4">
+          <!-- Search + Category filters -->
+          <div class="flex flex-col gap-2">
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+              <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="Cerca prodotto..."
+                class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button (click)="selectedCategoryId.set(null)"
+                class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                [class]="selectedCategoryId() === null ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                Tutti
+              </button>
+              @for (cat of categories(); track cat.categoryId) {
+                <button (click)="selectedCategoryId.set(selectedCategoryId() === cat.categoryId ? null : cat.categoryId)"
+                  class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                  [class]="selectedCategoryId() === cat.categoryId ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                  {{ cat.name }}
                 </button>
-              </td>
-            </tr>
+              }
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prodotto</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Categoria</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Scorta attuale</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Livello</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Stato</th>
+                  <th class="py-3 px-4"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @if (filteredProducts().length === 0) {
+                  <tr>
+                    <td colspan="6" class="py-12 text-center text-sm text-slate-400">Nessun prodotto trovato</td>
+                  </tr>
+                }
+                @for (p of filteredProducts(); track p.productId) {
+                  <tr class="hover:bg-slate-50/80 transition-colors"
+                    [class.bg-red-50]="p.stockStatus === 'critico'"
+                    [class.bg-yellow-50]="p.stockStatus === 'basso'">
+                    <td class="py-3.5 px-4">
+                      <div class="flex items-center gap-2">
+                        @if (p.stockStatus === 'critico') {
+                          <span class="material-symbols-outlined text-[16px] text-red-500">warning</span>
+                        }
+                        <div>
+                          <p class="font-semibold text-sm text-slate-800">{{ p.name }}</p>
+                          @if (p.sku) {
+                            <p class="text-xs text-slate-400 font-mono">{{ p.sku }}</p>
+                          }
+                        </div>
+                      </div>
+                    </td>
+                    <td class="py-3.5 px-4 hidden md:table-cell">
+                      @if (p.categoryName) {
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{{ p.categoryName }}</span>
+                      } @else {
+                        <span class="text-xs text-slate-400">—</span>
+                      }
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <span class="font-bold text-sm"
+                        [class.text-red-600]="p.stockStatus === 'critico'"
+                        [class.text-yellow-600]="p.stockStatus === 'basso'"
+                        [class.text-slate-800]="p.stockStatus === 'ok'">
+                        {{ p.currentStock }}
+                      </span>
+                      <span class="text-xs text-slate-400 ml-1">/ min {{ p.minStockQuantity }} {{ p.unit }}</span>
+                    </td>
+                    <td class="py-3.5 px-4 hidden lg:table-cell">
+                      <div class="flex items-center gap-2">
+                        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden min-w-[80px]">
+                          <div class="h-full rounded-full transition-all" [class]="barColor(p.stockStatus)" [style.width.%]="barWidth(p)"></div>
+                        </div>
+                        <span class="text-xs text-slate-400 shrink-0">{{ barWidth(p) }}%</span>
+                      </div>
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                      <span class="px-2.5 py-1 rounded-full text-xs font-bold capitalize" [class]="statoClass(p.stockStatus)">
+                        {{ p.stockStatus }}
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <div class="flex items-center justify-end gap-1">
+                        <button (click)="openMovement(p, 'carico')" title="Carica"
+                          class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors text-xs font-bold flex items-center gap-1">
+                          <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                          <span class="hidden lg:inline">Carica</span>
+                        </button>
+                        <button (click)="openMovement(p, 'scarico')" title="Scarica"
+                          class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors text-xs font-bold flex items-center gap-1">
+                          <span class="material-symbols-outlined text-[16px]">remove_circle</span>
+                          <span class="hidden lg:inline">Scarica</span>
+                        </button>
+                        <button (click)="deleteProduct(p.productId)" title="Elimina"
+                          class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                          <span class="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- MOVIMENTI TAB -->
+      @if (activeTab() === 'movimenti') {
+        <div class="px-5 py-4 flex flex-col gap-4">
+          <!-- Category chips -->
+          <div class="flex flex-wrap gap-1.5">
+            <button (click)="movementCategoryFilter.set(null); movementProductFilter.set('')"
+              class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+              [class]="movementCategoryFilter() === null ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+              Tutti
+            </button>
+            @for (cat of categories(); track cat.categoryId) {
+              <button (click)="movementCategoryFilter.set(movementCategoryFilter() === cat.categoryId ? null : cat.categoryId); movementProductFilter.set('')"
+                class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                [class]="movementCategoryFilter() === cat.categoryId ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                {{ cat.name }}
+              </button>
+            }
+          </div>
+          <!-- Filter by product -->
+          <div class="flex items-center gap-3">
+            <label class="text-sm font-semibold text-slate-600 shrink-0">Prodotto:</label>
+            <select [ngModel]="movementProductFilter()" (ngModelChange)="movementProductFilter.set($event)"
+              class="flex-1 max-w-xs text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+              <option value="">Tutti</option>
+              @for (p of movementFilteredProducts(); track p.productId) {
+                <option [value]="p.productId">{{ p.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Data</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prodotto</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Quantità</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell text-right">Costo unit.</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Note</th>
+                  <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden xl:table-cell">Doc. rif.</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @if (filteredMovements().length === 0) {
+                  <tr>
+                    <td colspan="7" class="py-12 text-center text-sm text-slate-400">Nessun movimento trovato</td>
+                  </tr>
+                }
+                @for (m of filteredMovements(); track m.movementId) {
+                  <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="py-3 px-4 text-sm text-slate-500 hidden md:table-cell whitespace-nowrap">{{ formatDate(m.createdAt) }}</td>
+                    <td class="py-3 px-4 text-sm font-semibold text-slate-800">{{ m.productName }}</td>
+                    <td class="py-3 px-4">
+                      <span class="px-2.5 py-1 rounded-full text-xs font-bold capitalize" [class]="movementTypeClass(m.movementType)">
+                        {{ m.movementType }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-sm font-bold text-right"
+                      [class.text-green-600]="m.movementType === 'carico' || m.movementType === 'rientro'"
+                      [class.text-red-600]="m.movementType === 'scarico'"
+                      [class.text-blue-600]="m.movementType === 'rettifica'">
+                      {{ m.movementType === 'scarico' ? '-' : '+' }}{{ m.quantity }}
+                    </td>
+                    <td class="py-3 px-4 text-sm text-slate-500 hidden lg:table-cell text-right">
+                      {{ m.unitCost != null ? ('€ ' + m.unitCost.toFixed(2)) : '—' }}
+                    </td>
+                    <td class="py-3 px-4 text-sm text-slate-500 hidden lg:table-cell">{{ m.notes || '—' }}</td>
+                    <td class="py-3 px-4 text-sm text-slate-400 hidden xl:table-cell font-mono text-xs">{{ m.referenceDoc || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- FORNITORI TAB -->
+      @if (activeTab() === 'fornitori') {
+        <div class="px-5 py-4">
+          @if (suppliers().length === 0) {
+            <div class="text-center py-16 text-slate-400 text-sm">Nessun fornitore configurato</div>
+          } @else {
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              @for (s of suppliers(); track s.supplierId) {
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-3">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <p class="font-bold text-slate-800">{{ s.name }}</p>
+                      @if (s.contactPerson) {
+                        <p class="text-xs text-slate-500 mt-0.5">{{ s.contactPerson }}</p>
+                      }
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                      [class]="s.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'">
+                      {{ s.isActive ? 'Attivo' : 'Inattivo' }}
+                    </span>
+                  </div>
+                  <div class="space-y-1">
+                    @if (s.phone) {
+                      <div class="flex items-center gap-2 text-sm text-slate-600">
+                        <span class="material-symbols-outlined text-[15px] text-slate-400">phone</span>
+                        {{ s.phone }}
+                      </div>
+                    }
+                    @if (s.email) {
+                      <div class="flex items-center gap-2 text-sm text-slate-600">
+                        <span class="material-symbols-outlined text-[15px] text-slate-400">mail</span>
+                        {{ s.email }}
+                      </div>
+                    }
+                    @if (s.notes) {
+                      <p class="text-xs text-slate-400 mt-1">{{ s.notes }}</p>
+                    }
+                  </div>
+                  <div class="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                    <button (click)="deleteSupplier(s.supplierId)"
+                      class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                      <span class="material-symbols-outlined text-[17px]">delete</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
           }
-        </tbody>
-      </table>
-    </div>
+        </div>
+      }
+
+    }
   </div>
 </div>
+
+<!-- MODAL: Nuovo Prodotto -->
+@if (showNewProduct()) {
+  <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" (click)="showNewProduct.set(false)">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <h2 class="text-base font-bold text-slate-800">Nuovo Prodotto</h2>
+        <button (click)="showNewProduct.set(false)" class="text-slate-400 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nome <span class="text-red-500">*</span></label>
+          <input [(ngModel)]="newProductForm.name" placeholder="es. Anestetico Articaina 4%"
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Categoria</label>
+            <select [(ngModel)]="newProductForm.categoryId"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+              <option value="">Nessuna</option>
+              @for (c of categories(); track c.categoryId) {
+                <option [value]="c.categoryId">{{ c.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Fornitore</label>
+            <select [(ngModel)]="newProductForm.supplierId"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+              <option value="">Nessuno</option>
+              @for (s of suppliers(); track s.supplierId) {
+                <option [value]="s.supplierId">{{ s.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Unità <span class="text-red-500">*</span></label>
+            <select [(ngModel)]="newProductForm.unit"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+              <option value="pz">pz</option>
+              <option value="ml">ml</option>
+              <option value="g">g</option>
+              <option value="conf">conf</option>
+              <option value="fiale">fiale</option>
+              <option value="siringhe">siringhe</option>
+              <option value="capsule">capsule</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">SKU / Codice</label>
+            <input [(ngModel)]="newProductForm.sku" placeholder="es. ART-4-50"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Scorta minima <span class="text-red-500">*</span></label>
+            <input type="number" [(ngModel)]="newProductForm.minStockQuantity" min="0"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Q.ta riordino</label>
+            <input type="number" [(ngModel)]="newProductForm.reorderQuantity" min="0"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Costo unitario</label>
+            <input type="number" [(ngModel)]="newProductForm.unitCost" min="0" step="0.01" placeholder="€"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+        </div>
+
+      </div>
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200">
+        <button (click)="showNewProduct.set(false)"
+          class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          Annulla
+        </button>
+        <button (click)="saveProduct()" [disabled]="saving() || !newProductForm.name"
+          class="px-4 py-2 text-sm font-bold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+          @if (saving()) {
+            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          }
+          Salva
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: Nuovo Movimento -->
+@if (showNewMovement()) {
+  <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" (click)="showNewMovement.set(false)">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <div class="flex items-center gap-2">
+          @if (movementType() === 'carico') {
+            <span class="material-symbols-outlined text-green-600">add_circle</span>
+            <h2 class="text-base font-bold text-slate-800">Carico Merce</h2>
+          } @else {
+            <span class="material-symbols-outlined text-red-500">remove_circle</span>
+            <h2 class="text-base font-bold text-slate-800">Scarico Merce</h2>
+          }
+        </div>
+        <button (click)="showNewMovement.set(false)" class="text-slate-400 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+
+        @if (selectedProduct(); as p) {
+          <div class="bg-slate-50 rounded-lg px-4 py-3 border border-slate-200">
+            <p class="text-xs font-semibold text-slate-500 uppercase">Prodotto</p>
+            <p class="font-bold text-slate-800 mt-0.5">{{ p.name }}</p>
+            <p class="text-xs text-slate-500 mt-0.5">Scorta attuale: <span class="font-semibold">{{ p.currentStock }} {{ p.unit }}</span></p>
+          </div>
+        }
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Quantità <span class="text-red-500">*</span></label>
+          <input type="number" [(ngModel)]="newMovementForm.quantity" min="1"
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Costo unitario</label>
+          <input type="number" [(ngModel)]="newMovementForm.unitCost" min="0" step="0.01" placeholder="€"
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Doc. di riferimento</label>
+          <input [(ngModel)]="newMovementForm.referenceDoc" placeholder="es. DDT-2025-001"
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Note</label>
+          <textarea [(ngModel)]="newMovementForm.notes" rows="2" placeholder="Note aggiuntive..."
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+        </div>
+
+      </div>
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200">
+        <button (click)="showNewMovement.set(false)"
+          class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          Annulla
+        </button>
+        <button (click)="saveMovement()" [disabled]="saving() || newMovementForm.quantity <= 0"
+          class="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          [class]="movementType() === 'carico' ? 'bg-green-600' : 'bg-red-500'">
+          @if (saving()) {
+            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          }
+          {{ movementType() === 'carico' ? 'Registra Carico' : 'Registra Scarico' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: Nuovo Fornitore -->
+@if (showNewSupplier()) {
+  <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" (click)="showNewSupplier.set(false)">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <h2 class="text-base font-bold text-slate-800">Nuovo Fornitore</h2>
+        <button (click)="showNewSupplier.set(false)" class="text-slate-400 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nome <span class="text-red-500">*</span></label>
+          <input [(ngModel)]="newSupplierForm.name" placeholder="es. Dentsply Italia Srl"
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Referente</label>
+          <input [(ngModel)]="newSupplierForm.contactPerson" placeholder="Nome e cognome"
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Telefono</label>
+            <input [(ngModel)]="newSupplierForm.phone" placeholder="02 1234567"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+            <input type="email" [(ngModel)]="newSupplierForm.email" placeholder="info@fornitore.it"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Note</label>
+          <textarea [(ngModel)]="newSupplierForm.notes" rows="2" placeholder="Note aggiuntive..."
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+        </div>
+
+      </div>
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200">
+        <button (click)="showNewSupplier.set(false)"
+          class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          Annulla
+        </button>
+        <button (click)="saveSupplier()" [disabled]="saving() || !newSupplierForm.name"
+          class="px-4 py-2 text-sm font-bold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+          @if (saving()) {
+            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          }
+          Salva
+        </button>
+      </div>
+    </div>
+  </div>
+}

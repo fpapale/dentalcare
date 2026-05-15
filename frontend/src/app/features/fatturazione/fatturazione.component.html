@@ -125,7 +125,7 @@
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-500 mb-1">Preventivo accettato *</label>
-          <select [(ngModel)]="newForm.estimateId" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+          <select [(ngModel)]="newForm.estimateId" (ngModelChange)="onEstimateChange()" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
             <option value="">Seleziona preventivo...</option>
             @for (e of acceptedEstimates(); track e.estimateId) {
               <option [value]="e.estimateId">{{ e.estimateNumber }} — {{ e.patientFullName }} (€ {{ e.totalAmount | number:'1.0-0' }})</option>

@@ -14,6 +14,12 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleNotFound(ResourceNotFoundException ex) {
+        return new ErrorResponse("RESOURCE_NOT_FOUND", ex.getMessage());
+    }
+
     @ExceptionHandler(AppointmentConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleAppointmentConflict(AppointmentConflictException ex) {

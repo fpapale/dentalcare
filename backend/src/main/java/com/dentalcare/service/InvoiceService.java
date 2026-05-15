@@ -124,8 +124,8 @@ public class InvoiceService {
             SELECT e.id, e.estimate_number, e.patient_id, e.currency,
                    e.subtotal_amount, e.discount_amount, e.taxable_amount, e.vat_amount, e.total_amount,
                    concat_ws(' ', pat.last_name, pat.first_name) AS patient_full_name,
-                   pat.fiscal_code AS patient_fiscal_code,
-                   pat.email AS patient_email,
+                   pat.fiscal_code::text AS patient_fiscal_code,
+                   pat.email::text AS patient_email,
                    concat_ws(', ', pat.address_line1, pat.city) AS patient_address
             FROM dentalcare.estimates e
             JOIN dentalcare.patients pat ON pat.id = e.patient_id AND pat.clinic_id = e.clinic_id
@@ -155,7 +155,7 @@ public class InvoiceService {
                 SELECT concat_ws(' ', first_name, last_name) AS full_name,
                        vat_number, fiscal_code,
                        concat_ws(', ', billing_address_street, billing_address_zip, billing_address_city) AS billing_address,
-                       email, billing_pec, billing_sdi_code, billing_iban,
+                       email::text, billing_pec, billing_sdi_code, billing_iban,
                        COALESCE(invoice_prefix, 'PARC') AS invoice_prefix
                 FROM dentalcare.providers
                 WHERE id = :pid AND clinic_id = :clinicId
@@ -166,32 +166,32 @@ public class InvoiceService {
                 throw new IllegalArgumentException("Provider not found: " + request.providerId());
             }
             Map<String, Object> prov = provRows.get(0);
-            issuerName = (String) prov.get("full_name");
-            issuerVatNumber = (String) prov.get("vat_number");
-            issuerFiscalCode = (String) prov.get("fiscal_code");
-            issuerAddress = (String) prov.get("billing_address");
-            issuerEmail = (String) prov.get("email");
-            issuerPec = (String) prov.get("billing_pec");
-            issuerSdiCode = (String) prov.get("billing_sdi_code");
-            issuerIban = (String) prov.get("billing_iban");
-            invoicePrefix = (String) prov.get("invoice_prefix");
+            issuerName = str(prov.get("full_name"));
+            issuerVatNumber = str(prov.get("vat_number"));
+            issuerFiscalCode = str(prov.get("fiscal_code"));
+            issuerAddress = str(prov.get("billing_address"));
+            issuerEmail = str(prov.get("email"));
+            issuerPec = str(prov.get("billing_pec"));
+            issuerSdiCode = str(prov.get("billing_sdi_code"));
+            issuerIban = str(prov.get("billing_iban"));
+            invoicePrefix = str(prov.get("invoice_prefix"));
         } else {
             String clinicSql = """
                 SELECT COALESCE(legal_name, name) AS issuer_name,
-                       vat_number, fiscal_code,
+                       vat_number::text, fiscal_code::text,
                        concat_ws(', ', address_line1, postal_code, city) AS address,
-                       email
+                       email::text
                 FROM dentalcare.clinics
                 WHERE id = :clinicId
                 """;
             List<Map<String, Object>> clinicRows = jdbc.queryForList(clinicSql,
                     new MapSqlParameterSource().addValue("clinicId", clinicId));
             Map<String, Object> clinic = clinicRows.isEmpty() ? Map.of() : clinicRows.get(0);
-            issuerName = (String) clinic.get("issuer_name");
-            issuerVatNumber = (String) clinic.get("vat_number");
-            issuerFiscalCode = (String) clinic.get("fiscal_code");
-            issuerAddress = (String) clinic.get("address");
-            issuerEmail = (String) clinic.get("email");
+            issuerName = str(clinic.get("issuer_name"));
+            issuerVatNumber = str(clinic.get("vat_number"));
+            issuerFiscalCode = str(clinic.get("fiscal_code"));
+            issuerAddress = str(clinic.get("address"));
+            issuerEmail = str(clinic.get("email"));
             issuerPec = null;
             issuerSdiCode = null;
             issuerIban = null;
@@ -431,6 +431,12 @@ public class InvoiceService {
         String email = (String) rows.get(0).get("patient_email");
         if (email == null || email.isBlank()) return null;
         return "mailto:" + email + "?subject=Fattura+" + number + "&body=Gentile+paziente%2C+in+allegato+la+fattura+" + number + ".";
+    }
+
+    private static String str(Object o) {
+        if (o == null) return null;
+        if (o instanceof String s) return s;
+        return o.toString();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

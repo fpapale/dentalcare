@@ -26,5 +26,6 @@ public record EstimateDto(
         LocalDate validUntil,
         OffsetDateTime acceptedAt,
         OffsetDateTime rejectedAt,
-        OffsetDateTime estimateCreatedAt
+        OffsetDateTime estimateCreatedAt,
+        UUID createdByProviderId
 ) {}

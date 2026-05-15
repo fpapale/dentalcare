@@ -12,4 +12,8 @@ export interface ClinicBilling {
   province: string | null;
   postalCode: string | null;
   country: string | null;
+  website: string | null;
+  pec: string | null;
+  sdiCode: string | null;
+  iban: string | null;
 }
