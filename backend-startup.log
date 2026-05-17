@@ -1,0 +1,109 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------------------< com.dentalcare:dentalcare-api >--------------------
+[INFO] Building dentalcare-api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.5.0:run (default-cli) > test-compile @ dentalcare-api >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ dentalcare-api ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 9 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.12.0:compile (default-compile) @ dentalcare-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ dentalcare-api ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.12.0:testCompile (default-testCompile) @ dentalcare-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:3.5.0:run (default-cli) < test-compile @ dentalcare-api <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.5.0:run (default-cli) @ dentalcare-api ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.0)
+
+2026-05-15T20:05:43.270+02:00  INFO 20236 --- [dentalcare-api] [           main] c.d.controller.DentalcareApiApplication  : Starting DentalcareApiApplication using Java 25.0.3 with PID 20236 (D:\dentalcare\backend\target\classes started by rtm473 in D:\dentalcare\backend)
+2026-05-15T20:05:43.274+02:00 DEBUG 20236 --- [dentalcare-api] [           main] c.d.controller.DentalcareApiApplication  : Running with Spring Boot v3.5.0, Spring v6.2.7
+2026-05-15T20:05:43.275+02:00  INFO 20236 --- [dentalcare-api] [           main] c.d.controller.DentalcareApiApplication  : No active profile set, falling back to 1 default profile: "default"
+2026-05-15T20:05:43.918+02:00  INFO 20236 --- [dentalcare-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-15T20:05:43.948+02:00  INFO 20236 --- [dentalcare-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 9 ms. Found 0 JPA repository interfaces.
+2026-05-15T20:05:44.339+02:00  INFO 20236 --- [dentalcare-api] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-05-15T20:05:44.364+02:00  INFO 20236 --- [dentalcare-api] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-05-15T20:05:44.366+02:00  INFO 20236 --- [dentalcare-api] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2026-05-15T20:05:44.419+02:00  INFO 20236 --- [dentalcare-api] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-05-15T20:05:44.421+02:00  INFO 20236 --- [dentalcare-api] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1114 ms
+2026-05-15T20:05:44.467+02:00 DEBUG 20236 --- [dentalcare-api] [           main] c.d.s.MockJwtAuthenticationFilter        : Filter 'mockJwtAuthenticationFilter' configured for use
+2026-05-15T20:05:44.469+02:00 DEBUG 20236 --- [dentalcare-api] [           main] com.dentalcare.security.ClinicIdFilter   : Filter 'clinicIdFilter' configured for use
+2026-05-15T20:05:44.556+02:00  INFO 20236 --- [dentalcare-api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-05-15T20:05:44.600+02:00  INFO 20236 --- [dentalcare-api] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.15.Final
+2026-05-15T20:05:44.626+02:00  INFO 20236 --- [dentalcare-api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-05-15T20:05:44.877+02:00  INFO 20236 --- [dentalcare-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-15T20:05:44.917+02:00  INFO 20236 --- [dentalcare-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-05-15T20:05:45.375+02:00  INFO 20236 --- [dentalcare-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@785a4557
+2026-05-15T20:05:45.390+02:00  INFO 20236 --- [dentalcare-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-05-15T20:05:45.525+02:00  WARN 20236 --- [dentalcare-api] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-15T20:05:45.616+02:00  INFO 20236 --- [dentalcare-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.18
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-15T20:05:45.904+02:00  INFO 20236 --- [dentalcare-api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-15T20:05:45.922+02:00  INFO 20236 --- [dentalcare-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-15T20:05:46.122+02:00  WARN 20236 --- [dentalcare-api] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-05-15T20:05:46.290+02:00  WARN 20236 --- [dentalcare-api] [           main] .s.s.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: dd34eaf2-562a-477e-af96-5a00d435f9fb
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-05-15T20:05:46.296+02:00  INFO 20236 --- [dentalcare-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-05-15T20:05:46.559+02:00  WARN 20236 --- [dentalcare-api] [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Failed to start bean 'webServerStartStop'
+2026-05-15T20:05:46.574+02:00  INFO 20236 --- [dentalcare-api] [           main] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-05-15T20:05:46.579+02:00  INFO 20236 --- [dentalcare-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-05-15T20:05:46.585+02:00  INFO 20236 --- [dentalcare-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-05-15T20:05:46.594+02:00  INFO 20236 --- [dentalcare-api] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-05-15T20:05:46.608+02:00 ERROR 20236 --- [dentalcare-api] [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Web server failed to start. Port 8080 was already in use.
+
+Action:
+
+Identify and stop the process that's listening on port 8080 or configure this application to listen on another port.
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.165 s
+[INFO] Finished at: 2026-05-15T20:05:46+02:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.5.0:run (default-cli) on project dentalcare-api: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

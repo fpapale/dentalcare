@@ -1,8 +1,8 @@
 @echo off
 REM DentalCare API - Local Startup Script with H2 Database
 
-REM Set Java 25 JDK
-set JAVA_HOME=C:\Users\rtm473\.jdk\jdk-25.0.2
+REM Set Java 21 LTS JDK
+set JAVA_HOME=C:\Users\rtm473\.jdk\jdk-21.0.10
 set PATH=%JAVA_HOME%\bin;%PATH%
 
 REM Display header

@@ -1,5 +1,5 @@
-$env:JAVA_HOME='C:\Users\rtm473\.jdk\jdk-25.0.2'
-$env:PATH = 'C:\Users\rtm473\.jdk\jdk-25.0.2\bin;' + $env:PATH
+$env:JAVA_HOME='C:\Users\rtm473\.jdk\jdk-21.0.10'
+$env:PATH = 'C:\Users\rtm473\.jdk\jdk-21.0.10\bin;' + $env:PATH
 
 Set-Location 'D:\dentalcare\backend'
 
