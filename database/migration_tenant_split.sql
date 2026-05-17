@@ -366,41 +366,46 @@ JOIN t_9d754153.patients p ON p.clinic_id = c.id;
 
 -- ----------------------------------------------------------------------------
 -- v_patient_clinical_card
+-- Medical fields (blood_type, smoker, etc.) live in patient_anamnesis, not patients
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW t_9d754153.v_patient_clinical_card AS
 SELECT
-    c.id AS clinic_id,
     p.id AS patient_id,
-    p.first_name,
+    p.clinic_id,
     p.last_name,
+    p.first_name,
     concat_ws(' ', p.last_name, p.first_name) AS full_name,
     p.fiscal_code,
     p.birth_date,
-    EXTRACT(YEAR FROM age(p.birth_date))::integer AS age_years,
+    CASE WHEN p.birth_date IS NULL THEN NULL
+         ELSE date_part('year', age(current_date, p.birth_date))::int END AS age_years,
     p.phone,
     p.email,
     p.city,
     p.province,
     p.notes AS patient_notes,
-    p.blood_type,
-    p.smoker,
-    p.hypertension,
-    p.diabetes,
-    p.heart_disease,
-    p.taking_anticoagulants,
-    p.taking_bisphosphonates,
-    p.allergy_penicillin,
-    p.allergy_latex,
-    p.allergy_anesthetic,
-    p.other_allergies,
-    p.anamnesis_notes,
-    p.anamnesis_date,
+    ana.blood_type,
+    ana.smoker,
+    ana.hypertension,
+    ana.diabetes,
+    ana.heart_disease,
+    ana.taking_anticoagulants,
+    ana.taking_bisphosphonates,
+    ana.allergy_penicillin,
+    ana.allergy_latex,
+    ana.allergy_anesthetic,
+    ana.other_allergies,
+    ana.general_notes AS anamnesis_notes,
+    ana.recorded_at   AS anamnesis_date,
     (SELECT COUNT(*)
      FROM t_9d754153.appointments a
      WHERE a.patient_id = p.id
        AND a.clinic_id = p.clinic_id) AS total_appointments
-FROM t_9d754153.clinics c
-JOIN t_9d754153.patients p ON p.clinic_id = c.id;
+FROM t_9d754153.patients p
+LEFT JOIN t_9d754153.patient_anamnesis ana
+       ON ana.patient_id = p.id
+      AND ana.clinic_id  = p.clinic_id
+      AND ana.is_current = true;
 
 -- ----------------------------------------------------------------------------
 -- product_stock_v
@@ -462,6 +467,7 @@ GROUP BY
 
 -- ----------------------------------------------------------------------------
 -- v_agenda_daily
+-- service/tooth come from treatment_plan_items; alerts from patient_anamnesis
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW t_9d754153.v_agenda_daily AS
 SELECT
@@ -478,19 +484,28 @@ SELECT
     a.provider_id,
     concat_ws(' ', prov.last_name, prov.first_name) AS provider_name,
     prov.role::text AS provider_role,
-    sc.name AS service_name,
+    sc.name  AS service_name,
     sc.category AS service_category,
-    a.tooth_number,
-    (pat.allergy_penicillin OR pat.allergy_latex OR pat.allergy_anesthetic
-     OR pat.other_allergies IS NOT NULL) AS has_allergy_alert,
-    (pat.taking_anticoagulants OR pat.taking_bisphosphonates) AS has_medication_alert
+    tpi.tooth_number,
+    (SELECT bool_or(pa.allergy_penicillin OR pa.allergy_anesthetic OR pa.allergy_latex)
+     FROM t_9d754153.patient_anamnesis pa
+     WHERE pa.patient_id = a.patient_id
+       AND pa.clinic_id  = a.clinic_id
+       AND pa.is_current = true) AS has_allergy_alert,
+    (SELECT bool_or(pa.taking_anticoagulants OR pa.taking_bisphosphonates)
+     FROM t_9d754153.patient_anamnesis pa
+     WHERE pa.patient_id = a.patient_id
+       AND pa.clinic_id  = a.clinic_id
+       AND pa.is_current = true) AS has_medication_alert
 FROM t_9d754153.appointments a
 JOIN t_9d754153.patients pat
      ON pat.id = a.patient_id AND pat.clinic_id = a.clinic_id
 JOIN t_9d754153.providers prov
      ON prov.id = a.provider_id AND prov.clinic_id = a.clinic_id
+LEFT JOIN t_9d754153.treatment_plan_items tpi
+     ON tpi.id = a.treatment_plan_item_id AND tpi.clinic_id = a.clinic_id
 LEFT JOIN t_9d754153.service_catalog sc
-     ON sc.id = a.service_id AND sc.clinic_id = a.clinic_id;
+     ON sc.id = tpi.service_id AND sc.clinic_id = tpi.clinic_id;
 
 -- ----------------------------------------------------------------------------
 -- v_patient_estimates_summary
@@ -551,6 +566,42 @@ JOIN t_9d754153.estimates e ON e.patient_id = p.id AND e.clinic_id = p.clinic_id
 LEFT JOIN t_9d754153.treatment_plans tp
        ON tp.id = e.treatment_plan_id AND tp.clinic_id = e.clinic_id
 LEFT JOIN line_agg la ON la.estimate_id = e.id AND la.clinic_id = e.clinic_id;
+
+-- ----------------------------------------------------------------------------
+-- v_clinic_dashboard  (needed by DashboardService)
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW t_9d754153.v_clinic_dashboard AS
+WITH patient_agg AS (
+    SELECT clinic_id, COUNT(*) AS patients_count
+    FROM t_9d754153.patients GROUP BY clinic_id
+), provider_agg AS (
+    SELECT clinic_id, COUNT(*) FILTER (WHERE active = true) AS active_providers_count
+    FROM t_9d754153.providers GROUP BY clinic_id
+), plan_agg AS (
+    SELECT clinic_id,
+           COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress_treatment_plans_count
+    FROM t_9d754153.treatment_plans GROUP BY clinic_id
+), estimate_agg AS (
+    SELECT clinic_id,
+           COUNT(*) FILTER (WHERE status = 'sent')     AS sent_estimates_count,
+           COALESCE(round(SUM(total_amount) FILTER (WHERE status = 'accepted'), 2), 0)
+               AS accepted_estimates_amount
+    FROM t_9d754153.estimates GROUP BY clinic_id
+)
+SELECT
+    c.id   AS clinic_id,
+    c.name AS clinic_name,
+    c.city,
+    COALESCE(pa.patients_count,                      0) AS patients_count,
+    COALESCE(pra.active_providers_count,             0) AS active_providers_count,
+    COALESCE(tpa.in_progress_treatment_plans_count,  0) AS in_progress_treatment_plans_count,
+    COALESCE(ea.sent_estimates_count,                0) AS sent_estimates_count,
+    COALESCE(ea.accepted_estimates_amount,           0) AS accepted_estimates_amount
+FROM t_9d754153.clinics c
+LEFT JOIN patient_agg  pa  ON pa.clinic_id  = c.id
+LEFT JOIN provider_agg pra ON pra.clinic_id = c.id
+LEFT JOIN plan_agg     tpa ON tpa.clinic_id = c.id
+LEFT JOIN estimate_agg ea  ON ea.clinic_id  = c.id;
 
 -- =============================================================================
 -- VERIFICATION
