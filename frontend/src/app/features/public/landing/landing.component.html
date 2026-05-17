@@ -1,0 +1,345 @@
+<div class="min-h-screen bg-[#f8f9fa] font-sans">
+
+  <!-- NAVBAR -->
+  <nav [class]="scrolled() ? 'shadow-md' : 'shadow-sm'"
+       class="sticky top-0 z-50 bg-white transition-shadow duration-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-6">
+      <a routerLink="/landing" class="flex items-center gap-2 shrink-0">
+        <svg width="36" height="36" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="nb-bg" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#134e4a"/></linearGradient><filter id="nb-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="4" y="4" width="80" height="80" rx="20" fill="url(#nb-bg)"/><circle cx="36" cy="44" r="20" fill="#0d9488" opacity="0.15"/><text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf" filter="url(#nb-glow)">D</text><path d="M50 51 Q59 61 68 51" stroke="#2dd4bf" stroke-width="2.8" fill="none" stroke-linecap="round" filter="url(#nb-glow)"/><circle cx="54" cy="43" r="2.5" fill="#5eead4" filter="url(#nb-glow)"/><circle cx="63" cy="43" r="2.5" fill="#5eead4" filter="url(#nb-glow)"/></svg>
+        <span class="font-bold text-[#00448c] text-lg">DentalCare Pro</span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-6 ml-6">
+        <button (click)="scrollTo('funzionalita')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors">Funzionalità</button>
+        <button (click)="scrollTo('prezzi')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors">Prezzi</button>
+        <button (click)="scrollTo('supporto')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors">Supporto</button>
+      </div>
+
+      <div class="ml-auto flex items-center gap-3">
+        <a routerLink="/dashboard" class="text-sm font-medium text-slate-600 hover:text-[#00448c] transition-colors px-3 py-2">Accedi</a>
+        <a routerLink="/registrati" class="text-sm font-semibold bg-[#00448c] hover:bg-[#005BB7] text-white px-4 py-2 rounded-lg transition-colors">Inizia ora</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+    <div class="grid lg:grid-cols-2 gap-12 items-center">
+      <div>
+        <span class="inline-flex items-center gap-2 text-xs font-semibold text-[#00448c] border border-[#00448c] rounded-full px-3 py-1 mb-6">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          Soluzione Completa per Studi Dentistici
+        </span>
+        <h1 class="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-6">
+          Modernizza il tuo studio con <span class="text-[#00448c]">DentalCare Pro</span>
+        </h1>
+        <p class="text-lg text-slate-600 mb-8 leading-relaxed">
+          Gestisci pazienti, agenda, preventivi e fatturazione in un'unica piattaforma cloud sicura e intuitiva.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a routerLink="/registrati" class="inline-flex items-center gap-2 bg-[#00448c] hover:bg-[#005BB7] text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-md">
+            Inizia la prova gratuita
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+          <button (click)="scrollTo('funzionalita')" class="inline-flex items-center gap-2 border border-slate-300 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold px-6 py-3 rounded-xl transition-colors">
+            Scopri le funzionalità
+          </button>
+        </div>
+      </div>
+
+      <!-- Mini-dashboard mockup -->
+      <div class="bg-white rounded-2xl shadow-xl p-6 border border-slate-100">
+        <div class="flex items-center gap-2 mb-5">
+          <div class="w-3 h-3 rounded-full bg-red-400"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+          <div class="w-3 h-3 rounded-full bg-green-400"></div>
+          <span class="ml-3 text-xs text-slate-400 font-medium">DentalCare Pro — Dashboard</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mb-5">
+          <div class="bg-[#f0f6ff] rounded-xl p-3 text-center">
+            <p class="text-2xl font-bold text-[#00448c]">248</p>
+            <p class="text-xs text-slate-500 mt-0.5">Pazienti</p>
+          </div>
+          <div class="bg-[#f0faf5] rounded-xl p-3 text-center">
+            <p class="text-2xl font-bold text-[#006c49]">12</p>
+            <p class="text-xs text-slate-500 mt-0.5">Appuntamenti oggi</p>
+          </div>
+          <div class="bg-[#fff8f0] rounded-xl p-3 text-center">
+            <p class="text-2xl font-bold text-amber-600">34</p>
+            <p class="text-xs text-slate-500 mt-0.5">Preventivi attivi</p>
+          </div>
+        </div>
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
+            <div class="w-8 h-8 rounded-full bg-[#00448c] flex items-center justify-center text-white text-xs font-bold shrink-0">MR</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-slate-800 truncate">Mario Rossi</p>
+              <p class="text-xs text-slate-500">Oggi, 09:30 — Ablazione</p>
+            </div>
+            <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full shrink-0">Confermato</span>
+          </div>
+          <div class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
+            <div class="w-8 h-8 rounded-full bg-[#006c49] flex items-center justify-center text-white text-xs font-bold shrink-0">LB</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-slate-800 truncate">Laura Bianchi</p>
+              <p class="text-xs text-slate-500">Oggi, 11:00 — Otturazione</p>
+            </div>
+            <span class="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full shrink-0">In attesa</span>
+          </div>
+          <div class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
+            <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold shrink-0">GV</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-slate-800 truncate">Giuseppe Verdi</p>
+              <p class="text-xs text-slate-500">Oggi, 14:00 — Visita</p>
+            </div>
+            <span class="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full shrink-0">Nuovo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES STRIP -->
+  <section id="funzionalita" class="bg-white py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Strumenti di Precisione per Dentisti Moderni</h2>
+        <p class="text-slate-500 max-w-2xl mx-auto">Tutto ciò di cui il tuo studio ha bisogno, in una piattaforma integrata e sicura.</p>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-[#f8f9fa] rounded-xl p-6 hover:shadow-md transition-shadow">
+          <div class="text-3xl mb-4">🗓️</div>
+          <h3 class="font-bold text-slate-800 mb-2">Agenda Intelligente</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Gestione appuntamenti multi-poltrona con alert e richiami automatici</p>
+        </div>
+        <div class="bg-[#f8f9fa] rounded-xl p-6 hover:shadow-md transition-shadow">
+          <div class="text-3xl mb-4">👥</div>
+          <h3 class="font-bold text-slate-800 mb-2">Cartella Clinica Digitale</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Anamnesi, odontogramma, storico visite e documenti in sicurezza</p>
+        </div>
+        <div class="bg-[#f8f9fa] rounded-xl p-6 hover:shadow-md transition-shadow">
+          <div class="text-3xl mb-4">📋</div>
+          <h3 class="font-bold text-slate-800 mb-2">Preventivi & Fatturazione</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Piani di cura, preventivi versionati e fatturazione automatica</p>
+        </div>
+        <div class="bg-[#f8f9fa] rounded-xl p-6 hover:shadow-md transition-shadow">
+          <div class="text-3xl mb-4">📦</div>
+          <h3 class="font-bold text-slate-800 mb-2">Magazzino & Richiami</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Controllo scorte in tempo reale e campagne richiami pazienti</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI-DEN SECTION -->
+  <section class="bg-[#00448c] py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span class="inline-block text-xs font-semibold text-blue-200 uppercase tracking-wider mb-4">Intelligenza Artificiale</span>
+          <h2 class="text-3xl font-extrabold text-white mb-6">Incontra la tua Segretaria AI</h2>
+          <p class="text-blue-100 text-lg leading-relaxed mb-6">
+            AI-DEN gestisce appuntamenti, risponde alle chiamate e invia promemoria ai pazienti tramite linguaggio naturale. Il tutto in automatico, 24 ore su 24.
+          </p>
+          <ul class="space-y-3">
+            <li class="flex items-center gap-3 text-blue-100 text-sm">
+              <svg class="w-5 h-5 text-blue-300 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Risponde ai pazienti in linguaggio naturale
+            </li>
+            <li class="flex items-center gap-3 text-blue-100 text-sm">
+              <svg class="w-5 h-5 text-blue-300 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Gestisce prenotazioni e cancellazioni autonomamente
+            </li>
+            <li class="flex items-center gap-3 text-blue-100 text-sm">
+              <svg class="w-5 h-5 text-blue-300 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Invia promemoria automatici via SMS e email
+            </li>
+          </ul>
+        </div>
+        <div class="flex justify-center lg:justify-end">
+          <div class="w-48 h-48 rounded-full bg-white/10 border-2 border-white/20 flex flex-col items-center justify-center gap-3">
+            <div class="text-6xl">✨</div>
+            <span class="text-white font-bold text-xl tracking-wide">AI-DEN</span>
+            <span class="text-blue-200 text-xs">Segretaria Virtuale</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY DENTALCARE -->
+  <section id="perche" class="py-20 bg-[#f8f9fa]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Perché scegliere DentalCare Pro?</h2>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div class="flex gap-4 bg-white rounded-xl p-6 shadow-sm">
+          <div class="shrink-0 w-10 h-10 rounded-full bg-[#f0faf5] flex items-center justify-center">
+            <svg class="w-5 h-5 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 mb-1">Sicurezza enterprise</h3>
+            <p class="text-sm text-slate-500">Dati crittografati, GDPR compliant, backup automatici</p>
+          </div>
+        </div>
+        <div class="flex gap-4 bg-white rounded-xl p-6 shadow-sm">
+          <div class="shrink-0 w-10 h-10 rounded-full bg-[#f0faf5] flex items-center justify-center">
+            <svg class="w-5 h-5 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 mb-1">Facile da usare</h3>
+            <p class="text-sm text-slate-500">Interfaccia intuitiva, nessuna formazione richiesta</p>
+          </div>
+        </div>
+        <div class="flex gap-4 bg-white rounded-xl p-6 shadow-sm">
+          <div class="shrink-0 w-10 h-10 rounded-full bg-[#f0faf5] flex items-center justify-center">
+            <svg class="w-5 h-5 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 mb-1">Supporto dedicato</h3>
+            <p class="text-sm text-slate-500">Assistenza italiana dal lunedì al venerdì</p>
+          </div>
+        </div>
+        <div class="flex gap-4 bg-white rounded-xl p-6 shadow-sm">
+          <div class="shrink-0 w-10 h-10 rounded-full bg-[#f0faf5] flex items-center justify-center">
+            <svg class="w-5 h-5 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 mb-1">Aggiornamenti continui</h3>
+            <p class="text-sm text-slate-500">Nuove funzionalità ogni mese, zero downtime</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIAL -->
+  <section class="bg-white py-16">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="flex justify-center gap-1 mb-6">
+        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+      </div>
+      <blockquote class="text-xl text-slate-700 font-medium italic leading-relaxed mb-6">
+        "Passare a DentalCare Pro è stata la decisione migliore per il nostro studio. Il software ha completamente rivoluzionato il nostro flusso di lavoro."
+      </blockquote>
+      <div class="flex items-center justify-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-[#00448c] flex items-center justify-center text-white font-bold text-sm">LR</div>
+        <div class="text-left">
+          <p class="font-semibold text-slate-800 text-sm">Dr. Luca Rossi</p>
+          <p class="text-xs text-slate-500">Studio Dentistico Milano Centro</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="prezzi" class="bg-[#f8f9fa] py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Prezzi Semplici e Trasparenti</h2>
+        <p class="text-slate-500">Nessun costo nascosto. Cancella quando vuoi.</p>
+      </div>
+      <div class="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+
+        <!-- Essenziale -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-7 flex flex-col">
+          <h3 class="font-bold text-slate-800 text-lg mb-1">Essenziale</h3>
+          <p class="text-slate-500 text-sm mb-5">Per studi mono-sede</p>
+          <div class="mb-5">
+            <span class="text-4xl font-extrabold text-slate-900">€99</span>
+            <span class="text-slate-400 text-sm">/mese</span>
+          </div>
+          <ul class="space-y-2.5 mb-8 flex-1">
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>1 sede, fino a 2 professionisti</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Agenda & appuntamenti</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Cartella clinica pazienti</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Preventivi base</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Supporto email</li>
+          </ul>
+          <a routerLink="/registrati" class="block text-center border border-[#00448c] text-[#00448c] hover:bg-[#00448c] hover:text-white font-semibold py-3 rounded-xl transition-colors">
+            Inizia ora
+          </a>
+        </div>
+
+        <!-- Professionale (highlighted) -->
+        <div class="bg-white rounded-xl shadow-xl border-2 border-[#00448c] p-7 flex flex-col scale-105 relative">
+          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 flex gap-2">
+            <span class="bg-[#006c49] text-white text-xs font-bold px-3 py-1 rounded-full">Piano Demo Attivo</span>
+          </div>
+          <h3 class="font-bold text-slate-800 text-lg mb-1">Professionale</h3>
+          <p class="text-slate-500 text-sm mb-5">Il più completo</p>
+          <div class="mb-5">
+            <span class="text-4xl font-extrabold text-[#00448c]">€199</span>
+            <span class="text-slate-400 text-sm">/mese</span>
+          </div>
+          <ul class="space-y-2.5 mb-8 flex-1">
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Sedi illimitate, professionisti illimitati</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Tutto di Essenziale +</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>AI-DEN Segretaria</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Magazzino & Richiami</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Fatturazione avanzata</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Supporto prioritario</li>
+          </ul>
+          <a routerLink="/registrati" class="block text-center bg-[#00448c] hover:bg-[#005BB7] text-white font-semibold py-3 rounded-xl transition-colors shadow-md">
+            Inizia ora
+          </a>
+        </div>
+
+        <!-- Aziendale -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-7 flex flex-col">
+          <h3 class="font-bold text-slate-800 text-lg mb-1">Aziendale</h3>
+          <p class="text-slate-500 text-sm mb-5">Per gruppi e reti di studi</p>
+          <div class="mb-5">
+            <span class="text-4xl font-extrabold text-slate-900">Custom</span>
+          </div>
+          <ul class="space-y-2.5 mb-8 flex-1">
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Multi-studio, API access</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Integrazioni custom</li>
+            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>SLA garantito</li>
+          </ul>
+          <a href="mailto:info@dentalcarepro.it" class="block text-center border border-slate-300 text-slate-700 hover:border-[#00448c] hover:text-[#00448c] font-semibold py-3 rounded-xl transition-colors">
+            Contattaci
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER CTA -->
+  <section class="bg-[#00448c] py-16">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl font-extrabold text-white mb-4">Pronto a trasformare il tuo studio?</h2>
+      <p class="text-blue-100 mb-8">Unisciti a centinaia di studi dentistici che hanno scelto DentalCare Pro.</p>
+      <a routerLink="/registrati" class="inline-flex items-center gap-2 bg-white text-[#00448c] hover:bg-slate-50 font-bold px-8 py-4 rounded-xl transition-colors shadow-lg text-lg">
+        Inizia la prova gratuita di 30 giorni
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="supporto" class="bg-slate-900 text-slate-400 py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-2">
+          <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ft-bg" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#134e4a"/></linearGradient></defs><rect x="4" y="4" width="80" height="80" rx="20" fill="url(#ft-bg)"/><text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf">D</text></svg>
+          <span class="font-bold text-white">DentalCare Pro</span>
+          <span class="text-slate-600 ml-2 text-sm">© 2026</span>
+        </div>
+        <div class="flex flex-wrap gap-5 text-sm justify-center">
+          <button (click)="scrollTo('funzionalita')" class="hover:text-white transition-colors">Funzionalità</button>
+          <button (click)="scrollTo('prezzi')" class="hover:text-white transition-colors">Prezzi</button>
+          <button (click)="scrollTo('supporto')" class="hover:text-white transition-colors">Supporto</button>
+          <a href="#" class="hover:text-white transition-colors">Privacy</a>
+          <a href="#" class="hover:text-white transition-colors">Termini</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</div>

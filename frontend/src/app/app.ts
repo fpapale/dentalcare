@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
+import { filter } from 'rxjs/operators';
 import { UserContextService, UserRole } from './core/services/user-context.service';
 import { ProviderService } from './core/services/provider.service';
 import { Provider } from './core/models/provider.model';
@@ -16,8 +17,10 @@ export class App implements OnInit {
   private readonly userContext   = inject(UserContextService);
   private readonly providerService = inject(ProviderService);
   private readonly layoutService = inject(LayoutService);
+  private readonly router        = inject(Router);
 
   readonly rightPanel = this.layoutService.rightPanel;
+  readonly isPublicRoute = signal(false);
 
   title = 'dentalcare-frontend';
 
@@ -41,11 +44,19 @@ export class App implements OnInit {
     { path: '/magazzino', icon: 'inventory_2', label: 'Magazzino' },
   ];
 
+  private isPublic(url: string): boolean {
+    return url.startsWith('/landing') || url.startsWith('/registrati');
+  }
+
   ngOnInit(): void {
-    this.userContext.setRole('secretary'); // sync with dropdown default
+    this.userContext.setRole('secretary');
     this.providerService.findAll().subscribe({
       next: list => this.providers.set(list),
       error: () => {}
+    });
+    this.isPublicRoute.set(this.isPublic(this.router.url));
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(e => {
+      this.isPublicRoute.set(this.isPublic((e as NavigationEnd).urlAfterRedirects));
     });
   }
 

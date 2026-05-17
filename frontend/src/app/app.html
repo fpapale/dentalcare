@@ -1,3 +1,4 @@
+@if (!isPublicRoute()) {
 <div class="flex h-screen overflow-hidden">
   <!-- ══ SIDEBAR ══ -->
   <aside class="hidden md:flex flex-col flex-shrink-0 h-full z-40
@@ -18,7 +19,7 @@
     <!-- Menu principale -->
     <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5">
       @for (item of navItems; track item.path) {
-        <a [routerLink]="item.path" 
+        <a [routerLink]="item.path"
            routerLinkActive="bg-teal-600 dark:bg-teal-900/80 text-white dark:text-teal-300"
            [routerLinkActiveOptions]="{exact: false}"
            #rla="routerLinkActive"
@@ -63,7 +64,7 @@
         <h1 class="font-bold text-[17px] md:text-[20px] leading-tight truncate text-slate-800 dark:text-slate-100">
           DentalCare Pro
         </h1>
-        
+
         <div class="ml-auto flex items-center gap-2 shrink-0">
           <select (change)="onUserChange($event)" class="text-sm bg-slate-100 dark:bg-slate-700 border-none rounded-md px-2 py-1">
             <option value="__secretary__" [selected]="selectedKey() === '__secretary__'">👩‍💼 Segreteria</option>
@@ -125,14 +126,14 @@
     </div>
     <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5">
       @for (item of navItems; track item.path) {
-        <a [routerLink]="item.path" 
+        <a [routerLink]="item.path"
            routerLinkActive="bg-teal-600 dark:bg-teal-900/80 text-white dark:text-teal-300"
            #rla2="routerLinkActive"
            [class.text-slate-600]="!rla2.isActive"
            [class.dark:text-slate-400]="!rla2.isActive"
            [class.hover:bg-slate-100]="!rla2.isActive"
            [class.dark:hover:bg-slate-700/60]="!rla2.isActive"
-           class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5" 
+           class="rounded-lg cursor-pointer transition-all flex items-center gap-3 mx-3 px-3 py-2.5"
            onclick="document.getElementById('mob-sb').classList.add('hidden')">
           <span class="material-symbols-outlined text-[20px] shrink-0" [attr.data-weight]="rla2.isActive ? 'fill' : null">{{ item.icon }}</span>
           <span class="text-sm font-medium">{{ item.label }}</span>
@@ -145,7 +146,7 @@
 <!-- Bottom Mobile Nav -->
 <nav class="fixed bottom-0 w-full z-50 md:hidden bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 shadow-lg flex justify-around items-center h-14 px-1">
   @for (item of navItems; track item.path) {
-    <a [routerLink]="item.path" 
+    <a [routerLink]="item.path"
        routerLinkActive="text-teal-600 dark:text-teal-400"
        #rla3="routerLinkActive"
        [class.text-slate-500]="!rla3.isActive"
@@ -158,3 +159,6 @@
     </a>
   }
 </nav>
+} @else {
+<router-outlet />
+}
