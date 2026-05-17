@@ -421,7 +421,7 @@ SELECT
     p.reorder_quantity,
     p.unit_cost,
     p.description,
-    p.active,
+    p.is_active,
     p.category_id,
     pc.name AS category_name,
     s.name AS supplier_name,
@@ -462,7 +462,7 @@ LEFT JOIN t_9d754153.stock_movements sm
        ON sm.product_id = p.id AND sm.clinic_id = p.clinic_id
 GROUP BY
     p.id, p.clinic_id, p.name, p.sku, p.unit, p.min_stock_quantity,
-    p.reorder_quantity, p.unit_cost, p.description, p.active, p.category_id,
+    p.reorder_quantity, p.unit_cost, p.description, p.is_active, p.category_id,
     pc.name, s.name, p.supplier_id;
 
 -- ----------------------------------------------------------------------------
