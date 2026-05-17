@@ -20,15 +20,17 @@ public class OdontogramService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     public List<ToothConditionDto> findByPatient(UUID patientId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             SELECT tooth_fdi, surface, condition, notes
-            FROM dentalcare.tooth_conditions
+            FROM %s.tooth_conditions
             WHERE clinic_id = :clinicId
               AND patient_id = :patientId
             ORDER BY tooth_fdi, surface
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
                 .addValue("patientId", patientId);
@@ -45,9 +47,9 @@ public class OdontogramService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         jdbc.update("""
-            DELETE FROM dentalcare.tooth_conditions
+            DELETE FROM %s.tooth_conditions
             WHERE clinic_id = :clinicId AND patient_id = :patientId
-            """,
+            """.formatted(s()),
             new MapSqlParameterSource()
                     .addValue("clinicId", clinicId)
                     .addValue("patientId", patientId));
@@ -61,11 +63,11 @@ public class OdontogramService {
         if (toSave.isEmpty()) return;
 
         String insertSql = """
-            INSERT INTO dentalcare.tooth_conditions
+            INSERT INTO %s.tooth_conditions
                 (id, clinic_id, patient_id, tooth_fdi, surface, condition, notes, updated_at)
             VALUES
                 (:id, :clinicId, :patientId, :toothFdi, :surface, :condition, :notes, now())
-            """;
+            """.formatted(s());
 
         for (ToothConditionDto c : toSave) {
             jdbc.update(insertSql, new MapSqlParameterSource()

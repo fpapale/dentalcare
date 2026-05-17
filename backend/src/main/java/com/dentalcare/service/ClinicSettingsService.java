@@ -21,6 +21,8 @@ public class ClinicSettingsService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     @Transactional(readOnly = true)
     public ClinicBillingDto getClinicBilling() {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
@@ -28,9 +30,9 @@ public class ClinicSettingsService {
             SELECT id, name, legal_name, vat_number, fiscal_code,
                    phone, email, address_line1, address_line2,
                    city, province, postal_code, country
-            FROM dentalcare.clinics
+            FROM %s.clinics
             WHERE id = :id
-            """;
+            """.formatted(s());
         List<ClinicBillingDto> rows = jdbc.query(sql,
                 new MapSqlParameterSource().addValue("id", clinicId),
                 (rs, n) -> new ClinicBillingDto(
@@ -57,9 +59,9 @@ public class ClinicSettingsService {
             SELECT id, name, legal_name, vat_number, fiscal_code,
                    phone, email, address_line1, address_line2,
                    city, province, postal_code, country
-            FROM dentalcare.clinics
+            FROM %s.clinics
             ORDER BY name
-            """,
+            """.formatted(s()),
             new MapSqlParameterSource(),
             (rs, n) -> new ClinicBillingDto(
                     rs.getObject("id", UUID.class),
@@ -82,13 +84,13 @@ public class ClinicSettingsService {
     public ClinicBillingDto create(CreateClinicRequest request) {
         UUID id = UUID.randomUUID();
         jdbc.update("""
-            INSERT INTO dentalcare.clinics
+            INSERT INTO %s.clinics
                 (id, name, legal_name, vat_number, fiscal_code, phone, email,
                  address_line1, city, province, postal_code, country)
             VALUES
                 (:id, :name, :legalName, :vatNumber, :fiscalCode, :phone, :email,
                  :addressLine1, :city, :province, :postalCode, 'IT')
-            """,
+            """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("name", request.name())
@@ -111,7 +113,7 @@ public class ClinicSettingsService {
     public void updateClinicBilling(UpdateClinicBillingRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            UPDATE dentalcare.clinics
+            UPDATE %s.clinics
             SET legal_name   = :legalName,
                 vat_number   = :vatNumber,
                 fiscal_code  = :fiscalCode,
@@ -125,7 +127,7 @@ public class ClinicSettingsService {
                 country      = COALESCE(:country, country),
                 updated_at   = now()
             WHERE id = :id
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", clinicId)
                         .addValue("legalName", request.legalName())

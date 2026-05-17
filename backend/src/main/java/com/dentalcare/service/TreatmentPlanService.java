@@ -21,6 +21,8 @@ public class TreatmentPlanService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     public List<TreatmentPlanSummaryDto> findByPatient(UUID patientId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
@@ -29,13 +31,13 @@ public class TreatmentPlanService {
                    COUNT(tpi.id) FILTER (WHERE tpi.status = 'completed')                     AS completed_items,
                    COUNT(tpi.id) FILTER (WHERE tpi.status IN ('planned','accepted','scheduled')) AS open_items,
                    tp.created_at, tp.updated_at
-            FROM dentalcare.treatment_plans tp
-            LEFT JOIN dentalcare.treatment_plan_items tpi
+            FROM %s.treatment_plans tp
+            LEFT JOIN %s.treatment_plan_items tpi
                    ON tpi.treatment_plan_id = tp.id AND tpi.clinic_id = tp.clinic_id
             WHERE tp.clinic_id = :clinicId AND tp.patient_id = :patientId
             GROUP BY tp.id, tp.name, tp.status, tp.created_at, tp.updated_at
             ORDER BY tp.updated_at DESC
-            """;
+            """.formatted(s(), s());
         return jdbc.query(sql,
                 new MapSqlParameterSource().addValue("clinicId", clinicId).addValue("patientId", patientId),
                 (rs, n) -> mapSummary(rs));
@@ -51,11 +53,11 @@ public class TreatmentPlanService {
                    tp.created_by_provider_id,
                    concat_ws(' ', prov.last_name, prov.first_name) AS provider_name,
                    tp.created_at, tp.updated_at
-            FROM dentalcare.treatment_plans tp
-            JOIN dentalcare.patients p ON p.id = tp.patient_id AND p.clinic_id = tp.clinic_id
-            LEFT JOIN dentalcare.providers prov ON prov.id = tp.created_by_provider_id AND prov.clinic_id = tp.clinic_id
+            FROM %s.treatment_plans tp
+            JOIN %s.patients p ON p.id = tp.patient_id AND p.clinic_id = tp.clinic_id
+            LEFT JOIN %s.providers prov ON prov.id = tp.created_by_provider_id AND prov.clinic_id = tp.clinic_id
             WHERE tp.id = :planId AND tp.clinic_id = :clinicId
-            """;
+            """.formatted(s(), s(), s());
         List<TreatmentPlanDto> plans = jdbc.query(planSql,
                 new MapSqlParameterSource().addValue("planId", planId).addValue("clinicId", clinicId),
                 (rs, n) -> new TreatmentPlanDto(
@@ -82,11 +84,11 @@ public class TreatmentPlanService {
                    tpi.status::text, tpi.priority, tpi.planned_date, tpi.clinical_notes,
                    tpi.created_at,
                    tc.condition AS odontogram_condition
-            FROM dentalcare.treatment_plan_items tpi
-            JOIN dentalcare.treatment_plans tp ON tp.id = tpi.treatment_plan_id AND tp.clinic_id = tpi.clinic_id
-            JOIN dentalcare.service_catalog sc ON sc.id = tpi.service_id AND sc.clinic_id = tpi.clinic_id
-            LEFT JOIN dentalcare.providers prov ON prov.id = tpi.provider_id AND prov.clinic_id = tpi.clinic_id
-            LEFT JOIN dentalcare.tooth_conditions tc
+            FROM %s.treatment_plan_items tpi
+            JOIN %s.treatment_plans tp ON tp.id = tpi.treatment_plan_id AND tp.clinic_id = tpi.clinic_id
+            JOIN %s.service_catalog sc ON sc.id = tpi.service_id AND sc.clinic_id = tpi.clinic_id
+            LEFT JOIN %s.providers prov ON prov.id = tpi.provider_id AND prov.clinic_id = tpi.clinic_id
+            LEFT JOIN %s.tooth_conditions tc
                 ON tpi.tooth_number ~ '^[0-9]+$'
                AND CAST(tpi.tooth_number AS integer) = tc.tooth_fdi
                AND tc.surface = 'WHOLE'
@@ -94,7 +96,7 @@ public class TreatmentPlanService {
                AND tc.clinic_id = tpi.clinic_id
             WHERE tpi.treatment_plan_id = :planId AND tpi.clinic_id = :clinicId
             ORDER BY tpi.priority, tpi.created_at
-            """;
+            """.formatted(s(), s(), s(), s(), s());
         List<TreatmentPlanItemDto> items = jdbc.query(itemsSql,
                 new MapSqlParameterSource().addValue("planId", planId).addValue("clinicId", clinicId),
                 (rs, n) -> mapItem(rs));
@@ -108,10 +110,10 @@ public class TreatmentPlanService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         UUID id = UUID.randomUUID();
         String sql = """
-            INSERT INTO dentalcare.treatment_plans
+            INSERT INTO %s.treatment_plans
                 (id, clinic_id, patient_id, name, description, status)
             VALUES (:id, :clinicId, :patientId, :name, :description, 'draft')
-            """;
+            """.formatted(s());
         jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("clinicId", clinicId)
@@ -124,10 +126,10 @@ public class TreatmentPlanService {
     public void updateStatus(UUID planId, String status) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
-            UPDATE dentalcare.treatment_plans
-            SET status = CAST(:status AS dentalcare.treatment_plan_status)
+            UPDATE %s.treatment_plans
+            SET status = CAST(:status AS %s.treatment_plan_status)
             WHERE id = :id AND clinic_id = :clinicId
-            """;
+            """.formatted(s(), s());
         jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", planId)
                 .addValue("clinicId", clinicId)
@@ -143,14 +145,14 @@ public class TreatmentPlanService {
 
         UUID id = UUID.randomUUID();
         String sql = """
-            INSERT INTO dentalcare.treatment_plan_items
+            INSERT INTO %s.treatment_plan_items
                 (id, clinic_id, treatment_plan_id, service_id, provider_id,
                  tooth_number, quadrant, planned_price, status, priority, planned_date, clinical_notes)
             VALUES
                 (:id, :clinicId, :planId, :serviceId, :providerId,
                  :toothNumber, :quadrant, :plannedPrice, 'planned',
                  :priority, :plannedDate, :clinicalNotes)
-            """;
+            """.formatted(s());
         jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("clinicId", clinicId)
@@ -169,11 +171,11 @@ public class TreatmentPlanService {
     public void updateItemStatus(UUID planId, UUID itemId, String status) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
-            UPDATE dentalcare.treatment_plan_items
-            SET status = CAST(:status AS dentalcare.treatment_item_status),
+            UPDATE %s.treatment_plan_items
+            SET status = CAST(:status AS %s.treatment_item_status),
                 completed_at = CASE WHEN :status = 'completed' THEN now() ELSE completed_at END
             WHERE id = :id AND treatment_plan_id = :planId AND clinic_id = :clinicId
-            """;
+            """.formatted(s(), s());
         jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", itemId)
                 .addValue("planId", planId)
@@ -190,10 +192,10 @@ public class TreatmentPlanService {
         UUID planId = UUID.randomUUID();
 
         jdbc.update("""
-            INSERT INTO dentalcare.treatment_plans
+            INSERT INTO %s.treatment_plans
                 (id, clinic_id, patient_id, name, description, status)
             VALUES (:id, :clinicId, :patientId, :name, :description, 'draft')
-            """,
+            """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("id", planId)
                 .addValue("clinicId", clinicId)
@@ -206,13 +208,13 @@ public class TreatmentPlanService {
             OdontogramPlanItemRequest item = items.get(i);
             java.math.BigDecimal price = resolveServiceDefaults(item.serviceId(), clinicId).price();
             jdbc.update("""
-                INSERT INTO dentalcare.treatment_plan_items
+                INSERT INTO %s.treatment_plan_items
                     (id, clinic_id, treatment_plan_id, service_id, tooth_number, quadrant,
                      planned_price, status, priority, clinical_notes)
                 VALUES
                     (:id, :clinicId, :planId, :serviceId, :toothNumber, :quadrant,
                      :plannedPrice, 'planned', :priority, :clinicalNotes)
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                     .addValue("id", UUID.randomUUID())
                     .addValue("clinicId", clinicId)
@@ -230,11 +232,11 @@ public class TreatmentPlanService {
     private void syncToothOnCompletion(UUID planId, UUID itemId, UUID clinicId) {
         List<Map<String, Object>> rows = jdbc.queryForList("""
             SELECT tpi.tooth_number, tp.patient_id
-            FROM dentalcare.treatment_plan_items tpi
-            JOIN dentalcare.treatment_plans tp
+            FROM %s.treatment_plan_items tpi
+            JOIN %s.treatment_plans tp
                 ON tp.id = tpi.treatment_plan_id AND tp.clinic_id = tpi.clinic_id
             WHERE tpi.id = :itemId AND tpi.treatment_plan_id = :planId AND tpi.clinic_id = :clinicId
-            """,
+            """.formatted(s(), s()),
             new MapSqlParameterSource()
                 .addValue("itemId", itemId)
                 .addValue("planId", planId)
@@ -255,27 +257,27 @@ public class TreatmentPlanService {
                 .addValue("fdi", fdi);
 
         int updated = jdbc.update("""
-            UPDATE dentalcare.tooth_conditions
+            UPDATE %s.tooth_conditions
             SET condition = 'extracted'
             WHERE clinic_id = :clinicId AND patient_id = :patientId AND tooth_fdi = :fdi
               AND surface = 'WHOLE' AND condition = 'to_extract'
-            """, p);
+            """.formatted(s()), p);
         if (updated > 0) return;
 
         jdbc.update("""
-            UPDATE dentalcare.tooth_conditions
+            UPDATE %s.tooth_conditions
             SET condition = 'filling'
             WHERE clinic_id = :clinicId AND patient_id = :patientId AND tooth_fdi = :fdi
               AND condition = 'cavity'
-            """, p);
+            """.formatted(s()), p);
     }
 
     public void deleteItem(UUID planId, UUID itemId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            DELETE FROM dentalcare.treatment_plan_items
+            DELETE FROM %s.treatment_plan_items
             WHERE id = :id AND treatment_plan_id = :planId AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("id", itemId)
                 .addValue("planId", planId)
@@ -285,10 +287,10 @@ public class TreatmentPlanService {
     public void updateName(UUID planId, String name) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            UPDATE dentalcare.treatment_plans
+            UPDATE %s.treatment_plans
             SET name = :name, updated_at = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("id", planId)
                 .addValue("clinicId", clinicId)
@@ -298,16 +300,16 @@ public class TreatmentPlanService {
     public void deletePlan(UUID planId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            DELETE FROM dentalcare.treatment_plans
+            DELETE FROM %s.treatment_plans
             WHERE id = :planId AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("planId", planId)
                 .addValue("clinicId", clinicId));
     }
 
     private BigDecimalHolder resolveServiceDefaults(UUID serviceId, UUID clinicId) {
-        String sql = "SELECT default_price FROM dentalcare.service_catalog WHERE id = :id AND clinic_id = :clinicId";
+        String sql = "SELECT default_price FROM " + s() + ".service_catalog WHERE id = :id AND clinic_id = :clinicId";
         List<java.math.BigDecimal> prices = jdbc.queryForList(sql,
                 new MapSqlParameterSource().addValue("id", serviceId).addValue("clinicId", clinicId),
                 java.math.BigDecimal.class);

@@ -23,6 +23,8 @@ public class SupplierService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     // ── List ──────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -30,7 +32,7 @@ public class SupplierService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         String sql = "SELECT id, name, contact_person, phone, email, notes, is_active"
-                + " FROM dentalcare.suppliers"
+                + " FROM " + s() + ".suppliers"
                 + " WHERE clinic_id = :clinicId"
                 + (includeInactive ? "" : " AND is_active = true")
                 + " ORDER BY name";
@@ -48,11 +50,11 @@ public class SupplierService {
         UUID id = UUID.randomUUID();
 
         jdbc.update("""
-                INSERT INTO dentalcare.suppliers
+                INSERT INTO %s.suppliers
                     (id, clinic_id, name, contact_person, phone, email, notes, is_active)
                 VALUES
                     (:id, :clinicId, :name, :contactPerson, :phone, :email, :notes, true)
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
@@ -72,7 +74,7 @@ public class SupplierService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         int rows = jdbc.update("""
-                UPDATE dentalcare.suppliers
+                UPDATE %s.suppliers
                 SET name           = :name,
                     contact_person = :contactPerson,
                     phone          = :phone,
@@ -80,7 +82,7 @@ public class SupplierService {
                     notes          = :notes,
                     updated_at     = now()
                 WHERE id = :id AND clinic_id = :clinicId
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
@@ -103,11 +105,11 @@ public class SupplierService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         int rows = jdbc.update("""
-                UPDATE dentalcare.suppliers
+                UPDATE %s.suppliers
                 SET is_active  = false,
                     updated_at = now()
                 WHERE id = :id AND clinic_id = :clinicId
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId));
@@ -122,7 +124,7 @@ public class SupplierService {
     private SupplierDto findById(UUID id, UUID clinicId) {
         List<SupplierDto> rows = jdbc.query(
                 "SELECT id, name, contact_person, phone, email, notes, is_active"
-                        + " FROM dentalcare.suppliers WHERE id = :id AND clinic_id = :clinicId",
+                        + " FROM " + s() + ".suppliers WHERE id = :id AND clinic_id = :clinicId",
                 new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId),
                 (rs, n) -> mapRow(rs));
         if (rows.isEmpty()) {

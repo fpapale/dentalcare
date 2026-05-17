@@ -20,10 +20,14 @@ public class AnamnesisService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     @Transactional(readOnly = true)
     public List<AnamnesisCategoryDto> getPatientAnamnesis(UUID patientId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
+        // anamnesis_categories and anamnesis_items are global catalog — stay in dentalcare schema
+        // patient_anamnesis_item_selections is tenant data — uses dynamic schema
         String sql = """
             SELECT
                 ac.id AS category_id,
@@ -44,13 +48,13 @@ public class AnamnesisService {
             JOIN dentalcare.anamnesis_items ai
                 ON ai.category_id = ac.id
                AND ai.enabled = true
-            LEFT JOIN dentalcare.patient_anamnesis_item_selections s
+            LEFT JOIN %s.patient_anamnesis_item_selections s
                 ON s.item_id = ai.id
                AND s.patient_id = :patientId
                AND s.clinic_id = :clinicId
             WHERE ac.enabled = true
             ORDER BY ac.sort_order, ac.code, ai.sort_order, ai.code
-            """;
+            """.formatted(s());
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("patientId", patientId)
@@ -66,9 +70,9 @@ public class AnamnesisService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         jdbc.update("""
-                DELETE FROM dentalcare.patient_anamnesis_item_selections
+                DELETE FROM %s.patient_anamnesis_item_selections
                 WHERE clinic_id = :clinicId AND patient_id = :patientId
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("clinicId", clinicId)
                         .addValue("patientId", patientId));
@@ -78,14 +82,14 @@ public class AnamnesisService {
 
         if (!selections.isEmpty()) {
             String insertSql = """
-                INSERT INTO dentalcare.patient_anamnesis_item_selections
+                INSERT INTO %s.patient_anamnesis_item_selections
                     (clinic_id, patient_id, item_id, notes)
                 VALUES
                     (:clinicId, :patientId, :itemId, :notes)
                 ON CONFLICT (clinic_id, patient_id, item_id) DO UPDATE
                     SET notes = EXCLUDED.notes,
                         updated_at = now()
-                """;
+                """.formatted(s());
             for (SaveAnamnesisRequest.ItemSelection sel : selections) {
                 jdbc.update(insertSql, new MapSqlParameterSource()
                         .addValue("clinicId", clinicId)
@@ -104,18 +108,19 @@ public class AnamnesisService {
      */
     private void syncLegacyAnamnesis(UUID patientId, UUID clinicId, SaveAnamnesisRequest request) {
         jdbc.update("""
-                UPDATE dentalcare.patient_anamnesis
+                UPDATE %s.patient_anamnesis
                    SET is_current = false, updated_at = now()
                  WHERE clinic_id = :clinicId
                    AND patient_id = :patientId
                    AND is_current = true
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("clinicId", clinicId)
                         .addValue("patientId", patientId));
 
+        // Subqueries join tenant selections with global catalog items — tenant table uses s(), catalog stays dentalcare.
         jdbc.update("""
-                INSERT INTO dentalcare.patient_anamnesis (
+                INSERT INTO %s.patient_anamnesis (
                     clinic_id, patient_id,
                     blood_type,
                     smoker, alcohol_use, drug_use,
@@ -131,34 +136,36 @@ public class AnamnesisService {
                 SELECT
                     :clinicId, :patientId,
                     :bloodType,
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_FUMO'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_ALCOL'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_DROGHE'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_IPERTENSIONE'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_DIABETE'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_CARDIOPATIA'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_COAGULOP'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_IMMUNODEF'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_OSTEOPOROSI'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_TIROIDEA'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_EPILESSIA'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_EPATOPATIA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_FUMO'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_ALCOL'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_DROGHE'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_IPERTENSIONE'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_DIABETE'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_CARDIOPATIA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_COAGULOP'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_IMMUNODEF'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_OSTEOPOROSI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_TIROIDEA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_EPILESSIA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_EPATOPATIA'),
                     false,
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_ONCOLOGICA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_ONCOLOGICA'),
                     false,
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_ANTICOAG'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_BISFOSFONATI'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_CORTISONICI'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_PENICILLINA'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_LATEX'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_ANESTETICI'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_ASPIRINA'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_BRUXISMO'),
-                    EXISTS (SELECT 1 FROM dentalcare.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_ONICOFAGIA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_ANTICOAG'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_BISFOSFONATI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_CORTISONICI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_PENICILLINA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_LATEX'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_ANESTETICI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_ASPIRINA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_BRUXISMO'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN dentalcare.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_ONICOFAGIA'),
                     :generalNotes,
                     true,
                     now()
-                """,
+                """.formatted(s(),
+                        s(), s(), s(), s(), s(), s(), s(), s(), s(), s(), s(), s(), s(),
+                        s(), s(), s(), s(), s(), s(), s(), s(), s(), s(), s()),
                 new MapSqlParameterSource()
                         .addValue("clinicId", clinicId)
                         .addValue("patientId", patientId)

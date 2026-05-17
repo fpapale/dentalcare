@@ -23,6 +23,8 @@ public class StockMovementService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     // ── List ──────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -42,8 +44,8 @@ public class StockMovementService {
                 + " m.movement_type::text AS movement_type,"
                 + " m.quantity, m.unit_cost, m.notes, m.reference_doc,"
                 + " m.created_by_provider_id, m.created_at"
-                + " FROM dentalcare.stock_movements m"
-                + " JOIN dentalcare.products p ON p.id = m.product_id AND p.clinic_id = m.clinic_id"
+                + " FROM " + s() + ".stock_movements m"
+                + " JOIN " + s() + ".products p ON p.id = m.product_id AND p.clinic_id = m.clinic_id"
                 + " WHERE m.clinic_id = :clinicId"
                 + filter
                 + " ORDER BY m.created_at DESC LIMIT 200";
@@ -59,14 +61,14 @@ public class StockMovementService {
         UUID id = UUID.randomUUID();
 
         jdbc.update("""
-                INSERT INTO dentalcare.stock_movements
+                INSERT INTO %s.stock_movements
                     (id, clinic_id, product_id, movement_type, quantity,
                      unit_cost, notes, reference_doc, created_by_provider_id)
                 VALUES
                     (:id, :clinicId, :productId,
-                     CAST(:movementType AS dentalcare.stock_movement_type),
+                     CAST(:movementType AS %s.stock_movement_type),
                      :quantity, :unitCost, :notes, :referenceDoc, :createdByProviderId)
-                """,
+                """.formatted(s(), s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
@@ -83,8 +85,8 @@ public class StockMovementService {
                         + " m.movement_type::text AS movement_type,"
                         + " m.quantity, m.unit_cost, m.notes, m.reference_doc,"
                         + " m.created_by_provider_id, m.created_at"
-                        + " FROM dentalcare.stock_movements m"
-                        + " JOIN dentalcare.products p ON p.id = m.product_id AND p.clinic_id = m.clinic_id"
+                        + " FROM " + s() + ".stock_movements m"
+                        + " JOIN " + s() + ".products p ON p.id = m.product_id AND p.clinic_id = m.clinic_id"
                         + " WHERE m.id = :id AND m.clinic_id = :clinicId",
                 new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId),
                 (rs, n) -> mapRow(rs));

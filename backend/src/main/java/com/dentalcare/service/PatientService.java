@@ -24,27 +24,29 @@ public class PatientService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     public List<PatientListDto> findAll(String search, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String providerFilter = providerId != null
-                ? "AND EXISTS (SELECT 1 FROM dentalcare.appointments a WHERE a.patient_id = v.patient_id AND a.provider_id = :providerId AND a.clinic_id = v.clinic_id)\n"
+                ? "AND EXISTS (SELECT 1 FROM " + s() + ".appointments a WHERE a.patient_id = v.patient_id AND a.provider_id = :providerId AND a.clinic_id = v.clinic_id)\n"
                 : "";
         String sql = """
             SELECT v.patient_id, v.patient_first_name, v.patient_last_name, v.patient_full_name,
                    v.fiscal_code, v.birth_date, v.age_years, v.phone, v.email, v.city, v.province,
                    v.treatment_plans_count, v.open_treatment_items_count,
                    v.accepted_estimates_amount,
-                   (SELECT COUNT(*) FROM dentalcare.appointments a
+                   (SELECT COUNT(*) FROM %s.appointments a
                     WHERE a.patient_id = v.patient_id AND a.clinic_id = v.clinic_id) AS total_appointments,
                    pat.photo_url
-            FROM dentalcare.v_patient_dashboard v
-            JOIN dentalcare.patients pat ON pat.id = v.patient_id
+            FROM %s.v_patient_dashboard v
+            JOIN %s.patients pat ON pat.id = v.patient_id
             WHERE v.clinic_id = :clinicId
               AND (CAST(:search AS text) IS NULL
-                   OR v.patient_full_name ILIKE '%' || CAST(:search AS text) || '%'
-                   OR v.fiscal_code ILIKE '%' || CAST(:search AS text) || '%'
-                   OR v.phone ILIKE '%' || CAST(:search AS text) || '%')
-            """ + providerFilter + """
+                   OR v.patient_full_name ILIKE '%%' || CAST(:search AS text) || '%%'
+                   OR v.fiscal_code ILIKE '%%' || CAST(:search AS text) || '%%'
+                   OR v.phone ILIKE '%%' || CAST(:search AS text) || '%%')
+            """.formatted(s(), s(), s()) + providerFilter + """
             ORDER BY v.patient_last_name, v.patient_first_name
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -58,13 +60,13 @@ public class PatientService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         UUID patientId = UUID.randomUUID();
         String sql = """
-            INSERT INTO dentalcare.patients
+            INSERT INTO %s.patients
                 (id, clinic_id, first_name, last_name, fiscal_code, birth_date,
                  phone, email, address_line1, city, province, postal_code, notes)
             VALUES
                 (:id, :clinicId, :firstName, :lastName, :fiscalCode, :birthDate,
                  :phone, :email, :addressLine1, :city, :province, :postalCode, :notes)
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", patientId)
                 .addValue("clinicId", clinicId)
@@ -86,7 +88,7 @@ public class PatientService {
     public void update(UUID patientId, UpdatePatientRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
-            UPDATE dentalcare.patients
+            UPDATE %s.patients
             SET first_name    = :firstName,
                 last_name     = :lastName,
                 fiscal_code   = :fiscalCode,
@@ -99,7 +101,7 @@ public class PatientService {
                 postal_code   = :postalCode,
                 notes         = :notes
             WHERE id = :id AND clinic_id = :clinicId
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("firstName",   request.firstName())
                 .addValue("lastName",    request.lastName())
@@ -120,7 +122,7 @@ public class PatientService {
     public Optional<PatientDetailDto> findById(UUID patientId, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String providerFilter = providerId != null
-                ? "AND EXISTS (SELECT 1 FROM dentalcare.appointments a WHERE a.patient_id = p.patient_id AND a.provider_id = :providerId AND a.clinic_id = p.clinic_id)"
+                ? "AND EXISTS (SELECT 1 FROM " + s() + ".appointments a WHERE a.patient_id = p.patient_id AND a.provider_id = :providerId AND a.clinic_id = p.clinic_id)"
                 : "";
         String sql = """
             SELECT p.patient_id, p.first_name, p.last_name, p.full_name,
@@ -131,18 +133,18 @@ public class PatientService {
                    p.allergy_penicillin, p.allergy_latex, p.allergy_anesthetic,
                    p.other_allergies, p.anamnesis_notes, p.anamnesis_date,
                    p.total_appointments,
-                   (SELECT COUNT(*) FROM dentalcare.treatment_plans tp
+                   (SELECT COUNT(*) FROM %s.treatment_plans tp
                     WHERE tp.patient_id = p.patient_id AND tp.clinic_id = p.clinic_id) AS treatment_plans_count,
-                   (SELECT COUNT(*) FROM dentalcare.treatment_plan_items tpi
-                    JOIN dentalcare.treatment_plans tp2 ON tp2.id = tpi.treatment_plan_id AND tp2.clinic_id = tpi.clinic_id
+                   (SELECT COUNT(*) FROM %s.treatment_plan_items tpi
+                    JOIN %s.treatment_plans tp2 ON tp2.id = tpi.treatment_plan_id AND tp2.clinic_id = tpi.clinic_id
                     WHERE tp2.patient_id = p.patient_id AND tpi.clinic_id = p.clinic_id
                       AND tpi.status IN ('planned','accepted','scheduled')) AS open_treatment_items_count,
                    pat.address_line1, pat.postal_code, pat.photo_url
-            FROM dentalcare.v_patient_clinical_card p
-            JOIN dentalcare.patients pat ON pat.id = p.patient_id
+            FROM %s.v_patient_clinical_card p
+            JOIN %s.patients pat ON pat.id = p.patient_id
             WHERE p.patient_id = :patientId
               AND p.clinic_id = :clinicId
-            """ + providerFilter;
+            """.formatted(s(), s(), s(), s(), s()) + providerFilter;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("patientId", patientId)
                 .addValue("clinicId", clinicId);
@@ -212,10 +214,10 @@ public class PatientService {
     public void updatePhoto(UUID patientId, String photoDataUrl) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
-            UPDATE dentalcare.patients
+            UPDATE %s.patients
             SET photo_url = :photoUrl
             WHERE id = :id AND clinic_id = :clinicId
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("photoUrl", photoDataUrl)
                 .addValue("id", patientId)

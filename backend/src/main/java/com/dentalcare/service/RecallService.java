@@ -24,6 +24,8 @@ public class RecallService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     // ── List ──────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -49,9 +51,9 @@ public class RecallService {
                 + " r.notes, r.contact_count, r.last_contact_at,"
                 + " sa.starts_at::date AS source_appointment_date,"
                 + " r.created_at"
-                + " FROM dentalcare.patient_recalls r"
-                + " JOIN dentalcare.patients p ON p.id = r.patient_id"
-                + " LEFT JOIN dentalcare.appointments sa ON sa.id = r.source_appointment_id"
+                + " FROM " + s() + ".patient_recalls r"
+                + " JOIN " + s() + ".patients p ON p.id = r.patient_id"
+                + " LEFT JOIN " + s() + ".appointments sa ON sa.id = r.source_appointment_id"
                 + " WHERE r.clinic_id = :clinicId"
                 + filter
                 + " ORDER BY"
@@ -69,17 +71,17 @@ public class RecallService {
         UUID recallId = UUID.randomUUID();
 
         String priorityExpr = (req.priority() != null && !req.priority().isBlank())
-                ? "CAST(:priority AS dentalcare.recall_priority)"
-                : "dentalcare.compute_recall_priority(:dueDate)";
+                ? "CAST(:priority AS " + s() + ".recall_priority)"
+                : s() + ".compute_recall_priority(:dueDate)";
 
         jdbc.update("""
-                INSERT INTO dentalcare.patient_recalls (
+                INSERT INTO %s.patient_recalls (
                     id, clinic_id, patient_id, recall_type, due_date,
                     status, priority, notes, source_appointment_id
                 ) VALUES (
                     :id, :clinicId, :patientId, :recallType, :dueDate,
-                    'da_contattare'::dentalcare.recall_status,
-                    """ + priorityExpr + """
+                    'da_contattare'::%s.recall_status,
+                    """.formatted(s(), s()) + priorityExpr + """
                     , :notes, :sourceAppointmentId
                 )
                 """,
@@ -103,15 +105,15 @@ public class RecallService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         jdbc.update("""
-                UPDATE dentalcare.patient_recalls
-                SET status     = COALESCE(CAST(:status AS dentalcare.recall_status), status),
-                    priority   = COALESCE(CAST(:priority AS dentalcare.recall_priority), priority),
+                UPDATE %s.patient_recalls
+                SET status     = COALESCE(CAST(:status AS %s.recall_status), status),
+                    priority   = COALESCE(CAST(:priority AS %s.recall_priority), priority),
                     recall_type = COALESCE(:recallType, recall_type),
                     due_date   = COALESCE(:dueDate, due_date),
                     notes      = :notes,
                     updated_at = now()
                 WHERE id = :id AND clinic_id = :clinicId
-                """,
+                """.formatted(s(), s(), s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
@@ -130,11 +132,11 @@ public class RecallService {
     public void delete(UUID id) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-                UPDATE dentalcare.patient_recalls
-                SET status = 'annullato'::dentalcare.recall_status,
+                UPDATE %s.patient_recalls
+                SET status = 'annullato'::%s.recall_status,
                     updated_at = now()
                 WHERE id = :id AND clinic_id = :clinicId
-                """,
+                """.formatted(s(), s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId));
@@ -146,18 +148,17 @@ public class RecallService {
     public GenerateRecallsResponse generateRecalls(int intervalMonths) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
-        // Step 1: last completed appointment per patient older than intervalMonths
         String lastVisitSql = """
                 SELECT DISTINCT ON (patient_id)
                     id AS appointment_id,
                     patient_id,
                     starts_at::date AS last_visit_date
-                FROM dentalcare.appointments
+                FROM %s.appointments
                 WHERE clinic_id = :clinicId
                   AND status::text IN ('completed', 'confirmed', 'in_progress')
                   AND starts_at < now() - make_interval(months => :intervalMonths)
                 ORDER BY patient_id, starts_at DESC
-                """;
+                """.formatted(s());
 
         List<Map<String, Object>> lastVisits = jdbc.queryForList(lastVisitSql,
                 new MapSqlParameterSource()
@@ -172,12 +173,11 @@ public class RecallService {
             UUID appointmentId = (UUID) row.get("appointment_id");
             LocalDate lastVisitDate = ((java.sql.Date) row.get("last_visit_date")).toLocalDate();
 
-            // Step 2: check if open recall already exists
             Long openCount = jdbc.queryForObject("""
-                    SELECT COUNT(*) FROM dentalcare.patient_recalls
+                    SELECT COUNT(*) FROM %s.patient_recalls
                     WHERE clinic_id = :clinicId AND patient_id = :patientId
                       AND status::text NOT IN ('chiuso', 'annullato', 'confermato')
-                    """,
+                    """.formatted(s()),
                     new MapSqlParameterSource()
                             .addValue("clinicId", clinicId)
                             .addValue("patientId", patientId),
@@ -188,22 +188,21 @@ public class RecallService {
                 continue;
             }
 
-            // Step 3: compute due date and priority
             LocalDate dueDate = lastVisitDate.plusMonths(intervalMonths);
             String priority = computePriority(dueDate);
 
             UUID recallId = UUID.randomUUID();
             jdbc.update("""
-                    INSERT INTO dentalcare.patient_recalls (
+                    INSERT INTO %s.patient_recalls (
                         id, clinic_id, patient_id, recall_type, due_date,
                         status, priority, source_appointment_id
                     ) VALUES (
                         :id, :clinicId, :patientId, :recallType, :dueDate,
-                        'da_contattare'::dentalcare.recall_status,
-                        CAST(:priority AS dentalcare.recall_priority),
+                        'da_contattare'::%s.recall_status,
+                        CAST(:priority AS %s.recall_priority),
                         :sourceAppointmentId
                     )
-                    """,
+                    """.formatted(s(), s(), s()),
                     new MapSqlParameterSource()
                             .addValue("id", recallId)
                             .addValue("clinicId", clinicId)
@@ -229,10 +228,10 @@ public class RecallService {
         String sql = """
                 SELECT id, recall_id, contact_type::text, contact_at,
                        outcome::text, notes, created_by_provider_id, created_at
-                FROM dentalcare.recall_contacts
+                FROM %s.recall_contacts
                 WHERE recall_id = :recallId AND clinic_id = :clinicId
                 ORDER BY contact_at DESC
-                """;
+                """.formatted(s());
 
         return jdbc.query(sql,
                 new MapSqlParameterSource()
@@ -247,17 +246,17 @@ public class RecallService {
         UUID contactId = UUID.randomUUID();
 
         jdbc.update("""
-                INSERT INTO dentalcare.recall_contacts (
+                INSERT INTO %s.recall_contacts (
                     id, clinic_id, recall_id, contact_type, contact_at,
                     outcome, notes, created_by_provider_id
                 ) VALUES (
                     :id, :clinicId, :recallId,
-                    CAST(:contactType AS dentalcare.recall_contact_type),
+                    CAST(:contactType AS %s.recall_contact_type),
                     now(),
-                    CAST(:outcome AS dentalcare.recall_outcome),
+                    CAST(:outcome AS %s.recall_outcome),
                     :notes, :createdByProviderId
                 )
-                """,
+                """.formatted(s(), s(), s()),
                 new MapSqlParameterSource()
                         .addValue("id", contactId)
                         .addValue("clinicId", clinicId)
@@ -270,9 +269,9 @@ public class RecallService {
         List<RecallContactDto> rows = jdbc.query("""
                 SELECT id, recall_id, contact_type::text, contact_at,
                        outcome::text, notes, created_by_provider_id, created_at
-                FROM dentalcare.recall_contacts
+                FROM %s.recall_contacts
                 WHERE id = :id AND clinic_id = :clinicId
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", contactId)
                         .addValue("clinicId", clinicId),
@@ -292,9 +291,9 @@ public class RecallService {
                 + " r.notes, r.contact_count, r.last_contact_at,"
                 + " sa.starts_at::date AS source_appointment_date,"
                 + " r.created_at"
-                + " FROM dentalcare.patient_recalls r"
-                + " JOIN dentalcare.patients p ON p.id = r.patient_id"
-                + " LEFT JOIN dentalcare.appointments sa ON sa.id = r.source_appointment_id"
+                + " FROM " + s() + ".patient_recalls r"
+                + " JOIN " + s() + ".patients p ON p.id = r.patient_id"
+                + " LEFT JOIN " + s() + ".appointments sa ON sa.id = r.source_appointment_id"
                 + " WHERE r.id = :id AND r.clinic_id = :clinicId";
 
         List<RecallDto> rows = jdbc.query(sql,

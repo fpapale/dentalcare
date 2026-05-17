@@ -18,6 +18,8 @@ public class ServiceCatalogService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     public List<ServiceDto> findAll() {
         return findAll(null);
     }
@@ -41,10 +43,10 @@ public class ServiceCatalogService {
 
         String sql = """
             SELECT id, code, name, category, default_price, duration_minutes
-            FROM dentalcare.service_catalog
+            FROM %s.service_catalog
             WHERE clinic_id = :clinicId
               AND active = true
-            """ + toothFilter + """
+            """.formatted(s()) + toothFilter + """
             ORDER BY category, name
             """;
 
@@ -62,11 +64,11 @@ public class ServiceCatalogService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             SELECT sc.id, sc.code, sc.name, sc.category, sc.default_price, sc.duration_minutes
-            FROM dentalcare.condition_service_defaults csd
-            JOIN dentalcare.service_catalog sc ON sc.id = csd.service_id AND sc.clinic_id = csd.clinic_id
+            FROM %s.condition_service_defaults csd
+            JOIN %s.service_catalog sc ON sc.id = csd.service_id AND sc.clinic_id = csd.clinic_id
             WHERE csd.condition_name = :conditionName AND csd.clinic_id = :clinicId AND sc.active = true
             ORDER BY csd.sort_order
-            """;
+            """.formatted(s(), s());
         return jdbc.query(sql,
                 new MapSqlParameterSource().addValue("conditionName", conditionName).addValue("clinicId", clinicId),
                 (rs, n) -> new ServiceDto(
@@ -83,11 +85,11 @@ public class ServiceCatalogService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             SELECT sc.id, sc.code, sc.name, sc.category, sc.default_price, sc.duration_minutes
-            FROM dentalcare.service_bundle_items sbi
-            JOIN dentalcare.service_catalog sc ON sc.id = sbi.child_service_id AND sc.clinic_id = sbi.clinic_id
+            FROM %s.service_bundle_items sbi
+            JOIN %s.service_catalog sc ON sc.id = sbi.child_service_id AND sc.clinic_id = sbi.clinic_id
             WHERE sbi.parent_service_id = :serviceId AND sbi.clinic_id = :clinicId AND sc.active = true
             ORDER BY sbi.sort_order
-            """;
+            """.formatted(s(), s());
         return jdbc.query(sql,
                 new MapSqlParameterSource().addValue("serviceId", serviceId).addValue("clinicId", clinicId),
                 (rs, n) -> new ServiceDto(

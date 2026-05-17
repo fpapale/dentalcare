@@ -16,6 +16,12 @@ public class ClinicIdFilter extends OncePerRequestFilter {
     @Value("${dentalcare.default.clinic-id:9d754153-6579-4b7e-a56b-025f00299cd9}")
     private String defaultClinicId;
 
+    private final TenantSchemaRegistry registry;
+
+    public ClinicIdFilter(TenantSchemaRegistry registry) {
+        this.registry = registry;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -23,7 +29,9 @@ public class ClinicIdFilter extends OncePerRequestFilter {
         if (clinicId == null || clinicId.isBlank()) {
             clinicId = defaultClinicId;
         }
-        TenantContext.setCurrentTenant(clinicId);
+        String schema = registry.getSchemaForClinic(clinicId);
+        TenantContext.setCurrentSchema(schema);
+        TenantContext.setCurrentClinicId(clinicId);
         try {
             chain.doFilter(request, response);
         } finally {

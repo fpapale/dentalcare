@@ -24,6 +24,8 @@ public class ProductService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     // ── List ──────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -34,7 +36,7 @@ public class ProductService {
                 + " name, description, sku, unit,"
                 + " min_stock_quantity, reorder_quantity, unit_cost,"
                 + " current_stock, stock_status, is_active"
-                + " FROM dentalcare.product_stock_v"
+                + " FROM " + s() + ".product_stock_v"
                 + " WHERE clinic_id = :clinicId AND is_active = true"
                 + (lowStockOnly ? " AND stock_status IN ('critico', 'basso')" : "")
                 + " ORDER BY name";
@@ -51,7 +53,7 @@ public class ProductService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         return jdbc.query(
-                "SELECT id, name FROM dentalcare.product_categories"
+                "SELECT id, name FROM " + s() + ".product_categories"
                         + " WHERE clinic_id = :clinicId ORDER BY name",
                 new MapSqlParameterSource().addValue("clinicId", clinicId),
                 (rs, n) -> new ProductCategoryDto(
@@ -67,7 +69,7 @@ public class ProductService {
         UUID id = UUID.randomUUID();
 
         jdbc.update("""
-                INSERT INTO dentalcare.products
+                INSERT INTO %s.products
                     (id, clinic_id, category_id, supplier_id,
                      name, description, sku, unit,
                      min_stock_quantity, reorder_quantity, unit_cost, is_active)
@@ -75,7 +77,7 @@ public class ProductService {
                     (:id, :clinicId, :categoryId, :supplierId,
                      :name, :description, :sku, :unit,
                      :minStockQuantity, :reorderQuantity, :unitCost, true)
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
@@ -99,7 +101,7 @@ public class ProductService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         int rows = jdbc.update("""
-                UPDATE dentalcare.products
+                UPDATE %s.products
                 SET category_id        = :categoryId,
                     supplier_id        = :supplierId,
                     name               = :name,
@@ -111,7 +113,7 @@ public class ProductService {
                     unit_cost          = :unitCost,
                     updated_at         = now()
                 WHERE id = :id AND clinic_id = :clinicId
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
@@ -138,11 +140,11 @@ public class ProductService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         int rows = jdbc.update("""
-                UPDATE dentalcare.products
+                UPDATE %s.products
                 SET is_active  = false,
                     updated_at = now()
                 WHERE id = :id AND clinic_id = :clinicId
-                """,
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId));
@@ -160,7 +162,7 @@ public class ProductService {
                         + " name, description, sku, unit,"
                         + " min_stock_quantity, reorder_quantity, unit_cost,"
                         + " current_stock, stock_status, is_active"
-                        + " FROM dentalcare.product_stock_v"
+                        + " FROM " + s() + ".product_stock_v"
                         + " WHERE product_id = :id AND clinic_id = :clinicId",
                 new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId),
                 (rs, n) -> mapProductRow(rs));

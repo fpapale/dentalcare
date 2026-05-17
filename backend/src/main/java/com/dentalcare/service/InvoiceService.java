@@ -24,6 +24,8 @@ public class InvoiceService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     // ── List ─────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -46,9 +48,9 @@ public class InvoiceService {
                 + " concat_ws(' ', p.last_name, p.first_name) AS provider_full_name,"
                 + " i.patient_full_name, i.estimate_id,"
                 + " e.estimate_number, i.total_amount, i.currency, i.created_at"
-                + " FROM dentalcare.invoices i"
-                + " LEFT JOIN dentalcare.providers p ON p.id = i.provider_id AND p.clinic_id = i.clinic_id"
-                + " LEFT JOIN dentalcare.estimates e ON e.id = i.estimate_id AND e.clinic_id = i.clinic_id"
+                + " FROM " + s() + ".invoices i"
+                + " LEFT JOIN " + s() + ".providers p ON p.id = i.provider_id AND p.clinic_id = i.clinic_id"
+                + " LEFT JOIN " + s() + ".estimates e ON e.id = i.estimate_id AND e.clinic_id = i.clinic_id"
                 + " WHERE i.clinic_id = :clinicId"
                 + filter
                 + " ORDER BY i.created_at DESC";
@@ -74,11 +76,11 @@ public class InvoiceService {
                    i.issuer_email, i.issuer_pec, i.issuer_sdi_code, i.issuer_iban,
                    i.patient_fiscal_code, i.patient_address, i.patient_email,
                    i.notes, i.payment_method, i.paid_at, i.issued_at, i.created_at
-            FROM dentalcare.invoices i
-            LEFT JOIN dentalcare.providers p ON p.id = i.provider_id AND p.clinic_id = i.clinic_id
-            LEFT JOIN dentalcare.estimates e ON e.id = i.estimate_id AND e.clinic_id = i.clinic_id
+            FROM %s.invoices i
+            LEFT JOIN %s.providers p ON p.id = i.provider_id AND p.clinic_id = i.clinic_id
+            LEFT JOIN %s.estimates e ON e.id = i.estimate_id AND e.clinic_id = i.clinic_id
             WHERE i.id = :id AND i.clinic_id = :clinicId
-            """;
+            """.formatted(s(), s(), s());
 
         List<InvoiceDetailDto> headers = jdbc.query(sql,
                 new MapSqlParameterSource().addValue("id", invoiceId).addValue("clinicId", clinicId),
@@ -91,10 +93,10 @@ public class InvoiceService {
             SELECT id, line_position, description, tooth_info,
                    quantity, unit_price, discount_amount, vat_rate,
                    line_subtotal, line_taxable, line_vat_amount, line_total
-            FROM dentalcare.invoice_lines
+            FROM %s.invoice_lines
             WHERE invoice_id = :invoiceId AND clinic_id = :clinicId
             ORDER BY line_position
-            """;
+            """.formatted(s());
         List<InvoiceLineDto> lines = jdbc.query(linesSql,
                 new MapSqlParameterSource().addValue("invoiceId", invoiceId).addValue("clinicId", clinicId),
                 (rs, n) -> mapLineRow(rs));
@@ -127,10 +129,10 @@ public class InvoiceService {
                    pat.fiscal_code::text AS patient_fiscal_code,
                    pat.email::text AS patient_email,
                    concat_ws(', ', pat.address_line1, pat.city) AS patient_address
-            FROM dentalcare.estimates e
-            JOIN dentalcare.patients pat ON pat.id = e.patient_id AND pat.clinic_id = e.clinic_id
+            FROM %s.estimates e
+            JOIN %s.patients pat ON pat.id = e.patient_id AND pat.clinic_id = e.clinic_id
             WHERE e.id = :estimateId AND e.clinic_id = :clinicId
-            """;
+            """.formatted(s(), s());
         List<Map<String, Object>> estRows = jdbc.queryForList(estimateSql,
                 new MapSqlParameterSource().addValue("estimateId", estimateId).addValue("clinicId", clinicId));
         if (estRows.isEmpty()) {
@@ -157,9 +159,9 @@ public class InvoiceService {
                        concat_ws(', ', billing_address_street, billing_address_zip, billing_address_city) AS billing_address,
                        email::text, billing_pec, billing_sdi_code, billing_iban,
                        COALESCE(invoice_prefix, 'PARC') AS invoice_prefix
-                FROM dentalcare.providers
+                FROM %s.providers
                 WHERE id = :pid AND clinic_id = :clinicId
-                """;
+                """.formatted(s());
             List<Map<String, Object>> provRows = jdbc.queryForList(provSql,
                     new MapSqlParameterSource().addValue("pid", request.providerId()).addValue("clinicId", clinicId));
             if (provRows.isEmpty()) {
@@ -181,9 +183,9 @@ public class InvoiceService {
                        vat_number::text, fiscal_code::text,
                        concat_ws(', ', address_line1, postal_code, city) AS address,
                        email::text
-                FROM dentalcare.clinics
+                FROM %s.clinics
                 WHERE id = :clinicId
-                """;
+                """.formatted(s());
             List<Map<String, Object>> clinicRows = jdbc.queryForList(clinicSql,
                     new MapSqlParameterSource().addValue("clinicId", clinicId));
             Map<String, Object> clinic = clinicRows.isEmpty() ? Map.of() : clinicRows.get(0);
@@ -206,29 +208,28 @@ public class InvoiceService {
         UUID invoiceId = UUID.randomUUID();
         UUID patientId = (UUID) est.get("patient_id");
 
-        jdbc.update("""
-            INSERT INTO dentalcare.invoices (
-                id, clinic_id, invoice_number, document_type, invoice_date, due_date,
-                status, issuer_type, provider_id, patient_id, estimate_id,
-                issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
-                issuer_email, issuer_pec, issuer_sdi_code, issuer_iban,
-                patient_full_name, patient_fiscal_code, patient_address, patient_email,
-                subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount,
-                currency, notes, payment_method
-            ) VALUES (
-                :id, :clinicId, :invoiceNumber,
-                CAST(:documentType AS dentalcare.invoice_document_type),
-                CURRENT_DATE, :dueDate,
-                CAST('draft' AS dentalcare.invoice_status),
-                CAST(:issuerType AS dentalcare.invoice_issuer_type),
-                :providerId, :patientId, :estimateId,
-                :issuerName, :issuerVatNumber, :issuerFiscalCode, :issuerAddress,
-                :issuerEmail, :issuerPec, :issuerSdiCode, :issuerIban,
-                :patientFullName, :patientFiscalCode, :patientAddress, :patientEmail,
-                :subtotalAmount, :discountAmount, :taxableAmount, :vatAmount, :totalAmount,
-                :currency, :notes, :paymentMethod
-            )
-            """,
+        jdbc.update(
+            "INSERT INTO " + s() + ".invoices ("
+            + " id, clinic_id, invoice_number, document_type, invoice_date, due_date,"
+            + " status, issuer_type, provider_id, patient_id, estimate_id,"
+            + " issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,"
+            + " issuer_email, issuer_pec, issuer_sdi_code, issuer_iban,"
+            + " patient_full_name, patient_fiscal_code, patient_address, patient_email,"
+            + " subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount,"
+            + " currency, notes, payment_method"
+            + ") VALUES ("
+            + " :id, :clinicId, :invoiceNumber,"
+            + " CAST(:documentType AS " + s() + ".invoice_document_type),"
+            + " CURRENT_DATE, :dueDate,"
+            + " CAST('draft' AS " + s() + ".invoice_status),"
+            + " CAST(:issuerType AS " + s() + ".invoice_issuer_type),"
+            + " :providerId, :patientId, :estimateId,"
+            + " :issuerName, :issuerVatNumber, :issuerFiscalCode, :issuerAddress,"
+            + " :issuerEmail, :issuerPec, :issuerSdiCode, :issuerIban,"
+            + " :patientFullName, :patientFiscalCode, :patientAddress, :patientEmail,"
+            + " :subtotalAmount, :discountAmount, :taxableAmount, :vatAmount, :totalAmount,"
+            + " :currency, :notes, :paymentMethod"
+            + ")",
                 new MapSqlParameterSource()
                         .addValue("id", invoiceId)
                         .addValue("clinicId", clinicId)
@@ -264,17 +265,17 @@ public class InvoiceService {
         String estLinesSql = """
             SELECT id, line_position, description_snapshot, tooth_snapshot,
                    quantity, unit_price, discount_amount, vat_rate
-            FROM dentalcare.estimate_lines
+            FROM %s.estimate_lines
             WHERE estimate_id = :estimateId AND clinic_id = :clinicId
             ORDER BY line_position
-            """;
+            """.formatted(s());
         List<Map<String, Object>> estLines = jdbc.queryForList(estLinesSql,
                 new MapSqlParameterSource().addValue("estimateId", estimateId).addValue("clinicId", clinicId));
 
         for (Map<String, Object> line : estLines) {
             UUID lineId = UUID.randomUUID();
             jdbc.update("""
-                INSERT INTO dentalcare.invoice_lines (
+                INSERT INTO %s.invoice_lines (
                     id, clinic_id, invoice_id, line_position,
                     description, tooth_info,
                     quantity, unit_price, discount_amount, vat_rate
@@ -283,7 +284,7 @@ public class InvoiceService {
                     :description, :toothInfo,
                     :quantity, :unitPrice, :discountAmount, :vatRate
                 )
-                """,
+                """.formatted(s()),
                     new MapSqlParameterSource()
                             .addValue("id", lineId)
                             .addValue("clinicId", clinicId)
@@ -306,15 +307,15 @@ public class InvoiceService {
     public void update(UUID invoiceId, UpdateInvoiceRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            UPDATE dentalcare.invoices
-            SET document_type  = COALESCE(CAST(:documentType AS dentalcare.invoice_document_type), document_type),
+            UPDATE %s.invoices
+            SET document_type  = COALESCE(CAST(:documentType AS %s.invoice_document_type), document_type),
                 invoice_date   = COALESCE(:invoiceDate, invoice_date),
                 due_date       = :dueDate,
                 notes          = :notes,
                 payment_method = :paymentMethod,
                 updated_at     = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s(), s()),
                 new MapSqlParameterSource()
                         .addValue("id", invoiceId)
                         .addValue("clinicId", clinicId)
@@ -331,13 +332,13 @@ public class InvoiceService {
     public void updateStatus(UUID invoiceId, String status) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            UPDATE dentalcare.invoices
-            SET status     = CAST(:status AS dentalcare.invoice_status),
+            UPDATE %s.invoices
+            SET status     = CAST(:status AS %s.invoice_status),
                 issued_at  = CASE WHEN :status = 'issued' AND issued_at IS NULL THEN now() ELSE issued_at END,
                 paid_at    = CASE WHEN :status = 'paid'   AND paid_at IS NULL   THEN now() ELSE paid_at   END,
                 updated_at = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s(), s()),
                 new MapSqlParameterSource()
                         .addValue("id", invoiceId)
                         .addValue("clinicId", clinicId)
@@ -350,16 +351,16 @@ public class InvoiceService {
     public void delete(UUID invoiceId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String currentStatus = jdbc.queryForObject(
-                "SELECT status::text FROM dentalcare.invoices WHERE id = :id AND clinic_id = :clinicId",
+                "SELECT status::text FROM " + s() + ".invoices WHERE id = :id AND clinic_id = :clinicId",
                 new MapSqlParameterSource().addValue("id", invoiceId).addValue("clinicId", clinicId),
                 String.class);
         if (!"draft".equals(currentStatus)) {
             throw new IllegalStateException("Cannot delete invoice in status: " + currentStatus);
         }
         jdbc.update("""
-            DELETE FROM dentalcare.invoices
+            DELETE FROM %s.invoices
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource().addValue("id", invoiceId).addValue("clinicId", clinicId));
     }
 
@@ -370,7 +371,7 @@ public class InvoiceService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         Long maxPos = jdbc.queryForObject(
-                "SELECT COALESCE(MAX(line_position), 0) FROM dentalcare.invoice_lines WHERE invoice_id = :id AND clinic_id = :cid",
+                "SELECT COALESCE(MAX(line_position), 0) FROM " + s() + ".invoice_lines WHERE invoice_id = :id AND clinic_id = :cid",
                 new MapSqlParameterSource().addValue("id", invoiceId).addValue("cid", clinicId),
                 Long.class);
         int pos = (int) (maxPos == null ? 0 : maxPos) + 10;
@@ -382,7 +383,7 @@ public class InvoiceService {
 
         UUID lineId = UUID.randomUUID();
         jdbc.update("""
-            INSERT INTO dentalcare.invoice_lines (
+            INSERT INTO %s.invoice_lines (
                 id, clinic_id, invoice_id, line_position,
                 description, tooth_info,
                 quantity, unit_price, discount_amount, vat_rate
@@ -391,7 +392,7 @@ public class InvoiceService {
                 :description, :toothInfo,
                 :qty, :unitPrice, :discount, :vatRate
             )
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", lineId)
                         .addValue("clinicId", clinicId)
@@ -410,9 +411,9 @@ public class InvoiceService {
     public void deleteLine(UUID invoiceId, UUID lineId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            DELETE FROM dentalcare.invoice_lines
+            DELETE FROM %s.invoice_lines
             WHERE id = :id AND invoice_id = :invoiceId AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", lineId)
                         .addValue("invoiceId", invoiceId)
@@ -424,7 +425,7 @@ public class InvoiceService {
     public String getEmailLink(UUID invoiceId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT invoice_number, patient_email FROM dentalcare.invoices WHERE id = :id AND clinic_id = :clinicId",
+                "SELECT invoice_number, patient_email FROM " + s() + ".invoices WHERE id = :id AND clinic_id = :clinicId",
                 new MapSqlParameterSource().addValue("id", invoiceId).addValue("clinicId", clinicId));
         if (rows.isEmpty()) return null;
         String number = (String) rows.get(0).get("invoice_number");
@@ -444,7 +445,7 @@ public class InvoiceService {
     private String generateInvoiceNumber(UUID clinicId, String prefix) {
         int year = java.time.Year.now().getValue();
         Long count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM dentalcare.invoices WHERE clinic_id = :cid AND EXTRACT(YEAR FROM created_at) = :yr",
+                "SELECT COUNT(*) FROM " + s() + ".invoices WHERE clinic_id = :cid AND EXTRACT(YEAR FROM created_at) = :yr",
                 new MapSqlParameterSource().addValue("cid", clinicId).addValue("yr", year),
                 Long.class);
         return String.format("%s-%d-%05d", prefix, year, (count == null ? 0 : count) + 1);

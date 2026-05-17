@@ -24,6 +24,8 @@ public class DashboardService {
         this.appointmentService = appointmentService;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     public DashboardDto getDashboard(UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
@@ -32,9 +34,9 @@ public class DashboardService {
                    patients_count, active_providers_count,
                    in_progress_treatment_plans_count,
                    sent_estimates_count, accepted_estimates_amount
-            FROM dentalcare.v_clinic_dashboard
+            FROM %s.v_clinic_dashboard
             WHERE clinic_id = :clinicId
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("clinicId", clinicId);
         Map<String, Object> row = jdbc.queryForMap(sql, params);
 
@@ -44,9 +46,9 @@ public class DashboardService {
               COUNT(*) FILTER (WHERE status = 'proposed') AS plans_proposed,
               COUNT(*) FILTER (WHERE status = 'accepted') AS plans_accepted,
               COUNT(*) FILTER (WHERE status = 'rejected') AS plans_rejected
-            FROM dentalcare.treatment_plans
+            FROM %s.treatment_plans
             WHERE clinic_id = :clinicId AND status <> 'completed'
-            """;
+            """.formatted(s());
         Map<String, Object> planRow = jdbc.queryForMap(plansSql, params);
 
         List<AppointmentDto> todayAppts = appointmentService.findByDate(LocalDate.now(), providerId);

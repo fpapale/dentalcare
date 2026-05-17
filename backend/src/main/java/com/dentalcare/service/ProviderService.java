@@ -24,6 +24,8 @@ public class ProviderService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     @Transactional(readOnly = true)
     public List<ProviderDto> findAll(boolean activeOnly) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
@@ -34,11 +36,11 @@ public class ProviderService {
                    vat_number, fiscal_code, professional_register, register_number,
                    billing_address_street, billing_address_zip, billing_address_city, billing_address_province,
                    billing_pec, billing_iban, billing_sdi_code, invoice_prefix, photo_url
-            FROM dentalcare.providers
+            FROM %s.providers
             WHERE clinic_id = :clinicId
               AND (:activeOnly = false OR active = true)
             ORDER BY last_name, first_name
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
                 .addValue("activeOnly", activeOnly);
@@ -55,9 +57,9 @@ public class ProviderService {
                    vat_number, fiscal_code, professional_register, register_number,
                    billing_address_street, billing_address_zip, billing_address_city, billing_address_province,
                    billing_pec, billing_iban, billing_sdi_code, invoice_prefix, photo_url
-            FROM dentalcare.providers
+            FROM %s.providers
             WHERE id = :id AND clinic_id = :clinicId
-            """;
+            """.formatted(s());
         List<ProviderDto> rows = jdbc.query(sql,
                 new MapSqlParameterSource().addValue("id", providerId).addValue("clinicId", clinicId),
                 (rs, n) -> mapRow(rs));
@@ -69,11 +71,11 @@ public class ProviderService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         UUID id = UUID.randomUUID();
         jdbc.update("""
-            INSERT INTO dentalcare.providers
+            INSERT INTO %s.providers
                 (id, clinic_id, first_name, last_name, role, phone, email, active)
             VALUES
-                (:id, :clinicId, :firstName, :lastName, :role::dentalcare.provider_role, :phone, :email, true)
-            """,
+                (:id, :clinicId, :firstName, :lastName, :role::%s.provider_role, :phone, :email, true)
+            """.formatted(s(), s()),
             new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("clinicId", clinicId)
@@ -89,16 +91,16 @@ public class ProviderService {
     public void updateProfile(UUID providerId, UpdateProviderProfileRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            UPDATE dentalcare.providers
+            UPDATE %s.providers
             SET first_name = :firstName,
                 last_name  = :lastName,
-                role       = :role::dentalcare.provider_role,
+                role       = :role::%s.provider_role,
                 phone      = :phone,
                 email      = :email,
                 active     = :active,
                 updated_at = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s(), s()),
             new MapSqlParameterSource()
                 .addValue("id", providerId)
                 .addValue("clinicId", clinicId)
@@ -113,7 +115,7 @@ public class ProviderService {
     @Transactional
     public void delete(UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        jdbc.update("DELETE FROM dentalcare.providers WHERE id = :id AND clinic_id = :clinicId",
+        jdbc.update("DELETE FROM " + s() + ".providers WHERE id = :id AND clinic_id = :clinicId",
             new MapSqlParameterSource()
                 .addValue("id", providerId)
                 .addValue("clinicId", clinicId));
@@ -123,7 +125,7 @@ public class ProviderService {
     public void updateBilling(UUID providerId, UpdateProviderBillingRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            UPDATE dentalcare.providers
+            UPDATE %s.providers
             SET vat_number               = :vatNumber,
                 fiscal_code              = :fiscalCode,
                 professional_register    = :professionalRegister,
@@ -138,7 +140,7 @@ public class ProviderService {
                 invoice_prefix           = :invoicePrefix,
                 updated_at               = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", providerId)
                         .addValue("clinicId", clinicId)
@@ -187,11 +189,11 @@ public class ProviderService {
     public void updatePhoto(UUID providerId, String photoDataUrl) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            UPDATE dentalcare.providers
+            UPDATE %s.providers
             SET photo_url  = :photoUrl,
                 updated_at = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("photoUrl", photoDataUrl == null || photoDataUrl.isBlank() ? null : photoDataUrl)
                 .addValue("id", providerId)

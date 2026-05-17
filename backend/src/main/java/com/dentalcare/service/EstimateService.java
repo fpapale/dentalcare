@@ -24,6 +24,8 @@ public class EstimateService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     // ── List ─────────────────────────────────────────────────────────────────
 
     public List<EstimateDto> findAll(String status, UUID providerId) {
@@ -36,7 +38,7 @@ public class EstimateService {
         }
         if (providerId != null) {
             filter.append(" AND estimate_id IN ("
-                    + "SELECT id FROM dentalcare.estimates"
+                    + "SELECT id FROM " + s() + ".estimates"
                     + " WHERE clinic_id = :clinicId"
                     + " AND (created_by_provider_id = :providerId OR created_by_provider_id IS NULL))");
             params.addValue("providerId", providerId);
@@ -47,7 +49,7 @@ public class EstimateService {
                 + " patient_id, patient_full_name, patient_fiscal_code, patient_phone,"
                 + " issued_at, sent_at, valid_until, accepted_at, rejected_at, estimate_created_at,"
                 + " created_by_provider_id"
-                + " FROM dentalcare.v_patient_estimates_summary"
+                + " FROM " + s() + ".v_patient_estimates_summary"
                 + " WHERE clinic_id = :clinicId"
                 + filter
                 + " ORDER BY estimate_created_at DESC";
@@ -63,10 +65,10 @@ public class EstimateService {
                    patient_id, patient_full_name, patient_fiscal_code, patient_phone,
                    issued_at, sent_at, valid_until, accepted_at, rejected_at, estimate_created_at,
                    created_by_provider_id
-            FROM dentalcare.v_patient_estimates_summary
+            FROM %s.v_patient_estimates_summary
             WHERE clinic_id = :clinicId AND patient_id = :patientId
             ORDER BY estimate_created_at DESC
-            """;
+            """.formatted(s());
         return jdbc.query(sql,
                 new MapSqlParameterSource().addValue("clinicId", clinicId).addValue("patientId", patientId),
                 (rs, n) -> mapSummaryRow(rs));
@@ -90,14 +92,14 @@ public class EstimateService {
                    e.issued_at, e.sent_at, e.valid_until, e.accepted_at, e.rejected_at,
                    e.created_at       AS estimate_created_at,
                    e.created_by_provider_id
-            FROM dentalcare.estimates e
-            JOIN dentalcare.patients p
+            FROM %s.estimates e
+            JOIN %s.patients p
               ON p.id = e.patient_id AND p.clinic_id = e.clinic_id
             WHERE e.clinic_id = :clinicId
               AND e.treatment_plan_id = :planId
               AND e.status NOT IN ('rejected', 'cancelled')
             ORDER BY e.created_at DESC
-            """;
+            """.formatted(s(), s());
         return jdbc.query(sql,
                 new MapSqlParameterSource().addValue("clinicId", clinicId).addValue("planId", planId),
                 (rs, n) -> mapSummaryRow(rs));
@@ -115,12 +117,12 @@ public class EstimateService {
                    e.patient_id, concat_ws(' ', p.last_name, p.first_name) AS patient_full_name,
                    e.treatment_plan_id, tp.name AS treatment_plan_name,
                    e.issued_at, e.sent_at, e.valid_until, e.accepted_at, e.rejected_at, e.created_at
-            FROM dentalcare.estimates e
-            JOIN dentalcare.patients p ON p.id = e.patient_id AND p.clinic_id = e.clinic_id
-            LEFT JOIN dentalcare.treatment_plans tp
+            FROM %s.estimates e
+            JOIN %s.patients p ON p.id = e.patient_id AND p.clinic_id = e.clinic_id
+            LEFT JOIN %s.treatment_plans tp
                    ON tp.id = e.treatment_plan_id AND tp.clinic_id = e.clinic_id
             WHERE e.id = :id AND e.clinic_id = :clinicId
-            """;
+            """.formatted(s(), s(), s());
         List<EstimateDetailDto> headers = jdbc.query(sql,
                 new MapSqlParameterSource().addValue("id", estimateId).addValue("clinicId", clinicId),
                 (rs, n) -> mapHeaderRow(rs));
@@ -132,11 +134,11 @@ public class EstimateService {
                    el.treatment_plan_item_id, el.description_snapshot, el.tooth_snapshot,
                    el.quantity, el.unit_price, el.discount_amount, el.vat_rate,
                    el.line_subtotal, el.line_taxable, el.line_vat_amount, el.line_total
-            FROM dentalcare.estimate_lines el
-            JOIN dentalcare.service_catalog sc ON sc.id = el.service_id AND sc.clinic_id = el.clinic_id
+            FROM %s.estimate_lines el
+            JOIN %s.service_catalog sc ON sc.id = el.service_id AND sc.clinic_id = el.clinic_id
             WHERE el.estimate_id = :estimateId AND el.clinic_id = :clinicId
             ORDER BY el.line_position
-            """;
+            """.formatted(s(), s());
         List<EstimateLineDto> lines = jdbc.query(linesSql,
                 new MapSqlParameterSource().addValue("estimateId", estimateId).addValue("clinicId", clinicId),
                 (rs, n) -> new EstimateLineDto(
@@ -179,14 +181,14 @@ public class EstimateService {
         int version = 1;
         if (request.treatmentPlanId() != null) {
             Long count = jdbc.queryForObject(
-                    "SELECT COUNT(*) FROM dentalcare.estimates WHERE clinic_id = :cid AND treatment_plan_id = :planId",
+                    "SELECT COUNT(*) FROM " + s() + ".estimates WHERE clinic_id = :cid AND treatment_plan_id = :planId",
                     new MapSqlParameterSource().addValue("cid", clinicId).addValue("planId", request.treatmentPlanId()),
                     Long.class);
             version = (count == null ? 0 : (int) (long) count) + 1;
         }
 
         jdbc.update("""
-            INSERT INTO dentalcare.estimates
+            INSERT INTO %s.estimates
                 (id, clinic_id, patient_id, treatment_plan_id, estimate_number, version,
                  title, notes, currency, status,
                  subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount,
@@ -195,7 +197,7 @@ public class EstimateService {
                 (:id, :clinicId, :patientId, :planId, :number, :version,
                  :title, :notes, 'EUR', 'draft',
                  0, 0, 0, 0, 0, :validUntil, :providerId)
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
@@ -216,13 +218,13 @@ public class EstimateService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String newTitle = (request.title() != null && !request.title().isBlank()) ? request.title().trim() : null;
         jdbc.update("""
-            UPDATE dentalcare.estimates
+            UPDATE %s.estimates
             SET title      = COALESCE(:title, title),
                 notes      = :notes,
                 valid_until = :validUntil,
                 updated_at  = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", estimateId)
                         .addValue("clinicId", clinicId)
@@ -236,14 +238,14 @@ public class EstimateService {
     public void updateStatus(UUID estimateId, String status) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            UPDATE dentalcare.estimates
-            SET status     = CAST(:status AS dentalcare.estimate_status),
+            UPDATE %s.estimates
+            SET status     = CAST(:status AS %s.estimate_status),
                 sent_at    = CASE WHEN :status = 'sent'     AND sent_at IS NULL    THEN now() ELSE sent_at    END,
                 accepted_at = CASE WHEN :status = 'accepted' AND accepted_at IS NULL THEN now() ELSE accepted_at END,
                 rejected_at = CASE WHEN :status = 'rejected' AND rejected_at IS NULL THEN now() ELSE rejected_at END,
                 updated_at  = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s(), s()),
                 new MapSqlParameterSource()
                         .addValue("id", estimateId)
                         .addValue("clinicId", clinicId)
@@ -257,13 +259,13 @@ public class EstimateService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
         Long maxPos = jdbc.queryForObject(
-                "SELECT COALESCE(MAX(line_position), 0) FROM dentalcare.estimate_lines WHERE estimate_id = :id AND clinic_id = :cid",
+                "SELECT COALESCE(MAX(line_position), 0) FROM " + s() + ".estimate_lines WHERE estimate_id = :id AND clinic_id = :cid",
                 new MapSqlParameterSource().addValue("id", estimateId).addValue("cid", clinicId),
                 Long.class);
         int pos = request.linePosition() != null ? request.linePosition() : (int)(maxPos == null ? 0 : maxPos) + 10;
 
         List<Map<String, Object>> svcRows = jdbc.queryForList(
-                "SELECT name, default_price FROM dentalcare.service_catalog WHERE id = :id AND clinic_id = :cid",
+                "SELECT name, default_price FROM " + s() + ".service_catalog WHERE id = :id AND clinic_id = :cid",
                 new MapSqlParameterSource().addValue("id", request.serviceId()).addValue("cid", clinicId));
         String svcName = svcRows.isEmpty() ? "" : (String) svcRows.get(0).get("name");
         BigDecimal defaultPrice = svcRows.isEmpty() ? BigDecimal.ZERO : (BigDecimal) svcRows.get(0).get("default_price");
@@ -276,7 +278,7 @@ public class EstimateService {
 
         UUID lineId = UUID.randomUUID();
         jdbc.update("""
-            INSERT INTO dentalcare.estimate_lines
+            INSERT INTO %s.estimate_lines
                 (id, clinic_id, estimate_id, service_id, treatment_plan_item_id,
                  line_position, description_snapshot, tooth_snapshot,
                  quantity, unit_price, discount_amount, vat_rate)
@@ -284,7 +286,7 @@ public class EstimateService {
                 (:id, :clinicId, :estimateId, :serviceId, :planItemId,
                  :pos, :description, :tooth,
                  :qty, :unitPrice, :discount, :vatRate)
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", lineId)
                         .addValue("clinicId", clinicId)
@@ -304,9 +306,9 @@ public class EstimateService {
     public void deleteLine(UUID estimateId, UUID lineId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            DELETE FROM dentalcare.estimate_lines
+            DELETE FROM %s.estimate_lines
             WHERE id = :id AND estimate_id = :estimateId AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", lineId)
                         .addValue("estimateId", estimateId)
@@ -318,9 +320,9 @@ public class EstimateService {
     public void delete(UUID estimateId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
-            DELETE FROM dentalcare.estimates
+            DELETE FROM %s.estimates
             WHERE id = :id AND clinic_id = :clinicId
-            """,
+            """.formatted(s()),
                 new MapSqlParameterSource().addValue("id", estimateId).addValue("clinicId", clinicId));
     }
 
@@ -334,15 +336,15 @@ public class EstimateService {
                    e.estimate_number,
                    e.title         AS estimate_title,
                    e.status::text  AS estimate_status
-            FROM dentalcare.estimate_lines el
-            JOIN dentalcare.estimates e
+            FROM %s.estimate_lines el
+            JOIN %s.estimates e
               ON e.id = el.estimate_id AND e.clinic_id = el.clinic_id
             WHERE el.clinic_id = :clinicId
               AND e.treatment_plan_id = :planId
               AND el.treatment_plan_item_id IS NOT NULL
               AND e.status NOT IN ('cancelled', 'rejected')
             ORDER BY e.estimate_number, el.line_position
-            """;
+            """.formatted(s(), s());
         return jdbc.query(sql,
                 new MapSqlParameterSource().addValue("clinicId", clinicId).addValue("planId", planId),
                 (rs, n) -> new PlanItemCoverageDto(
@@ -361,7 +363,7 @@ public class EstimateService {
         String prefix = "EST";
         try {
             String city = jdbc.queryForObject(
-                    "SELECT city FROM dentalcare.clinics WHERE id = :id",
+                    "SELECT city FROM " + s() + ".clinics WHERE id = :id",
                     new MapSqlParameterSource().addValue("id", clinicId), String.class);
             if (city != null && !city.isBlank()) {
                 prefix = city.substring(0, Math.min(4, city.length())).toUpperCase();
@@ -369,7 +371,7 @@ public class EstimateService {
         } catch (Exception ignored) {}
 
         Long count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM dentalcare.estimates WHERE clinic_id = :cid AND EXTRACT(YEAR FROM created_at) = :yr",
+                "SELECT COUNT(*) FROM " + s() + ".estimates WHERE clinic_id = :cid AND EXTRACT(YEAR FROM created_at) = :yr",
                 new MapSqlParameterSource().addValue("cid", clinicId).addValue("yr", year), Long.class);
         return String.format("%s-%d-%05d", prefix, year, (count == null ? 0 : count) + 1);
     }

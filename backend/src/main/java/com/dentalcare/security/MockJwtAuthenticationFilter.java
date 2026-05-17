@@ -44,7 +44,8 @@ public class MockJwtAuthenticationFilter extends OncePerRequestFilter {
                         "mock-user", null, authorities);
                 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                TenantContext.setCurrentTenant(tenantId);
+                TenantContext.setCurrentClinicId(tenantId);
+                TenantContext.setCurrentSchema("t_9d754153"); // mock filter: dev-only fallback
             }
         }
         

@@ -25,6 +25,8 @@ public class AppointmentService {
         this.jdbc = jdbc;
     }
 
+    private String s() { return TenantContext.validatedSchema(); }
+
     public List<AppointmentDto> findByDate(LocalDate date, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String providerFilter = providerId != null ? "AND provider_id = :providerId\n" : "";
@@ -35,10 +37,10 @@ public class AppointmentService {
                    provider_id, provider_name, provider_role,
                    service_name, service_category, tooth_number,
                    has_allergy_alert, has_medication_alert
-            FROM dentalcare.v_agenda_daily
+            FROM %s.v_agenda_daily
             WHERE clinic_id = :clinicId
               AND starts_at::date = :date
-            """ + providerFilter + """
+            """.formatted(s()) + providerFilter + """
             ORDER BY starts_at, chair_label
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -58,10 +60,10 @@ public class AppointmentService {
                    provider_id, provider_name, provider_role,
                    service_name, service_category, tooth_number,
                    has_allergy_alert, has_medication_alert
-            FROM dentalcare.v_agenda_daily
+            FROM %s.v_agenda_daily
             WHERE clinic_id = :clinicId
               AND patient_id = :patientId
-            """ + providerFilter + """
+            """.formatted(s()) + providerFilter + """
             ORDER BY starts_at DESC
             LIMIT 50
             """;
@@ -82,10 +84,10 @@ public class AppointmentService {
                    provider_id, provider_name, provider_role,
                    service_name, service_category, tooth_number,
                    has_allergy_alert, has_medication_alert
-            FROM dentalcare.v_agenda_daily
+            FROM %s.v_agenda_daily
             WHERE clinic_id = :clinicId
               AND starts_at::date BETWEEN :from AND :to
-            """ + providerFilter + """
+            """.formatted(s()) + providerFilter + """
             ORDER BY starts_at, chair_label
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -99,10 +101,10 @@ public class AppointmentService {
     public void updateStatus(UUID appointmentId, String status) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
-            UPDATE dentalcare.appointments
-            SET status = CAST(:status AS dentalcare.appointment_status)
+            UPDATE %s.appointments
+            SET status = CAST(:status AS %s.appointment_status)
             WHERE id = :id AND clinic_id = :clinicId
-            """;
+            """.formatted(s(), s());
         jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", appointmentId)
                 .addValue("clinicId", clinicId)
@@ -118,11 +120,11 @@ public class AppointmentService {
 
         UUID id = UUID.randomUUID();
         String sql = """
-            INSERT INTO dentalcare.appointments
+            INSERT INTO %s.appointments
                 (id, clinic_id, patient_id, provider_id, chair_label, starts_at, ends_at, status, notes)
             VALUES
                 (:id, :clinicId, :patientId, :providerId, :chairLabel, :startsAt, :endsAt, 'scheduled', :notes)
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("clinicId", clinicId)
@@ -150,19 +152,19 @@ public class AppointmentService {
         // Resolve state via clinic → city → region → state (nullable chain)
         String stateQuery = """
             SELECT s.id
-            FROM dentalcare.clinics cl
-            JOIN dentalcare.cities  ci ON ci.id = cl.city_id
-            JOIN dentalcare.regions r  ON r.id  = ci.region_id
-            JOIN dentalcare.states  s  ON s.id  = r.state_id
+            FROM %s.clinics cl
+            JOIN %s.cities  ci ON ci.id = cl.city_id
+            JOIN %s.regions r  ON r.id  = ci.region_id
+            JOIN %s.states  s  ON s.id  = r.state_id
             WHERE cl.id = :clinicId
-            """;
+            """.formatted(s(), s(), s(), s());
         List<UUID> stateIds = jdbc.queryForList(stateQuery,
                 new MapSqlParameterSource("clinicId", clinicId), UUID.class);
 
         if (stateIds.isEmpty()) return; // no geo data → skip holiday check
 
         String holidayQuery = """
-            SELECT name FROM dentalcare.national_holidays
+            SELECT name FROM %s.national_holidays
             WHERE state_id = :stateId
               AND (
                 (is_recurring = TRUE  AND month = :month AND day = :day)
@@ -170,7 +172,7 @@ public class AppointmentService {
                 (is_recurring = FALSE AND holiday_date = :date)
               )
             LIMIT 1
-            """;
+            """.formatted(s());
         List<String> names = jdbc.queryForList(holidayQuery,
                 new MapSqlParameterSource()
                         .addValue("stateId", stateIds.get(0))
@@ -187,13 +189,13 @@ public class AppointmentService {
 
     private void checkChairConflict(UUID clinicId, CreateAppointmentRequest request) {
         String sql = """
-            SELECT COUNT(*) FROM dentalcare.appointments
+            SELECT COUNT(*) FROM %s.appointments
             WHERE clinic_id  = :clinicId
               AND chair_label = :chairLabel
               AND status NOT IN ('cancelled')
               AND starts_at < :endsAt
               AND ends_at   > :startsAt
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId",   clinicId)
                 .addValue("chairLabel", request.chairLabel())
@@ -210,13 +212,13 @@ public class AppointmentService {
 
     private void checkProviderConflict(UUID clinicId, CreateAppointmentRequest request) {
         String sql = """
-            SELECT COUNT(*) FROM dentalcare.appointments
+            SELECT COUNT(*) FROM %s.appointments
             WHERE clinic_id   = :clinicId
               AND provider_id  = :providerId
               AND status NOT IN ('cancelled')
               AND starts_at < :endsAt
               AND ends_at   > :startsAt
-            """;
+            """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId",   clinicId)
                 .addValue("providerId", request.providerId())
@@ -235,10 +237,10 @@ public class AppointmentService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             SELECT DISTINCT chair_label
-            FROM dentalcare.appointments
+            FROM %s.appointments
             WHERE clinic_id = :clinicId
             ORDER BY chair_label
-            """;
+            """.formatted(s());
         return jdbc.queryForList(sql, new MapSqlParameterSource("clinicId", clinicId), String.class);
     }
 
