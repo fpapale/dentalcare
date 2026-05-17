@@ -1,98 +1,204 @@
-<div class="min-h-screen bg-[#f8f9fa] font-sans">
+<div class="min-h-screen bg-white font-sans">
 
   <!-- NAVBAR -->
-  <nav [class]="scrolled() ? 'shadow-md' : 'shadow-sm'"
-       class="sticky top-0 z-50 bg-white transition-shadow duration-200">
+  <nav [class]="scrolled() ? 'shadow-md bg-white/95 backdrop-blur-sm' : 'bg-white'"
+       class="sticky top-0 z-50 transition-all duration-300 border-b border-slate-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-6">
-      <a routerLink="/landing" class="flex items-center gap-2 shrink-0">
-        <svg width="36" height="36" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="nb-bg" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#134e4a"/></linearGradient><filter id="nb-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="4" y="4" width="80" height="80" rx="20" fill="url(#nb-bg)"/><circle cx="36" cy="44" r="20" fill="#0d9488" opacity="0.15"/><text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf" filter="url(#nb-glow)">D</text><path d="M50 51 Q59 61 68 51" stroke="#2dd4bf" stroke-width="2.8" fill="none" stroke-linecap="round" filter="url(#nb-glow)"/><circle cx="54" cy="43" r="2.5" fill="#5eead4" filter="url(#nb-glow)"/><circle cx="63" cy="43" r="2.5" fill="#5eead4" filter="url(#nb-glow)"/></svg>
-        <span class="font-bold text-[#00448c] text-lg">DentalCare Pro</span>
+      <a routerLink="/landing" class="flex items-center gap-2.5 shrink-0">
+        <svg width="36" height="36" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="nb-bg" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#00448c"/>
+              <stop offset="100%" stop-color="#003a78"/>
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="88" height="88" rx="22" fill="url(#nb-bg)"/>
+          <path d="M24 58 C24 42 34 30 44 28 C54 30 64 42 64 58 C64 64 60 68 54 68 C50 68 47 65 44 65 C41 65 38 68 34 68 C28 68 24 64 24 58Z" fill="white" opacity="0.95"/>
+          <path d="M38 44 Q40 40 44 40 Q48 40 50 44" stroke="#00448c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <circle cx="39" cy="50" r="2" fill="#00448c"/>
+          <circle cx="44" cy="52" r="2" fill="#00448c"/>
+          <circle cx="49" cy="50" r="2" fill="#00448c"/>
+        </svg>
+        <span class="font-bold text-[#00448c] text-lg tracking-tight">DentalCare Pro</span>
       </a>
 
-      <div class="hidden md:flex items-center gap-6 ml-6">
-        <button (click)="scrollTo('funzionalita')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors">Funzionalità</button>
-        <button (click)="scrollTo('prezzi')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors">Prezzi</button>
-        <button (click)="scrollTo('supporto')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors">Supporto</button>
+      <div class="hidden md:flex items-center gap-1 ml-6">
+        <button (click)="scrollTo('funzionalita')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Funzionalità</button>
+        <button (click)="scrollTo('prezzi')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Prezzi</button>
+        <button (click)="scrollTo('supporto')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Supporto</button>
       </div>
 
       <div class="ml-auto flex items-center gap-3">
         <a routerLink="/dashboard" class="text-sm font-medium text-slate-600 hover:text-[#00448c] transition-colors px-3 py-2">Accedi</a>
-        <a routerLink="/registrati" class="text-sm font-semibold bg-[#00448c] hover:bg-[#005BB7] text-white px-4 py-2 rounded-lg transition-colors">Inizia ora</a>
+        <a routerLink="/registrati" class="text-sm font-semibold bg-[#00448c] hover:bg-[#005BB7] text-white px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-900/20">Inizia ora</a>
       </div>
     </div>
   </nav>
 
   <!-- HERO -->
-  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
-    <div class="grid lg:grid-cols-2 gap-12 items-center">
-      <div>
-        <span class="inline-flex items-center gap-2 text-xs font-semibold text-[#00448c] border border-[#00448c] rounded-full px-3 py-1 mb-6">
-          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          Soluzione Completa per Studi Dentistici
-        </span>
-        <h1 class="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-6">
-          Modernizza il tuo studio con <span class="text-[#00448c]">DentalCare Pro</span>
-        </h1>
-        <p class="text-lg text-slate-600 mb-8 leading-relaxed">
-          Gestisci pazienti, agenda, preventivi e fatturazione in un'unica piattaforma cloud sicura e intuitiva.
-        </p>
-        <div class="flex flex-wrap gap-3">
-          <a routerLink="/registrati" class="inline-flex items-center gap-2 bg-[#00448c] hover:bg-[#005BB7] text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-md">
-            Inizia la prova gratuita
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-          </a>
-          <button (click)="scrollTo('funzionalita')" class="inline-flex items-center gap-2 border border-slate-300 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold px-6 py-3 rounded-xl transition-colors">
-            Scopri le funzionalità
-          </button>
-        </div>
-      </div>
+  <section class="relative overflow-hidden bg-gradient-to-br from-slate-50 via-[#f0f6ff] to-slate-100">
+    <!-- Decorative blobs -->
+    <div class="absolute -top-32 -right-32 w-96 h-96 bg-[#00448c]/8 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute top-1/2 left-0 w-64 h-64 bg-blue-100/40 rounded-full blur-3xl pointer-events-none"></div>
 
-      <!-- Mini-dashboard mockup -->
-      <div class="bg-white rounded-2xl shadow-xl p-6 border border-slate-100">
-        <div class="flex items-center gap-2 mb-5">
-          <div class="w-3 h-3 rounded-full bg-red-400"></div>
-          <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-          <div class="w-3 h-3 rounded-full bg-green-400"></div>
-          <span class="ml-3 text-xs text-slate-400 font-medium">DentalCare Pro — Dashboard</span>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+      <div class="grid lg:grid-cols-2 gap-14 items-center">
+
+        <!-- Left: content -->
+        <div>
+          <span class="inline-flex items-center gap-2 text-xs font-semibold text-[#00448c] bg-white border border-blue-100 rounded-full px-3.5 py-1.5 mb-6 shadow-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#00448c] animate-pulse"></span>
+            Soluzione Completa per Studi Dentistici
+          </span>
+          <h1 class="text-4xl lg:text-5xl xl:text-[3.25rem] font-extrabold text-slate-900 leading-[1.1] mb-6">
+            Modernizza il tuo studio con
+            <span class="text-[#00448c] block mt-1">DentalCare Pro</span>
+          </h1>
+          <p class="text-lg text-slate-600 mb-8 leading-relaxed max-w-lg">
+            Gestisci pazienti, agenda, preventivi e fatturazione in un'unica piattaforma cloud sicura e intuitiva. Pensata per i dentisti italiani.
+          </p>
+          <div class="flex flex-wrap gap-3 mb-12">
+            <a routerLink="/registrati"
+               class="inline-flex items-center gap-2 bg-[#00448c] hover:bg-[#005BB7] text-white font-semibold px-7 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-900/25 hover:shadow-blue-900/35 hover:-translate-y-0.5">
+              Inizia la prova gratuita
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </a>
+            <button (click)="scrollTo('funzionalita')"
+                    class="inline-flex items-center gap-2 bg-white border border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold px-7 py-3.5 rounded-xl transition-all shadow-sm hover:-translate-y-0.5">
+              Scopri le funzionalità
+            </button>
+          </div>
+
+          <!-- Stats -->
+          <div class="flex flex-wrap items-center gap-8 pt-8 border-t border-slate-200">
+            <div>
+              <p class="text-2xl font-extrabold text-slate-900">500+</p>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Studi attivi</p>
+            </div>
+            <div class="border-l border-slate-200 pl-8">
+              <p class="text-2xl font-extrabold text-slate-900">50k+</p>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Pazienti gestiti</p>
+            </div>
+            <div class="border-l border-slate-200 pl-8">
+              <p class="text-2xl font-extrabold text-slate-900">99.9%</p>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Uptime garantito</p>
+            </div>
+          </div>
         </div>
-        <div class="grid grid-cols-3 gap-3 mb-5">
-          <div class="bg-[#f0f6ff] rounded-xl p-3 text-center">
-            <p class="text-2xl font-bold text-[#00448c]">248</p>
-            <p class="text-xs text-slate-500 mt-0.5">Pazienti</p>
-          </div>
-          <div class="bg-[#f0faf5] rounded-xl p-3 text-center">
-            <p class="text-2xl font-bold text-[#006c49]">12</p>
-            <p class="text-xs text-slate-500 mt-0.5">Appuntamenti oggi</p>
-          </div>
-          <div class="bg-[#fff8f0] rounded-xl p-3 text-center">
-            <p class="text-2xl font-bold text-amber-600">34</p>
-            <p class="text-xs text-slate-500 mt-0.5">Preventivi attivi</p>
-          </div>
-        </div>
-        <div class="space-y-2.5">
-          <div class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
-            <div class="w-8 h-8 rounded-full bg-[#00448c] flex items-center justify-center text-white text-xs font-bold shrink-0">MR</div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-slate-800 truncate">Mario Rossi</p>
-              <p class="text-xs text-slate-500">Oggi, 09:30 — Ablazione</p>
+
+        <!-- Right: visual -->
+        <div class="relative hidden lg:block">
+          <!-- Dental studio illustration card -->
+          <div class="relative rounded-3xl overflow-hidden shadow-2xl" style="background: linear-gradient(135deg, #00448c 0%, #003270 50%, #001d4a 100%);">
+            <!-- Abstract dental studio scene -->
+            <div class="p-8 pb-0">
+              <!-- Window / room mockup -->
+              <div class="bg-white/10 rounded-t-2xl overflow-hidden" style="height: 220px; position: relative;">
+                <!-- Dental chair SVG -->
+                <svg viewBox="0 0 400 220" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Room background -->
+                  <rect width="400" height="220" fill="#e8f4ff" opacity="0.15"/>
+                  <!-- Floor -->
+                  <rect y="180" width="400" height="40" fill="white" opacity="0.08"/>
+                  <!-- Wall line -->
+                  <line x1="0" y1="180" x2="400" y2="180" stroke="white" stroke-width="1" opacity="0.2"/>
+
+                  <!-- Dental chair base -->
+                  <rect x="110" y="150" width="180" height="20" rx="4" fill="white" opacity="0.7"/>
+                  <!-- Chair seat -->
+                  <rect x="120" y="120" width="160" height="35" rx="8" fill="white" opacity="0.85"/>
+                  <!-- Chair back -->
+                  <rect x="200" y="70" width="80" height="60" rx="8" fill="white" opacity="0.85"/>
+                  <!-- Chair arm -->
+                  <rect x="120" y="118" width="15" height="25" rx="4" fill="#b0d4f1" opacity="0.9"/>
+                  <!-- Headrest -->
+                  <rect x="215" y="55" width="50" height="22" rx="6" fill="white" opacity="0.9"/>
+
+                  <!-- Dental lamp arm -->
+                  <line x1="285" y1="20" x2="285" y2="90" stroke="white" stroke-width="4" opacity="0.6" stroke-linecap="round"/>
+                  <line x1="285" y1="90" x2="240" y2="110" stroke="white" stroke-width="4" opacity="0.6" stroke-linecap="round"/>
+                  <!-- Lamp head -->
+                  <ellipse cx="225" cy="115" rx="22" ry="12" fill="#fffde0" opacity="0.9"/>
+                  <ellipse cx="225" cy="115" rx="14" ry="8" fill="#ffe566" opacity="0.7"/>
+
+                  <!-- Equipment tray -->
+                  <rect x="50" y="100" width="60" height="8" rx="4" fill="white" opacity="0.5"/>
+                  <rect x="60" y="85" width="4" height="16" rx="2" fill="white" opacity="0.4"/>
+                  <rect x="72" y="88" width="4" height="13" rx="2" fill="white" opacity="0.4"/>
+                  <rect x="84" y="86" width="4" height="15" rx="2" fill="white" opacity="0.4"/>
+                  <rect x="96" y="90" width="4" height="11" rx="2" fill="white" opacity="0.4"/>
+
+                  <!-- Monitor -->
+                  <rect x="315" y="60" width="65" height="50" rx="6" fill="white" opacity="0.15"/>
+                  <rect x="319" y="64" width="57" height="38" rx="4" fill="#0077cc" opacity="0.4"/>
+                  <!-- Screen content -->
+                  <rect x="322" y="68" width="30" height="4" rx="2" fill="white" opacity="0.6"/>
+                  <rect x="322" y="76" width="48" height="2" rx="1" fill="white" opacity="0.3"/>
+                  <rect x="322" y="81" width="40" height="2" rx="1" fill="white" opacity="0.3"/>
+                  <rect x="322" y="86" width="44" height="2" rx="1" fill="white" opacity="0.3"/>
+                  <rect x="322" y="91" width="35" height="2" rx="1" fill="white" opacity="0.3"/>
+
+                  <!-- Patient lying (abstract) -->
+                  <ellipse cx="170" cy="112" rx="18" ry="14" fill="#ffd6b0" opacity="0.6"/>
+                  <rect x="140" y="120" width="85" height="14" rx="6" fill="#ffd6b0" opacity="0.4"/>
+
+                  <!-- Decorative circles -->
+                  <circle cx="30" cy="30" r="20" fill="white" opacity="0.04"/>
+                  <circle cx="370" cy="170" r="30" fill="white" opacity="0.04"/>
+                </svg>
+              </div>
             </div>
-            <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full shrink-0">Confermato</span>
-          </div>
-          <div class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
-            <div class="w-8 h-8 rounded-full bg-[#006c49] flex items-center justify-center text-white text-xs font-bold shrink-0">LB</div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-slate-800 truncate">Laura Bianchi</p>
-              <p class="text-xs text-slate-500">Oggi, 11:00 — Otturazione</p>
+
+            <!-- Gradient overlay -->
+            <div class="absolute inset-0 bg-gradient-to-t from-[#001d4a]/60 via-transparent to-transparent pointer-events-none"></div>
+
+            <!-- Caption -->
+            <div class="relative px-8 py-5">
+              <p class="text-blue-200 text-xs font-medium uppercase tracking-wider mb-1">Studio Dentistico Moderno</p>
+              <p class="text-white font-semibold">Tecnologia al servizio della cura</p>
             </div>
-            <span class="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full shrink-0">In attesa</span>
           </div>
-          <div class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
-            <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold shrink-0">GV</div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-slate-800 truncate">Giuseppe Verdi</p>
-              <p class="text-xs text-slate-500">Oggi, 14:00 — Visita</p>
+
+          <!-- Floating: KPI card -->
+          <div class="absolute -bottom-8 -left-8 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 w-60">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-7 h-7 rounded-lg bg-[#00448c] flex items-center justify-center">
+                <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                </svg>
+              </div>
+              <span class="text-xs font-semibold text-slate-700">Dashboard Live</span>
             </div>
-            <span class="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full shrink-0">Nuovo</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="bg-blue-50 rounded-lg p-2 text-center">
+                <p class="text-lg font-bold text-[#00448c] leading-none">248</p>
+                <p class="text-[10px] text-slate-500 mt-1">Pazienti</p>
+              </div>
+              <div class="bg-green-50 rounded-lg p-2 text-center">
+                <p class="text-lg font-bold text-green-700 leading-none">12</p>
+                <p class="text-[10px] text-slate-500 mt-1">Oggi</p>
+              </div>
+              <div class="bg-amber-50 rounded-lg p-2 text-center">
+                <p class="text-lg font-bold text-amber-600 leading-none">34</p>
+                <p class="text-[10px] text-slate-500 mt-1">Prev.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating: next appointment -->
+          <div class="absolute -top-5 -right-5 bg-white rounded-xl shadow-lg border border-slate-100 p-3 flex items-center gap-3 max-w-[200px]">
+            <div class="w-9 h-9 rounded-xl bg-green-500 flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-800">Mario Rossi</p>
+              <p class="text-[10px] text-slate-400">09:30 — Ablazione</p>
+              <span class="text-[9px] font-bold text-green-600">Confermato</span>
+            </div>
           </div>
         </div>
       </div>
@@ -100,114 +206,433 @@
   </section>
 
   <!-- FEATURES STRIP -->
-  <section id="funzionalita" class="bg-white py-20">
+  <section id="funzionalita" class="bg-white py-20 border-t border-slate-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-14">
-        <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Strumenti di Precisione per Dentisti Moderni</h2>
-        <p class="text-slate-500 max-w-2xl mx-auto">Tutto ciò di cui il tuo studio ha bisogno, in una piattaforma integrata e sicura.</p>
+        <span class="text-xs font-semibold text-[#00448c] uppercase tracking-widest">Piattaforma Integrata</span>
+        <h2 class="text-3xl font-extrabold text-slate-900 mt-2 mb-4">Strumenti di Precisione per Dentisti Moderni</h2>
+        <p class="text-slate-500 max-w-2xl mx-auto">Tutto ciò di cui il tuo studio ha bisogno, in una piattaforma integrata e sicura. Nessun software aggiuntivo.</p>
       </div>
+
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="bg-[#f8f9fa] rounded-xl p-6 hover:shadow-md transition-shadow">
-          <div class="text-3xl mb-4">🗓️</div>
-          <h3 class="font-bold text-slate-800 mb-2">Agenda Intelligente</h3>
+        <!-- Agenda -->
+        <div class="group bg-gradient-to-br from-blue-50 to-[#f0f6ff] rounded-2xl p-6 hover:shadow-lg transition-all hover:-translate-y-1 border border-blue-100/50">
+          <div class="w-12 h-12 rounded-xl bg-[#00448c] flex items-center justify-center mb-5 shadow-md shadow-blue-900/20 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 text-base">Agenda Intelligente</h3>
           <p class="text-sm text-slate-500 leading-relaxed">Gestione appuntamenti multi-poltrona con alert e richiami automatici</p>
         </div>
-        <div class="bg-[#f8f9fa] rounded-xl p-6 hover:shadow-md transition-shadow">
-          <div class="text-3xl mb-4">👥</div>
-          <h3 class="font-bold text-slate-800 mb-2">Cartella Clinica Digitale</h3>
+
+        <!-- Cartella clinica -->
+        <div class="group bg-gradient-to-br from-teal-50 to-green-50 rounded-2xl p-6 hover:shadow-lg transition-all hover:-translate-y-1 border border-teal-100/50">
+          <div class="w-12 h-12 rounded-xl bg-[#006c49] flex items-center justify-center mb-5 shadow-md shadow-green-900/20 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 text-base">Cartella Clinica Digitale</h3>
           <p class="text-sm text-slate-500 leading-relaxed">Anamnesi, odontogramma, storico visite e documenti in sicurezza</p>
         </div>
-        <div class="bg-[#f8f9fa] rounded-xl p-6 hover:shadow-md transition-shadow">
-          <div class="text-3xl mb-4">📋</div>
-          <h3 class="font-bold text-slate-800 mb-2">Preventivi & Fatturazione</h3>
+
+        <!-- Preventivi -->
+        <div class="group bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 hover:shadow-lg transition-all hover:-translate-y-1 border border-violet-100/50">
+          <div class="w-12 h-12 rounded-xl bg-[#7c3aed] flex items-center justify-center mb-5 shadow-md shadow-violet-900/20 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 text-base">Preventivi & Fatturazione</h3>
           <p class="text-sm text-slate-500 leading-relaxed">Piani di cura, preventivi versionati e fatturazione automatica</p>
         </div>
-        <div class="bg-[#f8f9fa] rounded-xl p-6 hover:shadow-md transition-shadow">
-          <div class="text-3xl mb-4">📦</div>
-          <h3 class="font-bold text-slate-800 mb-2">Magazzino & Richiami</h3>
+
+        <!-- Magazzino -->
+        <div class="group bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 hover:shadow-lg transition-all hover:-translate-y-1 border border-amber-100/50">
+          <div class="w-12 h-12 rounded-xl bg-[#d97706] flex items-center justify-center mb-5 shadow-md shadow-amber-900/20 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 text-base">Magazzino & Richiami</h3>
           <p class="text-sm text-slate-500 leading-relaxed">Controllo scorte in tempo reale e campagne richiami pazienti</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- AI-DEN SECTION -->
-  <section class="bg-[#00448c] py-20">
+  <!-- FEATURE SHOWCASE: 2 large cards with UI mockups -->
+  <section class="bg-[#f8f9fa] py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <div>
-          <span class="inline-block text-xs font-semibold text-blue-200 uppercase tracking-wider mb-4">Intelligenza Artificiale</span>
-          <h2 class="text-3xl font-extrabold text-white mb-6">Incontra la tua Segretaria AI</h2>
-          <p class="text-blue-100 text-lg leading-relaxed mb-6">
-            AI-DEN gestisce appuntamenti, risponde alle chiamate e invia promemoria ai pazienti tramite linguaggio naturale. Il tutto in automatico, 24 ore su 24.
-          </p>
-          <ul class="space-y-3">
-            <li class="flex items-center gap-3 text-blue-100 text-sm">
-              <svg class="w-5 h-5 text-blue-300 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Risponde ai pazienti in linguaggio naturale
-            </li>
-            <li class="flex items-center gap-3 text-blue-100 text-sm">
-              <svg class="w-5 h-5 text-blue-300 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Gestisce prenotazioni e cancellazioni autonomamente
-            </li>
-            <li class="flex items-center gap-3 text-blue-100 text-sm">
-              <svg class="w-5 h-5 text-blue-300 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Invia promemoria automatici via SMS e email
-            </li>
-          </ul>
+      <div class="grid lg:grid-cols-2 gap-8">
+
+        <!-- Agenda card -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+          <div class="bg-gradient-to-br from-[#00448c] to-[#003270] p-6">
+            <!-- Calendar UI mockup -->
+            <div class="bg-white/10 rounded-2xl p-4">
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-white font-semibold text-sm">Maggio 2026</span>
+                <div class="flex gap-1">
+                  <div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center cursor-pointer">
+                    <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                  </div>
+                  <div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center cursor-pointer">
+                    <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </div>
+                </div>
+              </div>
+              <div class="grid grid-cols-7 gap-1 mb-2">
+                <span class="text-[10px] text-center text-blue-200 font-medium">L</span>
+                <span class="text-[10px] text-center text-blue-200 font-medium">M</span>
+                <span class="text-[10px] text-center text-blue-200 font-medium">M</span>
+                <span class="text-[10px] text-center text-blue-200 font-medium">G</span>
+                <span class="text-[10px] text-center text-blue-200 font-medium">V</span>
+                <span class="text-[10px] text-center text-blue-200 font-medium">S</span>
+                <span class="text-[10px] text-center text-blue-200 font-medium">D</span>
+              </div>
+              <div class="grid grid-cols-7 gap-1">
+                <span class="text-[11px] text-center text-white/60 py-1"></span>
+                <span class="text-[11px] text-center text-white/60 py-1"></span>
+                <span class="text-[11px] text-center text-white/60 py-1"></span>
+                <span class="text-[11px] text-center text-white py-1">1</span>
+                <span class="text-[11px] text-center text-white py-1">2</span>
+                <span class="text-[11px] text-center text-white/40 py-1">3</span>
+                <span class="text-[11px] text-center text-white/40 py-1">4</span>
+                <span class="text-[11px] text-center text-white py-1">5</span>
+                <span class="text-[11px] text-center text-white py-1">6</span>
+                <span class="text-[11px] text-center text-white py-1">7</span>
+                <span class="text-[11px] text-center text-white py-1">8</span>
+                <span class="text-[11px] text-center text-white py-1">9</span>
+                <span class="text-[11px] text-center text-white/40 py-1">10</span>
+                <span class="text-[11px] text-center text-white/40 py-1">11</span>
+                <span class="text-[11px] text-center text-white py-1">12</span>
+                <span class="text-[11px] text-center text-white py-1">13</span>
+                <span class="text-[11px] text-center text-white py-1">14</span>
+                <span class="text-[11px] text-center text-white py-1">15</span>
+                <span class="text-[11px] text-center text-white py-1">16</span>
+                <span class="text-[11px] text-center bg-white text-[#00448c] font-bold rounded-full w-6 h-6 flex items-center justify-center mx-auto">17</span>
+                <span class="text-[11px] text-center text-white/40 py-1">18</span>
+              </div>
+              <!-- Time slots -->
+              <div class="mt-3 space-y-1.5">
+                <div class="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-1.5">
+                  <div class="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0"></div>
+                  <span class="text-[10px] text-white flex-1">09:30 — Mario R. — Ablazione</span>
+                  <span class="text-[9px] text-green-300 font-semibold">✓</span>
+                </div>
+                <div class="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-1.5">
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-300 shrink-0"></div>
+                  <span class="text-[10px] text-white flex-1">11:00 — Laura B. — Otturazione</span>
+                </div>
+                <div class="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-1.5">
+                  <div class="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0"></div>
+                  <span class="text-[10px] text-white flex-1">14:00 — G. Verdi — Prima visita</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="p-6">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Agenda Intelligente</h3>
+            <p class="text-slate-500 text-sm leading-relaxed">Visualizza le prenotazioni multi-poltrona, gestisci i cambi, invia promemoria automatici ai pazienti via SMS e email.</p>
+          </div>
         </div>
-        <div class="flex justify-center lg:justify-end">
-          <div class="w-48 h-48 rounded-full bg-white/10 border-2 border-white/20 flex flex-col items-center justify-center gap-3">
-            <div class="text-6xl">✨</div>
-            <span class="text-white font-bold text-xl tracking-wide">AI-DEN</span>
-            <span class="text-blue-200 text-xs">Segretaria Virtuale</span>
+
+        <!-- Fatturazione card -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+          <div class="bg-gradient-to-br from-[#006c49] to-[#004d35] p-6">
+            <!-- Invoice UI mockup -->
+            <div class="bg-white/10 rounded-2xl p-4">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <p class="text-white font-semibold text-sm">Fattura #2026-0142</p>
+                  <p class="text-green-200 text-[10px] mt-0.5">Emessa il 17/05/2026</p>
+                </div>
+                <span class="bg-green-400/20 text-green-200 text-[10px] font-bold px-2.5 py-1 rounded-full border border-green-400/30">PAGATA</span>
+              </div>
+              <div class="bg-white/10 rounded-xl p-3 mb-3">
+                <div class="flex justify-between mb-2">
+                  <span class="text-[10px] text-green-200">Paziente</span>
+                  <span class="text-[10px] text-white font-medium">Mario Rossi</span>
+                </div>
+                <div class="space-y-1.5 border-t border-white/10 pt-2">
+                  <div class="flex justify-between">
+                    <span class="text-[10px] text-green-100">Ablazione tartaro</span>
+                    <span class="text-[10px] text-white font-medium">€ 120,00</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-[10px] text-green-100">Sbiancamento</span>
+                    <span class="text-[10px] text-white font-medium">€ 350,00</span>
+                  </div>
+                  <div class="flex justify-between border-t border-white/10 pt-1.5">
+                    <span class="text-[10px] text-white font-bold">Totale IVA incl.</span>
+                    <span class="text-[10px] text-green-300 font-bold">€ 574,20</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Progress bar -->
+              <div class="space-y-1">
+                <div class="flex justify-between">
+                  <span class="text-[9px] text-green-200">Incassato questo mese</span>
+                  <span class="text-[9px] text-white font-bold">€ 8.240</span>
+                </div>
+                <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-green-400 to-green-300 rounded-full" style="width: 73%"></div>
+                </div>
+                <p class="text-[9px] text-green-200">73% dell'obiettivo mensile</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Fatturazione Automatica</h3>
+            <p class="text-slate-500 text-sm leading-relaxed">Genera fatture elettroniche con un click, traccia i pagamenti e monitora gli incassi in tempo reale con dashboard integrate.</p>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- WHY DENTALCARE -->
-  <section id="perche" class="py-20 bg-[#f8f9fa]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-14">
-        <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Perché scegliere DentalCare Pro?</h2>
+  <!-- AI-DEN SECTION -->
+  <section class="bg-[#0a1628] py-24 relative overflow-hidden">
+    <!-- Background glow effects -->
+    <div class="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute top-1/4 right-1/4 w-64 h-64 bg-[#00448c]/15 rounded-full blur-2xl pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+        <!-- Shield logo -->
+        <div class="flex justify-center lg:justify-start order-2 lg:order-1">
+          <div class="relative">
+            <!-- Outer glow rings -->
+            <div class="absolute inset-0 rounded-full bg-blue-500/5 scale-150 blur-2xl"></div>
+            <div class="absolute inset-0 rounded-full border border-blue-400/10 scale-125 animate-pulse"></div>
+
+            <!-- Main shield -->
+            <svg viewBox="0 0 280 320" class="w-64 h-auto relative z-10" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="shield-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#1a6fc4"/>
+                  <stop offset="50%" stop-color="#00448c"/>
+                  <stop offset="100%" stop-color="#002d5c"/>
+                </linearGradient>
+                <linearGradient id="shield-shine" x1="0%" y1="0%" x2="50%" y2="100%">
+                  <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
+                  <stop offset="100%" stop-color="white" stop-opacity="0"/>
+                </linearGradient>
+                <filter id="shield-glow">
+                  <feGaussianBlur stdDeviation="8" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+
+              <!-- Shield path -->
+              <path d="M140 8 L260 55 L260 155 C260 225 205 280 140 305 C75 280 20 225 20 155 L20 55 Z"
+                    fill="url(#shield-grad)" filter="url(#shield-glow)"/>
+              <!-- Shield shine -->
+              <path d="M140 8 L260 55 L260 155 C260 225 205 280 140 305 C75 280 20 225 20 155 L20 55 Z"
+                    fill="url(#shield-shine)"/>
+              <!-- Shield border -->
+              <path d="M140 8 L260 55 L260 155 C260 225 205 280 140 305 C75 280 20 225 20 155 L20 55 Z"
+                    fill="none" stroke="rgba(100,160,255,0.3)" stroke-width="1.5"/>
+
+              <!-- Inner decorative ring -->
+              <path d="M140 28 L245 68 L245 155 C245 215 196 265 140 287 C84 265 35 215 35 155 L35 68 Z"
+                    fill="none" stroke="rgba(100,160,255,0.15)" stroke-width="1"/>
+
+              <!-- Tooth icon in center -->
+              <path d="M108 130 C108 108 118 96 140 92 C162 96 172 108 172 130 C172 160 160 185 148 195 C144 200 140 200 136 195 C124 185 108 160 108 130Z"
+                    fill="white" opacity="0.9"/>
+              <!-- Tooth roots -->
+              <path d="M128 195 L122 228" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+              <path d="M140 200 L140 232" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+              <path d="M152 195 L158 228" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+
+              <!-- AI-DEN text -->
+              <text x="140" y="272" text-anchor="middle" font-family="system-ui, sans-serif"
+                    font-size="22" font-weight="800" fill="white" letter-spacing="4" opacity="0.95">AI·DEN</text>
+
+              <!-- Stars/sparkles -->
+              <circle cx="80" cy="80" r="3" fill="rgba(150,200,255,0.6)"/>
+              <circle cx="200" cy="65" r="2" fill="rgba(150,200,255,0.5)"/>
+              <circle cx="70" cy="200" r="2.5" fill="rgba(150,200,255,0.4)"/>
+              <circle cx="210" cy="210" r="3.5" fill="rgba(150,200,255,0.5)"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="order-1 lg:order-2">
+          <span class="inline-block text-xs font-semibold text-blue-300 uppercase tracking-widest mb-4">Intelligenza Artificiale</span>
+          <h2 class="text-3xl lg:text-4xl font-extrabold text-white mb-6 leading-tight">
+            Incontra la tua<br/>Segretaria AI
+          </h2>
+          <p class="text-slate-300 text-lg leading-relaxed mb-8">
+            AI-DEN gestisce appuntamenti, risponde alle chiamate e invia promemoria ai pazienti tramite linguaggio naturale. Il tutto in automatico, 24 ore su 24.
+          </p>
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <span class="text-slate-300 text-sm leading-relaxed">Risponde ai pazienti in linguaggio naturale italiano, 24/7</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <span class="text-slate-300 text-sm leading-relaxed">Gestisce prenotazioni e cancellazioni senza intervento umano</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <span class="text-slate-300 text-sm leading-relaxed">Invia promemoria personalizzati via SMS e email in automatico</span>
+            </li>
+          </ul>
+          <a routerLink="/registrati"
+             class="inline-flex items-center gap-2 bg-white text-[#00448c] hover:bg-blue-50 font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg">
+            Scopri AI-DEN
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </a>
+        </div>
       </div>
-      <div class="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        <div class="flex gap-4 bg-white rounded-xl p-6 shadow-sm">
-          <div class="shrink-0 w-10 h-10 rounded-full bg-[#f0faf5] flex items-center justify-center">
-            <svg class="w-5 h-5 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-          </div>
-          <div>
-            <h3 class="font-bold text-slate-800 mb-1">Sicurezza enterprise</h3>
-            <p class="text-sm text-slate-500">Dati crittografati, GDPR compliant, backup automatici</p>
+    </div>
+  </section>
+
+  <!-- WHY DENTALCARE -->
+  <section id="perche" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+        <!-- Left: visual -->
+        <div class="relative hidden lg:block">
+          <div class="bg-gradient-to-br from-[#f0f6ff] to-[#e8f4ff] rounded-3xl p-8 border border-blue-100">
+            <!-- Why items visual representation -->
+            <div class="space-y-4">
+              <div class="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <p class="font-bold text-slate-800 text-sm">Sicurezza Enterprise</p>
+                  <div class="h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                    <div class="h-full bg-green-500 rounded-full" style="width: 98%"></div>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-1">GDPR Compliant · 256-bit AES</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                <div class="w-12 h-12 rounded-xl bg-green-600 flex items-center justify-center shrink-0">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <p class="font-bold text-slate-800 text-sm">Setup in 5 minuti</p>
+                  <div class="h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                    <div class="h-full bg-blue-500 rounded-full" style="width: 95%"></div>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-1">Nessuna formazione richiesta</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                <div class="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shrink-0">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <p class="font-bold text-slate-800 text-sm">Supporto Italiano 5/7</p>
+                  <div class="h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full" style="width: 100%"></div>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-1">Team dedicato · Risposta &lt; 4h</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                <div class="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center shrink-0">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <p class="font-bold text-slate-800 text-sm">Aggiornamenti Continui</p>
+                  <div class="h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                    <div class="h-full bg-violet-500 rounded-full" style="width: 90%"></div>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-1">Nuove funzionalità ogni mese · Zero downtime</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="flex gap-4 bg-white rounded-xl p-6 shadow-sm">
-          <div class="shrink-0 w-10 h-10 rounded-full bg-[#f0faf5] flex items-center justify-center">
-            <svg class="w-5 h-5 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-          </div>
-          <div>
-            <h3 class="font-bold text-slate-800 mb-1">Facile da usare</h3>
-            <p class="text-sm text-slate-500">Interfaccia intuitiva, nessuna formazione richiesta</p>
-          </div>
-        </div>
-        <div class="flex gap-4 bg-white rounded-xl p-6 shadow-sm">
-          <div class="shrink-0 w-10 h-10 rounded-full bg-[#f0faf5] flex items-center justify-center">
-            <svg class="w-5 h-5 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-          </div>
-          <div>
-            <h3 class="font-bold text-slate-800 mb-1">Supporto dedicato</h3>
-            <p class="text-sm text-slate-500">Assistenza italiana dal lunedì al venerdì</p>
-          </div>
-        </div>
-        <div class="flex gap-4 bg-white rounded-xl p-6 shadow-sm">
-          <div class="shrink-0 w-10 h-10 rounded-full bg-[#f0faf5] flex items-center justify-center">
-            <svg class="w-5 h-5 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-          </div>
-          <div>
-            <h3 class="font-bold text-slate-800 mb-1">Aggiornamenti continui</h3>
-            <p class="text-sm text-slate-500">Nuove funzionalità ogni mese, zero downtime</p>
+
+        <!-- Right: content -->
+        <div>
+          <span class="text-xs font-semibold text-[#00448c] uppercase tracking-widest">Perché sceglierci</span>
+          <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-900 mt-2 mb-6 leading-tight">
+            Perché scegliere<br/>DentalCare Pro?
+          </h2>
+          <p class="text-slate-500 mb-8 leading-relaxed">
+            Non è solo un software. È un partner pensato per la realtà degli studi dentistici italiani, con strumenti che risparmiano tempo e aumentano la soddisfazione dei pazienti.
+          </p>
+          <div class="space-y-5">
+            <div class="flex items-start gap-4">
+              <div class="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-[#00448c]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">Sicurezza Enterprise</h3>
+                <p class="text-sm text-slate-500">Dati crittografati con AES-256, GDPR compliant, backup automatici giornalieri su server italiani.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4">
+              <div class="w-8 h-8 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-[#006c49]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">Facile da usare</h3>
+                <p class="text-sm text-slate-500">Interfaccia intuitiva, setup in 5 minuti. Il tuo team sarà operativo da subito, senza formazione.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4">
+              <div class="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0c0 .993-.241 1.929-.668 2.754l-1.524-1.525a3.997 3.997 0 00.078-2.183l1.562-1.562C15.802 8.249 16 9.1 16 10zm-5.165 3.913l1.58 1.58A5.98 5.98 0 0110 16a5.976 5.976 0 01-2.516-.552l1.562-1.562a4.006 4.006 0 001.789.027zm-4.677-2.796a4.002 4.002 0 01-.041-2.08l-.08.08-1.53-1.533A5.98 5.98 0 004 10c0 .954.223 1.856.619 2.657l1.54-1.54zm1.088-6.45A5.974 5.974 0 0110 4c.954 0 1.856.223 2.657.619l-1.54 1.54a4.002 4.002 0 00-2.346.033L7.246 4.668z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">Supporto Dedicato</h3>
+                <p class="text-sm text-slate-500">Team di supporto italiano dal lunedì al venerdì, con risposta garantita entro 4 ore.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4">
+              <div class="w-8 h-8 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800 mb-1">Aggiornamenti Continui</h3>
+                <p class="text-sm text-slate-500">Nuove funzionalità ogni mese, deployment continuo senza downtime. Il software cresce con te.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -215,94 +640,166 @@
   </section>
 
   <!-- TESTIMONIAL -->
-  <section class="bg-white py-16">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <div class="flex justify-center gap-1 mb-6">
-        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-      </div>
-      <blockquote class="text-xl text-slate-700 font-medium italic leading-relaxed mb-6">
-        "Passare a DentalCare Pro è stata la decisione migliore per il nostro studio. Il software ha completamente rivoluzionato il nostro flusso di lavoro."
-      </blockquote>
-      <div class="flex items-center justify-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-[#00448c] flex items-center justify-center text-white font-bold text-sm">LR</div>
-        <div class="text-left">
-          <p class="font-semibold text-slate-800 text-sm">Dr. Luca Rossi</p>
-          <p class="text-xs text-slate-500">Studio Dentistico Milano Centro</p>
+  <section class="bg-[#f8f9fa] py-20 border-t border-slate-100">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-10 lg:p-14 text-center relative overflow-hidden">
+        <!-- Quote marks decorative -->
+        <div class="absolute top-6 left-8 text-[80px] font-serif text-[#00448c]/8 leading-none select-none">"</div>
+        <div class="absolute bottom-2 right-8 text-[80px] font-serif text-[#00448c]/8 leading-none select-none">"</div>
+
+        <div class="flex justify-center gap-1 mb-6">
+          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+
+        <blockquote class="text-xl lg:text-2xl text-slate-700 font-medium leading-relaxed mb-8 relative z-10">
+          "Passare a DentalCare Pro è stata la decisione migliore per il nostro studio. Il software ha completamente rivoluzionato il flusso di lavoro: risparmio 2 ore al giorno solo nella gestione agenda."
+        </blockquote>
+
+        <div class="flex items-center justify-center gap-4">
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#00448c] to-[#003270] flex items-center justify-center text-white font-bold">LR</div>
+          <div class="text-left">
+            <p class="font-bold text-slate-800">Dr. Luca Rossi</p>
+            <p class="text-sm text-slate-500">Studio Dentistico Milano Centro</p>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- PRICING -->
-  <section id="prezzi" class="bg-[#f8f9fa] py-20">
+  <section id="prezzi" class="bg-white py-24">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-14">
-        <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Prezzi Semplici e Trasparenti</h2>
-        <p class="text-slate-500">Nessun costo nascosto. Cancella quando vuoi.</p>
+        <span class="text-xs font-semibold text-[#00448c] uppercase tracking-widest">Piani e Prezzi</span>
+        <h2 class="text-3xl font-extrabold text-slate-900 mt-2 mb-4">Prezzi Semplici e Trasparenti</h2>
+        <p class="text-slate-500">Nessun costo nascosto. Cancella quando vuoi. Passa da un piano all'altro in qualsiasi momento.</p>
       </div>
-      <div class="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+
+      <div class="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
 
         <!-- Essenziale -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-7 flex flex-col">
-          <h3 class="font-bold text-slate-800 text-lg mb-1">Essenziale</h3>
-          <p class="text-slate-500 text-sm mb-5">Per studi mono-sede</p>
-          <div class="mb-5">
-            <span class="text-4xl font-extrabold text-slate-900">€99</span>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col hover:shadow-md transition-shadow">
+          <div class="mb-6">
+            <h3 class="font-extrabold text-slate-800 text-xl mb-1">Essenziale</h3>
+            <p class="text-slate-400 text-sm">Per studi mono-sede</p>
+          </div>
+          <div class="mb-8">
+            <span class="text-5xl font-extrabold text-slate-900">€99</span>
             <span class="text-slate-400 text-sm">/mese</span>
           </div>
-          <ul class="space-y-2.5 mb-8 flex-1">
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>1 sede, fino a 2 professionisti</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Agenda & appuntamenti</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Cartella clinica pazienti</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Preventivi base</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Supporto email</li>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              1 sede, fino a 2 professionisti
+            </li>
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Agenda & appuntamenti
+            </li>
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Cartella clinica pazienti
+            </li>
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Preventivi base
+            </li>
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Supporto email
+            </li>
           </ul>
-          <a routerLink="/registrati" class="block text-center border border-[#00448c] text-[#00448c] hover:bg-[#00448c] hover:text-white font-semibold py-3 rounded-xl transition-colors">
+          <a routerLink="/registrati"
+             class="block text-center border-2 border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold py-3.5 rounded-xl transition-all">
             Inizia ora
           </a>
         </div>
 
         <!-- Professionale (highlighted) -->
-        <div class="bg-white rounded-xl shadow-xl border-2 border-[#00448c] p-7 flex flex-col scale-105 relative">
-          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 flex gap-2">
-            <span class="bg-[#006c49] text-white text-xs font-bold px-3 py-1 rounded-full">Piano Demo Attivo</span>
+        <div class="relative rounded-2xl overflow-hidden flex flex-col shadow-2xl shadow-blue-900/20">
+          <!-- Gradient header -->
+          <div class="bg-gradient-to-br from-[#00448c] to-[#003270] p-8 pb-6">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="font-extrabold text-white text-xl mb-1">Professionale</h3>
+                <p class="text-blue-200 text-sm">Il più completo</p>
+              </div>
+              <span class="bg-green-400/20 text-green-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-green-400/30 whitespace-nowrap">Demo Attivo</span>
+            </div>
+            <div>
+              <span class="text-5xl font-extrabold text-white">€199</span>
+              <span class="text-blue-200 text-sm">/mese</span>
+            </div>
           </div>
-          <h3 class="font-bold text-slate-800 text-lg mb-1">Professionale</h3>
-          <p class="text-slate-500 text-sm mb-5">Il più completo</p>
-          <div class="mb-5">
-            <span class="text-4xl font-extrabold text-[#00448c]">€199</span>
-            <span class="text-slate-400 text-sm">/mese</span>
+
+          <!-- Body -->
+          <div class="bg-white p-8 flex-1 flex flex-col border-x-2 border-b-2 border-[#00448c]/20 rounded-b-2xl">
+            <ul class="space-y-3 mb-8 flex-1">
+              <li class="flex items-center gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                Sedi e professionisti illimitati
+              </li>
+              <li class="flex items-center gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                Tutto di Essenziale +
+              </li>
+              <li class="flex items-center gap-2.5 text-sm font-medium text-[#00448c]">
+                <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                AI-DEN Segretaria Virtuale
+              </li>
+              <li class="flex items-center gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                Magazzino & Richiami avanzati
+              </li>
+              <li class="flex items-center gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                Fatturazione elettronica
+              </li>
+              <li class="flex items-center gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                Supporto prioritario &lt; 4h
+              </li>
+            </ul>
+            <a routerLink="/registrati"
+               class="block text-center bg-[#00448c] hover:bg-[#005BB7] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-900/20 hover:shadow-blue-900/30">
+              Inizia ora
+            </a>
           </div>
-          <ul class="space-y-2.5 mb-8 flex-1">
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Sedi illimitate, professionisti illimitati</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Tutto di Essenziale +</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>AI-DEN Segretaria</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Magazzino & Richiami</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Fatturazione avanzata</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Supporto prioritario</li>
-          </ul>
-          <a routerLink="/registrati" class="block text-center bg-[#00448c] hover:bg-[#005BB7] text-white font-semibold py-3 rounded-xl transition-colors shadow-md">
-            Inizia ora
-          </a>
         </div>
 
         <!-- Aziendale -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-7 flex flex-col">
-          <h3 class="font-bold text-slate-800 text-lg mb-1">Aziendale</h3>
-          <p class="text-slate-500 text-sm mb-5">Per gruppi e reti di studi</p>
-          <div class="mb-5">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col hover:shadow-md transition-shadow">
+          <div class="mb-6">
+            <h3 class="font-extrabold text-slate-800 text-xl mb-1">Aziendale</h3>
+            <p class="text-slate-400 text-sm">Per gruppi e reti di studi</p>
+          </div>
+          <div class="mb-8">
             <span class="text-4xl font-extrabold text-slate-900">Custom</span>
           </div>
-          <ul class="space-y-2.5 mb-8 flex-1">
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Multi-studio, API access</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Integrazioni custom</li>
-            <li class="flex items-center gap-2 text-sm text-slate-600"><svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>SLA garantito</li>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Multi-studio, API access
+            </li>
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Integrazioni su misura
+            </li>
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              SLA e uptime garantito
+            </li>
+            <li class="flex items-center gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Account manager dedicato
+            </li>
           </ul>
-          <a href="mailto:info@dentalcarepro.it" class="block text-center border border-slate-300 text-slate-700 hover:border-[#00448c] hover:text-[#00448c] font-semibold py-3 rounded-xl transition-colors">
+          <a href="mailto:info@dentalcarepro.it"
+             class="block text-center border-2 border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold py-3.5 rounded-xl transition-all">
             Contattaci
           </a>
         </div>
@@ -311,25 +808,43 @@
   </section>
 
   <!-- FOOTER CTA -->
-  <section class="bg-[#00448c] py-16">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <h2 class="text-3xl font-extrabold text-white mb-4">Pronto a trasformare il tuo studio?</h2>
-      <p class="text-blue-100 mb-8">Unisciti a centinaia di studi dentistici che hanno scelto DentalCare Pro.</p>
-      <a routerLink="/registrati" class="inline-flex items-center gap-2 bg-white text-[#00448c] hover:bg-slate-50 font-bold px-8 py-4 rounded-xl transition-colors shadow-lg text-lg">
-        Inizia la prova gratuita di 30 giorni
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-      </a>
+  <section class="bg-gradient-to-br from-[#00448c] to-[#002d5c] py-20 relative overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute -top-20 -right-20 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+    </div>
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+      <h2 class="text-3xl lg:text-4xl font-extrabold text-white mb-4">Pronto a trasformare il tuo studio?</h2>
+      <p class="text-blue-200 text-lg mb-8 leading-relaxed">Unisciti a centinaia di studi dentistici che hanno scelto DentalCare Pro.<br/>30 giorni gratis, nessuna carta di credito richiesta.</p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a routerLink="/registrati"
+           class="inline-flex items-center justify-center gap-2 bg-white text-[#00448c] hover:bg-blue-50 font-bold px-8 py-4 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5 text-lg">
+          Inizia la prova gratuita di 30 giorni
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </a>
+        <button (click)="scrollTo('prezzi')"
+                class="inline-flex items-center justify-center gap-2 border border-white/30 text-white hover:bg-white/10 font-semibold px-6 py-4 rounded-xl transition-all">
+          Vedi i prezzi
+        </button>
+      </div>
     </div>
   </section>
 
   <!-- FOOTER -->
-  <footer id="supporto" class="bg-slate-900 text-slate-400 py-10">
+  <footer id="supporto" class="bg-slate-900 text-slate-400 py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div class="flex items-center gap-2">
-          <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ft-bg" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#134e4a"/></linearGradient></defs><rect x="4" y="4" width="80" height="80" rx="20" fill="url(#ft-bg)"/><text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf">D</text></svg>
-          <span class="font-bold text-white">DentalCare Pro</span>
-          <span class="text-slate-600 ml-2 text-sm">© 2026</span>
+      <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <svg width="28" height="28" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="88" height="88" rx="22" fill="#00448c"/>
+              <path d="M24 58 C24 42 34 30 44 28 C54 30 64 42 64 58 C64 64 60 68 54 68 C50 68 47 65 44 65 C41 65 38 68 34 68 C28 68 24 64 24 58Z" fill="white" opacity="0.9"/>
+            </svg>
+            <span class="font-bold text-white text-base">DentalCare Pro</span>
+          </div>
+          <p class="text-sm text-slate-500">La piattaforma cloud per studi dentistici italiani.</p>
         </div>
         <div class="flex flex-wrap gap-5 text-sm justify-center">
           <button (click)="scrollTo('funzionalita')" class="hover:text-white transition-colors">Funzionalità</button>
@@ -338,6 +853,7 @@
           <a href="#" class="hover:text-white transition-colors">Privacy</a>
           <a href="#" class="hover:text-white transition-colors">Termini</a>
         </div>
+        <p class="text-slate-600 text-sm">© 2026 DentalCare Pro</p>
       </div>
     </div>
   </footer>
