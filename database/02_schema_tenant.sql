@@ -29,10 +29,7 @@
 BEGIN;
 
 -- Crea lo schema tenant se non esiste
-DO $$
-BEGIN
-    EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I', :'tenant_schema');
-END $$;
+CREATE SCHEMA IF NOT EXISTS :"tenant_schema";
 
 -- Imposta search_path: prima lo schema tenant, poi dentalcare per gli enum globali
 SET search_path TO :"tenant_schema", dentalcare, public;
