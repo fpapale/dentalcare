@@ -38,6 +38,15 @@
 \set new_clinic_country    'IT'
 \set new_clinic_timezone   'Europe/Rome'
 
+-- Tablespace dedicato (opzionale).
+-- Lascia vuoto ('') per usare pg_default (stesso disco del DB principale).
+-- Se valorizzato, il path deve esistere sul filesystem del server PostgreSQL
+-- ed essere di proprieta' dell'utente postgres:
+--   mkdir -p /mnt/tenants/t_XXXXXXXX && chown postgres:postgres /mnt/tenants/t_XXXXXXXX
+-- Esempio:
+--   \set new_tenant_tablespace_path '/mnt/tenants'
+\set new_tenant_tablespace_path ''
+
 -- =============================================================================
 -- FINE CONFIGURAZIONE - NON MODIFICARE SOTTO QUESTA RIGA
 -- =============================================================================
@@ -49,10 +58,12 @@ SET search_path TO dentalcare, public;
 -- Genera UUID tenant e clinica, crea schema, registra in dentalcare.tenants
 DO $$
 DECLARE
-    v_tenant_id    uuid := gen_random_uuid();
-    v_clinic_id    uuid := gen_random_uuid();
-    v_schema_name  text;
-    v_hex          text;
+    v_tenant_id        uuid := gen_random_uuid();
+    v_clinic_id        uuid := gen_random_uuid();
+    v_schema_name      text;
+    v_tablespace_name  text;
+    v_tablespace_path  text;
+    v_hex              text;
 BEGIN
     -- Deriva nome schema dai primi 8 caratteri esadecimali del clinic UUID
     v_hex         := replace(v_clinic_id::text, '-', '');
@@ -87,22 +98,41 @@ BEGIN
         true
     );
 
+    -- Crea tablespace dedicato se il path e' stato configurato
+    IF length(trim(:'new_tenant_tablespace_path')) > 0 THEN
+        v_tablespace_name := 'ts_' || v_schema_name;
+        v_tablespace_path := rtrim(:'new_tenant_tablespace_path', '/') || '/' || v_schema_name;
+        EXECUTE format(
+            'CREATE TABLESPACE %I OWNER CURRENT_USER LOCATION %L',
+            v_tablespace_name, v_tablespace_path
+        );
+        RAISE NOTICE '  Tablespace     : % -> %', v_tablespace_name, v_tablespace_path;
+    ELSE
+        v_tablespace_name := 'pg_default';
+        RAISE NOTICE '  Tablespace     : pg_default (nessun path configurato)';
+    END IF;
+
     -- Crea schema
     EXECUTE format('CREATE SCHEMA %I', v_schema_name);
 
-    RAISE NOTICE '  Tenant registrato. Schema creato.';
+    RAISE NOTICE '  Tenant registrato. Schema e tablespace creati.';
 
     -- Salva valori in config sessione per uso nei blocchi successivi
-    PERFORM set_config('app.new_tenant_id',    v_tenant_id::text,  true);
-    PERFORM set_config('app.new_clinic_id',    v_clinic_id::text,  true);
-    PERFORM set_config('app.new_schema_name',  v_schema_name,      true);
+    PERFORM set_config('app.new_tenant_id',        v_tenant_id::text,    true);
+    PERFORM set_config('app.new_clinic_id',         v_clinic_id::text,    true);
+    PERFORM set_config('app.new_schema_name',       v_schema_name,        true);
+    PERFORM set_config('app.new_tablespace_name',   v_tablespace_name,    true);
 END;
 $$;
 
--- Esporta lo schema name come variabile psql tramite \gset
-SELECT current_setting('app.new_schema_name') AS tenant_schema \gset
+-- Esporta schema name e tablespace name come variabili psql tramite \gset
+SELECT
+    current_setting('app.new_schema_name')     AS tenant_schema,
+    current_setting('app.new_tablespace_name') AS tenant_tablespace
+\gset
 
 -- Crea le tabelle nel tenant schema usando 02_schema_tenant.sql
+-- (usa sia :tenant_schema sia :tenant_tablespace, entrambi settati da \gset)
 \echo ''
 \echo '-- Creazione struttura tabelle tenant schema --'
 \i 02_schema_tenant.sql

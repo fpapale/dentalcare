@@ -57,6 +57,7 @@
 
 \echo '-- Step 3/4: Schema tenant demo t_9d754153 (02_schema_tenant.sql) --'
 \set tenant_schema t_9d754153
+\set tenant_tablespace pg_default
 \i 02_schema_tenant.sql
 \echo '-- Step 3/4: COMPLETATO --'
 \echo ''
