@@ -16,6 +16,7 @@ Gestionale clinico odontoiatrico full stack — Angular 21 + Spring Boot 3.5 + P
 - [API REST](#api-rest)
 - [Autenticazione e multitenancy](#autenticazione-e-multitenancy)
 - [SegretarIA — Agente vocale AI](#segretaria--agente-vocale-ai)
+- [Licenza](#licenza)
 
 ---
 
@@ -92,6 +93,8 @@ Angular 21 (SPA)
 dentalcare/
 ├── CLAUDE.md                        # Istruzioni operative per Claude Code
 ├── README.md
+├── LICENZA                          # Apache License 2.0
+├── install.sh                       # Script deploy Docker (Linux)
 ├── backend/                         # Spring Boot API
 │   ├── pom.xml
 │   └── src/main/java/com/dentalcare/
@@ -119,11 +122,14 @@ dentalcare/
 │       ├── layout/                  # Shell, menu, layout a tre colonne
 │       └── app.routes.ts
 ├── database/
-│   ├── dentalcare_schema.sql        # Schema completo PostgreSQL
-│   ├── dentalcare_seed_demo_data.sql
-│   ├── dentalcare_views.sql
-│   └── seed_appointments_202605.sql
+│   ├── 01_schema_applicative.sql    # Schema globale dentalcare (ENUMs, tenants, geo)
+│   ├── 02_schema_tenant.sql         # Schema operativo per tenant (parametrizzato)
+│   ├── 03_seed_global.sql           # Dati globali: geo Italia, festivi, anamnesi
+│   ├── 04_seed_demo_tenant.sql      # Dati demo con appuntamenti su CURRENT_DATE
+│   ├── 05_install_new_system.sql    # Orchestratore fresh install completo
+│   └── 06_install_new_tenant.sql    # Provisioning nuovo tenant (cliente)
 ├── directives/                      # Documenti funzionali e architetturali
+├── userdocument/                    # Manuale utente
 └── Segretaria/                      # Configurazioni agente Retell AI
 ```
 
@@ -150,17 +156,21 @@ dentalcare/
 # Crea database
 createdb dentalcarepro
 
-# Applica schema
-psql -d dentalcarepro -f database/dentalcare_schema.sql
+# Installazione completa in un solo comando
+psql -U postgres -d dentalcarepro -f database/05_install_new_system.sql
 
-# Applica viste
-psql -d dentalcarepro -f database/dentalcare_views.sql
+# Oppure passo per passo:
+psql -d dentalcarepro -f database/01_schema_applicative.sql   # schema globale
+psql -d dentalcarepro -f database/03_seed_global.sql          # geo + festivi + anamnesi
+psql -v tenant_schema=t_9d754153 \
+     -d dentalcarepro -f database/02_schema_tenant.sql        # schema demo
+psql -d dentalcarepro -f database/04_seed_demo_tenant.sql     # dati demo
+```
 
-# Carica dati demo (opzionale)
-psql -d dentalcarepro -f database/dentalcare_seed_demo_data.sql
-
-# Aggiungi durate al catalogo servizi (migration V4)
-psql -d dentalcarepro -f backend/src/main/resources/db/migration/V4__service_duration.sql
+Per aggiungere un nuovo tenant (cliente):
+```bash
+# Edita le variabili in testa al file, poi:
+psql -U postgres -d dentalcarepro -f database/06_install_new_tenant.sql
 ```
 
 ### 2. Backend
@@ -418,3 +428,18 @@ Configurazioni agente in `Segretaria/` (formato JSON Retell AI).
 | Build backend | Maven 3 / mvnw |
 | API Docs | SpringDoc OpenAPI (Swagger UI) |
 | AI | Retell AI (agente vocale) |
+
+---
+
+## Licenza
+
+Apache 2.0. Vedi [LICENZA](LICENZA).
+
+Copyright 2024-2026 Fabrizio Papale
+
+Questo software è distribuito nei termini della **Apache License, Version 2.0**.
+È consentito l'uso, la copia, la modifica e la distribuzione del software,
+con o senza modifiche, in formato sorgente o binario, a condizione che vengano
+rispettati i termini indicati nel file [LICENZA](LICENZA).
+
+Testo completo della licenza: [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
