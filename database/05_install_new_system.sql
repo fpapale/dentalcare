@@ -36,18 +36,18 @@
 -- Step 1: Schema applicativo globale (enum, funzioni, tabelle dentalcare)
 -- =============================================================================
 
-\echo '-- Step 1/4: Schema applicativo globale (01_schema_applicative.sql) --'
+\echo '-- Step 1/5: Schema applicativo globale (01_schema_applicative.sql) --'
 \i 01_schema_applicative.sql
-\echo '-- Step 1/4: COMPLETATO --'
+\echo '-- Step 1/5: COMPLETATO --'
 \echo ''
 
 -- =============================================================================
 -- Step 2: Dati di riferimento globali (stati, regioni, festivi, anamnesi)
 -- =============================================================================
 
-\echo '-- Step 2/4: Dati globali di riferimento (03_seed_global.sql) --'
+\echo '-- Step 2/5: Dati globali di riferimento (03_seed_global.sql) --'
 \i 03_seed_global.sql
-\echo '-- Step 2/4: COMPLETATO --'
+\echo '-- Step 2/5: COMPLETATO --'
 \echo ''
 
 -- =============================================================================
@@ -55,20 +55,29 @@
 -- Imposta la variabile tenant_schema prima di richiamare lo script.
 -- =============================================================================
 
-\echo '-- Step 3/4: Schema tenant demo t_9d754153 (02_schema_tenant.sql) --'
+\echo '-- Step 3/5: Schema tenant demo t_9d754153 (02_schema_tenant.sql) --'
 \set tenant_schema t_9d754153
 \set tenant_tablespace pg_default
 \i 02_schema_tenant.sql
-\echo '-- Step 3/4: COMPLETATO --'
+\echo '-- Step 3/5: COMPLETATO --'
 \echo ''
 
 -- =============================================================================
 -- Step 4: Dati demo del tenant (clinica, pazienti, appuntamenti, prodotti)
 -- =============================================================================
 
-\echo '-- Step 4/4: Seed dati demo (04_seed_demo_tenant.sql) --'
+\echo '-- Step 4/5: Seed dati demo (04_seed_demo_tenant.sql) --'
 \i 04_seed_demo_tenant.sql
-\echo '-- Step 4/4: COMPLETATO --'
+\echo '-- Step 4/5: COMPLETATO --'
+\echo ''
+
+-- =============================================================================
+-- Step 5: Seed Flyway schema history (segna V1-V11 come gia' applicati)
+-- =============================================================================
+
+\echo '-- Step 5/5: Seed Flyway schema history (flyway_seed_history.sql) --'
+\i flyway_seed_history.sql
+\echo '-- Step 5/5: COMPLETATO --'
 \echo ''
 
 -- =============================================================================

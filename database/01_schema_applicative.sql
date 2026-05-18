@@ -349,6 +349,14 @@ CREATE TABLE IF NOT EXISTS national_holidays (
 );
 
 -- =============================================================================
+-- NOTA: dentalcare.invoice_lines
+-- =============================================================================
+-- NOTE: dentalcare.invoice_lines may exist as an artifact of early migrations.
+-- It is not part of the canonical global schema; invoice_lines belongs in each
+-- tenant schema. Do not DROP it here (data may exist); it will be ignored by
+-- the application which reads invoice_lines from the tenant search_path.
+
+-- =============================================================================
 -- VERIFICA
 -- =============================================================================
 
