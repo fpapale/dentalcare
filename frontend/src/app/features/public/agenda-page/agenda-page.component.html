@@ -1,0 +1,391 @@
+<!-- NAVBAR -->
+<nav class="sticky top-0 z-50 bg-white shadow-sm border-b border-slate-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-6">
+    <a routerLink="/landing" class="flex items-center gap-2.5 shrink-0">
+      <svg width="36" height="36" viewBox="0 0 88 88" fill="none">
+        <defs><linearGradient id="nb-bg2" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00448c"/><stop offset="100%" stop-color="#003a78"/></linearGradient></defs>
+        <rect x="0" y="0" width="88" height="88" rx="22" fill="url(#nb-bg2)"/>
+        <path d="M24 58 C24 42 34 30 44 28 C54 30 64 42 64 58 C64 64 60 68 54 68 C50 68 47 65 44 65 C41 65 38 68 34 68 C28 68 24 64 24 58Z" fill="white" opacity="0.95"/>
+        <path d="M38 44 Q40 40 44 40 Q48 40 50 44" stroke="#00448c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <circle cx="39" cy="50" r="2" fill="#00448c"/>
+        <circle cx="44" cy="52" r="2" fill="#00448c"/>
+        <circle cx="49" cy="50" r="2" fill="#00448c"/>
+      </svg>
+      <span class="font-bold text-[#00448c] text-lg tracking-tight">DentalCare Pro</span>
+    </a>
+    <div class="hidden md:flex items-center gap-1 ml-6">
+      <a routerLink="/landing" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Home</a>
+    </div>
+    <div class="ml-auto flex items-center gap-3">
+      <a routerLink="/dashboard" class="text-sm font-medium text-slate-600 hover:text-[#00448c] transition-colors px-3 py-2">Accedi</a>
+      <a routerLink="/registrati" class="text-sm font-semibold bg-[#00448c] hover:bg-[#005BB7] text-white px-5 py-2.5 rounded-xl transition-all shadow-sm">Inizia ora</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="bg-gradient-to-br from-slate-50 via-[#f0f6ff] to-slate-100 py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+      <!-- Left -->
+      <div>
+        <span class="inline-flex items-center gap-2 bg-blue-100 text-[#00448c] text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider mb-6">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Gestione Appuntamenti
+        </span>
+        <h1 class="text-4xl lg:text-5xl font-extrabold text-[#00448c] leading-tight mb-6">
+          Agenda Intelligente<br>per il tuo Studio
+        </h1>
+        <p class="text-slate-600 text-lg leading-relaxed mb-8">
+          Gestisci gli appuntamenti con quattro viste integrate: Prossimi, Giorno, Settimana e Mese. Supporto multi-poltrona per studi con piu' operatori, alert automatici per allergie e farmaci, e una ricerca paziente istantanea per prenotazioni rapide.
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <a routerLink="/registrati" class="inline-flex items-center gap-2 bg-[#00448c] hover:bg-[#005BB7] text-white font-bold px-7 py-3.5 rounded-xl transition-all shadow-lg">
+            Prova gratis 30 giorni
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+          <a routerLink="/dashboard" class="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-[#00448c] font-bold px-7 py-3.5 rounded-xl border border-slate-200 transition-all">
+            Guarda la demo
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: Day view mockup -->
+      <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <!-- Header -->
+        <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2 flex-wrap">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-800 text-sm">Martedi 20 Maggio 2025</span>
+            <span class="bg-teal-100 text-teal-700 text-xs font-bold px-2 py-0.5 rounded-full">Oggi</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 text-xs font-bold">&lt;</button>
+            <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 text-xs font-bold">&gt;</button>
+          </div>
+          <div class="flex gap-1">
+            <button class="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-500 font-medium">Prossimi</button>
+            <button class="text-xs px-2.5 py-1 rounded-lg bg-[#14b8a6] text-white font-semibold">Giorno</button>
+            <button class="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-500 font-medium">Settimana</button>
+            <button class="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-500 font-medium">Mese</button>
+          </div>
+        </div>
+        <!-- Column headers -->
+        <div class="grid grid-cols-[48px_1fr_1fr] border-b border-slate-200 bg-slate-50">
+          <div></div>
+          <div class="py-2 text-center text-xs font-bold text-slate-600 border-l border-slate-200">Poltrona 1</div>
+          <div class="py-2 text-center text-xs font-bold text-slate-600 border-l border-slate-200">Poltrona 2</div>
+        </div>
+        <!-- Time grid -->
+        <div class="relative" style="min-height:280px;">
+          <!-- Hour rows -->
+          <div class="grid grid-cols-[48px_1fr_1fr]">
+            <!-- 08:00 -->
+            <div class="border-b border-slate-100 py-3 text-right pr-2 text-xs text-slate-400 font-medium leading-none">08:00</div>
+            <div class="border-b border-slate-100 border-l border-slate-200 relative" style="height:56px;">
+              <!-- 08:30 appt -->
+              <div class="absolute left-1 right-1 top-3 bg-teal-100 border border-teal-300 rounded-lg px-2 py-1" style="height:26px;">
+                <div class="text-xs font-semibold text-teal-800 truncate">Maria Rossi</div>
+                <div class="text-xs text-teal-600 truncate">Ablazione</div>
+              </div>
+            </div>
+            <div class="border-b border-slate-100 border-l border-slate-200" style="height:56px;"></div>
+            <!-- 09:00 -->
+            <div class="border-b border-slate-100 py-3 text-right pr-2 text-xs text-slate-400 font-medium leading-none">09:00</div>
+            <div class="border-b border-slate-100 border-l border-slate-200 relative" style="height:56px;"></div>
+            <div class="border-b border-slate-100 border-l border-slate-200 relative" style="height:56px;">
+              <!-- 09:00 appt poltrona 2 -->
+              <div class="absolute left-1 right-1 top-0 bg-green-100 border border-green-300 rounded-lg px-2 py-1" style="height:52px;">
+                <div class="text-xs font-semibold text-green-800 truncate">Anna Ferrari</div>
+                <div class="text-xs text-green-600 truncate">Visita controllo</div>
+              </div>
+            </div>
+            <!-- 10:00 -->
+            <div class="border-b border-slate-100 py-3 text-right pr-2 text-xs text-slate-400 font-medium leading-none">10:00</div>
+            <div class="border-b border-slate-100 border-l border-slate-200 relative" style="height:56px;">
+              <!-- 10:00 appt with allergy -->
+              <div class="absolute left-1 right-1 top-0 bg-blue-100 border border-blue-300 rounded-lg px-2 py-1" style="height:52px;">
+                <div class="flex items-center gap-1">
+                  <div class="text-xs font-semibold text-blue-800 truncate">G. Bianchi</div>
+                  <span class="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Allergia"></span>
+                </div>
+                <div class="text-xs text-blue-600 truncate">Devitalizzazione</div>
+              </div>
+            </div>
+            <div class="border-b border-slate-100 border-l border-slate-200" style="height:56px;"></div>
+            <!-- 11:00 -->
+            <div class="border-b border-slate-100 py-3 text-right pr-2 text-xs text-slate-400 font-medium leading-none">11:00</div>
+            <div class="border-b border-slate-100 border-l border-slate-200" style="height:56px;"></div>
+            <div class="border-b border-slate-100 border-l border-slate-200 relative" style="height:56px;">
+              <!-- 11:30 appt -->
+              <div class="absolute left-1 right-1 bottom-0 bg-amber-100 border border-amber-300 rounded-lg px-2 py-1" style="height:26px;">
+                <div class="text-xs font-semibold text-amber-800 truncate">Carlo Verdi</div>
+                <div class="text-xs text-amber-600 truncate">Otturazione</div>
+              </div>
+            </div>
+            <!-- 12:00 -->
+            <div class="border-b border-slate-100 py-3 text-right pr-2 text-xs text-slate-400 font-medium leading-none">12:00</div>
+            <div class="border-b border-slate-100 border-l border-slate-200" style="height:56px;"></div>
+            <div class="border-b border-slate-100 border-l border-slate-200" style="height:56px;"></div>
+          </div>
+          <!-- Current time indicator -->
+          <div class="absolute left-0 right-0 flex items-center pointer-events-none" style="top:118px;">
+            <div class="w-2 h-2 rounded-full bg-red-500 ml-10 shrink-0"></div>
+            <div class="flex-1 h-px bg-red-400"></div>
+          </div>
+        </div>
+        <!-- Legend -->
+        <div class="border-t border-slate-200 bg-slate-50 px-4 py-2 flex flex-wrap gap-3">
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-blue-300 border border-blue-400"></span><span class="text-xs text-slate-500">Programmato</span></div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-teal-300 border border-teal-400"></span><span class="text-xs text-slate-500">Confermato</span></div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-green-300 border border-green-400"></span><span class="text-xs text-slate-500">Completato</span></div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-amber-300 border border-amber-400"></span><span class="text-xs text-slate-500">In corso</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE HIGHLIGHTS -->
+<section class="py-20 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Tutto quello che serve per la tua agenda</h2>
+      <p class="text-slate-600 text-lg max-w-2xl mx-auto">Strumenti professionali pensati per la realta' degli studi dentistici italiani.</p>
+    </div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-[#00448c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">4 Viste Calendario</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Passa facilmente tra vista Prossimi appuntamenti, Giorno, Settimana e Mese senza perdere il contesto.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Multi-Poltrona</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Gestisci piu' poltrone in parallelo con colonne separate nella vista giornaliera. Ottimizza l'utilizzo delle sale.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Alert Allergie</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Avvisi automatici e visibili per allergie e farmaci del paziente, direttamente nell'agenda prima della visita.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Prenotazione Rapida</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Form guidato con ricerca paziente per nome o codice fiscale, selezione prestazione e durata stimata automatica.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="py-20 bg-slate-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Come funziona</h2>
+      <p class="text-slate-600 text-lg">Prenotare un appuntamento richiede tre semplici passi.</p>
+    </div>
+    <div class="grid md:grid-cols-3 gap-8">
+      <div class="bg-white rounded-2xl p-8 border border-slate-100 text-center relative">
+        <div class="w-10 h-10 rounded-full bg-[#00448c] text-white font-extrabold text-lg flex items-center justify-center mx-auto mb-5">1</div>
+        <h3 class="font-bold text-slate-800 text-lg mb-3">Seleziona data e poltrona</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Clicca su qualsiasi slot libero nell'agenda giornaliera o settimanale. Il sistema evidenzia automaticamente i periodi disponibili per ogni poltrona.</p>
+        <div class="mt-5 bg-slate-50 rounded-xl p-3 text-left">
+          <div class="text-xs text-slate-500 mb-1.5 font-medium">Disponibilita'</div>
+          <div class="flex gap-2 flex-wrap">
+            <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-lg font-medium">09:00 ✓</span>
+            <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-lg font-medium">10:30 ✓</span>
+            <span class="bg-slate-200 text-slate-400 text-xs px-2 py-1 rounded-lg font-medium">11:00 ✗</span>
+            <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-lg font-medium">14:00 ✓</span>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-8 border border-slate-100 text-center relative">
+        <div class="w-10 h-10 rounded-full bg-[#14b8a6] text-white font-extrabold text-lg flex items-center justify-center mx-auto mb-5">2</div>
+        <h3 class="font-bold text-slate-800 text-lg mb-3">Cerca il paziente</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Digita nome, cognome o codice fiscale nel campo di ricerca con autocompletamento. Il sistema recupera subito anamnesi e allergie.</p>
+        <div class="mt-5 bg-slate-50 rounded-xl p-3">
+          <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 mb-2">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <span class="text-xs text-slate-400">Cerca paziente...</span>
+          </div>
+          <div class="bg-white border border-blue-200 rounded-lg px-3 py-2 text-left">
+            <div class="text-xs font-semibold text-slate-800">Maria Rossi</div>
+            <div class="text-xs text-slate-400">RSSMRA78A01H501Z • 45 anni</div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-8 border border-slate-100 text-center relative">
+        <div class="w-10 h-10 rounded-full bg-blue-500 text-white font-extrabold text-lg flex items-center justify-center mx-auto mb-5">3</div>
+        <h3 class="font-bold text-slate-800 text-lg mb-3">Scegli prestazione e durata</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Seleziona la prestazione dal catalogo dello studio. La durata stimata si imposta automaticamente in base al tipo di trattamento.</p>
+        <div class="mt-5 bg-slate-50 rounded-xl p-3 text-left space-y-2">
+          <div class="bg-white border border-slate-200 rounded-lg px-3 py-2">
+            <div class="text-xs text-slate-400 mb-0.5">Prestazione</div>
+            <div class="text-xs font-semibold text-slate-700">Ablazione tartaro</div>
+          </div>
+          <div class="flex gap-2">
+            <div class="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2">
+              <div class="text-xs text-slate-400 mb-0.5">Durata</div>
+              <div class="text-xs font-semibold text-slate-700">30 min</div>
+            </div>
+            <div class="flex-1 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-center">
+              <div class="text-xs text-teal-600 font-semibold">Conferma</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DETAILED MOCKUP SECTION -->
+<section class="py-20 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-16 items-start">
+      <!-- Left: feature list -->
+      <div>
+        <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Funzionalita' avanzate per studi strutturati</h2>
+        <p class="text-slate-600 text-lg mb-8 leading-relaxed">Ogni dettaglio e' stato progettato per ridurre i tempi di gestione e migliorare la qualita' dell'assistenza al paziente.</p>
+        <ul class="space-y-4">
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div><span class="font-semibold text-slate-800">Vista giorno, settimana e mese</span> — Passa da una vista all'altra con un click, sempre con navigazione avanti/indietro.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div><span class="font-semibold text-slate-800">Multi-poltrona</span> — Colonne separate per ogni poltrona nella vista giornaliera con identificazione immediata dei conflitti.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div><span class="font-semibold text-slate-800">Alert allergie e farmaci</span> — Dot rosso sul nome del paziente se l'anamnesi riporta allergie o interazioni farmacologiche critiche.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div><span class="font-semibold text-slate-800">Status color-coded</span> — Programmato (blu), Confermato (verde acqua), Completato (verde), Cancellato (rosso), Non presentato (grigio).</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div><span class="font-semibold text-slate-800">Blocco weekend</span> — Configurazione orari di apertura per nascondere automaticamente i giorni non lavorativi.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div><span class="font-semibold text-slate-800">Ricerca paziente con codice fiscale</span> — Trova il paziente anche digitando il codice fiscale completo o parziale.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Right: week view mockup -->
+      <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+          <span class="font-bold text-slate-800 text-sm">Settimana 19-25 Maggio 2025</span>
+          <div class="flex gap-1">
+            <button class="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-500">Giorno</button>
+            <button class="text-xs px-2.5 py-1 rounded-lg bg-[#14b8a6] text-white font-semibold">Settimana</button>
+            <button class="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-500">Mese</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+          <div class="py-2 text-center text-xs font-bold text-slate-400 border-r border-slate-200">Lun<br><span class="text-slate-300">19</span></div>
+          <div class="py-2 text-center text-xs font-bold text-slate-400 border-r border-slate-200">Mar<br><span class="text-slate-300">20</span></div>
+          <div class="py-2 text-center text-xs font-bold text-white bg-[#14b8a6] border-r border-teal-400">Mer<br><span class="text-teal-100">21</span></div>
+          <div class="py-2 text-center text-xs font-bold text-slate-400 border-r border-slate-200">Gio<br><span class="text-slate-300">22</span></div>
+          <div class="py-2 text-center text-xs font-bold text-slate-400 border-r border-slate-200">Ven<br><span class="text-slate-300">23</span></div>
+          <div class="py-2 text-center text-xs font-bold text-slate-300 border-r border-slate-200">Sab<br><span>24</span></div>
+          <div class="py-2 text-center text-xs font-bold text-slate-300">Dom<br><span>25</span></div>
+        </div>
+        <div class="grid grid-cols-7 divide-x divide-slate-200 min-h-48">
+          <!-- Lun -->
+          <div class="p-1.5 space-y-1">
+            <div class="bg-blue-100 rounded px-1.5 py-1 text-xs text-blue-700 font-medium truncate">M. Rossi</div>
+            <div class="bg-teal-100 rounded px-1.5 py-1 text-xs text-teal-700 font-medium truncate">G. Ferrari</div>
+            <div class="text-xs text-center text-slate-400 pt-1">+2</div>
+          </div>
+          <!-- Mar -->
+          <div class="p-1.5 space-y-1">
+            <div class="bg-green-100 rounded px-1.5 py-1 text-xs text-green-700 font-medium truncate">A. Bianchi</div>
+            <div class="bg-amber-100 rounded px-1.5 py-1 text-xs text-amber-700 font-medium truncate">C. Verdi</div>
+            <div class="text-xs text-center text-slate-400 pt-1">+3</div>
+          </div>
+          <!-- Mer (today) -->
+          <div class="p-1.5 space-y-1 bg-teal-50">
+            <div class="bg-teal-200 rounded px-1.5 py-1 text-xs text-teal-800 font-semibold truncate">L. Mancini</div>
+            <div class="bg-teal-200 rounded px-1.5 py-1 text-xs text-teal-800 font-semibold truncate">S. Ricci</div>
+            <div class="text-xs text-center text-teal-500 font-semibold pt-1">+4</div>
+          </div>
+          <!-- Gio -->
+          <div class="p-1.5 space-y-1">
+            <div class="bg-purple-100 rounded px-1.5 py-1 text-xs text-purple-700 font-medium truncate">P. Conti</div>
+            <div class="text-xs text-center text-slate-400 pt-1">+1</div>
+          </div>
+          <!-- Ven -->
+          <div class="p-1.5 space-y-1">
+            <div class="bg-blue-100 rounded px-1.5 py-1 text-xs text-blue-700 font-medium truncate">F. Esposito</div>
+            <div class="bg-red-100 rounded px-1.5 py-1 text-xs text-red-700 font-medium truncate flex items-center gap-1">R. Marini <span class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span></div>
+            <div class="text-xs text-center text-slate-400 pt-1">+2</div>
+          </div>
+          <!-- Sab -->
+          <div class="p-1.5 bg-slate-50">
+            <div class="text-xs text-center text-slate-300 pt-4">Chiuso</div>
+          </div>
+          <!-- Dom -->
+          <div class="p-1.5 bg-slate-50">
+            <div class="text-xs text-center text-slate-300 pt-4">Chiuso</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="bg-[#0a1628] py-20">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl lg:text-4xl font-extrabold text-white mb-4">Pronto a trasformare il tuo studio?</h2>
+    <p class="text-blue-200 text-lg mb-8 leading-relaxed">30 giorni gratis, nessuna carta di credito richiesta.</p>
+    <a routerLink="/registrati" class="inline-flex items-center justify-center gap-2 bg-white text-[#00448c] hover:bg-blue-50 font-bold px-8 py-4 rounded-xl transition-all shadow-xl text-lg">
+      Inizia la prova gratuita
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-slate-900 text-slate-400 py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <svg width="28" height="28" viewBox="0 0 88 88" fill="none"><rect x="0" y="0" width="88" height="88" rx="22" fill="#00448c"/><path d="M24 58 C24 42 34 30 44 28 C54 30 64 42 64 58 C64 64 60 68 54 68 C50 68 47 65 44 65 C41 65 38 68 34 68 C28 68 24 64 24 58Z" fill="white" opacity="0.9"/></svg>
+          <span class="font-bold text-white text-base">DentalCare Pro</span>
+        </div>
+        <p class="text-sm text-slate-500">La piattaforma cloud per studi dentistici italiani.</p>
+      </div>
+      <div class="flex flex-wrap gap-5 text-sm justify-center">
+        <a routerLink="/landing" class="hover:text-white transition-colors">Home</a>
+        <a href="#" class="hover:text-white transition-colors">Privacy</a>
+        <a href="#" class="hover:text-white transition-colors">Termini</a>
+      </div>
+      <p class="text-slate-600 text-sm">© 2026 DentalCare Pro</p>
+    </div>
+  </div>
+</footer>

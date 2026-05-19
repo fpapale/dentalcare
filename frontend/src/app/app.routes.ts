@@ -3,6 +3,11 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   { path: 'landing', loadComponent: () => import('./features/public/landing/landing.component').then(m => m.LandingComponent) },
   { path: 'registrati', loadComponent: () => import('./features/public/registrazione/registrazione.component').then(m => m.RegistrazioneComponent) },
+  { path: 'features/agenda', loadComponent: () => import('./features/public/agenda-page/agenda-page.component').then(m => m.AgendaPageComponent) },
+  { path: 'features/cartella', loadComponent: () => import('./features/public/cartella-page/cartella-page.component').then(m => m.CartellaPageComponent) },
+  { path: 'features/preventivi', loadComponent: () => import('./features/public/preventivi-page/preventivi-page.component').then(m => m.PreventiviPageComponent) },
+  { path: 'features/magazzino', loadComponent: () => import('./features/public/magazzino-page/magazzino-page.component').then(m => m.MagazzinoPageComponent) },
+  { path: 'features/richiami', loadComponent: () => import('./features/public/richiami-page/richiami-page.component').then(m => m.RichiamiPageComponent) },
   { path: '', redirectTo: 'landing', pathMatch: 'full' },
   {
     path: 'dashboard',

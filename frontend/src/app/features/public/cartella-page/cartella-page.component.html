@@ -1,0 +1,414 @@
+<!-- NAVBAR -->
+<nav class="sticky top-0 z-50 bg-white shadow-sm border-b border-slate-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-6">
+    <a routerLink="/landing" class="flex items-center gap-2.5 shrink-0">
+      <svg width="36" height="36" viewBox="0 0 88 88" fill="none">
+        <defs><linearGradient id="nb-bg2" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00448c"/><stop offset="100%" stop-color="#003a78"/></linearGradient></defs>
+        <rect x="0" y="0" width="88" height="88" rx="22" fill="url(#nb-bg2)"/>
+        <path d="M24 58 C24 42 34 30 44 28 C54 30 64 42 64 58 C64 64 60 68 54 68 C50 68 47 65 44 65 C41 65 38 68 34 68 C28 68 24 64 24 58Z" fill="white" opacity="0.95"/>
+        <path d="M38 44 Q40 40 44 40 Q48 40 50 44" stroke="#00448c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <circle cx="39" cy="50" r="2" fill="#00448c"/>
+        <circle cx="44" cy="52" r="2" fill="#00448c"/>
+        <circle cx="49" cy="50" r="2" fill="#00448c"/>
+      </svg>
+      <span class="font-bold text-[#00448c] text-lg tracking-tight">DentalCare Pro</span>
+    </a>
+    <div class="hidden md:flex items-center gap-1 ml-6">
+      <a routerLink="/landing" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Home</a>
+    </div>
+    <div class="ml-auto flex items-center gap-3">
+      <a routerLink="/dashboard" class="text-sm font-medium text-slate-600 hover:text-[#00448c] transition-colors px-3 py-2">Accedi</a>
+      <a routerLink="/registrati" class="text-sm font-semibold bg-[#00448c] hover:bg-[#005BB7] text-white px-5 py-2.5 rounded-xl transition-all shadow-sm">Inizia ora</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="bg-gradient-to-br from-slate-50 via-[#f0f6ff] to-slate-100 py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+      <!-- Left -->
+      <div>
+        <span class="inline-flex items-center gap-2 bg-blue-100 text-[#00448c] text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider mb-6">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Cartella Clinica
+        </span>
+        <h1 class="text-4xl lg:text-5xl font-extrabold text-[#00448c] leading-tight mb-6">
+          Cartella Clinica<br>Digitale e Completa
+        </h1>
+        <p class="text-slate-600 text-lg leading-relaxed mb-8">
+          Ogni paziente ha la sua cartella digitale con odontogramma FDI a 32 denti, anamnesi strutturata, piani di cura dettagliati e storico visite completo. Alert automatici per allergie e farmaci pericolosi proteggono il paziente a ogni accesso.
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <a routerLink="/registrati" class="inline-flex items-center gap-2 bg-[#00448c] hover:bg-[#005BB7] text-white font-bold px-7 py-3.5 rounded-xl transition-all shadow-lg">
+            Prova gratis 30 giorni
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+          <a routerLink="/dashboard" class="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-[#00448c] font-bold px-7 py-3.5 rounded-xl border border-slate-200 transition-all">
+            Guarda la demo
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: patient card list mockup -->
+      <div class="space-y-3">
+        <!-- Search bar -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-2.5 flex items-center gap-3">
+          <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <span class="text-sm text-slate-400">Cerca per nome o codice fiscale...</span>
+        </div>
+        <!-- Card 1 -->
+        <div class="bg-white rounded-2xl shadow p-4 border-l-4 border-blue-500 border border-slate-100">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold text-sm flex items-center justify-center shrink-0">MR</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-slate-800">Maria Rossi</span>
+              </div>
+              <div class="text-xs text-slate-500 mt-0.5">45 anni &bull; Roma</div>
+              <div class="text-xs text-slate-400 mt-0.5">338-XXXXXXX &bull; RSSMRA78A01H501Z</div>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-4 text-xs text-slate-500">
+            <span>12 Visite</span>
+            <span>2 Piani</span>
+            <span class="ml-auto inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-semibold">1 da fare</span>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="bg-white rounded-2xl shadow p-4 border-l-4 border-teal-500 border border-slate-100">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-700 font-bold text-sm flex items-center justify-center shrink-0">GF</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2"><span class="font-bold text-slate-800">Giuseppe Ferrari</span></div>
+              <div class="text-xs text-slate-500 mt-0.5">32 anni &bull; Milano</div>
+              <div class="text-xs text-slate-400 mt-0.5">348-XXXXXXX &bull; FRRG PPE92B10F205Z</div>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-4 text-xs text-slate-500">
+            <span>5 Visite</span>
+            <span>1 Piano</span>
+          </div>
+        </div>
+        <!-- Card 3 -->
+        <div class="bg-white rounded-2xl shadow p-4 border-l-4 border-purple-500 border border-slate-100">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center shrink-0">AB</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-slate-800">Anna Bianchi</span>
+                <span class="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-semibold">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  Penicillina
+                </span>
+              </div>
+              <div class="text-xs text-slate-500 mt-0.5">58 anni &bull; Napoli</div>
+              <div class="text-xs text-slate-400 mt-0.5">333-XXXXXXX &bull; BNCNNA68D49F839Z</div>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-4 text-xs text-slate-500">
+            <span>22 Visite</span>
+            <span>3 Piani</span>
+            <span class="ml-auto inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-semibold">3 da fare</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE HIGHLIGHTS -->
+<section class="py-20 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Dati clinici sempre a portata di mano</h2>
+      <p class="text-slate-600 text-lg max-w-2xl mx-auto">Dalla prima visita all'ultimo trattamento, tutto tracciato e consultabile in pochi secondi.</p>
+    </div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-[#00448c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Odontogramma FDI</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Schema dentale interattivo con 32 denti permanenti in notazione FDI. Stato per dente: carie, otturazione, mancante, corona, impianto.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Anamnesi Strutturata</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Raccolta completa di allergie, farmaci in uso, patologie sistemiche e abitudini. Tutto visibile in un unico pannello prima di ogni visita.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Piano di Cura</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Pianifica i trattamenti con dente, prestazione, stato e note. Importa le voci direttamente nel preventivo con un solo click.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Alert Clinici</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Avvisi automatici e permanenti per allergie a farmaci, lattice o anestetici. Visibili in agenda, nella cartella e al momento della prenotazione.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TABS MOCKUP SECTION -->
+<section class="py-20 bg-slate-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Tutto il paziente in un unico schermo</h2>
+      <p class="text-slate-600 text-lg max-w-2xl mx-auto">Sette tab dedicati organizzano ogni informazione clinica e amministrativa senza sovraffollamento.</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+      <!-- Patient header -->
+      <div class="bg-[#00448c] px-6 py-5 flex items-center gap-4 flex-wrap">
+        <div class="w-14 h-14 rounded-full bg-white/20 text-white font-extrabold text-xl flex items-center justify-center shrink-0">MR</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-3 flex-wrap">
+            <h3 class="text-white font-bold text-xl">Maria Rossi</h3>
+            <span class="bg-green-400 text-green-900 text-xs font-bold px-2.5 py-0.5 rounded-full">Attiva</span>
+            <span class="bg-red-400 text-white text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Penicillina
+            </span>
+          </div>
+          <p class="text-blue-200 text-sm mt-1">45 anni &bull; Nata il 01/04/1980 &bull; Roma</p>
+        </div>
+      </div>
+      <!-- Tab bar -->
+      <div class="border-b border-slate-200 bg-slate-50 overflow-x-auto">
+        <div class="flex min-w-max">
+          <button class="px-5 py-3 text-sm font-semibold text-[#00448c] border-b-2 border-[#00448c] bg-white whitespace-nowrap">Overview</button>
+          <button class="px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap">Cartella Clinica</button>
+          <button class="px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap">Anamnesi</button>
+          <button class="px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap">Odontogramma</button>
+          <button class="px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap">Piani di Cura</button>
+          <button class="px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap">Preventivi</button>
+          <button class="px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap">Documenti</button>
+        </div>
+      </div>
+      <!-- Overview content -->
+      <div class="p-6 grid lg:grid-cols-2 gap-6">
+        <!-- Appointments table -->
+        <div>
+          <h4 class="font-semibold text-slate-700 mb-3 text-sm uppercase tracking-wider">Ultimi appuntamenti</h4>
+          <div class="rounded-xl overflow-hidden border border-slate-200">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="text-left px-3 py-2.5 text-xs uppercase tracking-wider text-slate-500 font-semibold">Data</th>
+                  <th class="text-left px-3 py-2.5 text-xs uppercase tracking-wider text-slate-500 font-semibold">Trattamento</th>
+                  <th class="text-left px-3 py-2.5 text-xs uppercase tracking-wider text-slate-500 font-semibold">Stato</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr>
+                  <td class="px-3 py-2.5 text-slate-600 text-xs whitespace-nowrap">20/05/2025</td>
+                  <td class="px-3 py-2.5 text-slate-800 text-xs font-medium">Ablazione tartaro</td>
+                  <td class="px-3 py-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Completato</span></td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2.5 text-slate-600 text-xs whitespace-nowrap">10/04/2025</td>
+                  <td class="px-3 py-2.5 text-slate-800 text-xs font-medium">Visita di controllo</td>
+                  <td class="px-3 py-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Completato</span></td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2.5 text-slate-600 text-xs whitespace-nowrap">15/06/2025</td>
+                  <td class="px-3 py-2.5 text-slate-800 text-xs font-medium">Otturazione 36</td>
+                  <td class="px-3 py-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Programmato</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Demographics card -->
+        <div>
+          <h4 class="font-semibold text-slate-700 mb-3 text-sm uppercase tracking-wider">Dati anagrafici</h4>
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+            <div class="flex justify-between text-sm"><span class="text-slate-500">Nome</span><span class="font-semibold text-slate-800">Maria Rossi</span></div>
+            <div class="flex justify-between text-sm"><span class="text-slate-500">Data di nascita</span><span class="font-medium text-slate-700">01/04/1980</span></div>
+            <div class="flex justify-between text-sm"><span class="text-slate-500">Codice fiscale</span><span class="font-mono font-medium text-slate-700 text-xs">RSSMRA80D41H501Z</span></div>
+            <div class="flex justify-between text-sm"><span class="text-slate-500">Telefono</span><span class="font-medium text-slate-700">338-XXXXXXX</span></div>
+            <div class="flex justify-between text-sm"><span class="text-slate-500">Email</span><span class="font-medium text-slate-700 text-xs">maria.rossi@email.it</span></div>
+            <div class="flex justify-between text-sm"><span class="text-slate-500">Citta'</span><span class="font-medium text-slate-700">Roma</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ODONTOGRAMMA SECTION -->
+<section class="py-20 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+      <!-- Left description -->
+      <div>
+        <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Odontogramma FDI integrato</h2>
+        <p class="text-slate-600 text-lg leading-relaxed mb-6">
+          Lo schema dentale in notazione FDI (Federazione Dentale Internazionale) mostra lo stato di ogni dente permanente a colpo d'occhio. Ogni elemento e' selezionabile per aggiornarne lo stato clinico.
+        </p>
+        <ul class="space-y-3">
+          <li class="flex items-center gap-3 text-slate-600 text-sm">
+            <div class="w-4 h-4 rounded bg-white border-2 border-slate-300 shrink-0"></div>
+            Dente sano — nessun intervento registrato
+          </li>
+          <li class="flex items-center gap-3 text-slate-600 text-sm">
+            <div class="w-4 h-4 rounded bg-red-500 shrink-0"></div>
+            Carie — trattamento necessario
+          </li>
+          <li class="flex items-center gap-3 text-slate-600 text-sm">
+            <div class="w-4 h-4 rounded bg-purple-400 shrink-0"></div>
+            Otturazione — otturazione composita o amalgama
+          </li>
+          <li class="flex items-center gap-3 text-slate-600 text-sm">
+            <div class="w-4 h-4 rounded bg-slate-400 shrink-0"></div>
+            Mancante — elemento non presente
+          </li>
+          <li class="flex items-center gap-3 text-slate-600 text-sm">
+            <div class="w-4 h-4 rounded bg-amber-400 shrink-0"></div>
+            Corona — elemento protesico
+          </li>
+          <li class="flex items-center gap-3 text-slate-600 text-sm">
+            <div class="w-4 h-4 rounded bg-blue-500 shrink-0"></div>
+            Impianto — fixture osteointegrata
+          </li>
+        </ul>
+      </div>
+      <!-- Right: tooth chart mockup -->
+      <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-6">
+        <div class="text-center text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Arcata superiore (vestibolare)</div>
+        <!-- Upper jaw - right side (18-11) -->
+        <div class="flex justify-center gap-1 mb-1">
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-slate-400">18</span>
+            <div class="w-9 h-9 rounded-lg bg-slate-300 border-2 border-slate-400 flex items-center justify-center">
+              <span class="text-xs text-white font-bold">M</span>
+            </div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-slate-400">17</span>
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-slate-400">16</span>
+            <div class="w-9 h-9 rounded-lg bg-amber-400 border-2 border-amber-500 flex items-center justify-center">
+              <span class="text-xs text-white font-bold">C</span>
+            </div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-slate-400">15</span>
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-slate-400">14</span>
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-slate-400">13</span>
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-slate-400">12</span>
+            <div class="w-9 h-9 rounded-lg bg-red-500 border-2 border-red-600 flex items-center justify-center">
+              <span class="text-xs text-white font-bold">K</span>
+            </div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-slate-400">11</span>
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+          </div>
+        </div>
+        <div class="flex justify-center mb-1">
+          <div class="w-px h-4 bg-slate-300"></div>
+        </div>
+        <!-- Upper jaw - left side (21-28) -->
+        <div class="flex justify-center gap-1 mb-4">
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+            <span class="text-xs text-slate-400">21</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-9 h-9 rounded-lg bg-purple-400 border-2 border-purple-500 flex items-center justify-center">
+              <span class="text-xs text-white font-bold">O</span>
+            </div>
+            <span class="text-xs text-slate-400">22</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+            <span class="text-xs text-slate-400">23</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+            <span class="text-xs text-slate-400">24</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+            <span class="text-xs text-slate-400">25</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-9 h-9 rounded-lg bg-blue-500 border-2 border-blue-600 flex items-center justify-center">
+              <span class="text-xs text-white font-bold">I</span>
+            </div>
+            <span class="text-xs text-slate-400">26</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+            <span class="text-xs text-slate-400">27</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-9 h-9 rounded-lg bg-white border-2 border-slate-300"></div>
+            <span class="text-xs text-slate-400">28</span>
+          </div>
+        </div>
+        <!-- Legend -->
+        <div class="border-t border-slate-100 pt-4 flex flex-wrap gap-3 justify-center">
+          <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-white border-2 border-slate-300"></div><span class="text-xs text-slate-500">Sano</span></div>
+          <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-red-500"></div><span class="text-xs text-slate-500">Carie (K)</span></div>
+          <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-purple-400"></div><span class="text-xs text-slate-500">Otturazione (O)</span></div>
+          <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-slate-400"></div><span class="text-xs text-slate-500">Mancante (M)</span></div>
+          <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-amber-400"></div><span class="text-xs text-slate-500">Corona (C)</span></div>
+          <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-blue-500"></div><span class="text-xs text-slate-500">Impianto (I)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="bg-[#0a1628] py-20">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl lg:text-4xl font-extrabold text-white mb-4">Pronto a trasformare il tuo studio?</h2>
+    <p class="text-blue-200 text-lg mb-8 leading-relaxed">30 giorni gratis, nessuna carta di credito richiesta.</p>
+    <a routerLink="/registrati" class="inline-flex items-center justify-center gap-2 bg-white text-[#00448c] hover:bg-blue-50 font-bold px-8 py-4 rounded-xl transition-all shadow-xl text-lg">
+      Inizia la prova gratuita
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-slate-900 text-slate-400 py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <svg width="28" height="28" viewBox="0 0 88 88" fill="none"><rect x="0" y="0" width="88" height="88" rx="22" fill="#00448c"/><path d="M24 58 C24 42 34 30 44 28 C54 30 64 42 64 58 C64 64 60 68 54 68 C50 68 47 65 44 65 C41 65 38 68 34 68 C28 68 24 64 24 58Z" fill="white" opacity="0.9"/></svg>
+          <span class="font-bold text-white text-base">DentalCare Pro</span>
+        </div>
+        <p class="text-sm text-slate-500">La piattaforma cloud per studi dentistici italiani.</p>
+      </div>
+      <div class="flex flex-wrap gap-5 text-sm justify-center">
+        <a routerLink="/landing" class="hover:text-white transition-colors">Home</a>
+        <a href="#" class="hover:text-white transition-colors">Privacy</a>
+        <a href="#" class="hover:text-white transition-colors">Termini</a>
+      </div>
+      <p class="text-slate-600 text-sm">© 2026 DentalCare Pro</p>
+    </div>
+  </div>
+</footer>

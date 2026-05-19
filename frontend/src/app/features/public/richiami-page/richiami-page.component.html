@@ -1,0 +1,399 @@
+<!-- NAVBAR -->
+<nav class="sticky top-0 z-50 bg-white shadow-sm border-b border-slate-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-6">
+    <a routerLink="/landing" class="flex items-center gap-2.5 shrink-0">
+      <svg width="36" height="36" viewBox="0 0 88 88" fill="none">
+        <defs><linearGradient id="nb-bg2" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00448c"/><stop offset="100%" stop-color="#003a78"/></linearGradient></defs>
+        <rect x="0" y="0" width="88" height="88" rx="22" fill="url(#nb-bg2)"/>
+        <path d="M24 58 C24 42 34 30 44 28 C54 30 64 42 64 58 C64 64 60 68 54 68 C50 68 47 65 44 65 C41 65 38 68 34 68 C28 68 24 64 24 58Z" fill="white" opacity="0.95"/>
+        <path d="M38 44 Q40 40 44 40 Q48 40 50 44" stroke="#00448c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <circle cx="39" cy="50" r="2" fill="#00448c"/>
+        <circle cx="44" cy="52" r="2" fill="#00448c"/>
+        <circle cx="49" cy="50" r="2" fill="#00448c"/>
+      </svg>
+      <span class="font-bold text-[#00448c] text-lg tracking-tight">DentalCare Pro</span>
+    </a>
+    <div class="hidden md:flex items-center gap-1 ml-6">
+      <a routerLink="/landing" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Home</a>
+    </div>
+    <div class="ml-auto flex items-center gap-3">
+      <a routerLink="/dashboard" class="text-sm font-medium text-slate-600 hover:text-[#00448c] transition-colors px-3 py-2">Accedi</a>
+      <a routerLink="/registrati" class="text-sm font-semibold bg-[#00448c] hover:bg-[#005BB7] text-white px-5 py-2.5 rounded-xl transition-all shadow-sm">Inizia ora</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="bg-gradient-to-br from-slate-50 via-[#f0f6ff] to-slate-100 py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+      <!-- Left -->
+      <div>
+        <span class="inline-flex items-center gap-2 bg-blue-100 text-[#00448c] text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider mb-6">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          Richiami &amp; Follow-up
+        </span>
+        <h1 class="text-4xl lg:text-5xl font-extrabold text-[#00448c] leading-tight mb-6">
+          Nessun paziente<br>dimenticato
+        </h1>
+        <p class="text-slate-600 text-lg leading-relaxed mb-8">
+          Il sistema analizza le visite completate e genera automaticamente i richiami per controlli periodici, igiene professionale e follow-up post-trattamento. Priorita' intelligente basata sui giorni di ritardo. Tracciamento multi-canale per ogni tentativo di contatto.
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <a routerLink="/registrati" class="inline-flex items-center gap-2 bg-[#00448c] hover:bg-[#005BB7] text-white font-bold px-7 py-3.5 rounded-xl transition-all shadow-lg">
+            Prova gratis 30 giorni
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+          <a routerLink="/dashboard" class="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-[#00448c] font-bold px-7 py-3.5 rounded-xl border border-slate-200 transition-all">
+            Guarda la demo
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: recalls list mockup -->
+      <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <!-- Header -->
+        <div class="bg-slate-50 border-b border-slate-200 px-4 py-3">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+            <span class="font-bold text-slate-800 text-sm">Richiami Pazienti</span>
+            <div class="flex gap-1.5">
+              <button class="text-xs bg-[#00448c] text-white px-3 py-1.5 rounded-lg font-semibold">Genera Richiami</button>
+              <button class="text-xs bg-[#14b8a6] text-white px-3 py-1.5 rounded-lg font-semibold">+ Nuovo</button>
+            </div>
+          </div>
+          <!-- KPI mini strip -->
+          <div class="grid grid-cols-4 gap-1.5">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-2 text-center">
+              <div class="text-lg font-extrabold text-red-600">8</div>
+              <div class="text-xs text-red-500 font-medium leading-tight">Da cont.</div>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
+              <div class="text-lg font-extrabold text-amber-600">3</div>
+              <div class="text-xs text-amber-500 font-medium leading-tight">In gest.</div>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
+              <div class="text-lg font-extrabold text-green-600">12</div>
+              <div class="text-xs text-green-500 font-medium leading-tight">Confermati</div>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-2 text-center">
+              <div class="text-lg font-extrabold text-orange-600">5</div>
+              <div class="text-xs text-orange-500 font-medium leading-tight">Scaduti</div>
+            </div>
+          </div>
+        </div>
+        <!-- Recall rows -->
+        <div class="divide-y divide-slate-100">
+          <!-- Row 1: alta priorita -->
+          <div class="px-4 py-3 bg-red-50 flex items-center gap-3">
+            <div class="relative shrink-0">
+              <div class="w-9 h-9 rounded-full bg-red-100 text-red-700 font-bold text-sm flex items-center justify-center">MR</div>
+              <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 border-2 border-white"></span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-slate-800 text-xs truncate">Maria Rossi</div>
+              <div class="text-xs text-slate-400 truncate">Controllo annuale</div>
+              <div class="text-xs text-red-600 font-medium mt-0.5">Scad. 15/03/2025 &bull; 45 gg fa</div>
+            </div>
+            <div class="shrink-0 text-right">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 mb-1">Da cont.</span>
+              <div class="text-xs text-slate-400">0 contatti</div>
+            </div>
+          </div>
+          <!-- Row 2: in gestione -->
+          <div class="px-4 py-3 flex items-center gap-3">
+            <div class="relative shrink-0">
+              <div class="w-9 h-9 rounded-full bg-teal-100 text-teal-700 font-bold text-sm flex items-center justify-center">GF</div>
+              <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-400 border-2 border-white"></span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-slate-800 text-xs truncate">Giuseppe Ferrari</div>
+              <div class="text-xs text-slate-400 truncate">Igiene professionale</div>
+              <div class="text-xs text-amber-600 font-medium mt-0.5">Scad. 20/04/2025 &bull; 30 gg fa</div>
+            </div>
+            <div class="shrink-0 text-right">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 mb-1">Contattato</span>
+              <div class="text-xs text-slate-400">1 contatto</div>
+            </div>
+          </div>
+          <!-- Row 3: confermato -->
+          <div class="px-4 py-3 flex items-center gap-3">
+            <div class="relative shrink-0">
+              <div class="w-9 h-9 rounded-full bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center">AB</div>
+              <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-amber-400 border-2 border-white"></span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-slate-800 text-xs truncate">Anna Bianchi</div>
+              <div class="text-xs text-slate-400 truncate">Controllo parodontale</div>
+              <div class="text-xs text-slate-500 mt-0.5">Scad. 10/05/2025</div>
+            </div>
+            <div class="shrink-0 text-right">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 mb-1">Confermato</span>
+              <div class="text-xs text-slate-400">2 contatti</div>
+            </div>
+          </div>
+          <!-- Row 4: da contattare -->
+          <div class="px-4 py-3 flex items-center gap-3">
+            <div class="relative shrink-0">
+              <div class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 font-bold text-sm flex items-center justify-center">CV</div>
+              <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white"></span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-slate-800 text-xs truncate">Carlo Verdi</div>
+              <div class="text-xs text-slate-400 truncate">Controllo ortodonzia</div>
+              <div class="text-xs text-slate-500 mt-0.5">Scad. 01/06/2025</div>
+            </div>
+            <div class="shrink-0 text-right">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 mb-1">Da cont.</span>
+              <div class="text-xs text-slate-400">0 contatti</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- KPI STRIP -->
+<section class="py-20 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Dashboard richiami sempre aggiornata</h2>
+      <p class="text-slate-600 text-lg max-w-2xl mx-auto">Quattro indicatori chiave per capire immediatamente la situazione dei follow-up del tuo studio.</p>
+    </div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-2xl border border-red-200 p-6 hover:shadow-md transition-all">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          </div>
+        </div>
+        <div class="text-3xl font-extrabold text-red-600 mb-1">8</div>
+        <div class="text-sm font-semibold text-slate-700 mb-0.5">Da contattare</div>
+        <div class="text-xs text-red-500 font-medium">Azione immediata</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-amber-200 p-6 hover:shadow-md transition-all">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <div class="text-3xl font-extrabold text-amber-600 mb-1">3</div>
+        <div class="text-sm font-semibold text-slate-700 mb-0.5">In gestione</div>
+        <div class="text-xs text-amber-500 font-medium">Contatto in corso</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-green-200 p-6 hover:shadow-md transition-all">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <div class="text-3xl font-extrabold text-green-700 mb-1">12</div>
+        <div class="text-sm font-semibold text-slate-700 mb-0.5">Confermati</div>
+        <div class="text-xs text-green-600 font-medium">Appuntamento fissato</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-orange-200 p-6 hover:shadow-md transition-all">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </div>
+        </div>
+        <div class="text-3xl font-extrabold text-orange-600 mb-1">5</div>
+        <div class="text-sm font-semibold text-slate-700 mb-0.5">Scaduti</div>
+        <div class="text-xs text-orange-500 font-medium">Richiamo non gestito</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE HIGHLIGHTS -->
+<section class="py-20 bg-slate-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Un sistema di richiami che lavora per te</h2>
+      <p class="text-slate-600 text-lg max-w-2xl mx-auto">La fidelizzazione del paziente parte da un follow-up puntuale e personalizzato.</p>
+    </div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-[#00448c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Generazione Automatica</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Il sistema analizza le visite completate e genera automaticamente i richiami in base all'intervallo configurato per ogni tipo di controllo.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Priorita' Intelligente</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Classificazione automatica Alta (oltre 30 gg), Media (oltre 15 gg), Bassa (entro scadenza) basata sui giorni di ritardo rispetto alla data prevista.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Multi-Canale</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Registra ogni tentativo di contatto via Telefono, WhatsApp, SMS o Email. Il sistema conta i contatti effettuati per ogni richiamo.</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
+        <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h3 class="font-bold text-slate-800 mb-2">Storico Contatti</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Tracciamento completo di ogni tentativo con canale, esito (Risposto/Non risponde/Confermato/Rifiutato), data e note operative.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT CHANNEL SECTION -->
+<section class="py-20 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-16 items-start">
+      <!-- Left description -->
+      <div>
+        <h2 class="text-3xl font-extrabold text-[#00448c] mb-4">Ogni contatto registrato, nessuno dimenticato</h2>
+        <p class="text-slate-600 text-lg leading-relaxed mb-6">
+          Ogni volta che il tuo team contatta un paziente per un richiamo, l'esito viene registrato nel sistema. In questo modo sai sempre chi ha gia' risposto, chi non ha risposto e chi ha confermato l'appuntamento.
+        </p>
+        <ul class="space-y-4">
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="text-slate-600 text-sm"><span class="font-semibold text-slate-800">Canali supportati</span> — Telefono, WhatsApp, SMS ed Email: scegli il canale usato e registra l'esito in pochi secondi.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="text-slate-600 text-sm"><span class="font-semibold text-slate-800">Esiti strutturati</span> — Risposto, Non risponde, Confermato, Rifiutato: ogni esito aggiorna automaticamente lo stato del richiamo.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="text-slate-600 text-sm"><span class="font-semibold text-slate-800">Note operative</span> — Aggiungi note testuali a ogni contatto per comunicare al team informazioni rilevanti sul paziente.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="text-slate-600 text-sm"><span class="font-semibold text-slate-800">Contatore tentativi</span> — Il numero di contatti effettuati e' sempre visibile nella lista richiami per evitare di infastidire il paziente.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Right: contact modal mockup -->
+      <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <!-- Modal header -->
+        <div class="bg-[#00448c] px-5 py-4 flex items-center justify-between">
+          <div>
+            <h4 class="text-white font-bold text-sm">Registra contatto</h4>
+            <p class="text-blue-200 text-xs mt-0.5">Maria Rossi &bull; Controllo annuale</p>
+          </div>
+          <button class="w-7 h-7 rounded-lg bg-white/20 text-white flex items-center justify-center text-sm font-bold">×</button>
+        </div>
+        <!-- Channel buttons -->
+        <div class="p-5 border-b border-slate-200">
+          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Canale di contatto</div>
+          <div class="grid grid-cols-4 gap-2">
+            <button class="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-blue-50 border-2 border-[#00448c] text-[#00448c]">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              <span class="text-xs font-semibold">Telefono</span>
+            </button>
+            <button class="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-green-50">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              <span class="text-xs font-medium">WhatsApp</span>
+            </button>
+            <button class="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-500">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+              <span class="text-xs font-medium">SMS</span>
+            </button>
+            <button class="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-500">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              <span class="text-xs font-medium">Email</span>
+            </button>
+          </div>
+        </div>
+        <!-- Outcome + notes -->
+        <div class="p-5 space-y-3 border-b border-slate-200">
+          <div>
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Esito</div>
+            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+              <span class="text-sm text-slate-700 flex-1">Risposto</span>
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Note</div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-400 min-h-16">Aggiungi note operative...</div>
+          </div>
+          <button class="w-full bg-[#00448c] hover:bg-[#005BB7] text-white font-bold py-2.5 rounded-xl text-sm transition-all">Salva contatto</button>
+        </div>
+        <!-- History -->
+        <div class="p-5">
+          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Storico contatti</div>
+          <div class="space-y-2.5">
+            <div class="flex items-start gap-3 bg-slate-50 rounded-xl px-3 py-2.5">
+              <div class="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-semibold text-slate-700">WhatsApp</span>
+                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Confermato</span>
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5">3 giorni fa &bull; "Confermato per venerdi'"</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 bg-slate-50 rounded-xl px-3 py-2.5">
+              <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-semibold text-slate-700">Telefono</span>
+                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Non risponde</span>
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5">7 giorni fa &bull; Nessuna risposta</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="bg-[#0a1628] py-20">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl lg:text-4xl font-extrabold text-white mb-4">Pronto a trasformare il tuo studio?</h2>
+    <p class="text-blue-200 text-lg mb-8 leading-relaxed">30 giorni gratis, nessuna carta di credito richiesta.</p>
+    <a routerLink="/registrati" class="inline-flex items-center justify-center gap-2 bg-white text-[#00448c] hover:bg-blue-50 font-bold px-8 py-4 rounded-xl transition-all shadow-xl text-lg">
+      Inizia la prova gratuita
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-slate-900 text-slate-400 py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <svg width="28" height="28" viewBox="0 0 88 88" fill="none"><rect x="0" y="0" width="88" height="88" rx="22" fill="#00448c"/><path d="M24 58 C24 42 34 30 44 28 C54 30 64 42 64 58 C64 64 60 68 54 68 C50 68 47 65 44 65 C41 65 38 68 34 68 C28 68 24 64 24 58Z" fill="white" opacity="0.9"/></svg>
+          <span class="font-bold text-white text-base">DentalCare Pro</span>
+        </div>
+        <p class="text-sm text-slate-500">La piattaforma cloud per studi dentistici italiani.</p>
+      </div>
+      <div class="flex flex-wrap gap-5 text-sm justify-center">
+        <a routerLink="/landing" class="hover:text-white transition-colors">Home</a>
+        <a href="#" class="hover:text-white transition-colors">Privacy</a>
+        <a href="#" class="hover:text-white transition-colors">Termini</a>
+      </div>
+      <p class="text-slate-600 text-sm">© 2026 DentalCare Pro</p>
+    </div>
+  </div>
+</footer>
