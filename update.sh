@@ -1,4 +1,4 @@
 cd ~/docker/dentalcarepro
-rm install.sh
+[ -f install.sh ] && rm install.sh
 git pull origin master
 bash install.sh --update
