@@ -111,7 +111,8 @@ VALUES
     (8,  '8',  'inventory',               'SQL', 'V8__inventory.sql',                     0, 'postgres', 100, true),
     (9,  '9',  'recalls',                 'SQL', 'V9__recalls.sql',                       0, 'postgres', 100, true),
     (10, '10', 'inventory seed',           'SQL', 'V10__inventory_seed.sql',               0, 'postgres', 100, true),
-    (11, '11', 'schema updates',           'SQL', 'V11__schema_updates.sql',               0, 'postgres', 100, true)
+    (11, '11', 'schema updates',           'SQL', 'V11__schema_updates.sql',               0, 'postgres', 100, true),
+    (12, '12', 'providers email',          'SQL', 'V12__providers_email.sql',               0, 'postgres', 100, true)
 ON CONFLICT (installed_rank) DO NOTHING;
 
 \echo '-- Step 5/5: COMPLETATO --'
