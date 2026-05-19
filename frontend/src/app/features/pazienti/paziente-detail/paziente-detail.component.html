@@ -297,7 +297,7 @@
           </div>
         </div>
       } @else if (paziente) {
-        <app-cartella-tab [paziente]="paziente" [patientId]="paziente.id" (openAnamnesi)="activeTab.set('anamnesi')" />
+        <app-cartella-tab [paziente]="paziente" [patientId]="paziente.id" (openAnamnesi)="activeTab.set('anamnesi')" (openTab)="activeTab.set($any($event))" />
       }
 
     } @else if (activeTab() === 'anamnesi') {

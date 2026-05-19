@@ -112,7 +112,9 @@ VALUES
     (9,  '9',  'recalls',                 'SQL', 'V9__recalls.sql',                       0, 'postgres', 100, true),
     (10, '10', 'inventory seed',           'SQL', 'V10__inventory_seed.sql',               0, 'postgres', 100, true),
     (11, '11', 'schema updates',           'SQL', 'V11__schema_updates.sql',               0, 'postgres', 100, true),
-    (12, '12', 'providers email',          'SQL', 'V12__providers_email.sql',               0, 'postgres', 100, true)
+    (12, '12', 'providers email',          'SQL', 'V12__providers_email.sql',               0, 'postgres', 100, true),
+    (13, '13', 'patient diagnoses',        'SQL', 'V13__patient_diagnoses.sql',              0, 'postgres', 100, true),
+    (14, '14', 'patient prescriptions',    'SQL', 'V14__patient_prescriptions.sql',          0, 'postgres', 100, true)
 ON CONFLICT (installed_rank) DO NOTHING;
 
 \echo '-- Step 5/5: COMPLETATO --'

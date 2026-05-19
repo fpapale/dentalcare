@@ -1325,6 +1325,65 @@ BEFORE UPDATE ON ai_conversations
 FOR EACH ROW EXECUTE FUNCTION dentalcare.set_updated_at();
 
 -- =============================================================================
+-- 26. PATIENT_DIAGNOSES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_diagnoses (
+    id              UUID        NOT NULL DEFAULT gen_random_uuid(),
+    clinic_id       UUID        NOT NULL,
+    patient_id      UUID        NOT NULL,
+    provider_id     UUID        NOT NULL,
+    tooth_number    VARCHAR(10),
+    title           VARCHAR(255) NOT NULL,
+    description     TEXT,
+    icd_code        VARCHAR(20),
+    status          VARCHAR(20) NOT NULL DEFAULT 'active',
+    diagnosed_at    DATE        NOT NULL DEFAULT CURRENT_DATE,
+    resolved_at     DATE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT patient_diagnoses_pkey PRIMARY KEY (id)
+) TABLESPACE :"tenant_tablespace";
+
+CREATE INDEX IF NOT EXISTS idx_patient_diagnoses_patient
+    ON patient_diagnoses (clinic_id, patient_id)
+    TABLESPACE :"tenant_tablespace";
+
+CREATE INDEX IF NOT EXISTS idx_patient_diagnoses_status
+    ON patient_diagnoses (clinic_id, patient_id, status)
+    TABLESPACE :"tenant_tablespace";
+
+-- =============================================================================
+-- 27. PATIENT_PRESCRIPTIONS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_prescriptions (
+    id              UUID         NOT NULL DEFAULT gen_random_uuid(),
+    clinic_id       UUID         NOT NULL,
+    patient_id      UUID         NOT NULL,
+    provider_id     UUID         NOT NULL,
+    drug_name       VARCHAR(255) NOT NULL,
+    dosage          VARCHAR(100),
+    frequency       VARCHAR(100),
+    duration        VARCHAR(100),
+    notes           TEXT,
+    prescribed_at   DATE         NOT NULL DEFAULT CURRENT_DATE,
+    expires_at      DATE,
+    active          BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    CONSTRAINT patient_prescriptions_pkey PRIMARY KEY (id)
+) TABLESPACE :"tenant_tablespace";
+
+CREATE INDEX IF NOT EXISTS idx_patient_prescriptions_patient
+    ON patient_prescriptions (clinic_id, patient_id)
+    TABLESPACE :"tenant_tablespace";
+
+CREATE INDEX IF NOT EXISTS idx_patient_prescriptions_active
+    ON patient_prescriptions (clinic_id, patient_id, active)
+    TABLESPACE :"tenant_tablespace";
+
+-- =============================================================================
 -- VISTE
 -- =============================================================================
 

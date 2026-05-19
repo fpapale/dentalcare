@@ -1,0 +1,174 @@
+<div class="min-h-screen bg-slate-50">
+
+  <!-- Header -->
+  <div class="bg-white border-b border-slate-200 px-5 py-4">
+    <div class="max-w-3xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <a [routerLink]="['/pazienti', patientId()]" [queryParams]="{ tab: 'cartella' }"
+          class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <div>
+          <h1 class="text-lg font-bold text-slate-800">Prescrizioni</h1>
+          <p class="text-xs text-slate-400 mt-0.5">Gestione prescrizioni del paziente</p>
+        </div>
+      </div>
+      <button (click)="showForm.set(true)"
+        class="flex items-center gap-1.5 bg-teal-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[15px]">add</span>
+        Nuova prescrizione
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-3xl mx-auto p-5 space-y-4">
+
+    <!-- Inline form -->
+    @if (showForm()) {
+      <div class="bg-white rounded-xl border border-teal-200 shadow-sm p-5">
+        <h2 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px] text-teal-600">medication</span>
+          Nuova prescrizione
+        </h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+              Farmaco <span class="text-red-500">*</span>
+            </label>
+            <input type="text" [(ngModel)]="form.drugName"
+              placeholder="Es. Amoxicillina, Ibuprofene..."
+              class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Dosaggio</label>
+              <input type="text" [(ngModel)]="form.dosage"
+                placeholder="Es. 500mg"
+                class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Frequenza</label>
+              <input type="text" [(ngModel)]="form.frequency"
+                placeholder="Es. 3 volte al giorno"
+                class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Durata</label>
+              <input type="text" [(ngModel)]="form.duration"
+                placeholder="Es. 7 giorni"
+                class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Scadenza</label>
+              <input type="date" [(ngModel)]="form.expiresAt"
+                class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Note</label>
+            <textarea [(ngModel)]="form.notes" rows="2"
+              placeholder="Indicazioni aggiuntive..."
+              class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"></textarea>
+          </div>
+        </div>
+        @if (error()) {
+          <div class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-4">
+            <span class="material-symbols-outlined text-red-500 text-[18px]">error</span>
+            <p class="text-sm text-red-700">{{ error() }}</p>
+          </div>
+        }
+        <div class="flex gap-3 mt-5">
+          <button (click)="showForm.set(false); error.set(null)"
+            class="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors">
+            Annulla
+          </button>
+          <button (click)="save()" [disabled]="!form.drugName.trim() || saving()"
+            class="flex-1 py-2.5 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            @if (saving()) {
+              <span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+            }
+            {{ saving() ? 'Salvataggio…' : 'Salva' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="space-y-3">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 animate-pulse">
+            <div class="h-5 w-40 bg-slate-200 rounded mb-2"></div>
+            <div class="h-3 w-64 bg-slate-100 rounded"></div>
+          </div>
+        }
+      </div>
+
+    <!-- Empty state -->
+    } @else if (prescrizioni().length === 0) {
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+        <span class="material-symbols-outlined text-[48px] text-slate-200 block mb-3">medication</span>
+        <p class="text-sm font-semibold text-slate-500">Nessuna prescrizione registrata</p>
+        <p class="text-xs text-slate-400 mt-1">Aggiungi la prima prescrizione per questo paziente.</p>
+        <button (click)="showForm.set(true)"
+          class="mt-4 inline-flex items-center gap-1.5 bg-teal-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors">
+          <span class="material-symbols-outlined text-[14px]">add</span>
+          Nuova prescrizione
+        </button>
+      </div>
+
+    <!-- List -->
+    } @else {
+      <div class="space-y-3">
+        @for (p of prescrizioni(); track p.id) {
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                [class.bg-teal-100]="p.active"
+                [class.bg-slate-100]="!p.active">
+                <span class="material-symbols-outlined text-[16px]"
+                  [class.text-teal-600]="p.active"
+                  [class.text-slate-400]="!p.active">medication</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-bold text-slate-800">{{ p.drugName }}</span>
+                  @if (!p.active) {
+                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500">
+                      Inattiva
+                    </span>
+                  }
+                  @if (p.expiresAt) {
+                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[11px]">schedule</span>
+                      Scade {{ formatDate(p.expiresAt) }}
+                    </span>
+                  }
+                </div>
+                @if (p.dosage || p.frequency || p.duration) {
+                  <p class="text-xs text-slate-500 mt-1">
+                    {{ [p.dosage, p.frequency, p.duration].filter(Boolean).join(' · ') }}
+                  </p>
+                }
+                @if (p.notes) {
+                  <p class="text-xs text-slate-400 mt-1 italic">{{ p.notes }}</p>
+                }
+                <p class="text-[11px] text-slate-400 mt-2">
+                  {{ p.providerName }} · {{ formatDate(p.prescribedAt) }}
+                </p>
+              </div>
+              <button (click)="delete(p.id)"
+                class="shrink-0 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                <span class="material-symbols-outlined text-[18px]">delete</span>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+  </div>
+
+</div>

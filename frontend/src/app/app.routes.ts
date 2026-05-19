@@ -38,6 +38,18 @@ export const routes: Routes = [
     loadComponent: () => import('./features/pazienti/paziente-detail/paziente-detail.component').then(m => m.PazienteDetailComponent)
   },
   {
+    path: 'pazienti/:id/nuova-visita',
+    loadComponent: () => import('./features/pazienti/nuova-visita/nuova-visita.component').then(m => m.NuovaVisitaComponent)
+  },
+  {
+    path: 'pazienti/:id/diagnosi',
+    loadComponent: () => import('./features/pazienti/diagnosi/diagnosi.component').then(m => m.DiagnosiComponent)
+  },
+  {
+    path: 'pazienti/:id/prescrizioni',
+    loadComponent: () => import('./features/pazienti/prescrizioni/prescrizioni.component').then(m => m.PrescrizioniComponent)
+  },
+  {
     path: 'pazienti/:id/piano-cura/:planId',
     loadComponent: () => import('./features/pazienti/piano-cura-detail/piano-cura-detail.component').then(m => m.PianoCuraDetailComponent)
   },

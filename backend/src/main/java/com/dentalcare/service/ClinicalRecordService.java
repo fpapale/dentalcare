@@ -1,6 +1,7 @@
 package com.dentalcare.service;
 
 import com.dentalcare.dto.ClinicalHistoryEntryDto;
+import com.dentalcare.dto.CreateClinicalHistoryEntryRequest;
 import com.dentalcare.dto.OdontogramSummaryDto;
 import com.dentalcare.dto.TreatmentPlanSummaryDto;
 import com.dentalcare.security.TenantContext;
@@ -8,6 +9,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,6 +50,52 @@ public class ClinicalRecordService {
                 rs.getString("clinical_notes"),
                 rs.getString("next_visit_notes")
         ));
+    }
+
+    public ClinicalHistoryEntryDto createDiaryEntry(UUID patientId, CreateClinicalHistoryEntryRequest request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        UUID id = UUID.randomUUID();
+        String insert = """
+            INSERT INTO %s.clinical_history_entries
+                (id, clinic_id, patient_id, provider_id, entry_date,
+                 tooth_number, service_code, service_name, clinical_notes, materials_used, next_visit_notes)
+            VALUES (:id, :clinicId, :patientId, :providerId, :entryDate,
+                    :toothNumber, :serviceCode, :serviceName, :clinicalNotes, :materialsUsed, :nextVisitNotes)
+            """.formatted(s());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("clinicId", clinicId)
+                .addValue("patientId", patientId)
+                .addValue("providerId", request.providerId())
+                .addValue("entryDate", request.entryDate() != null ? request.entryDate() : LocalDate.now())
+                .addValue("toothNumber", request.toothNumber())
+                .addValue("serviceCode", request.serviceCode())
+                .addValue("serviceName", request.serviceName())
+                .addValue("clinicalNotes", request.clinicalNotes())
+                .addValue("materialsUsed", request.materialsUsed())
+                .addValue("nextVisitNotes", request.nextVisitNotes());
+        jdbc.update(insert, params);
+
+        String select = """
+            SELECT che.id, che.entry_date,
+                   concat_ws(' ', prov.last_name, prov.first_name) AS provider_name,
+                   che.tooth_number, che.service_name,
+                   che.clinical_notes, che.next_visit_notes
+            FROM %s.clinical_history_entries che
+            JOIN %s.providers prov ON prov.id = che.provider_id AND prov.clinic_id = che.clinic_id
+            WHERE che.id = :id AND che.clinic_id = :clinicId
+            """.formatted(s(), s());
+        return jdbc.queryForObject(select,
+                new MapSqlParameterSource("id", id).addValue("clinicId", clinicId),
+                (rs, n) -> new ClinicalHistoryEntryDto(
+                        rs.getObject("id", UUID.class),
+                        rs.getDate("entry_date") != null ? rs.getDate("entry_date").toLocalDate() : null,
+                        rs.getString("provider_name"),
+                        rs.getString("tooth_number"),
+                        rs.getString("service_name"),
+                        rs.getString("clinical_notes"),
+                        rs.getString("next_visit_notes")
+                ));
     }
 
     public List<TreatmentPlanSummaryDto> findTreatmentPlans(UUID patientId) {
