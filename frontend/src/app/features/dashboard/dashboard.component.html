@@ -20,7 +20,7 @@
   </div>
 
   <!-- KPI strip -->
-  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <section class="grid grid-cols-2 lg:grid-cols-5 gap-4">
     <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
       <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Pazienti</p>
       <p class="text-2xl font-bold text-slate-800 mt-1">{{ d.patientsCount }}</p>
@@ -34,7 +34,6 @@
       <p class="text-2xl font-bold text-blue-600 mt-1">{{ plansTotal(d) }}</p>
 
       @if (plansTotal(d) > 0) {
-        <!-- Stacked bar -->
         <div class="mt-3 h-2 flex rounded-full overflow-hidden gap-px">
           @if (d.plansDraft > 0) {
             <div class="bg-amber-400 rounded-l-full" [style.flex]="planBarFlex(d.plansDraft, d)"></div>
@@ -49,8 +48,6 @@
             <div class="bg-red-400 rounded-r-full" [style.flex]="planBarFlex(d.plansRejected, d)"></div>
           }
         </div>
-
-        <!-- Legend -->
         <div class="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
           <div class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
@@ -75,6 +72,38 @@
         </div>
       }
     </div>
+
+    <!-- Occupazione oggi — spostato qui dal sidebar -->
+    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Occupazione oggi</p>
+      <div class="flex items-center gap-3">
+        <svg viewBox="0 0 36 36" class="w-14 h-14 shrink-0">
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+            fill="none" stroke="#e2e8f0" stroke-width="3.5"/>
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+            fill="none" stroke="#0d9488" stroke-width="3.5" [attr.stroke-dasharray]="dashArray" stroke-linecap="round"/>
+          <text x="18" y="20.5" text-anchor="middle" font-size="8" font-weight="bold" fill="#1e293b">{{ occupancyPct }}%</text>
+        </svg>
+        <div class="space-y-1.5 text-xs">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-blue-400 shrink-0"></span>
+            <span class="text-slate-400 flex-1">Previsti</span>
+            <span class="font-bold text-slate-700">{{ d.todayConfirmed }}</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+            <span class="text-slate-400 flex-1">Completati</span>
+            <span class="font-bold text-green-600">{{ d.todayCompleted }}</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>
+            <span class="text-slate-400 flex-1">Annullati</span>
+            <span class="font-bold text-red-500">{{ d.todayCancelled }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
       <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Preventivi inviati</p>
       <p class="text-2xl font-bold text-orange-500 mt-1">{{ d.sentEstimatesCount }}</p>
@@ -172,42 +201,39 @@
     <!-- Sidebar -->
     <div class="flex flex-col gap-4">
 
-      <!-- Occupazione -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h2 class="font-bold text-sm text-slate-800 mb-4">Occupazione Oggi</h2>
-        <div class="flex items-center justify-center">
-          <svg viewBox="0 0 36 36" class="w-28 h-28">
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              fill="none" stroke="#e2e8f0" stroke-width="3"/>
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              fill="none" stroke="#0d9488" stroke-width="3" [attr.stroke-dasharray]="dashArray" stroke-linecap="round"/>
-            <text x="18" y="20.5" text-anchor="middle" class="text-slate-800 font-bold" font-size="8" fill="#1e293b">{{ occupancyPct }}%</text>
-          </svg>
-        </div>
-        <div class="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
-          <div><p class="font-bold text-slate-700">{{ d.todayConfirmed }}</p><p class="text-slate-400">Previsti</p></div>
-          <div><p class="font-bold text-green-600">{{ d.todayCompleted }}</p><p class="text-slate-400">Completati</p></div>
-          <div><p class="font-bold text-red-500">{{ d.todayCancelled }}</p><p class="text-slate-400">Annullati</p></div>
-        </div>
-      </div>
-
-      <!-- Alert pazienti -->
-      @if (alertAppts(d.todayAppointments).length > 0) {
-        <div class="bg-white rounded-xl border border-red-100 shadow-sm p-5">
-          <h2 class="font-bold text-sm text-red-700 mb-3 flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-[16px]">warning</span> Alert Clinici
+      <!-- Motivo appuntamento -->
+      @if (upcomingAppts(d.todayAppointments, d.nextDay).length > 0) {
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <h2 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-teal-600">medical_services</span>
+            Motivo appuntamento
           </h2>
-          <div class="space-y-2">
-            @for (a of alertAppts(d.todayAppointments); track a.appointmentId) {
-              <div class="flex items-center gap-2 text-xs">
-                <span class="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+          <div class="space-y-2.5">
+            @for (a of upcomingAppts(d.todayAppointments, d.nextDay); track a.appointmentId) {
+              <a [routerLink]="['/pazienti', a.patientId]"
+                class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 transition-colors block">
+                <span class="w-7 h-7 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
                   {{ a.patientFullName[0] }}
                 </span>
-                <div>
-                  <p class="font-semibold text-slate-700">{{ a.patientFullName }}</p>
-                  <p class="text-red-600">{{ a.hasAllergyAlert ? 'Allergia segnalata' : '' }}{{ a.hasMedicationAlert ? ' · Farmaci' : '' }}</p>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1 flex-wrap">
+                    <p class="text-xs font-bold text-slate-800 truncate">{{ a.patientFullName }}</p>
+                    @if (a.hasAllergyAlert) {
+                      <span class="material-symbols-outlined text-[13px] text-red-600" title="Allergia">warning</span>
+                    }
+                    @if (a.hasMedicationAlert) {
+                      <span class="material-symbols-outlined text-[13px] text-orange-500" title="Farmaci">medication</span>
+                    }
+                  </div>
+                  <p class="text-[11px] text-teal-700 font-semibold mt-0.5 truncate">{{ a.serviceName ?? 'Visita generica' }}</p>
+                  @if (a.hasAllergyAlert || a.hasMedicationAlert) {
+                    <p class="text-[10px] text-red-600 mt-0.5">
+                      {{ a.hasAllergyAlert ? 'Allergia' : '' }}{{ a.hasAllergyAlert && a.hasMedicationAlert ? ' · ' : '' }}{{ a.hasMedicationAlert ? 'Farmaci in corso' : '' }}
+                    </p>
+                  }
                 </div>
-              </div>
+                <span class="text-[10px] text-slate-400 shrink-0 mt-0.5">{{ formatTime(a.startsAt) }}</span>
+              </a>
             }
           </div>
         </div>
