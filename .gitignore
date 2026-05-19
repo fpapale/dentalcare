@@ -15,14 +15,11 @@ target/
 startup-out.txt
 startup-err.txt
 
-# Runtime logs (root level)
-backend-out.log
-backend-err.log
-backend-err2.log
-backend-full.log
-backend-startup.log
-backend-startup-err.log
-frontend.log
+# Logs (all locations)
+*.log
+backend/*.log
+backend/*_err.log
+mockup_corretti/
 
 # Environment — i .example non contengono segreti e vanno in git
 .env
