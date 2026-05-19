@@ -341,13 +341,30 @@ CREATE INDEX IF NOT EXISTS ix_cities_name
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS national_holidays (
-    id           uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
-    state_id     uuid    NOT NULL REFERENCES states(id),
-    holiday_date date    NOT NULL,
-    name         text    NOT NULL,
-    is_fixed     boolean NOT NULL DEFAULT true,
-    UNIQUE (state_id, holiday_date)
+    id           uuid     PRIMARY KEY DEFAULT gen_random_uuid(),
+    state_id     uuid     NOT NULL REFERENCES states(id),
+    name         text     NOT NULL,
+    is_recurring boolean  NOT NULL DEFAULT true,
+    -- recurring holidays: month+day repeat every year
+    month        smallint,
+    day          smallint,
+    -- non-recurring holidays: specific date (e.g. Easter)
+    holiday_date date,
+    -- alias column added by V11 for backwards compat: is_fixed = NOT is_recurring
+    is_fixed     boolean,
+    CONSTRAINT chk_holiday_def CHECK (
+        (is_recurring = TRUE  AND month IS NOT NULL AND day IS NOT NULL AND holiday_date IS NULL) OR
+        (is_recurring = FALSE AND holiday_date IS NOT NULL AND month IS NULL AND day IS NULL)
+    )
 );
+
+CREATE INDEX IF NOT EXISTS ix_holidays_recurring
+    ON national_holidays (state_id, month, day)
+    WHERE is_recurring = TRUE;
+
+CREATE INDEX IF NOT EXISTS ix_holidays_date
+    ON national_holidays (state_id, holiday_date)
+    WHERE holiday_date IS NOT NULL;
 
 -- =============================================================================
 -- NOTA: dentalcare.invoice_lines
