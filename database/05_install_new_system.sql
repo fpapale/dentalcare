@@ -2,7 +2,7 @@
 -- DentalCare Pro - Installazione Completa Sistema
 -- File: 05_install_new_system.sql
 -- Descrizione: Orchestratore per installazione fresh su un database vuoto.
---              Esegue in sequenza i 4 script base.
+--              Esegue in sequenza gli script base e configura Flyway.
 --
 -- Uso (dalla directory database/):
 --   psql -U postgres -d dentalcarepro -f 05_install_new_system.sql
@@ -10,7 +10,8 @@
 -- Oppure manualmente passo per passo:
 --   psql -U postgres -d dentalcarepro -f 01_schema_applicative.sql
 --   psql -U postgres -d dentalcarepro -f 03_seed_global.sql
---   psql -v tenant_schema=t_9d754153 -U postgres -d dentalcarepro -f 02_schema_tenant.sql
+--   psql -v tenant_schema=t_9d754153 -v tenant_tablespace=pg_default \
+--        -U postgres -d dentalcarepro -f 02_schema_tenant.sql
 --   psql -U postgres -d dentalcarepro -f 04_seed_demo_tenant.sql
 --
 -- Prerequisiti:
@@ -75,8 +76,44 @@
 -- Step 5: Seed Flyway schema history (segna V1-V11 come gia' applicati)
 -- =============================================================================
 
-\echo '-- Step 5/5: Seed Flyway schema history (flyway_seed_history.sql) --'
-\i flyway_seed_history.sql
+\echo '-- Step 5/5: Seed Flyway schema history --'
+
+SET search_path TO dentalcare, public;
+
+CREATE TABLE IF NOT EXISTS flyway_schema_history (
+    installed_rank INTEGER       NOT NULL,
+    version        VARCHAR(50),
+    description    VARCHAR(200)  NOT NULL,
+    type           VARCHAR(20)   NOT NULL,
+    script         VARCHAR(1000) NOT NULL,
+    checksum       INTEGER,
+    installed_by   VARCHAR(100)  NOT NULL,
+    installed_on   TIMESTAMP     NOT NULL DEFAULT now(),
+    execution_time INTEGER       NOT NULL,
+    success        BOOLEAN       NOT NULL,
+    CONSTRAINT flyway_schema_history_pk PRIMARY KEY (installed_rank)
+);
+
+CREATE INDEX IF NOT EXISTS flyway_schema_history_s_idx
+    ON flyway_schema_history (success);
+
+-- checksum=0: flyway.repair() ricalcola i checksum reali al primo avvio
+INSERT INTO flyway_schema_history
+    (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success)
+VALUES
+    (1,  '1',  'init schema',              'SQL', 'V1__init_schema.sql',                  0, 'postgres', 100, true),
+    (2,  '2',  'tooth conditions',         'SQL', 'V2__tooth_conditions.sql',              0, 'postgres', 100, true),
+    (3,  '3',  'geo holidays',             'SQL', 'V3__geo_holidays.sql',                  0, 'postgres', 100, true),
+    (4,  '4',  'service duration',         'SQL', 'V4__service_duration.sql',              0, 'postgres', 100, true),
+    (5,  '5',  'estimates views and patch','SQL', 'V5__estimates_views_and_patch.sql',     0, 'postgres', 100, true),
+    (6,  '6',  'estimates provider column','SQL', 'V6__estimates_provider_column.sql',     0, 'postgres', 100, true),
+    (7,  '7',  'invoices',                 'SQL', 'V7__invoices.sql',                      0, 'postgres', 100, true),
+    (8,  '8',  'inventory',               'SQL', 'V8__inventory.sql',                     0, 'postgres', 100, true),
+    (9,  '9',  'recalls',                 'SQL', 'V9__recalls.sql',                       0, 'postgres', 100, true),
+    (10, '10', 'inventory seed',           'SQL', 'V10__inventory_seed.sql',               0, 'postgres', 100, true),
+    (11, '11', 'schema updates',           'SQL', 'V11__schema_updates.sql',               0, 'postgres', 100, true)
+ON CONFLICT (installed_rank) DO NOTHING;
+
 \echo '-- Step 5/5: COMPLETATO --'
 \echo ''
 
