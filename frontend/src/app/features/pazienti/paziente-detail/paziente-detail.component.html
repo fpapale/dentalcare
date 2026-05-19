@@ -58,7 +58,7 @@
 
     <!-- Tabs -->
     <div class="flex gap-1 mt-4 border-b -mb-4 border-slate-200">
-      @for (tab of [['overview','Panoramica'],['cartella','Cartella Clinica'],['anamnesi','Anamnesi'],['odontogramma','Odontogramma'],['pianiCura','Piani di Cura'],['preventivi','Preventivi'],['documenti','Documenti']]; track tab[0]) {
+      @for (tab of [['overview','Panoramica'],['cartella','Cartella Clinica'],['anamnesi','Anamnesi'],['odontogramma','Odontogramma'],['pianiCura','Piani di Cura'],['richiami','Richiami'],['preventivi','Preventivi'],['documenti','Documenti']]; track tab[0]) {
         @if (role() === 'secretary' && (tab[0] === 'cartella' || tab[0] === 'anamnesi' || tab[0] === 'odontogramma')) {
           <!-- hidden for secretary -->
         } @else {
@@ -325,6 +325,11 @@
     } @else if (activeTab() === 'pianiCura') {
       @if (paziente) {
         <app-piano-cura-tab [patientId]="paziente.id" />
+      }
+
+    } @else if (activeTab() === 'richiami') {
+      @if (paziente) {
+        <app-richiami-tab [patientId]="paziente.id" />
       }
 
     } @else {

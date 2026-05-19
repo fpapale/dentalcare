@@ -4,6 +4,7 @@ import com.dentalcare.dto.ClinicalHistoryEntryDto;
 import com.dentalcare.dto.CreateClinicalHistoryEntryRequest;
 import com.dentalcare.dto.OdontogramSummaryDto;
 import com.dentalcare.dto.TreatmentPlanSummaryDto;
+import com.dentalcare.dto.UpdateClinicalHistoryEntryRequest;
 import com.dentalcare.service.ClinicalRecordService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,21 @@ public class ClinicalRecordController {
             @PathVariable UUID patientId,
             @Valid @RequestBody CreateClinicalHistoryEntryRequest request) {
         return clinicalRecordService.createDiaryEntry(patientId, request);
+    }
+
+    @GetMapping("/diary/{entryId}")
+    public ClinicalHistoryEntryDto getDiaryEntry(
+            @PathVariable UUID patientId,
+            @PathVariable UUID entryId) {
+        return clinicalRecordService.findDiaryEntry(patientId, entryId);
+    }
+
+    @PutMapping("/diary/{entryId}")
+    public ClinicalHistoryEntryDto updateDiaryEntry(
+            @PathVariable UUID patientId,
+            @PathVariable UUID entryId,
+            @Valid @RequestBody UpdateClinicalHistoryEntryRequest request) {
+        return clinicalRecordService.updateDiaryEntry(patientId, entryId, request);
     }
 
     @GetMapping("/treatment-plans")

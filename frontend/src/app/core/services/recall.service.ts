@@ -17,11 +17,16 @@ export class RecallService {
 
   constructor(private http: HttpClient) {}
 
-  findAll(status?: string, priority?: string): Observable<Recall[]> {
+  findAll(status?: string, priority?: string, patientId?: string): Observable<Recall[]> {
     let params = new HttpParams();
     if (status) params = params.set('status', status);
     if (priority) params = params.set('priority', priority);
+    if (patientId) params = params.set('patientId', patientId);
     return this.http.get<Recall[]>(this.base, { params });
+  }
+
+  findByPatient(patientId: string): Observable<Recall[]> {
+    return this.findAll(undefined, undefined, patientId);
   }
 
   create(req: CreateRecallRequest): Observable<Recall> {

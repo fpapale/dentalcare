@@ -10,11 +10,12 @@ import { CartellaClinicalTabComponent } from '../cartella-tab/cartella-tab.compo
 import { AnamnesiTabComponent } from '../anamnesi-tab/anamnesi-tab.component';
 import { OdontogrammaTabComponent } from '../odontogramma-tab/odontogramma-tab.component';
 import { PianoCuraTabComponent } from '../piano-cura-tab/piano-cura-tab.component';
+import { RichiamiTabComponent } from '../richiami-tab/richiami-tab.component';
 
 @Component({
   selector: 'app-paziente-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CartellaClinicalTabComponent, AnamnesiTabComponent, OdontogrammaTabComponent, PianoCuraTabComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CartellaClinicalTabComponent, AnamnesiTabComponent, OdontogrammaTabComponent, PianoCuraTabComponent, RichiamiTabComponent],
   templateUrl: './paziente-detail.component.html',
   styleUrl: './paziente-detail.component.css'
 })
@@ -23,7 +24,7 @@ export class PazienteDetailComponent implements OnInit {
 
   readonly role = this.userContext.role;
 
-  activeTab = signal<'overview' | 'cartella' | 'anamnesi' | 'odontogramma' | 'pianiCura' | 'preventivi' | 'documenti'>('overview');
+  activeTab = signal<'overview' | 'cartella' | 'anamnesi' | 'odontogramma' | 'pianiCura' | 'richiami' | 'preventivi' | 'documenti'>('overview');
   loading = signal(true);
   error = signal<string | null>(null);
   editAnagrafica = signal(false);

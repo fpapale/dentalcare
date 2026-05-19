@@ -1,0 +1,105 @@
+<div class="min-h-screen bg-slate-50">
+
+  <!-- Header -->
+  <div class="bg-white border-b border-slate-200 px-5 py-4">
+    <div class="max-w-2xl mx-auto flex items-center gap-3">
+      <a [routerLink]="['/pazienti', patientId()]" [queryParams]="{ tab: 'cartella' }"
+        class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+      </a>
+      <div>
+        <h1 class="text-lg font-bold text-slate-800">Dettaglio Visita</h1>
+        @if (!loading()) {
+          <p class="text-xs text-slate-400 mt-0.5">{{ formatDate(entryDate()) }} — {{ providerName() }}</p>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="max-w-2xl mx-auto p-5">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4 animate-pulse">
+        <div class="h-4 w-48 bg-slate-200 rounded"></div>
+        <div class="h-20 bg-slate-100 rounded-xl"></div>
+        <div class="h-4 w-32 bg-slate-200 rounded"></div>
+        <div class="h-12 bg-slate-100 rounded-xl"></div>
+      </div>
+    </div>
+  } @else {
+
+    <!-- Form -->
+    <div class="max-w-2xl mx-auto p-5">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+            Nome prestazione / trattamento
+          </label>
+          <input type="text" [(ngModel)]="form.serviceName"
+            placeholder="Es. Otturazione, Detartrasi, Estrazione..."
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+            Numero dente FDI
+          </label>
+          <input type="text" [(ngModel)]="form.toothNumber"
+            placeholder="Es. 16, 21..."
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+            Note cliniche <span class="text-red-500">*</span>
+          </label>
+          <textarea [(ngModel)]="form.clinicalNotes" rows="5"
+            placeholder="Descrivi la visita, le osservazioni cliniche, le procedure eseguite..."
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+            Materiali utilizzati
+          </label>
+          <input type="text" [(ngModel)]="form.materialsUsed"
+            placeholder="Es. Composito A2, Endodonzia 25mm..."
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+            Note per prossima visita
+          </label>
+          <textarea [(ngModel)]="form.nextVisitNotes" rows="3"
+            placeholder="Indicazioni per il prossimo appuntamento..."
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"></textarea>
+        </div>
+
+        @if (error()) {
+          <div class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-red-500 text-[18px]">error</span>
+            <p class="text-sm text-red-700">{{ error() }}</p>
+          </div>
+        }
+
+        <div class="flex gap-3 pt-1">
+          <a [routerLink]="['/pazienti', patientId()]" [queryParams]="{ tab: 'cartella' }"
+            class="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors text-center">
+            Annulla
+          </a>
+          <button (click)="save()" [disabled]="!form.clinicalNotes.trim() || saving()"
+            class="flex-1 py-2.5 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            @if (saving()) {
+              <span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+            }
+            {{ saving() ? 'Salvataggio…' : 'Salva Modifiche' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+</div>

@@ -29,7 +29,7 @@ public class RecallService {
     // ── List ──────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<RecallDto> findAll(String status, String priority) {
+    public List<RecallDto> findAll(String status, String priority, UUID patientId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("clinicId", clinicId);
         StringBuilder filter = new StringBuilder();
@@ -41,6 +41,10 @@ public class RecallService {
         if (priority != null && !priority.isBlank()) {
             filter.append(" AND r.priority::text = :priority");
             params.addValue("priority", priority);
+        }
+        if (patientId != null) {
+            filter.append(" AND r.patient_id = :patientId");
+            params.addValue("patientId", patientId);
         }
 
         String sql = "SELECT r.id, r.patient_id,"

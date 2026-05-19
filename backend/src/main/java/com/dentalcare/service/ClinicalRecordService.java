@@ -4,6 +4,8 @@ import com.dentalcare.dto.ClinicalHistoryEntryDto;
 import com.dentalcare.dto.CreateClinicalHistoryEntryRequest;
 import com.dentalcare.dto.OdontogramSummaryDto;
 import com.dentalcare.dto.TreatmentPlanSummaryDto;
+import com.dentalcare.dto.UpdateClinicalHistoryEntryRequest;
+import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -96,6 +98,65 @@ public class ClinicalRecordService {
                         rs.getString("clinical_notes"),
                         rs.getString("next_visit_notes")
                 ));
+    }
+
+    private static final String DIARY_ENTRY_SELECT = """
+            SELECT che.id, che.entry_date,
+                   concat_ws(' ', prov.last_name, prov.first_name) AS provider_name,
+                   che.tooth_number, che.service_name,
+                   che.clinical_notes, che.next_visit_notes
+            FROM %s.clinical_history_entries che
+            JOIN %s.providers prov ON prov.id = che.provider_id AND prov.clinic_id = che.clinic_id
+            WHERE che.id = :id AND che.clinic_id = :clinicId AND che.patient_id = :patientId
+            """;
+
+    public ClinicalHistoryEntryDto findDiaryEntry(UUID patientId, UUID entryId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String sql = DIARY_ENTRY_SELECT.formatted(s(), s());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", entryId)
+                .addValue("clinicId", clinicId)
+                .addValue("patientId", patientId);
+        return jdbc.query(sql, params, (rs, n) -> new ClinicalHistoryEntryDto(
+                rs.getObject("id", UUID.class),
+                rs.getDate("entry_date") != null ? rs.getDate("entry_date").toLocalDate() : null,
+                rs.getString("provider_name"),
+                rs.getString("tooth_number"),
+                rs.getString("service_name"),
+                rs.getString("clinical_notes"),
+                rs.getString("next_visit_notes")
+        )).stream().findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Diary entry not found: " + entryId));
+    }
+
+    public ClinicalHistoryEntryDto updateDiaryEntry(UUID patientId, UUID entryId, UpdateClinicalHistoryEntryRequest request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String update = """
+                UPDATE %s.clinical_history_entries
+                SET entry_date      = :entryDate,
+                    tooth_number    = :toothNumber,
+                    service_code    = :serviceCode,
+                    service_name    = :serviceName,
+                    clinical_notes  = :clinicalNotes,
+                    materials_used  = :materialsUsed,
+                    next_visit_notes = :nextVisitNotes,
+                    updated_at      = now()
+                WHERE id = :id AND clinic_id = :clinicId AND patient_id = :patientId
+                """.formatted(s());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", entryId)
+                .addValue("clinicId", clinicId)
+                .addValue("patientId", patientId)
+                .addValue("entryDate", request.entryDate())
+                .addValue("toothNumber", request.toothNumber())
+                .addValue("serviceCode", request.serviceCode())
+                .addValue("serviceName", request.serviceName())
+                .addValue("clinicalNotes", request.clinicalNotes())
+                .addValue("materialsUsed", request.materialsUsed())
+                .addValue("nextVisitNotes", request.nextVisitNotes());
+        int rows = jdbc.update(update, params);
+        if (rows == 0) throw new ResourceNotFoundException("Diary entry not found: " + entryId);
+        return findDiaryEntry(patientId, entryId);
     }
 
     public List<TreatmentPlanSummaryDto> findTreatmentPlans(UUID patientId) {

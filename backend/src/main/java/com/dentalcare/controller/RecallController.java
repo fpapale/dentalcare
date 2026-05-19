@@ -21,8 +21,9 @@ public class RecallController {
     @GetMapping
     public List<RecallDto> findAll(
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String priority) {
-        return recallService.findAll(status, priority);
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) UUID patientId) {
+        return recallService.findAll(status, priority, patientId);
     }
 
     @PostMapping

@@ -50,6 +50,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/pazienti/prescrizioni/prescrizioni.component').then(m => m.PrescrizioniComponent)
   },
   {
+    path: 'pazienti/:id/visita/:entryId',
+    loadComponent: () => import('./features/pazienti/visita-detail/visita-detail.component').then(m => m.VisitaDetailComponent)
+  },
+  {
     path: 'pazienti/:id/piano-cura/:planId',
     loadComponent: () => import('./features/pazienti/piano-cura-detail/piano-cura-detail.component').then(m => m.PianoCuraDetailComponent)
   },

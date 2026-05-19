@@ -1,0 +1,160 @@
+<div class="max-w-3xl space-y-4">
+
+  <!-- Header azioni -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-sm font-bold text-slate-700">Richiami del paziente</h2>
+      <p class="text-xs text-slate-400 mt-0.5">Richiami di controllo e follow-up programmati</p>
+    </div>
+    <button (click)="showNewForm.set(true)"
+      class="flex items-center gap-1.5 bg-teal-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+      <span class="material-symbols-outlined text-[15px]">add</span>
+      Nuovo richiamo
+    </button>
+  </div>
+
+  <!-- Inline form -->
+  @if (showNewForm()) {
+    <div class="bg-white rounded-xl border border-teal-200 shadow-sm p-5">
+      <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-[16px] text-teal-600">notifications_active</span>
+        Nuovo richiamo
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Tipo richiamo</label>
+          <input type="text" [(ngModel)]="newForm.recallType"
+            placeholder="Es. Controllo periodico, Igiene, Radiografia..."
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Data prevista <span class="text-red-500">*</span></label>
+            <input type="date" [(ngModel)]="newForm.dueDate"
+              class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Priorità</label>
+            <select [(ngModel)]="newForm.priority"
+              class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white">
+              <option value="alta">Alta</option>
+              <option value="media">Media</option>
+              <option value="bassa">Bassa</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Note</label>
+          <textarea [(ngModel)]="newForm.notes" rows="2"
+            placeholder="Indicazioni aggiuntive..."
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"></textarea>
+        </div>
+      </div>
+      @if (error()) {
+        <div class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-4">
+          <span class="material-symbols-outlined text-red-500 text-[18px]">error</span>
+          <p class="text-sm text-red-700">{{ error() }}</p>
+        </div>
+      }
+      <div class="flex gap-3 mt-5">
+        <button (click)="showNewForm.set(false); error.set(null)"
+          class="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors">
+          Annulla
+        </button>
+        <button (click)="saveNew()" [disabled]="!newForm.dueDate || saving()"
+          class="flex-1 py-2.5 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          @if (saving()) {
+            <span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+          }
+          {{ saving() ? 'Salvataggio…' : 'Salva' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2]; track i) {
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 animate-pulse">
+          <div class="h-5 w-48 bg-slate-200 rounded mb-2"></div>
+          <div class="h-3 w-32 bg-slate-100 rounded"></div>
+        </div>
+      }
+    </div>
+
+  <!-- Empty -->
+  } @else if (recalls().length === 0) {
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+      <span class="material-symbols-outlined text-[48px] text-slate-200 block mb-3">notifications_active</span>
+      <p class="text-sm font-semibold text-slate-500">Nessun richiamo programmato</p>
+      <p class="text-xs text-slate-400 mt-1">Aggiungi un richiamo di controllo per questo paziente.</p>
+      <button (click)="showNewForm.set(true)"
+        class="mt-4 inline-flex items-center gap-1.5 bg-teal-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors">
+        <span class="material-symbols-outlined text-[14px]">add</span>
+        Nuovo richiamo
+      </button>
+    </div>
+
+  <!-- List -->
+  } @else {
+    <div class="space-y-3">
+      @for (r of recalls(); track r.recallId) {
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div class="flex items-start gap-3">
+
+            <!-- Priority dot -->
+            <div class="mt-1.5 w-2.5 h-2.5 rounded-full shrink-0" [class]="priorityDotClass(r.priority)"></div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-bold text-slate-800">{{ r.recallType }}</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold" [class]="statusBadgeClass(r.status)">
+                  {{ statusLabel(r.status) }}
+                </span>
+                @if (isOverdue(r.dueDate) && r.status === 'da_contattare') {
+                  <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[11px]">warning</span>
+                    Scaduto
+                  </span>
+                }
+              </div>
+              <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">calendar_today</span>
+                Previsto per {{ formatDate(r.dueDate) }}
+              </p>
+              @if (r.notes) {
+                <p class="text-xs text-slate-400 mt-1 italic">{{ r.notes }}</p>
+              }
+              @if (r.contactCount > 0) {
+                <p class="text-[11px] text-slate-400 mt-1">
+                  {{ r.contactCount }} contatt{{ r.contactCount === 1 ? 'o' : 'i' }} registrat{{ r.contactCount === 1 ? 'o' : 'i' }}
+                  @if (r.lastContactAt) { · Ultimo: {{ formatDate(r.lastContactAt) }} }
+                </p>
+              }
+            </div>
+
+            <!-- Azioni -->
+            <div class="flex items-center gap-1 shrink-0">
+              <select
+                [value]="r.status"
+                [disabled]="updatingStatus() === r.recallId"
+                (change)="updateStatus(r, $any($event.target).value)"
+                class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white cursor-pointer disabled:opacity-50">
+                @for (s of allStatuses; track s.key) {
+                  <option [value]="s.key">{{ s.label }}</option>
+                }
+              </select>
+              <button (click)="deleteRecall(r.recallId)"
+                class="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                <span class="material-symbols-outlined text-[18px]">delete</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>

@@ -265,7 +265,8 @@
         } @else {
           <div class="space-y-2">
             @for (plan of treatmentPlans(); track plan.planId) {
-              <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+              <a [routerLink]="['/pazienti', patientId, 'piano-cura', plan.planId]"
+                class="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-teal-50 transition-colors cursor-pointer">
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-semibold text-slate-700 truncate">{{ plan.name }}</p>
                   <p class="text-xs text-slate-400 mt-0.5">
@@ -276,7 +277,7 @@
                   [class]="planStatusClass(plan.status)">
                   {{ planStatusLabel(plan.status) }}
                 </span>
-              </div>
+              </a>
             }
           </div>
         }
@@ -314,7 +315,8 @@
         } @else {
           <div class="divide-y divide-slate-100">
             @for (entry of diary(); track entry.entryId) {
-              <div class="p-4 flex items-start gap-3 hover:bg-slate-50 transition-colors">
+              <a [routerLink]="['/pazienti', patientId, 'visita', entry.entryId]"
+                class="p-4 flex items-start gap-3 hover:bg-teal-50 transition-colors block">
                 <div class="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
                   <span class="material-symbols-outlined text-[16px] text-teal-600">{{ diaryEntryIcon(entry) }}</span>
                 </div>
@@ -332,7 +334,7 @@
                   <p class="text-xs text-slate-500 mt-0.5 line-clamp-2">{{ entry.clinicalNotes }}</p>
                   <p class="text-[11px] text-slate-400 mt-1">{{ formatDate(entry.entryDate) }} — {{ entry.providerName }}</p>
                 </div>
-              </div>
+              </a>
             }
           </div>
         }
@@ -373,7 +375,8 @@
           } @else {
             <div class="space-y-2">
               @for (d of activeDiagnosi; track d.id) {
-                <div class="flex items-start gap-2 p-2 bg-slate-50 rounded-lg">
+                <a [routerLink]="['/pazienti', patientId, 'diagnosi']"
+                  class="flex items-start gap-2 p-2 bg-slate-50 rounded-lg hover:bg-teal-50 transition-colors block">
                   <div class="flex-1 min-w-0">
                     <p class="text-xs font-semibold text-slate-700 truncate">{{ d.title }}</p>
                     @if (d.toothNumber) {
@@ -384,7 +387,7 @@
                     [class]="diagnosiStatusClass(d.status)">
                     {{ diagnosiStatusLabel(d.status) }}
                   </span>
-                </div>
+                </a>
               }
             </div>
           }
@@ -438,12 +441,13 @@
           } @else {
             <div class="space-y-2">
               @for (p of activePrescrizioni; track p.id) {
-                <div class="p-2 bg-slate-50 rounded-lg">
+                <a [routerLink]="['/pazienti', patientId, 'prescrizioni']"
+                  class="p-2 bg-slate-50 rounded-lg block hover:bg-teal-50 transition-colors">
                   <p class="text-xs font-semibold text-slate-700">{{ p.drugName }}</p>
                   @if (p.dosage || p.frequency) {
                     <p class="text-[11px] text-slate-400">{{ p.dosage }}{{ p.dosage && p.frequency ? ' · ' : '' }}{{ p.frequency }}</p>
                   }
-                </div>
+                </a>
               }
             </div>
           }
