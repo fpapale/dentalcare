@@ -17,4 +17,5 @@ export interface Dashboard {
   plansProposed: number;
   plansAccepted: number;
   plansRejected: number;
+  nextDay: boolean;
 }

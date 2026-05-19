@@ -96,10 +96,10 @@ export class DashboardComponent {
     return `${v} ${100 - v}`;
   }
 
-  upcomingAppts(appts: Appointment[]): Appointment[] {
+  upcomingAppts(appts: Appointment[], nextDay = false): Appointment[] {
     const now = new Date();
     return appts
-      .filter(a => new Date(a.endsAt) >= now)
+      .filter(a => nextDay || new Date(a.endsAt) >= now)
       .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   }
 

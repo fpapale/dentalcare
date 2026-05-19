@@ -53,6 +53,16 @@ public class DashboardService {
 
         List<AppointmentDto> todayAppts = appointmentService.findByDate(LocalDate.now(), providerId);
 
+        boolean nextDay = false;
+        List<AppointmentDto> displayAppts = todayAppts;
+        if (todayAppts.isEmpty()) {
+            List<AppointmentDto> tomorrowAppts = appointmentService.findByDate(LocalDate.now().plusDays(1), providerId);
+            if (!tomorrowAppts.isEmpty()) {
+                displayAppts = tomorrowAppts;
+                nextDay = true;
+            }
+        }
+
         long todayTotal = todayAppts.size();
         long todayConfirmed = todayAppts.stream()
                 .filter(a -> "confirmed".equals(a.appointmentStatus()) || "scheduled".equals(a.appointmentStatus())).count();
@@ -73,11 +83,12 @@ public class DashboardService {
                 todayConfirmed,
                 todayCompleted,
                 todayCancelled,
-                todayAppts,
+                displayAppts,
                 toLong(planRow.get("plans_draft")),
                 toLong(planRow.get("plans_proposed")),
                 toLong(planRow.get("plans_accepted")),
-                toLong(planRow.get("plans_rejected"))
+                toLong(planRow.get("plans_rejected")),
+                nextDay
         );
     }
 

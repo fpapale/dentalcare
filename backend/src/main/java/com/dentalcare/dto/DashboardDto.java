@@ -19,5 +19,6 @@ public record DashboardDto(
         long plansDraft,
         long plansProposed,
         long plansAccepted,
-        long plansRejected
+        long plansRejected,
+        boolean nextDay
 ) {}
