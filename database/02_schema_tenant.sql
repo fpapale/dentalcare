@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS patients (
     fiscal_code   text,
     birth_date    date,
     phone         text,
+    email         text,
     address_line1 text,
     address_line2 text,
     city          text,
@@ -1445,17 +1446,6 @@ LEFT JOIN provider_agg pra ON pra.clinic_id = c.id
 LEFT JOIN plan_agg     tpa ON tpa.clinic_id = c.id
 LEFT JOIN estimate_agg ea  ON ea.clinic_id  = c.id;
 
--- =============================================================================
--- VERIFICA FINALE
--- =============================================================================
-
-SELECT
-    schemaname,
-    COUNT(*) AS table_count
-FROM pg_tables
-WHERE schemaname = :'tenant_schema'
-GROUP BY schemaname;
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Viste dashboard pazienti e preventivi
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -1556,5 +1546,16 @@ SELECT
     e.created_by_provider_id
 FROM estimates e
 LEFT JOIN patients p ON p.id = e.patient_id AND p.clinic_id = e.clinic_id;
+
+-- =============================================================================
+-- VERIFICA FINALE
+-- =============================================================================
+
+SELECT
+    schemaname,
+    COUNT(*) AS table_count
+FROM pg_tables
+WHERE schemaname = :'tenant_schema'
+GROUP BY schemaname;
 
 COMMIT;

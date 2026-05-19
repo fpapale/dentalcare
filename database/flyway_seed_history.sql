@@ -29,7 +29,7 @@ VALUES
     (1,  '1',  'init schema',                 'SQL',      'V1__init_schema.sql',                      0, 'postgres', 100, true),
     (2,  '2',  'tooth conditions',             'SQL',      'V2__tooth_conditions.sql',                 0, 'postgres', 100, true),
     (3,  '3',  'geo holidays',                 'SQL',      'V3__geo_holidays.sql',                     0, 'postgres', 100, true),
-    (4,  '4',  'service duration',             'BASELINE', 'V4__service_duration.sql',                 0, 'postgres', 0,   true),
+    (4,  '4',  'service duration',             'SQL',      'V4__service_duration.sql',                 0, 'postgres', 100, true),
     (5,  '5',  'estimates views and patch',    'SQL',      'V5__estimates_views_and_patch.sql',         0, 'postgres', 100, true),
     (6,  '6',  'estimates provider column',    'SQL',      'V6__estimates_provider_column.sql',         0, 'postgres', 100, true),
     (7,  '7',  'invoices',                     'SQL',      'V7__invoices.sql',                          0, 'postgres', 100, true),

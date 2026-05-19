@@ -30,13 +30,11 @@
 \set new_clinic_vat        'IT01234567890'
 \set new_clinic_fiscal     'IT01234567890'
 \set new_clinic_phone      '+39 0XX XXXXXXX'
-\set new_clinic_email      'info@studio.it'
 \set new_clinic_address    'Via Roma 1'
 \set new_clinic_city       'Roma'
 \set new_clinic_province   'RM'
 \set new_clinic_postal     '00100'
 \set new_clinic_country    'IT'
-\set new_clinic_timezone   'Europe/Rome'
 
 -- Tablespace dedicato (opzionale).
 -- Lascia vuoto ('') per usare pg_default (stesso disco del DB principale).
@@ -153,10 +151,10 @@ BEGIN
     EXECUTE format(
         $SQL$
         INSERT INTO %I.clinics (id, name, legal_name, vat_number, fiscal_code,
-            phone, email, address_line1, city, province, postal_code, country, timezone)
+            phone, address_line1, city, province, postal_code, country)
         VALUES (
             %L, %L, %L, %L, %L,
-            %L, %L, %L, %L, %L, %L, %L, %L
+            %L, %L, %L, %L, %L, %L
         )
         $SQL$,
         v_schema_name,
@@ -166,13 +164,11 @@ BEGIN
         :'new_clinic_vat',
         :'new_clinic_fiscal',
         :'new_clinic_phone',
-        :'new_clinic_email',
         :'new_clinic_address',
         :'new_clinic_city',
         :'new_clinic_province',
         :'new_clinic_postal',
-        :'new_clinic_country',
-        :'new_clinic_timezone'
+        :'new_clinic_country'
     );
 
     -- Registra la clinica in tenant_clinics
