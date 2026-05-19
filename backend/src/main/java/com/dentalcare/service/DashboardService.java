@@ -53,9 +53,15 @@ public class DashboardService {
 
         List<AppointmentDto> todayAppts = appointmentService.findByDate(LocalDate.now(), providerId);
 
+        java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+        boolean hasActiveToday = todayAppts.stream().anyMatch(a ->
+                !"cancelled".equals(a.appointmentStatus())
+                && !"no_show".equals(a.appointmentStatus())
+                && a.endsAt().isAfter(now));
+
         boolean nextDay = false;
         List<AppointmentDto> displayAppts = todayAppts;
-        if (todayAppts.isEmpty()) {
+        if (!hasActiveToday) {
             List<AppointmentDto> tomorrowAppts = appointmentService.findByDate(LocalDate.now().plusDays(1), providerId);
             if (!tomorrowAppts.isEmpty()) {
                 displayAppts = tomorrowAppts;
