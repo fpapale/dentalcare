@@ -664,6 +664,96 @@ BEFORE UPDATE ON invoices
 FOR EACH ROW EXECUTE FUNCTION dentalcare.set_updated_at();
 
 -- =============================================================================
+-- 10b. INVOICE_LINES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS invoice_lines (
+    id               uuid          NOT NULL DEFAULT gen_random_uuid(),
+    invoice_id       uuid          NOT NULL,
+    clinic_id        uuid          NOT NULL,
+    line_position    integer       NOT NULL DEFAULT 0,
+    description      text          NOT NULL,
+    tooth_info       text,
+    quantity         numeric(12,4) NOT NULL DEFAULT 1,
+    unit_price       numeric(12,2) NOT NULL DEFAULT 0,
+    discount_amount  numeric(12,2) NOT NULL DEFAULT 0,
+    vat_rate         numeric(5,2)  NOT NULL DEFAULT 22,
+    line_subtotal    numeric(12,2) NOT NULL DEFAULT 0,
+    line_taxable     numeric(12,2) NOT NULL DEFAULT 0,
+    line_vat_amount  numeric(12,2) NOT NULL DEFAULT 0,
+    line_total       numeric(12,2) NOT NULL DEFAULT 0,
+    created_at       timestamptz   NOT NULL DEFAULT now(),
+    updated_at       timestamptz   NOT NULL DEFAULT now(),
+    CONSTRAINT invoice_lines_pkey PRIMARY KEY (id),
+    CONSTRAINT invoice_lines_description_not_empty CHECK (length(TRIM(BOTH FROM description)) > 0)
+) TABLESPACE :"tenant_tablespace";
+
+ALTER TABLE invoice_lines
+    DROP CONSTRAINT IF EXISTS fk_invoice_lines_invoice;
+ALTER TABLE invoice_lines
+    ADD CONSTRAINT fk_invoice_lines_invoice
+        FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE;
+
+ALTER TABLE invoice_lines
+    DROP CONSTRAINT IF EXISTS fk_invoice_lines_clinic;
+ALTER TABLE invoice_lines
+    ADD CONSTRAINT fk_invoice_lines_clinic
+        FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE RESTRICT;
+
+CREATE INDEX IF NOT EXISTS ix_invoice_lines_invoice
+    ON invoice_lines (invoice_id)
+    TABLESPACE :"tenant_tablespace";
+
+CREATE INDEX IF NOT EXISTS ix_invoice_lines_clinic
+    ON invoice_lines (clinic_id)
+    TABLESPACE :"tenant_tablespace";
+
+DROP TRIGGER IF EXISTS trg_invoice_lines_updated_at ON invoice_lines;
+CREATE TRIGGER trg_invoice_lines_updated_at
+BEFORE UPDATE ON invoice_lines
+FOR EACH ROW EXECUTE FUNCTION dentalcare.set_updated_at();
+
+CREATE OR REPLACE FUNCTION trg_compute_invoice_line_totals()
+RETURNS trigger AS $$
+BEGIN
+    NEW.line_subtotal   := (COALESCE(NEW.quantity, 1) * COALESCE(NEW.unit_price, 0))
+                           - COALESCE(NEW.discount_amount, 0);
+    NEW.line_taxable    := NEW.line_subtotal;
+    NEW.line_vat_amount := ROUND(NEW.line_taxable * COALESCE(NEW.vat_rate, 0) / 100, 2);
+    NEW.line_total      := NEW.line_taxable + NEW.line_vat_amount;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_invoice_line_compute_totals ON invoice_lines;
+CREATE TRIGGER trg_invoice_line_compute_totals
+BEFORE INSERT OR UPDATE ON invoice_lines
+FOR EACH ROW EXECUTE FUNCTION trg_compute_invoice_line_totals();
+
+CREATE OR REPLACE FUNCTION trg_update_invoice_totals_from_lines()
+RETURNS trigger AS $$
+DECLARE
+    v_invoice_id uuid;
+BEGIN
+    v_invoice_id := COALESCE(NEW.invoice_id, OLD.invoice_id);
+    UPDATE invoices
+    SET subtotal_amount = COALESCE((SELECT SUM(line_subtotal)   FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        discount_amount = COALESCE((SELECT SUM(discount_amount) FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        taxable_amount  = COALESCE((SELECT SUM(line_taxable)    FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        vat_amount      = COALESCE((SELECT SUM(line_vat_amount) FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        total_amount    = COALESCE((SELECT SUM(line_total)      FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        updated_at      = now()
+    WHERE id = v_invoice_id;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_invoices_recalc_from_lines ON invoice_lines;
+CREATE TRIGGER trg_invoices_recalc_from_lines
+AFTER INSERT OR UPDATE OR DELETE ON invoice_lines
+FOR EACH ROW EXECUTE FUNCTION trg_update_invoice_totals_from_lines();
+
+-- =============================================================================
 -- 11. PATIENT_ANAMNESIS
 -- =============================================================================
 

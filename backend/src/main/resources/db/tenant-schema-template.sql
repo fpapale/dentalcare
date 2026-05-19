@@ -352,40 +352,92 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS invoices (
-    id               uuid                  PRIMARY KEY DEFAULT gen_random_uuid(),
-    clinic_id        uuid                  NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
-    patient_id       uuid                  REFERENCES patients(id) ON DELETE SET NULL,
-    provider_id      uuid                  REFERENCES providers(id) ON DELETE SET NULL,
-    estimate_id      uuid                  REFERENCES estimates(id) ON DELETE SET NULL,
-    document_type    invoice_document_type NOT NULL DEFAULT 'fattura',
-    issuer_type      invoice_issuer_type   NOT NULL DEFAULT 'clinic',
-    status           invoice_status        NOT NULL DEFAULT 'draft',
-    invoice_number   text,
-    invoice_date     date,
-    due_date         date,
-    subtotal         numeric(12,2)         NOT NULL DEFAULT 0 CHECK (subtotal >= 0),
-    vat_total        numeric(12,2)         NOT NULL DEFAULT 0 CHECK (vat_total >= 0),
-    total            numeric(12,2)         NOT NULL DEFAULT 0 CHECK (total >= 0),
-    notes            text,
-    created_at       timestamptz           NOT NULL DEFAULT now(),
-    updated_at       timestamptz           NOT NULL DEFAULT now()
+    id                  uuid                          NOT NULL DEFAULT gen_random_uuid(),
+    clinic_id           uuid                          NOT NULL,
+    invoice_number      text,
+    document_type       invoice_document_type         NOT NULL DEFAULT 'fattura',
+    invoice_date        date                          NOT NULL DEFAULT CURRENT_DATE,
+    due_date            date,
+    status              invoice_status                NOT NULL DEFAULT 'draft',
+    issuer_type         invoice_issuer_type           NOT NULL DEFAULT 'clinic',
+    provider_id         uuid,
+    patient_id          uuid                          NOT NULL,
+    estimate_id         uuid,
+    issuer_name         text,
+    issuer_vat_number   text,
+    issuer_fiscal_code  text,
+    issuer_address      text,
+    issuer_email        text,
+    issuer_pec          text,
+    issuer_sdi_code     text,
+    issuer_iban         text,
+    patient_full_name   text,
+    patient_fiscal_code text,
+    patient_address     text,
+    patient_email       text,
+    subtotal_amount     numeric(12,2)                 NOT NULL DEFAULT 0,
+    discount_amount     numeric(12,2)                 NOT NULL DEFAULT 0,
+    taxable_amount      numeric(12,2)                 NOT NULL DEFAULT 0,
+    vat_amount          numeric(12,2)                 NOT NULL DEFAULT 0,
+    total_amount        numeric(12,2)                 NOT NULL DEFAULT 0,
+    currency            char(3)                       NOT NULL DEFAULT 'EUR',
+    notes               text,
+    payment_method      text,
+    paid_at             timestamptz,
+    issued_at           timestamptz,
+    created_at          timestamptz                   NOT NULL DEFAULT now(),
+    updated_at          timestamptz                   NOT NULL DEFAULT now(),
+    CONSTRAINT invoices_pkey PRIMARY KEY (id),
+    CONSTRAINT invoices_unique_per_clinic UNIQUE (id, clinic_id),
+    CONSTRAINT ux_invoices_number UNIQUE (clinic_id, invoice_number)
 ) TABLESPACE {tablespace};
 
-CREATE UNIQUE INDEX IF NOT EXISTS ux_invoices_clinic_number
-    ON invoices (clinic_id, invoice_number)
-    TABLESPACE {tablespace}
-    WHERE invoice_number IS NOT NULL;
+ALTER TABLE invoices
+    DROP CONSTRAINT IF EXISTS invoices_clinic_id_fkey;
+ALTER TABLE invoices
+    ADD CONSTRAINT invoices_clinic_id_fkey
+        FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE RESTRICT;
+
+ALTER TABLE invoices
+    DROP CONSTRAINT IF EXISTS fk_invoices_patient;
+ALTER TABLE invoices
+    ADD CONSTRAINT fk_invoices_patient
+        FOREIGN KEY (patient_id, clinic_id) REFERENCES patients(id, clinic_id) ON DELETE RESTRICT;
+
+ALTER TABLE invoices
+    DROP CONSTRAINT IF EXISTS fk_invoices_provider;
+ALTER TABLE invoices
+    ADD CONSTRAINT fk_invoices_provider
+        FOREIGN KEY (provider_id, clinic_id) REFERENCES providers(id, clinic_id)
+        ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE invoices
+    DROP CONSTRAINT IF EXISTS fk_invoices_estimate;
+ALTER TABLE invoices
+    ADD CONSTRAINT fk_invoices_estimate
+        FOREIGN KEY (estimate_id, clinic_id) REFERENCES estimates(id, clinic_id)
+        ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
 
 CREATE INDEX IF NOT EXISTS ix_invoices_clinic_status
-    ON invoices (clinic_id, status)
+    ON invoices (clinic_id, status, invoice_date DESC)
     TABLESPACE {tablespace};
 
-CREATE INDEX IF NOT EXISTS ix_invoices_clinic_patient
+CREATE INDEX IF NOT EXISTS ix_invoices_patient
     ON invoices (clinic_id, patient_id)
     TABLESPACE {tablespace};
 
-DROP TRIGGER IF EXISTS trg_invoices_updated_at ON invoices;
-CREATE TRIGGER trg_invoices_updated_at
+CREATE INDEX IF NOT EXISTS ix_invoices_estimate
+    ON invoices (clinic_id, estimate_id)
+    TABLESPACE {tablespace}
+    WHERE estimate_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS ix_invoices_provider
+    ON invoices (clinic_id, provider_id)
+    TABLESPACE {tablespace}
+    WHERE provider_id IS NOT NULL;
+
+DROP TRIGGER IF EXISTS trg_invoices_set_updated_at ON invoices;
+CREATE TRIGGER trg_invoices_set_updated_at
 BEFORE UPDATE ON invoices
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
@@ -394,23 +446,44 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS invoice_lines (
-    id               uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
-    invoice_id       uuid          NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
-    clinic_id        uuid          NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
-    estimate_line_id uuid          REFERENCES estimate_lines(id) ON DELETE SET NULL,
+    id               uuid          NOT NULL DEFAULT gen_random_uuid(),
+    invoice_id       uuid          NOT NULL,
+    clinic_id        uuid          NOT NULL,
+    line_position    integer       NOT NULL DEFAULT 0,
     description      text          NOT NULL,
-    quantity         integer       NOT NULL DEFAULT 1 CHECK (quantity > 0),
-    unit_price       numeric(12,2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0),
-    vat_rate         numeric(5,2)  NOT NULL DEFAULT 22 CHECK (vat_rate >= 0 AND vat_rate <= 100),
-    line_total       numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_total >= 0),
-    position         integer       NOT NULL DEFAULT 0,
+    tooth_info       text,
+    quantity         numeric(12,4) NOT NULL DEFAULT 1,
+    unit_price       numeric(12,2) NOT NULL DEFAULT 0,
+    discount_amount  numeric(12,2) NOT NULL DEFAULT 0,
+    vat_rate         numeric(5,2)  NOT NULL DEFAULT 22,
+    line_subtotal    numeric(12,2) NOT NULL DEFAULT 0,
+    line_taxable     numeric(12,2) NOT NULL DEFAULT 0,
+    line_vat_amount  numeric(12,2) NOT NULL DEFAULT 0,
+    line_total       numeric(12,2) NOT NULL DEFAULT 0,
     created_at       timestamptz   NOT NULL DEFAULT now(),
     updated_at       timestamptz   NOT NULL DEFAULT now(),
+    CONSTRAINT invoice_lines_pkey PRIMARY KEY (id),
     CONSTRAINT invoice_lines_description_not_empty CHECK (length(trim(description)) > 0)
 ) TABLESPACE {tablespace};
 
+ALTER TABLE invoice_lines
+    DROP CONSTRAINT IF EXISTS fk_invoice_lines_invoice;
+ALTER TABLE invoice_lines
+    ADD CONSTRAINT fk_invoice_lines_invoice
+        FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE;
+
+ALTER TABLE invoice_lines
+    DROP CONSTRAINT IF EXISTS fk_invoice_lines_clinic;
+ALTER TABLE invoice_lines
+    ADD CONSTRAINT fk_invoice_lines_clinic
+        FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE RESTRICT;
+
 CREATE INDEX IF NOT EXISTS ix_invoice_lines_invoice
     ON invoice_lines (invoice_id)
+    TABLESPACE {tablespace};
+
+CREATE INDEX IF NOT EXISTS ix_invoice_lines_clinic
+    ON invoice_lines (clinic_id)
     TABLESPACE {tablespace};
 
 DROP TRIGGER IF EXISTS trg_invoice_lines_updated_at ON invoice_lines;
@@ -823,27 +896,45 @@ CREATE TRIGGER trg_recalc_estimate_totals
 AFTER INSERT OR UPDATE OR DELETE ON estimate_lines
 FOR EACH ROW EXECUTE FUNCTION recalc_estimate_totals();
 
-CREATE OR REPLACE FUNCTION recalc_invoice_totals()
+CREATE OR REPLACE FUNCTION trg_compute_invoice_line_totals()
+RETURNS trigger AS $$
+BEGIN
+    NEW.line_subtotal   := (COALESCE(NEW.quantity, 1) * COALESCE(NEW.unit_price, 0))
+                           - COALESCE(NEW.discount_amount, 0);
+    NEW.line_taxable    := NEW.line_subtotal;
+    NEW.line_vat_amount := ROUND(NEW.line_taxable * COALESCE(NEW.vat_rate, 0) / 100, 2);
+    NEW.line_total      := NEW.line_taxable + NEW.line_vat_amount;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_invoice_line_compute_totals ON invoice_lines;
+CREATE TRIGGER trg_invoice_line_compute_totals
+BEFORE INSERT OR UPDATE ON invoice_lines
+FOR EACH ROW EXECUTE FUNCTION trg_compute_invoice_line_totals();
+
+CREATE OR REPLACE FUNCTION trg_update_invoice_totals_from_lines()
 RETURNS trigger AS $$
 DECLARE
     v_invoice_id uuid;
 BEGIN
     v_invoice_id := COALESCE(NEW.invoice_id, OLD.invoice_id);
     UPDATE invoices
-    SET
-        subtotal   = COALESCE((SELECT SUM(unit_price * quantity)                  FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
-        vat_total  = COALESCE((SELECT SUM(unit_price * quantity * vat_rate / 100) FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
-        total      = COALESCE((SELECT SUM(line_total)                             FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
-        updated_at = now()
+    SET subtotal_amount = COALESCE((SELECT SUM(line_subtotal)   FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        discount_amount = COALESCE((SELECT SUM(discount_amount) FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        taxable_amount  = COALESCE((SELECT SUM(line_taxable)    FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        vat_amount      = COALESCE((SELECT SUM(line_vat_amount) FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        total_amount    = COALESCE((SELECT SUM(line_total)      FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        updated_at      = now()
     WHERE id = v_invoice_id;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_recalc_invoice_totals ON invoice_lines;
-CREATE TRIGGER trg_recalc_invoice_totals
+DROP TRIGGER IF EXISTS trg_invoices_recalc_from_lines ON invoice_lines;
+CREATE TRIGGER trg_invoices_recalc_from_lines
 AFTER INSERT OR UPDATE OR DELETE ON invoice_lines
-FOR EACH ROW EXECUTE FUNCTION recalc_invoice_totals();
+FOR EACH ROW EXECUTE FUNCTION trg_update_invoice_totals_from_lines();
 
 CREATE OR REPLACE FUNCTION compute_recall_priority(p_due_date date)
 RETURNS recall_priority AS $$

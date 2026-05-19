@@ -219,10 +219,10 @@ public class InvoiceService {
             + " currency, notes, payment_method"
             + ") VALUES ("
             + " :id, :clinicId, :invoiceNumber,"
-            + " CAST(:documentType AS " + s() + ".invoice_document_type),"
+            + " CAST(:documentType AS dentalcare.invoice_document_type),"
             + " CURRENT_DATE, :dueDate,"
-            + " CAST('draft' AS " + s() + ".invoice_status),"
-            + " CAST(:issuerType AS " + s() + ".invoice_issuer_type),"
+            + " CAST('draft' AS dentalcare.invoice_status),"
+            + " CAST(:issuerType AS dentalcare.invoice_issuer_type),"
             + " :providerId, :patientId, :estimateId,"
             + " :issuerName, :issuerVatNumber, :issuerFiscalCode, :issuerAddress,"
             + " :issuerEmail, :issuerPec, :issuerSdiCode, :issuerIban,"
@@ -308,7 +308,7 @@ public class InvoiceService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
             UPDATE %s.invoices
-            SET document_type  = COALESCE(CAST(:documentType AS %s.invoice_document_type), document_type),
+            SET document_type  = COALESCE(CAST(:documentType AS dentalcare.invoice_document_type), document_type),
                 invoice_date   = COALESCE(:invoiceDate, invoice_date),
                 due_date       = :dueDate,
                 notes          = :notes,
@@ -333,7 +333,7 @@ public class InvoiceService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
             UPDATE %s.invoices
-            SET status     = CAST(:status AS %s.invoice_status),
+            SET status     = CAST(:status AS dentalcare.invoice_status),
                 issued_at  = CASE WHEN :status = 'issued' AND issued_at IS NULL THEN now() ELSE issued_at END,
                 paid_at    = CASE WHEN :status = 'paid'   AND paid_at IS NULL   THEN now() ELSE paid_at   END,
                 updated_at = now()
