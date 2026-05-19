@@ -149,7 +149,7 @@
                 </div>
                 @if (p.dosage || p.frequency || p.duration) {
                   <p class="text-xs text-slate-500 mt-1">
-                    {{ [p.dosage, p.frequency, p.duration].filter(Boolean).join(' · ') }}
+                    {{ [p.dosage, p.frequency, p.duration].filter(x => !!x).join(' · ') }}
                   </p>
                 }
                 @if (p.notes) {
