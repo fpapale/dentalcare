@@ -901,6 +901,48 @@ BEGIN
       (v_clinic, v_p01, 'Controllo post-trattamento', 'chiuso', 'bassa',
        CURRENT_DATE - 5,  'Follow-up completato - paziente tornato in cura');
 
+    -- =========================================================================
+    -- PATIENT_DIAGNOSES
+    -- =========================================================================
+
+    INSERT INTO patient_diagnoses
+        (clinic_id, patient_id, provider_id, tooth_number, title, description, icd_code, status, diagnosed_at)
+    VALUES
+        (v_clinic, v_p01, v_pr1, '16', 'Carie occlusale', 'Carie di I grado sulla fossa centrale del 16', 'K02.1', 'active',   CURRENT_DATE - 30),
+        (v_clinic, v_p01, v_pr1, '36', 'Carie interprossimale', 'Carie mesiale del 36 con coinvolgimento della dentina', 'K02.1', 'active', CURRENT_DATE - 15),
+        (v_clinic, v_p02, v_pr1, '21', 'Pulpite irreversibile', 'Pulpite irreversibile sintomatica del 21', 'K04.0', 'active',   CURRENT_DATE - 10),
+        (v_clinic, v_p02, v_pr3, NULL, 'Malocclusione classe II', 'Malocclusione scheletrica classe II divisione 1', 'K07.2', 'chronic', CURRENT_DATE - 180),
+        (v_clinic, v_p03, v_pr1, '46', 'Parodontite localizzata', 'Parodontite cronica localizzata al 46', 'K05.3', 'active',   CURRENT_DATE - 45),
+        (v_clinic, v_p03, v_pr1, '11', 'Carie guarita', 'Otturazione composito 11 eseguita', 'K02.1', 'resolved', CURRENT_DATE - 90),
+        (v_clinic, v_p04, v_pr2, '18', 'Dente del giudizio incluso', 'Terzo molare inferiore sinistro incluso in osso', 'K01.1', 'active', CURRENT_DATE - 20),
+        (v_clinic, v_p05, v_pr4, NULL, 'Gengivite generalizzata', 'Gengivite da placca batterica, generalizzata', 'K05.1', 'active', CURRENT_DATE - 7);
+
+    -- =========================================================================
+    -- PATIENT_PRESCRIPTIONS
+    -- =========================================================================
+
+    INSERT INTO patient_prescriptions
+        (clinic_id, patient_id, provider_id, drug_name, dosage, frequency, duration, notes, prescribed_at, expires_at, active)
+    VALUES
+        (v_clinic, v_p01, v_pr1, 'Amoxicillina', '1g', '3 volte al giorno', '7 giorni',
+         'Assumere lontano dai pasti. In caso di allergia sospendere e contattare lo studio.',
+         CURRENT_DATE - 30, CURRENT_DATE + 60, true),
+        (v_clinic, v_p01, v_pr1, 'Ibuprofene', '600mg', 'Al bisogno, max 3 al giorno', '5 giorni',
+         'Non superare la dose massima giornaliera.',
+         CURRENT_DATE - 15, CURRENT_DATE + 30, true),
+        (v_clinic, v_p02, v_pr1, 'Metronidazolo', '250mg', '3 volte al giorno', '7 giorni',
+         'Evitare alcol durante il trattamento.',
+         CURRENT_DATE - 10, CURRENT_DATE + 20, true),
+        (v_clinic, v_p03, v_pr1, 'Clorexidina collutorio 0.2%', NULL, '2 volte al giorno dopo i pasti', '30 giorni',
+         'Risciacquare per 1 minuto. Non ingerire.',
+         CURRENT_DATE - 45, CURRENT_DATE - 15, false),
+        (v_clinic, v_p04, v_pr2, 'Nimesulide', '100mg', '2 volte al giorno', '5 giorni',
+         'Assumere dopo i pasti. Controindicato in caso di insufficienza epatica.',
+         CURRENT_DATE - 5, CURRENT_DATE + 25, true),
+        (v_clinic, v_p05, v_pr4, 'Clorexidina gel 1%', NULL, '2 applicazioni al giorno', '14 giorni',
+         'Applicare sui bordi gengivali con spazzolino morbido.',
+         CURRENT_DATE - 7, CURRENT_DATE + 7, true);
+
     -- Aggiungi un contatto per il richiamo di p15
     -- Live DB recall_contacts columns: id, clinic_id, recall_id, contact_type,
     --   contact_at, outcome, notes, created_by_provider_id, created_at
@@ -952,6 +994,10 @@ UNION ALL
 SELECT 'stock_movements',               COUNT(*)::text FROM t_9d754153.stock_movements      WHERE clinic_id = '9d754153-6579-4b7e-a56b-025f00299cd9'::uuid
 UNION ALL
 SELECT 'patient_recalls',               COUNT(*)::text FROM t_9d754153.patient_recalls      WHERE clinic_id = '9d754153-6579-4b7e-a56b-025f00299cd9'::uuid
+UNION ALL
+SELECT 'patient_diagnoses',             COUNT(*)::text FROM t_9d754153.patient_diagnoses    WHERE clinic_id = '9d754153-6579-4b7e-a56b-025f00299cd9'::uuid
+UNION ALL
+SELECT 'patient_prescriptions',         COUNT(*)::text FROM t_9d754153.patient_prescriptions WHERE clinic_id = '9d754153-6579-4b7e-a56b-025f00299cd9'::uuid
 ORDER BY tabella;
 
 COMMIT;

@@ -1383,6 +1383,52 @@ CREATE INDEX IF NOT EXISTS idx_patient_prescriptions_active
     ON patient_prescriptions (clinic_id, patient_id, active)
     TABLESPACE :"tenant_tablespace";
 
+ALTER TABLE patient_diagnoses
+    DROP CONSTRAINT IF EXISTS fk_patient_diagnoses_clinic;
+ALTER TABLE patient_diagnoses
+    ADD CONSTRAINT fk_patient_diagnoses_clinic
+        FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE;
+
+ALTER TABLE patient_diagnoses
+    DROP CONSTRAINT IF EXISTS fk_patient_diagnoses_patient;
+ALTER TABLE patient_diagnoses
+    ADD CONSTRAINT fk_patient_diagnoses_patient
+        FOREIGN KEY (patient_id, clinic_id) REFERENCES patients(id, clinic_id) ON DELETE CASCADE;
+
+ALTER TABLE patient_diagnoses
+    DROP CONSTRAINT IF EXISTS fk_patient_diagnoses_provider;
+ALTER TABLE patient_diagnoses
+    ADD CONSTRAINT fk_patient_diagnoses_provider
+        FOREIGN KEY (provider_id, clinic_id) REFERENCES providers(id, clinic_id) ON DELETE RESTRICT;
+
+DROP TRIGGER IF EXISTS trg_patient_diagnoses_updated_at ON patient_diagnoses;
+CREATE TRIGGER trg_patient_diagnoses_updated_at
+BEFORE UPDATE ON patient_diagnoses
+FOR EACH ROW EXECUTE FUNCTION dentalcare.set_updated_at();
+
+ALTER TABLE patient_prescriptions
+    DROP CONSTRAINT IF EXISTS fk_patient_prescriptions_clinic;
+ALTER TABLE patient_prescriptions
+    ADD CONSTRAINT fk_patient_prescriptions_clinic
+        FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE;
+
+ALTER TABLE patient_prescriptions
+    DROP CONSTRAINT IF EXISTS fk_patient_prescriptions_patient;
+ALTER TABLE patient_prescriptions
+    ADD CONSTRAINT fk_patient_prescriptions_patient
+        FOREIGN KEY (patient_id, clinic_id) REFERENCES patients(id, clinic_id) ON DELETE CASCADE;
+
+ALTER TABLE patient_prescriptions
+    DROP CONSTRAINT IF EXISTS fk_patient_prescriptions_provider;
+ALTER TABLE patient_prescriptions
+    ADD CONSTRAINT fk_patient_prescriptions_provider
+        FOREIGN KEY (provider_id, clinic_id) REFERENCES providers(id, clinic_id) ON DELETE RESTRICT;
+
+DROP TRIGGER IF EXISTS trg_patient_prescriptions_updated_at ON patient_prescriptions;
+CREATE TRIGGER trg_patient_prescriptions_updated_at
+BEFORE UPDATE ON patient_prescriptions
+FOR EACH ROW EXECUTE FUNCTION dentalcare.set_updated_at();
+
 -- =============================================================================
 -- VISTE
 -- =============================================================================
