@@ -1,9 +1,10 @@
-import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { PatientService, UpdatePatientRequest } from '../../../core/services/patient.service';
-import { AppointmentService } from '../../../core/services/appointment.service';
+import { AppointmentService, RescheduleAppointmentRequest } from '../../../core/services/appointment.service';
+import { AppSettingsService } from '../../../core/services/app-settings.service';
 import { UserContextService } from '../../../core/services/user-context.service';
 import { PatientDetail } from '../../../core/models/patient.model';
 import { CartellaClinicalTabComponent } from '../cartella-tab/cartella-tab.component';
@@ -21,6 +22,8 @@ import { RichiamiTabComponent } from '../richiami-tab/richiami-tab.component';
 })
 export class PazienteDetailComponent implements OnInit {
   private readonly userContext = inject(UserContextService);
+  private readonly appSettings = inject(AppSettingsService);
+  private readonly router = inject(Router);
 
   readonly role = this.userContext.role;
 
@@ -35,9 +38,33 @@ export class PazienteDetailComponent implements OnInit {
   webcamStream: MediaStream | null = null;
   capturedPhoto = signal<string | null>(null);
   savingPhoto = signal(false);
+  confirmCancelId  = signal<string | null>(null);
+  highlightApptId  = signal<string | null>(null);
+  editApptId       = signal<string | null>(null);
+  savingAppt       = signal(false);
+  apptError        = signal<string | null>(null);
+  availableChairs  = signal<string[]>([]);
+  editApptForm     = { date: '', startTime: '', endTime: '', chairLabel: '' };
+  private editApptDurationMin = 0;
+
+  apptPage = signal(0);
+  readonly apptPageSize = computed(() => this.appSettings.get().dashboardApptPageSize);
 
   paziente: any = null;
   appuntamenti: any[] = [];
+
+  get pagedAppuntamenti(): any[] {
+    const p = this.apptPage();
+    const size = this.apptPageSize();
+    return this.appuntamenti.slice(p * size, (p + 1) * size);
+  }
+
+  get apptPageCount(): number {
+    return Math.ceil(this.appuntamenti.length / this.apptPageSize());
+  }
+
+  prevApptPage(): void { this.apptPage.update(p => Math.max(0, p - 1)); }
+  nextApptPage(): void { this.apptPage.update(p => Math.min(this.apptPageCount - 1, p + 1)); }
 
   editForm: UpdatePatientRequest = {
     firstName: '', lastName: '', fiscalCode: '', birthDate: '',
@@ -54,9 +81,11 @@ export class PazienteDetailComponent implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
     const tab = this.route.snapshot.queryParamMap.get('tab');
+    const apptId = this.route.snapshot.queryParamMap.get('appointmentId');
     if (tab) this.activeTab.set(tab as any);
+    if (apptId) this.highlightApptId.set(apptId);
     this.loadPatient(id);
-    this.loadAppointments(id);
+    this.loadAppointments(id, apptId ?? null);
   }
 
   startEditAnagrafica(): void {
@@ -114,20 +143,30 @@ export class PazienteDetailComponent implements OnInit {
     });
   }
 
-  private loadAppointments(id: string): void {
+  private loadAppointments(id: string, highlightId: string | null = null): void {
     const role = this.userContext.role();
     const providerId = role === 'doctor' || role === 'hygienist' ? this.userContext.providerId() : null;
     this.appointmentService.findByPatient(id, providerId).subscribe({
       next: data => {
         this.appuntamenti = data.map(a => ({
           id: a.appointmentId,
+          isoDate: new Date(a.startsAt).toISOString().slice(0, 10),
           data: new Date(a.startsAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
           ora: new Date(a.startsAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+          oraFine: new Date(a.endsAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+          durationMin: Math.round((new Date(a.endsAt).getTime() - new Date(a.startsAt).getTime()) / 60000),
+          chairLabel: a.chairLabel,
           trattamento: a.serviceName ?? 'Visita',
           medico: a.providerName,
           rawStatus: a.appointmentStatus,
           stato: this.mapStato(a.appointmentStatus)
         }));
+        if (highlightId) {
+          const idx = this.appuntamenti.findIndex(a => a.id === highlightId);
+          if (idx >= 0) {
+            this.apptPage.set(Math.floor(idx / this.apptPageSize()));
+          }
+        }
         this.cdr.markForCheck();
       }
     });
@@ -142,6 +181,68 @@ export class PazienteDetailComponent implements OnInit {
         apt.rawStatus = prev;
         apt.stato = this.mapStato(prev);
         this.cdr.markForCheck();
+      }
+    });
+  }
+
+  cancelAppointment(apt: any): void {
+    this.appointmentService.updateStatus(apt.id, 'cancelled').subscribe({
+      next: () => {
+        apt.rawStatus = 'cancelled';
+        apt.stato = this.mapStato('cancelled');
+        this.confirmCancelId.set(null);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  openEditAppt(apt: any): void {
+    this.editApptId.set(apt.id);
+    this.apptError.set(null);
+    this.editApptDurationMin = apt.durationMin;
+    this.editApptForm = {
+      date:       apt.isoDate,
+      startTime:  apt.ora,
+      endTime:    apt.oraFine,
+      chairLabel: apt.chairLabel
+    };
+    if (this.availableChairs().length === 0) {
+      this.appointmentService.findChairLabels().subscribe(c => this.availableChairs.set(c));
+    }
+  }
+
+  onEditStartTimeChange(): void {
+    const [h, m] = this.editApptForm.startTime.split(':').map(Number);
+    const totalMin = h * 60 + m + this.editApptDurationMin;
+    const endH = Math.floor(totalMin / 60) % 24;
+    const endM = totalMin % 60;
+    this.editApptForm.endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  }
+
+  cancelEditAppt(): void {
+    this.editApptId.set(null);
+    this.apptError.set(null);
+  }
+
+  saveEditAppt(apt: any): void {
+    if (this.savingAppt()) return;
+    const f = this.editApptForm;
+    const startsAt = new Date(`${f.date}T${f.startTime}:00`).toISOString();
+    const endsAt   = new Date(`${f.date}T${f.endTime}:00`).toISOString();
+    const req: RescheduleAppointmentRequest = { startsAt, endsAt, chairLabel: f.chairLabel };
+    this.savingAppt.set(true);
+    this.apptError.set(null);
+    this.appointmentService.reschedule(apt.id, req).subscribe({
+      next: () => {
+        this.savingAppt.set(false);
+        this.editApptId.set(null);
+        const patientId = this.route.snapshot.paramMap.get('id')!;
+        this.loadAppointments(patientId, this.highlightApptId());
+      },
+      error: (err) => {
+        this.savingAppt.set(false);
+        const msg = err?.error?.message ?? 'Errore nel salvataggio';
+        this.apptError.set(msg);
       }
     });
   }

@@ -2,7 +2,9 @@ package com.dentalcare.service;
 
 import com.dentalcare.dto.AppointmentDto;
 import com.dentalcare.dto.CreateAppointmentRequest;
+import com.dentalcare.dto.RescheduleAppointmentRequest;
 import com.dentalcare.exception.AppointmentConflictException;
+import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -29,19 +31,33 @@ public class AppointmentService {
 
     public List<AppointmentDto> findByDate(LocalDate date, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        String providerFilter = providerId != null ? "AND provider_id = :providerId\n" : "";
+        String providerFilter = providerId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
-            SELECT appointment_id, clinic_id, starts_at, ends_at, chair_label,
-                   appointment_status, notes,
-                   patient_id, patient_full_name, patient_phone,
-                   provider_id, provider_name, provider_role,
-                   service_name, service_category, tooth_number,
-                   has_allergy_alert, has_medication_alert
-            FROM %s.v_agenda_daily
-            WHERE clinic_id = :clinicId
-              AND starts_at::date = :date
-            """.formatted(s()) + providerFilter + """
-            ORDER BY starts_at, chair_label
+            SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
+                   v.appointment_status, v.notes,
+                   v.patient_id, v.patient_full_name, v.patient_phone,
+                   v.provider_id, v.provider_name, v.provider_role,
+                   v.service_name, v.service_category, v.tooth_number,
+                   v.has_allergy_alert, v.has_medication_alert,
+                   (SELECT COUNT(*)::integer FROM %s.patient_recalls r
+                    WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
+                      AND r.due_date < CURRENT_DATE
+                      AND r.status::text NOT IN ('completed', 'cancelled')) AS overdue_recall_count,
+                   (SELECT COUNT(*)::integer FROM %s.patient_recalls r
+                    WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
+                      AND r.due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '14 days'
+                      AND r.status::text NOT IN ('completed', 'cancelled', 'booked')) AS upcoming_recall_count,
+                   (SELECT COUNT(*)::integer FROM %s.estimates e
+                    WHERE e.patient_id = v.patient_id AND e.clinic_id = v.clinic_id
+                      AND e.status::text = 'sent') AS open_estimate_count,
+                   (SELECT COUNT(*)::integer FROM %s.invoices i
+                    WHERE i.patient_id = v.patient_id AND i.clinic_id = v.clinic_id
+                      AND i.status::text = 'overdue') AS overdue_invoice_count
+            FROM %s.v_agenda_daily v
+            WHERE v.clinic_id = :clinicId
+              AND v.starts_at::date = :date
+            """.formatted(s(), s(), s(), s(), s()) + providerFilter + """
+            ORDER BY v.starts_at, v.chair_label
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
@@ -52,19 +68,33 @@ public class AppointmentService {
 
     public List<AppointmentDto> findByPatient(UUID patientId, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        String providerFilter = providerId != null ? "AND provider_id = :providerId\n" : "";
+        String providerFilter = providerId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
-            SELECT appointment_id, clinic_id, starts_at, ends_at, chair_label,
-                   appointment_status, notes,
-                   patient_id, patient_full_name, patient_phone,
-                   provider_id, provider_name, provider_role,
-                   service_name, service_category, tooth_number,
-                   has_allergy_alert, has_medication_alert
-            FROM %s.v_agenda_daily
-            WHERE clinic_id = :clinicId
-              AND patient_id = :patientId
-            """.formatted(s()) + providerFilter + """
-            ORDER BY starts_at DESC
+            SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
+                   v.appointment_status, v.notes,
+                   v.patient_id, v.patient_full_name, v.patient_phone,
+                   v.provider_id, v.provider_name, v.provider_role,
+                   v.service_name, v.service_category, v.tooth_number,
+                   v.has_allergy_alert, v.has_medication_alert,
+                   (SELECT COUNT(*)::integer FROM %s.patient_recalls r
+                    WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
+                      AND r.due_date < CURRENT_DATE
+                      AND r.status::text NOT IN ('completed', 'cancelled')) AS overdue_recall_count,
+                   (SELECT COUNT(*)::integer FROM %s.patient_recalls r
+                    WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
+                      AND r.due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '14 days'
+                      AND r.status::text NOT IN ('completed', 'cancelled', 'booked')) AS upcoming_recall_count,
+                   (SELECT COUNT(*)::integer FROM %s.estimates e
+                    WHERE e.patient_id = v.patient_id AND e.clinic_id = v.clinic_id
+                      AND e.status::text = 'sent') AS open_estimate_count,
+                   (SELECT COUNT(*)::integer FROM %s.invoices i
+                    WHERE i.patient_id = v.patient_id AND i.clinic_id = v.clinic_id
+                      AND i.status::text = 'overdue') AS overdue_invoice_count
+            FROM %s.v_agenda_daily v
+            WHERE v.clinic_id = :clinicId
+              AND v.patient_id = :patientId
+            """.formatted(s(), s(), s(), s(), s()) + providerFilter + """
+            ORDER BY v.starts_at DESC
             LIMIT 50
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -76,19 +106,33 @@ public class AppointmentService {
 
     public List<AppointmentDto> findByDateRange(LocalDate from, LocalDate to, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        String providerFilter = providerId != null ? "AND provider_id = :providerId\n" : "";
+        String providerFilter = providerId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
-            SELECT appointment_id, clinic_id, starts_at, ends_at, chair_label,
-                   appointment_status, notes,
-                   patient_id, patient_full_name, patient_phone,
-                   provider_id, provider_name, provider_role,
-                   service_name, service_category, tooth_number,
-                   has_allergy_alert, has_medication_alert
-            FROM %s.v_agenda_daily
-            WHERE clinic_id = :clinicId
-              AND starts_at::date BETWEEN :from AND :to
-            """.formatted(s()) + providerFilter + """
-            ORDER BY starts_at, chair_label
+            SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
+                   v.appointment_status, v.notes,
+                   v.patient_id, v.patient_full_name, v.patient_phone,
+                   v.provider_id, v.provider_name, v.provider_role,
+                   v.service_name, v.service_category, v.tooth_number,
+                   v.has_allergy_alert, v.has_medication_alert,
+                   (SELECT COUNT(*)::integer FROM %s.patient_recalls r
+                    WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
+                      AND r.due_date < CURRENT_DATE
+                      AND r.status::text NOT IN ('completed', 'cancelled')) AS overdue_recall_count,
+                   (SELECT COUNT(*)::integer FROM %s.patient_recalls r
+                    WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
+                      AND r.due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '14 days'
+                      AND r.status::text NOT IN ('completed', 'cancelled', 'booked')) AS upcoming_recall_count,
+                   (SELECT COUNT(*)::integer FROM %s.estimates e
+                    WHERE e.patient_id = v.patient_id AND e.clinic_id = v.clinic_id
+                      AND e.status::text = 'sent') AS open_estimate_count,
+                   (SELECT COUNT(*)::integer FROM %s.invoices i
+                    WHERE i.patient_id = v.patient_id AND i.clinic_id = v.clinic_id
+                      AND i.status::text = 'overdue') AS overdue_invoice_count
+            FROM %s.v_agenda_daily v
+            WHERE v.clinic_id = :clinicId
+              AND v.starts_at::date BETWEEN :from AND :to
+            """.formatted(s(), s(), s(), s(), s()) + providerFilter + """
+            ORDER BY v.starts_at, v.chair_label
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
@@ -233,6 +277,67 @@ public class AppointmentService {
         }
     }
 
+    public void reschedule(UUID appointmentId, RescheduleAppointmentRequest request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+
+        List<UUID> providers = jdbc.queryForList(
+                "SELECT provider_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
+                UUID.class);
+        if (providers.isEmpty()) throw new ResourceNotFoundException("Appointment not found: " + appointmentId);
+        UUID providerId = providers.get(0);
+
+        String chairSql = """
+                SELECT COUNT(*) FROM %s.appointments
+                WHERE clinic_id   = :clinicId
+                  AND chair_label = :chairLabel
+                  AND id         != :excludeId
+                  AND status::text NOT IN ('cancelled')
+                  AND starts_at  < :endsAt
+                  AND ends_at    > :startsAt
+                """.formatted(s());
+        Integer chairCount = jdbc.queryForObject(chairSql, new MapSqlParameterSource()
+                .addValue("clinicId",   clinicId)
+                .addValue("chairLabel", request.chairLabel())
+                .addValue("excludeId",  appointmentId)
+                .addValue("startsAt",   request.startsAt())
+                .addValue("endsAt",     request.endsAt()), Integer.class);
+        if (chairCount != null && chairCount > 0)
+            throw new AppointmentConflictException("CHAIR_CONFLICT",
+                    "La " + request.chairLabel() + " è già occupata in questo orario.");
+
+        String provSql = """
+                SELECT COUNT(*) FROM %s.appointments
+                WHERE clinic_id   = :clinicId
+                  AND provider_id = :providerId
+                  AND id         != :excludeId
+                  AND status::text NOT IN ('cancelled')
+                  AND starts_at  < :endsAt
+                  AND ends_at    > :startsAt
+                """.formatted(s());
+        Integer provCount = jdbc.queryForObject(provSql, new MapSqlParameterSource()
+                .addValue("clinicId",   clinicId)
+                .addValue("providerId", providerId)
+                .addValue("excludeId",  appointmentId)
+                .addValue("startsAt",   request.startsAt())
+                .addValue("endsAt",     request.endsAt()), Integer.class);
+        if (provCount != null && provCount > 0)
+            throw new AppointmentConflictException("PROVIDER_CONFLICT",
+                    "Il medico ha già un appuntamento in questo orario.");
+
+        jdbc.update("""
+                UPDATE %s.appointments
+                SET starts_at = :startsAt, ends_at = :endsAt, chair_label = :chairLabel
+                WHERE id = :id AND clinic_id = :clinicId
+                """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("id",         appointmentId)
+                        .addValue("clinicId",   clinicId)
+                        .addValue("startsAt",   request.startsAt())
+                        .addValue("endsAt",     request.endsAt())
+                        .addValue("chairLabel", request.chairLabel()));
+    }
+
     public List<String> findChairLabels() {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
@@ -264,7 +369,11 @@ public class AppointmentService {
                 rs.getString("service_category"),
                 rs.getString("tooth_number"),
                 rs.getObject("has_allergy_alert", Boolean.class),
-                rs.getObject("has_medication_alert", Boolean.class)
+                rs.getObject("has_medication_alert", Boolean.class),
+                rs.getObject("overdue_recall_count", Integer.class),
+                rs.getObject("upcoming_recall_count", Integer.class),
+                rs.getObject("open_estimate_count", Integer.class),
+                rs.getObject("overdue_invoice_count", Integer.class)
         );
     }
 }

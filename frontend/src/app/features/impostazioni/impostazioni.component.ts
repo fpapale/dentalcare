@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ClinicSettingsService } from '../../core/services/clinic-settings.service';
 import { ProviderService } from '../../core/services/provider.service';
 import { AnamnesisCatalogService } from '../../core/services/anamnesis-catalog.service';
+import { AppSettingsService, AppSettings, DEFAULT_SETTINGS } from '../../core/services/app-settings.service';
 import { ClinicBilling } from '../../core/models/clinic-billing.model';
 import { Provider, CreateProviderRequest, UpdateProviderProfileRequest } from '../../core/models/provider.model';
 import {
@@ -13,41 +14,7 @@ import {
   UpdateCatalogItemRequest
 } from '../../core/models/anamnesis-catalog.model';
 
-export interface AppSettings {
-  slotDurationMin: number;
-  workStartTime: string;
-  workEndTime: string;
-  workDays: number[];
-  estimateValidityDays: number;
-  defaultVatRate: number;
-  estimatePrefix: string;
-  defaultPaymentMethod: string;
-  defaultDueDays: number;
-  studioInvoicePrefix: string;
-  recallIntervalMonths: number;
-  recallSecondIntervalMonths: number;
-  recallMessageTemplate: string;
-  locale: string;
-}
-
-const DEFAULT_SETTINGS: AppSettings = {
-  slotDurationMin: 30,
-  workStartTime: '08:00',
-  workEndTime: '19:00',
-  workDays: [1, 2, 3, 4, 5],
-  estimateValidityDays: 30,
-  defaultVatRate: 0,
-  estimatePrefix: 'PRV',
-  defaultPaymentMethod: 'Bonifico',
-  defaultDueDays: 30,
-  studioInvoicePrefix: 'FATT',
-  recallIntervalMonths: 6,
-  recallSecondIntervalMonths: 12,
-  recallMessageTemplate: 'Gentile {paziente}, la informiamo che è giunto il momento della sua visita di controllo. La invitiamo a contattarci per fissare un appuntamento. Studio {studio}, tel. {telefono}.',
-  locale: 'it'
-};
-
-const LS_KEY = 'dentalcare_app_settings';
+export type { AppSettings };
 
 @Component({
   selector: 'app-impostazioni',
@@ -176,7 +143,8 @@ export class ImpostazioniComponent implements OnInit {
   constructor(
     private clinicService: ClinicSettingsService,
     private providerService: ProviderService,
-    private catalogService: AnamnesisCatalogService
+    private catalogService: AnamnesisCatalogService,
+    private appSettingsSvc: AppSettingsService
   ) {}
 
   ngOnInit(): void {
@@ -531,20 +499,17 @@ export class ImpostazioniComponent implements OnInit {
 
   // ── App Settings ───────────────────────────────────────────────────────────
   private loadAppSettings(): void {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) this.appSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-    } catch { this.appSettings = { ...DEFAULT_SETTINGS }; }
+    this.appSettings = { ...this.appSettingsSvc.get() };
   }
 
   saveAppSettings(): void {
-    localStorage.setItem(LS_KEY, JSON.stringify(this.appSettings));
+    this.appSettingsSvc.save(this.appSettings);
     this.appSettingsSaved.set(true);
     setTimeout(() => this.appSettingsSaved.set(false), 2500);
   }
 
   saveLocale(): void {
-    localStorage.setItem(LS_KEY, JSON.stringify(this.appSettings));
+    this.appSettingsSvc.save(this.appSettings);
     this.localePendingReload.set(true);
   }
 

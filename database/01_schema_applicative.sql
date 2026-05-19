@@ -78,6 +78,7 @@ DO $$ BEGIN
     CREATE TYPE appointment_status AS ENUM (
         'scheduled',    -- prenotato
         'confirmed',    -- confermato dal paziente
+        'presente',     -- paziente arrivato in sala d'attesa
         'in_progress',  -- seduta in corso
         'completed',    -- seduta completata
         'no_show',      -- paziente non presentato

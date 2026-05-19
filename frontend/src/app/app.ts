@@ -29,6 +29,8 @@ export class App implements OnInit {
   readonly currentUserInitials = this.userContext.userInitials;
   currentTenant = signal('12345678-1234-1234-1234-123456789012');
   currentStudio = signal('Studio Roma Centro');
+  today = new Date();
+  readonly clinicName = this.userContext.clinicName;
 
   providers = signal<Provider[]>([]);
   selectedKey = signal<string>('__secretary__');

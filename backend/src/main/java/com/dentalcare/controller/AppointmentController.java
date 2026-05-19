@@ -2,6 +2,7 @@ package com.dentalcare.controller;
 
 import com.dentalcare.dto.AppointmentDto;
 import com.dentalcare.dto.CreateAppointmentRequest;
+import com.dentalcare.dto.RescheduleAppointmentRequest;
 import com.dentalcare.service.AppointmentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -51,6 +52,14 @@ public class AppointmentController {
             @PathVariable UUID id,
             @RequestParam String status) {
         appointmentService.updateStatus(id, status);
+    }
+
+    @PatchMapping("/{id}/reschedule")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void reschedule(
+            @PathVariable UUID id,
+            @Valid @RequestBody RescheduleAppointmentRequest request) {
+        appointmentService.reschedule(id, request);
     }
 
     @GetMapping("/chairs")

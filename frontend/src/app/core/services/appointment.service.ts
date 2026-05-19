@@ -13,6 +13,12 @@ export interface CreateAppointmentRequest {
   notes?: string;
 }
 
+export interface RescheduleAppointmentRequest {
+  startsAt: string;   // ISO 8601 offset datetime
+  endsAt: string;
+  chairLabel: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AppointmentService {
   private readonly base = `${environment.apiBaseUrl}/appointments`;
@@ -49,5 +55,9 @@ export class AppointmentService {
 
   create(request: CreateAppointmentRequest): Observable<void> {
     return this.http.post<void>(this.base, request);
+  }
+
+  reschedule(appointmentId: string, request: RescheduleAppointmentRequest): Observable<void> {
+    return this.http.patch<void>(`${this.base}/${appointmentId}/reschedule`, request);
   }
 }

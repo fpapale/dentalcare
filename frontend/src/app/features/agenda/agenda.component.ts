@@ -21,9 +21,10 @@ export class AgendaComponent {
   viewMode = signal<'giorno' | 'settimana' | 'mese' | 'prossimi'>('prossimi');
 
   // Day view
-  appointments = signal<Appointment[]>([]);
-  loading = signal(true);
-  error = signal<string | null>(null);
+  appointments  = signal<Appointment[]>([]);
+  loading       = signal(true);
+  error         = signal<string | null>(null);
+  showingNextDay = signal(false);
 
   // Week / month range view
   rangeAppointments = signal<Appointment[]>([]);
@@ -40,12 +41,41 @@ export class AgendaComponent {
 
   // ─── Computed ─────────────────────────────────────────────────────────────
 
+  apptStatusFilter    = signal<string[]>(['confirmed', 'presente']);
+  dayStatusFilter     = signal<string[]>(['scheduled', 'confirmed', 'presente']);
+
   readonly upcomingAppointments = computed(() => {
     const now = new Date();
     return this.appointments()
       .filter(a => new Date(a.endsAt) >= now)
       .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   });
+
+  readonly filteredUpcoming = computed(() => {
+    const f = this.apptStatusFilter();
+    const all = this.upcomingAppointments();
+    return f.length === 0 ? all : all.filter(a => f.includes(a.appointmentStatus));
+  });
+
+  toggleFilter(status: string): void {
+    this.apptStatusFilter.update(f =>
+      f.includes(status) ? f.filter(s => s !== status) : [...f, status]
+    );
+  }
+
+  isFilterActive(status: string): boolean {
+    return this.apptStatusFilter().includes(status);
+  }
+
+  toggleDayFilter(status: string): void {
+    this.dayStatusFilter.update(f =>
+      f.includes(status) ? f.filter(s => s !== status) : [...f, status]
+    );
+  }
+
+  isDayFilterActive(status: string): boolean {
+    return this.dayStatusFilter().includes(status);
+  }
 
   readonly weekDays = computed<Date[]>(() => {
     const d = new Date(this.selectedDate());
@@ -91,8 +121,39 @@ export class AgendaComponent {
       if (mode !== 'giorno' && mode !== 'prossimi') return;
       this.loading.set(true);
       this.error.set(null);
+      this.showingNextDay.set(false);
       this.appointmentService.findByDate(this.toIso(d), providerId).subscribe({
-        next: data => { this.appointments.set(data); this.loading.set(false); },
+        next: data => {
+          const now = new Date();
+          const isToday = d.toDateString() === now.toDateString();
+          const hasUpcoming = data.some(a => new Date(a.endsAt) >= now);
+
+          if (isToday && !hasUpcoming) {
+            const tomorrow = new Date(d);
+            tomorrow.setDate(d.getDate() + 1);
+
+            if (mode === 'prossimi') {
+              this.showingNextDay.set(true);
+              this.appointmentService.findByDate(this.toIso(tomorrow), providerId).subscribe({
+                next: td => { this.appointments.set(td); this.loading.set(false); },
+                error: ()  => { this.appointments.set([]); this.loading.set(false); }
+              });
+              return;
+            }
+
+            if (mode === 'giorno') {
+              this.showingNextDay.set(true);
+              this.appointmentService.findByDate(this.toIso(tomorrow), providerId).subscribe({
+                next: td => { this.appointments.set(td); this.loading.set(false); },
+                error: ()  => { this.appointments.set([]); this.loading.set(false); }
+              });
+              return;
+            }
+          }
+
+          this.appointments.set(data);
+          this.loading.set(false);
+        },
         error: () => { this.error.set('Errore nel caricamento agenda'); this.loading.set(false); }
       });
     });
@@ -242,7 +303,10 @@ export class AgendaComponent {
   }
 
   getAppointmentsForChair(chair: string): Appointment[] {
-    return this.appointments().filter(a => a.chairLabel === chair);
+    const f = this.dayStatusFilter();
+    return this.appointments().filter(a =>
+      a.chairLabel === chair && (f.length === 0 || f.includes(a.appointmentStatus))
+    );
   }
 
   topPx(a: Appointment): number {

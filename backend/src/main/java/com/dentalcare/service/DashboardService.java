@@ -40,6 +40,19 @@ public class DashboardService {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("clinicId", clinicId);
         Map<String, Object> row = jdbc.queryForMap(sql, params);
 
+        String providerFilter = providerId != null ? "AND created_by_provider_id = :providerId" : "";
+        MapSqlParameterSource scopedParams = new MapSqlParameterSource().addValue("clinicId", clinicId);
+        if (providerId != null) scopedParams.addValue("providerId", providerId);
+
+        String estSql = """
+            SELECT
+              COUNT(*) FILTER (WHERE status <> 'draft') AS sent_count,
+              COALESCE(SUM(total_amount) FILTER (WHERE status = 'accepted'), 0) AS accepted_amount
+            FROM %s.estimates
+            WHERE clinic_id = :clinicId %s
+            """.formatted(s(), providerFilter);
+        Map<String, Object> estRow = jdbc.queryForMap(estSql, scopedParams);
+
         String plansSql = """
             SELECT
               COUNT(*) FILTER (WHERE status = 'draft')    AS plans_draft,
@@ -47,9 +60,9 @@ public class DashboardService {
               COUNT(*) FILTER (WHERE status = 'accepted') AS plans_accepted,
               COUNT(*) FILTER (WHERE status = 'rejected') AS plans_rejected
             FROM %s.treatment_plans
-            WHERE clinic_id = :clinicId AND status <> 'completed'
-            """.formatted(s());
-        Map<String, Object> planRow = jdbc.queryForMap(plansSql, params);
+            WHERE clinic_id = :clinicId AND status <> 'completed' %s
+            """.formatted(s(), providerFilter);
+        Map<String, Object> planRow = jdbc.queryForMap(plansSql, scopedParams);
 
         List<AppointmentDto> todayAppts = appointmentService.findByDate(LocalDate.now(), providerId);
 
@@ -83,8 +96,8 @@ public class DashboardService {
                 toLong(row.get("patients_count")),
                 toLong(row.get("active_providers_count")),
                 toLong(row.get("in_progress_treatment_plans_count")),
-                toLong(row.get("sent_estimates_count")),
-                (BigDecimal) row.get("accepted_estimates_amount"),
+                toLong(estRow.get("sent_count")),
+                (BigDecimal) estRow.get("accepted_amount"),
                 todayTotal,
                 todayConfirmed,
                 todayCompleted,

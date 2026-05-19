@@ -1,14 +1,13 @@
 import { Component, Input, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { RecallService } from '../../../core/services/recall.service';
 import { Recall, CreateRecallRequest } from '../../../core/models/recall.model';
 
 @Component({
   selector: 'app-richiami-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './richiami-tab.component.html'
 })
 export class RichiamiTabComponent implements OnInit {

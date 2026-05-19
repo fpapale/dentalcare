@@ -1,4 +1,4 @@
-import { Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { UserContextService } from '../../core/services/user-context.service';
+import { AppSettingsService } from '../../core/services/app-settings.service';
 import { Dashboard } from '../../core/models/dashboard.model';
 import { Appointment } from '../../core/models/appointment.model';
 
@@ -19,12 +20,16 @@ import { Appointment } from '../../core/models/appointment.model';
 export class DashboardComponent {
   private readonly dashboardService = inject(DashboardService);
   private readonly userContext      = inject(UserContextService);
+  private readonly appSettings      = inject(AppSettingsService);
   private readonly destroyRef       = inject(DestroyRef);
 
-  today     = new Date();
-  dashboard = signal<Dashboard | null>(null);
-  loading   = signal(true);
-  error     = signal<string | null>(null);
+  dashboard    = signal<Dashboard | null>(null);
+  loading      = signal(true);
+  error        = signal<string | null>(null);
+  hoveredAppt      = signal<Appointment | null>(null);
+  apptPage         = signal(0);
+  apptStatusFilter = signal<string[]>(['confirmed', 'presente']);
+  readonly pageSize = computed(() => this.appSettings.get().dashboardApptPageSize);
 
   readonly role = this.userContext.role;
 
@@ -40,7 +45,12 @@ export class DashboardComponent {
         return this.dashboardService.getDashboard(providerId);
       })
     ).subscribe({
-      next: data => { this.dashboard.set(data); this.loading.set(false); },
+      next: data => {
+        this.dashboard.set(data);
+        this.loading.set(false);
+        this.apptPage.set(0);
+        this.userContext.setClinicName(data.clinicName);
+      },
       error: ()  => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
     });
 
@@ -51,11 +61,16 @@ export class DashboardComponent {
       this.userContext.role();
       untracked(() => trigger$.next(providerId));
     });
+
+    effect(() => {
+      this.pageSize(); // track
+      untracked(() => this.apptPage.set(0));
+    });
   }
 
   statusLabel(status: string): string {
     const map: Record<string, string> = {
-      scheduled: 'PREVISTO', confirmed: 'CONFERMATO',
+      scheduled: 'PREVISTO', confirmed: 'CONFERMATO', presente: 'PRESENTE',
       in_progress: 'IN CORSO', completed: 'COMPLETATO',
       cancelled: 'CANCELLATO', no_show: 'NON VENUTO'
     };
@@ -66,6 +81,7 @@ export class DashboardComponent {
     switch (status) {
       case 'in_progress': return 'bg-green-100 text-green-700';
       case 'confirmed':   return 'bg-blue-100 text-blue-700';
+      case 'presente':    return 'bg-teal-100 text-teal-700';
       case 'completed':   return 'bg-slate-100 text-slate-600';
       case 'cancelled': case 'no_show': return 'bg-red-100 text-red-600';
       default:            return 'bg-yellow-100 text-yellow-700';
@@ -74,7 +90,7 @@ export class DashboardComponent {
 
   statusBadgeLabel(status: string): string {
     const map: Record<string, string> = {
-      in_progress: 'In corso', confirmed: 'Confermato',
+      in_progress: 'In corso', confirmed: 'Confermato', presente: 'Presente',
       completed: 'Completato', cancelled: 'Annullato',
       no_show: 'No show', scheduled: 'Programmato',
     };
@@ -103,9 +119,43 @@ export class DashboardComponent {
       .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   }
 
-  alertAppts(appts: Appointment[]): Appointment[] {
-    return appts.filter(a => a.hasAllergyAlert || a.hasMedicationAlert).slice(0, 3);
+  filteredAppts(appts: Appointment[], nextDay = false): Appointment[] {
+    const upcoming = this.upcomingAppts(appts, nextDay);
+    const f = this.apptStatusFilter();
+    return f.length === 0 ? upcoming : upcoming.filter(a => f.includes(a.appointmentStatus));
   }
+
+  toggleFilter(status: string): void {
+    this.apptStatusFilter.update(f =>
+      f.includes(status) ? f.filter(s => s !== status) : [...f, status]
+    );
+    this.apptPage.set(0);
+  }
+
+  isFilterActive(status: string): boolean {
+    return this.apptStatusFilter().includes(status);
+  }
+
+  alertAppts(appts: Appointment[]): Appointment[] {
+    return appts.filter(a => a.hasAllergyAlert || a.hasMedicationAlert || a.overdueRecallCount > 0).slice(0, 3);
+  }
+
+  shownAppt(appts: Appointment[]): Appointment | null {
+    return this.hoveredAppt() ?? (appts.length > 0 ? appts[0] : null);
+  }
+
+  pagedAppts(appts: Appointment[]): Appointment[] {
+    const p = this.apptPage();
+    const size = this.pageSize();
+    return appts.slice(p * size, (p + 1) * size);
+  }
+
+  apptPageCount(appts: Appointment[]): number {
+    return Math.ceil(appts.length / this.pageSize());
+  }
+
+  prevPage(): void { this.apptPage.update(p => Math.max(0, p - 1)); }
+  nextPage(count: number): void { this.apptPage.update(p => Math.min(count - 1, p + 1)); }
 
   plansTotal(d: Dashboard): number {
     return d.plansDraft + d.plansProposed + d.plansAccepted + d.plansRejected;

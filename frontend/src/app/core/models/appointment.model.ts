@@ -16,4 +16,8 @@ export interface Appointment {
   toothNumber: string | null;
   hasAllergyAlert: boolean;
   hasMedicationAlert: boolean;
+  overdueRecallCount: number;
+  upcomingRecallCount: number;
+  openEstimateCount: number;
+  overdueInvoiceCount: number;
 }

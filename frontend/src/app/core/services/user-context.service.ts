@@ -8,6 +8,7 @@ export class UserContextService {
   readonly userName = signal('Dr. Verdi');
   readonly userInitials = signal('GV');
   readonly providerId = signal<string | null>(null);
+  readonly clinicName = signal<string | null>(null);
 
   private readonly roleMap: Record<UserRole, { name: string; initials: string }> = {
     secretary: { name: 'Maria Rossi', initials: 'MR' },
@@ -29,5 +30,9 @@ export class UserContextService {
     this.role.set(role);
     this.userName.set(name);
     this.userInitials.set(initials);
+  }
+
+  setClinicName(name: string): void {
+    this.clinicName.set(name);
   }
 }
