@@ -570,7 +570,7 @@ CREATE TABLE IF NOT EXISTS patient_documents (
     clinic_id     uuid          NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
     patient_id    uuid          NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     provider_id   uuid          REFERENCES providers(id) ON DELETE SET NULL,
-    document_type document_type NOT NULL DEFAULT 'other',
+    document_type document_type NOT NULL DEFAULT 'altro',
     title         text          NOT NULL,
     file_path     text,
     mime_type     text,
