@@ -73,7 +73,12 @@
       }
     </div>
 
-    <!-- Occupazione oggi — spostato qui dal sidebar -->
+    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Preventivi inviati</p>
+      <p class="text-2xl font-bold text-orange-500 mt-1">{{ d.sentEstimatesCount }}</p>
+    </div>
+
+    <!-- Occupazione oggi -->
     <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
       <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Occupazione oggi</p>
       <div class="flex items-center gap-3">
@@ -102,11 +107,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Preventivi inviati</p>
-      <p class="text-2xl font-bold text-orange-500 mt-1">{{ d.sentEstimatesCount }}</p>
     </div>
   </section>
 
