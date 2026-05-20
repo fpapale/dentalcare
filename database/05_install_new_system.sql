@@ -114,7 +114,10 @@ VALUES
     (11, '11', 'schema updates',           'SQL', 'V11__schema_updates.sql',               0, 'postgres', 100, true),
     (12, '12', 'providers email',          'SQL', 'V12__providers_email.sql',               0, 'postgres', 100, true),
     (13, '13', 'patient diagnoses',        'SQL', 'V13__patient_diagnoses.sql',              0, 'postgres', 100, true),
-    (14, '14', 'patient prescriptions',    'SQL', 'V14__patient_prescriptions.sql',          0, 'postgres', 100, true)
+    (14, '14', 'patient prescriptions',    'SQL', 'V14__patient_prescriptions.sql',          0, 'postgres', 100, true),
+    (15, '15', 'appointment status presente', 'SQL', 'V15__appointment_status_presente.sql', 0, 'postgres', 100, true),
+    (16, '16', 'fix invoices schema',      'SQL', 'V16__fix_invoices_schema.sql',            0, 'postgres', 100, true),
+    (17, '17', 'create tenant invoice lines', 'SQL', 'V17__create_tenant_invoice_lines.sql', 0, 'postgres', 100, true)
 ON CONFLICT (installed_rank) DO NOTHING;
 
 \echo '-- Step 5/5: COMPLETATO --'

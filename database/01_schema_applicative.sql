@@ -352,6 +352,7 @@ CREATE TABLE IF NOT EXISTS national_holidays (
     holiday_date date,
     -- alias column added by V11 for backwards compat: is_fixed = NOT is_recurring
     is_fixed     boolean,
+    CONSTRAINT uq_national_holidays_state_date UNIQUE (state_id, holiday_date),
     CONSTRAINT chk_holiday_def CHECK (
         (is_recurring = TRUE  AND month IS NOT NULL AND day IS NOT NULL AND holiday_date IS NULL) OR
         (is_recurring = FALSE AND holiday_date IS NOT NULL AND month IS NULL AND day IS NULL)

@@ -14,6 +14,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -129,6 +132,27 @@ public class TenantProvisioningService {
         }
         String tablespaceName = "ts_" + schemaName;
         String tablespacePath = tablespaceBasePath.stripTrailing() + "/" + schemaName;
+
+        // PostgreSQL requires the directory to exist before CREATE TABLESPACE.
+        // The process must have write access to tablespaceBasePath.
+        try {
+            Path path = Path.of(tablespacePath);
+            Files.createDirectories(path);
+            // PostgreSQL requires mode 700 on the tablespace directory
+            try {
+                Files.setPosixFilePermissions(path,
+                        PosixFilePermissions.fromString("rwx------"));
+            } catch (UnsupportedOperationException ignored) {
+                // Windows dev environment — skip posix permissions
+            }
+            log.info("Tablespace directory created: {}", tablespacePath);
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Cannot create tablespace directory: " + tablespacePath +
+                    ". Create it manually on the DB server and ensure the process user has write access: " +
+                    "mkdir -p " + tablespacePath + " && chown postgres:postgres " + tablespacePath, e);
+        }
+
         // Use format with safe values: tablespaceName is ts_t_[0-9a-f]{8}, path from config
         jdbc.execute(String.format(
                 "CREATE TABLESPACE %s OWNER CURRENT_USER LOCATION '%s'",

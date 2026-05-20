@@ -81,61 +81,61 @@ DECLARE
     v_year     integer;
 BEGIN
     FOR v_year IN 2025..2036 LOOP
-        INSERT INTO national_holidays (state_id, holiday_date, name, is_fixed)
+        INSERT INTO national_holidays (state_id, holiday_date, name, is_recurring, is_fixed)
         VALUES
-          (v_state_id, make_date(v_year, 1,  1), 'Capodanno',               true),
-          (v_state_id, make_date(v_year, 1,  6), 'Epifania',                true),
-          (v_state_id, make_date(v_year, 4, 25), 'Festa della Liberazione', true),
-          (v_state_id, make_date(v_year, 5,  1), 'Festa del Lavoro',        true),
-          (v_state_id, make_date(v_year, 6,  2), 'Festa della Repubblica',  true),
-          (v_state_id, make_date(v_year, 8, 15), 'Ferragosto',              true),
-          (v_state_id, make_date(v_year, 11, 1), 'Ognissanti',              true),
-          (v_state_id, make_date(v_year, 12, 8), 'Immacolata Concezione',   true),
-          (v_state_id, make_date(v_year, 12,25), 'Natale',                  true),
-          (v_state_id, make_date(v_year, 12,26), 'Santo Stefano',           true)
+          (v_state_id, make_date(v_year, 1,  1), 'Capodanno',               false, true),
+          (v_state_id, make_date(v_year, 1,  6), 'Epifania',                false, true),
+          (v_state_id, make_date(v_year, 4, 25), 'Festa della Liberazione', false, true),
+          (v_state_id, make_date(v_year, 5,  1), 'Festa del Lavoro',        false, true),
+          (v_state_id, make_date(v_year, 6,  2), 'Festa della Repubblica',  false, true),
+          (v_state_id, make_date(v_year, 8, 15), 'Ferragosto',              false, true),
+          (v_state_id, make_date(v_year, 11, 1), 'Ognissanti',              false, true),
+          (v_state_id, make_date(v_year, 12, 8), 'Immacolata Concezione',   false, true),
+          (v_state_id, make_date(v_year, 12,25), 'Natale',                  false, true),
+          (v_state_id, make_date(v_year, 12,26), 'Santo Stefano',           false, true)
         ON CONFLICT (state_id, holiday_date) DO NOTHING;
     END LOOP;
 END $$;
 
 -- Festivi variabili: Pasqua e Lunedi' dell'Angelo 2025-2036
-INSERT INTO national_holidays (state_id, holiday_date, name, is_fixed)
+INSERT INTO national_holidays (state_id, holiday_date, name, is_recurring, is_fixed)
 VALUES
   -- 2025
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2025-04-20', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2025-04-21', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2025-04-20', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2025-04-21', 'Lunedi'' dell''Angelo',   false, false),
   -- 2026
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2026-04-05', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2026-04-06', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2026-04-05', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2026-04-06', 'Lunedi'' dell''Angelo',   false, false),
   -- 2027
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2027-03-28', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2027-03-29', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2027-03-28', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2027-03-29', 'Lunedi'' dell''Angelo',   false, false),
   -- 2028
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2028-04-16', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2028-04-17', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2028-04-16', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2028-04-17', 'Lunedi'' dell''Angelo',   false, false),
   -- 2029
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2029-04-01', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2029-04-02', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2029-04-01', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2029-04-02', 'Lunedi'' dell''Angelo',   false, false),
   -- 2030
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2030-04-21', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2030-04-22', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2030-04-21', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2030-04-22', 'Lunedi'' dell''Angelo',   false, false),
   -- 2031
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2031-04-13', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2031-04-14', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2031-04-13', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2031-04-14', 'Lunedi'' dell''Angelo',   false, false),
   -- 2032
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2032-03-28', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2032-03-29', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2032-03-28', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2032-03-29', 'Lunedi'' dell''Angelo',   false, false),
   -- 2033
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2033-04-17', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2033-04-18', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2033-04-17', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2033-04-18', 'Lunedi'' dell''Angelo',   false, false),
   -- 2034
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2034-04-09', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2034-04-10', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2034-04-09', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2034-04-10', 'Lunedi'' dell''Angelo',   false, false),
   -- 2035
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2035-03-25', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2035-03-26', 'Lunedi'' dell''Angelo',   false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2035-03-25', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2035-03-26', 'Lunedi'' dell''Angelo',   false, false),
   -- 2036
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2036-04-13', 'Pasqua',                  false),
-  ('00000001-0000-0000-0000-000000000001'::uuid, '2036-04-14', 'Lunedi'' dell''Angelo',   false)
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2036-04-13', 'Pasqua',                  false, false),
+  ('00000001-0000-0000-0000-000000000001'::uuid, '2036-04-14', 'Lunedi'' dell''Angelo',   false, false)
 ON CONFLICT (state_id, holiday_date) DO NOTHING;
 
 -- =============================================================================
