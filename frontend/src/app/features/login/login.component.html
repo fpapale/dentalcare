@@ -1,0 +1,106 @@
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-teal-50 to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 px-4 py-8">
+  <div class="w-full max-w-md">
+    <!-- Logo + brand -->
+    <div class="flex flex-col items-center mb-8">
+      <svg width="64" height="64" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="login-logo-bg" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#0f172a"/>
+            <stop offset="100%" stop-color="#134e4a"/>
+          </linearGradient>
+        </defs>
+        <rect x="4" y="4" width="80" height="80" rx="20" fill="url(#login-logo-bg)"/>
+        <circle cx="36" cy="44" r="20" fill="#0d9488" opacity="0.15"/>
+        <text x="13" y="63" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#2dd4bf">D</text>
+        <path d="M50 51 Q59 61 68 51" stroke="#2dd4bf" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+        <circle cx="54" cy="43" r="2.5" fill="#5eead4"/>
+        <circle cx="63" cy="43" r="2.5" fill="#5eead4"/>
+      </svg>
+      <h1 class="mt-3 text-2xl font-bold text-slate-800 dark:text-slate-100">DentalCare Pro</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Accedi al tuo studio</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6 md:p-8">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-5">
+        <!-- Clinic ID -->
+        <div>
+          <label for="clinicId" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            Studio ID
+          </label>
+          <input id="clinicId"
+                 type="text"
+                 formControlName="clinicId"
+                 autocomplete="organization"
+                 placeholder="Identificativo dello studio"
+                 class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
+          @if (form.controls.clinicId.touched && form.controls.clinicId.errors?.['required']) {
+            <p class="text-xs text-red-600 dark:text-red-400 mt-1">Studio ID obbligatorio</p>
+          }
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            Email
+          </label>
+          <input id="email"
+                 type="email"
+                 formControlName="email"
+                 autocomplete="email"
+                 placeholder="nome@studio.it"
+                 class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
+          @if (form.controls.email.touched && form.controls.email.errors) {
+            <p class="text-xs text-red-600 dark:text-red-400 mt-1">
+              @if (form.controls.email.errors['required']) { Email obbligatoria }
+              @else if (form.controls.email.errors['email']) { Email non valida }
+            </p>
+          }
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            Password
+          </label>
+          <input id="password"
+                 type="password"
+                 formControlName="password"
+                 autocomplete="current-password"
+                 placeholder="••••••••"
+                 class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
+          @if (form.controls.password.touched && form.controls.password.errors) {
+            <p class="text-xs text-red-600 dark:text-red-400 mt-1">
+              @if (form.controls.password.errors['required']) { Password obbligatoria }
+              @else if (form.controls.password.errors['minlength']) { Almeno 8 caratteri }
+            </p>
+          }
+        </div>
+
+        <!-- Error message -->
+        @if (error()) {
+          <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-3 py-2.5 flex items-start gap-2">
+            <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-[20px] shrink-0">error</span>
+            <p class="text-sm text-red-700 dark:text-red-300">{{ error() }}</p>
+          </div>
+        }
+
+        <!-- Submit -->
+        <button type="submit"
+                [disabled]="loading()"
+                class="w-full py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 disabled:cursor-not-allowed text-white font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm">
+          @if (loading()) {
+            <span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+            <span>Accesso in corso...</span>
+          } @else {
+            <span>Accedi</span>
+          }
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">
+      © {{ today }} DentalCare Pro
+    </p>
+  </div>
+</div>

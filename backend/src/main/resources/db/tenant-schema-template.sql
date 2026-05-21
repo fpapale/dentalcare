@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS providers (
     billing_province     text,
     billing_postal_code  text,
     billing_country      text          NOT NULL DEFAULT 'IT',
+    password_hash        text,
     created_at           timestamptz   NOT NULL DEFAULT now(),
     updated_at           timestamptz   NOT NULL DEFAULT now(),
     CONSTRAINT providers_first_name_not_empty CHECK (length(trim(first_name)) > 0),
@@ -1078,29 +1079,27 @@ LEFT JOIN stock_movements    sm ON sm.product_id = pr.id   AND sm.clinic_id = pr
 GROUP BY pr.clinic_id, pr.id, pr.name, pr.sku, pr.unit, pr.min_stock,
          pc.name, s.name, pr.is_active;
 
-CREATE OR REPLACE VIEW v_agenda_daily AS
+DROP VIEW IF EXISTS v_agenda_daily;
+CREATE VIEW v_agenda_daily AS
 SELECT
-    a.id           AS appointment_id,
+    a.id                                      AS appointment_id,
     a.clinic_id,
     a.starts_at,
     a.ends_at,
     a.chair_label,
-    a.status,
-    a.notes        AS appointment_notes,
-    p.id           AS patient_id,
-    p.first_name   AS patient_first_name,
-    p.last_name    AS patient_last_name,
+    a.status::text                            AS appointment_status,
+    a.notes                                   AS notes,
+    p.id                                      AS patient_id,
     concat_ws(' ', p.last_name, p.first_name) AS patient_full_name,
-    p.phone        AS patient_phone,
-    p.email        AS patient_email,
-    pr.id          AS provider_id,
-    pr.first_name  AS provider_first_name,
-    pr.last_name   AS provider_last_name,
-    pr.role        AS provider_role,
-    pr.color_hex   AS provider_color,
-    sc.name        AS service_name,
-    sc.duration_minutes,
-    tpi.tooth_fdi,
+    p.phone                                   AS patient_phone,
+    p.email                                   AS patient_email,
+    pr.id                                     AS provider_id,
+    concat_ws(' ', pr.first_name, pr.last_name) AS provider_name,
+    pr.role::text                             AS provider_role,
+    pr.color_hex                              AS provider_color,
+    sc.name                                   AS service_name,
+    sc.category                               AS service_category,
+    tpi.tooth_fdi                             AS tooth_number,
     EXISTS (
         SELECT 1 FROM patient_anamnesis pa2
         WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true
@@ -1158,53 +1157,31 @@ GROUP BY e.id, e.clinic_id, e.patient_id, e.provider_id, e.created_by_provider_i
          e.subtotal, e.discount_total, e.total, e.created_at, e.updated_at,
          p.first_name, p.last_name, pr.first_name, pr.last_name;
 
-CREATE OR REPLACE VIEW v_clinic_dashboard AS
+DROP VIEW IF EXISTS v_clinic_dashboard;
+CREATE VIEW v_clinic_dashboard AS
 WITH patient_agg AS (
     SELECT clinic_id,
-           COUNT(*)                               AS total_patients,
-           COUNT(*) FILTER (WHERE active = true)  AS active_patients
+           COUNT(*) FILTER (WHERE active = true) AS patients_count
     FROM patients GROUP BY clinic_id
 ),
 provider_agg AS (
     SELECT clinic_id,
-           COUNT(*) AS total_providers,
-           COUNT(*) FILTER (WHERE active = true AND role IN ('dentist','hygienist','orthodontist','surgeon')) AS clinical_providers
+           COUNT(*) FILTER (WHERE active = true) AS active_providers_count
     FROM providers GROUP BY clinic_id
 ),
 plan_agg AS (
     SELECT clinic_id,
-           COUNT(*) AS total_plans,
-           COUNT(*) FILTER (WHERE status = 'in_progress') AS active_plans
+           COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress_treatment_plans_count
     FROM treatment_plans GROUP BY clinic_id
-),
-estimate_agg AS (
-    SELECT clinic_id,
-           COUNT(*) AS total_estimates,
-           COALESCE(SUM(total) FILTER (WHERE status = 'accepted'), 0) AS accepted_revenue
-    FROM estimates GROUP BY clinic_id
-),
-appointment_agg AS (
-    SELECT clinic_id,
-           COUNT(*) FILTER (WHERE status IN ('scheduled','confirmed') AND starts_at > now()) AS upcoming_appointments,
-           COUNT(*) FILTER (WHERE status = 'completed' AND starts_at::date = CURRENT_DATE)  AS today_completed
-    FROM appointments GROUP BY clinic_id
 )
 SELECT
-    c.id                                       AS clinic_id,
-    c.name                                     AS clinic_name,
-    COALESCE(pa.total_patients,        0)      AS total_patients,
-    COALESCE(pa.active_patients,       0)      AS active_patients,
-    COALESCE(pra.total_providers,      0)      AS total_providers,
-    COALESCE(pra.clinical_providers,   0)      AS clinical_providers,
-    COALESCE(tpa.total_plans,          0)      AS total_plans,
-    COALESCE(tpa.active_plans,         0)      AS active_plans,
-    COALESCE(ea.total_estimates,       0)      AS total_estimates,
-    COALESCE(ea.accepted_revenue,      0)      AS accepted_revenue,
-    COALESCE(aa.upcoming_appointments, 0)      AS upcoming_appointments,
-    COALESCE(aa.today_completed,       0)      AS today_completed
+    c.id                                                   AS clinic_id,
+    c.name                                                 AS clinic_name,
+    c.city                                                 AS city,
+    COALESCE(pa.patients_count,                       0)   AS patients_count,
+    COALESCE(pra.active_providers_count,              0)   AS active_providers_count,
+    COALESCE(tpa.in_progress_treatment_plans_count,   0)   AS in_progress_treatment_plans_count
 FROM clinics c
-LEFT JOIN patient_agg     pa  ON pa.clinic_id  = c.id
-LEFT JOIN provider_agg    pra ON pra.clinic_id = c.id
-LEFT JOIN plan_agg        tpa ON tpa.clinic_id = c.id
-LEFT JOIN estimate_agg    ea  ON ea.clinic_id  = c.id
-LEFT JOIN appointment_agg aa  ON aa.clinic_id  = c.id;
+LEFT JOIN patient_agg  pa  ON pa.clinic_id  = c.id
+LEFT JOIN provider_agg pra ON pra.clinic_id = c.id
+LEFT JOIN plan_agg     tpa ON tpa.clinic_id = c.id;

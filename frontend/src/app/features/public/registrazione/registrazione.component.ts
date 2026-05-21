@@ -19,6 +19,8 @@ interface AdminForm {
   nome: string;
   cognome: string;
   email: string;
+  password: string;
+  confirmPassword: string;
 }
 
 @Component({
@@ -49,7 +51,9 @@ export class RegistrazioneComponent {
   adminForm: AdminForm = {
     nome: '',
     cognome: '',
-    email: ''
+    email: '',
+    password: '',
+    confirmPassword: ''
   };
 
   selectPlan(plan: PlanType): void {
@@ -71,6 +75,15 @@ export class RegistrazioneComponent {
   }
 
   submitRegistrazione(): void {
+    if (this.adminForm.password.length < 8) {
+      this.error.set('La password deve essere di almeno 8 caratteri');
+      return;
+    }
+    if (this.adminForm.password !== this.adminForm.confirmPassword) {
+      this.error.set('Le password non coincidono');
+      return;
+    }
+
     this.error.set(null);
     this.submitting.set(true);
 
@@ -85,7 +98,8 @@ export class RegistrazioneComponent {
       partitaIva: this.studioForm.partitaIva,
       adminNome: this.adminForm.nome,
       adminCognome: this.adminForm.cognome,
-      adminEmail: this.adminForm.email
+      adminEmail: this.adminForm.email,
+      adminPassword: this.adminForm.password
     }).subscribe({
       next: () => {
         this.submitting.set(false);

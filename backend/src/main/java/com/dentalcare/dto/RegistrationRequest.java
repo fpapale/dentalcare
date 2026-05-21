@@ -11,5 +11,6 @@ public record RegistrationRequest(
         String partitaIva,
         String adminNome,
         String adminCognome,
-        String adminEmail
+        String adminEmail,
+        String adminPassword
 ) {}

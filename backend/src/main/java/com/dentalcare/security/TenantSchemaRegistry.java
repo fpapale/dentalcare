@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -53,6 +54,14 @@ public class TenantSchemaRegistry {
      */
     public String getSchemaForClinic(String clinicId) {
         return clinicToSchema.getOrDefault(clinicId, "t_9d754153");
+    }
+
+    /**
+     * Returns schema name for the given clinic_id, or empty if not registered.
+     * Use this in auth flows where missing clinic must produce a 404, not a fallback.
+     */
+    public Optional<String> findSchemaForClinic(String clinicId) {
+        return Optional.ofNullable(clinicToSchema.get(clinicId));
     }
 
     /** Called when a new tenant is provisioned at runtime. */

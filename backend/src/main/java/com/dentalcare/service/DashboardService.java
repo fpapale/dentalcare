@@ -32,8 +32,7 @@ public class DashboardService {
         String sql = """
             SELECT clinic_name, city,
                    patients_count, active_providers_count,
-                   in_progress_treatment_plans_count,
-                   sent_estimates_count, accepted_estimates_amount
+                   in_progress_treatment_plans_count
             FROM %s.v_clinic_dashboard
             WHERE clinic_id = :clinicId
             """.formatted(s());
@@ -47,7 +46,7 @@ public class DashboardService {
         String estSql = """
             SELECT
               COUNT(*) FILTER (WHERE status <> 'draft') AS sent_count,
-              COALESCE(SUM(total_amount) FILTER (WHERE status = 'accepted'), 0) AS accepted_amount
+              COALESCE(SUM(total) FILTER (WHERE status = 'accepted'), 0.00) AS accepted_amount
             FROM %s.estimates
             WHERE clinic_id = :clinicId %s
             """.formatted(s(), providerFilter);

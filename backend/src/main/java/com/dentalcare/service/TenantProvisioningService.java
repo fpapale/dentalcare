@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -29,16 +30,19 @@ public class TenantProvisioningService {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
     private final TenantSchemaRegistry registry;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${tenant.tablespace.base-path:}")
     private String tablespaceBasePath;
 
     public TenantProvisioningService(JdbcTemplate jdbc,
                                      PlatformTransactionManager txManager,
-                                     TenantSchemaRegistry registry) {
+                                     TenantSchemaRegistry registry,
+                                     PasswordEncoder passwordEncoder) {
         this.jdbc = jdbc;
         this.tx = new TransactionTemplate(txManager);
         this.registry = registry;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public TenantProvisioningResult provision(RegistrationRequest req) {
@@ -123,7 +127,23 @@ public class TenantProvisioningService {
                 """,
                 clinicId, tenantId);
 
-        log.debug("Provisioning transaction complete: schema={}", schemaName);
+        if (req.adminPassword() == null || req.adminPassword().isBlank()) {
+            throw new IllegalArgumentException("adminPassword is required for tenant provisioning");
+        }
+        UUID adminProviderId = UUID.randomUUID();
+        String hashed = passwordEncoder.encode(req.adminPassword());
+        jdbc.update(
+                "INSERT INTO " + schemaName + ".providers " +
+                "(id, clinic_id, first_name, last_name, email, role, active, password_hash) " +
+                "VALUES (?, ?, ?, ?, ?, 'admin'::dentalcare.provider_role, true, ?)",
+                adminProviderId,
+                clinicId,
+                req.adminNome(),
+                req.adminCognome(),
+                req.adminEmail(),
+                hashed);
+
+        log.debug("Provisioning transaction complete: schema={} adminProvider={}", schemaName, adminProviderId);
     }
 
     private String createTablespaceIfConfigured(String schemaName) {

@@ -47,7 +47,7 @@ export class App implements OnInit {
   ];
 
   private isPublic(url: string): boolean {
-    return url.startsWith('/landing') || url.startsWith('/registrati') || url.startsWith('/features/');
+    return url.startsWith('/landing') || url.startsWith('/registrati') || url.startsWith('/features/') || url.startsWith('/login');
   }
 
   ngOnInit(): void {

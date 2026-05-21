@@ -1,12 +1,16 @@
 package com.dentalcare.controller;
 
+import com.dentalcare.dto.LoginRequest;
+import com.dentalcare.dto.LoginResponse;
 import com.dentalcare.dto.RegistrationRequest;
 import com.dentalcare.dto.RegistrationResponse;
 import com.dentalcare.dto.TenantProvisioningResult;
+import com.dentalcare.service.AuthService;
 import com.dentalcare.service.TenantProvisioningService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -19,9 +23,12 @@ public class PublicController {
     private static final Logger log = LoggerFactory.getLogger(PublicController.class);
 
     private final TenantProvisioningService provisioningService;
+    private final AuthService authService;
 
-    public PublicController(TenantProvisioningService provisioningService) {
+    public PublicController(TenantProvisioningService provisioningService,
+                            AuthService authService) {
         this.provisioningService = provisioningService;
+        this.authService = authService;
     }
 
     @PostMapping("/register")
@@ -38,5 +45,10 @@ public class PublicController {
                 request.studioName(),
                 "Studio configurato con successo! Controlla la tua email per le credenziali di accesso."
         );
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 }
