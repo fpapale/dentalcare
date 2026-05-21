@@ -39,17 +39,18 @@ public class DashboardService {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("clinicId", clinicId);
         Map<String, Object> row = jdbc.queryForMap(sql, params);
 
-        String providerFilter = providerId != null ? "AND created_by_provider_id = :providerId" : "";
+        String estProviderFilter  = providerId != null ? "AND created_by_provider_id = :providerId" : "";
+        String planProviderFilter = providerId != null ? "AND provider_id = :providerId" : "";
         MapSqlParameterSource scopedParams = new MapSqlParameterSource().addValue("clinicId", clinicId);
         if (providerId != null) scopedParams.addValue("providerId", providerId);
 
         String estSql = """
             SELECT
               COUNT(*) FILTER (WHERE status <> 'draft') AS sent_count,
-              COALESCE(SUM(total) FILTER (WHERE status = 'accepted'), 0.00) AS accepted_amount
+              COALESCE(SUM(total_amount) FILTER (WHERE status = 'accepted'), 0.00) AS accepted_amount
             FROM %s.estimates
             WHERE clinic_id = :clinicId %s
-            """.formatted(s(), providerFilter);
+            """.formatted(s(), estProviderFilter);
         Map<String, Object> estRow = jdbc.queryForMap(estSql, scopedParams);
 
         String plansSql = """
@@ -60,7 +61,7 @@ public class DashboardService {
               COUNT(*) FILTER (WHERE status = 'rejected') AS plans_rejected
             FROM %s.treatment_plans
             WHERE clinic_id = :clinicId AND status <> 'completed' %s
-            """.formatted(s(), providerFilter);
+            """.formatted(s(), planProviderFilter);
         Map<String, Object> planRow = jdbc.queryForMap(plansSql, scopedParams);
 
         List<AppointmentDto> todayAppts = appointmentService.findByDate(LocalDate.now(), providerId);

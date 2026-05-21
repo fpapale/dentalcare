@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS service_catalog (
     name                     text    NOT NULL,
     description              text,
     category                 text,
-    price                    numeric(12,2) NOT NULL DEFAULT 0 CHECK (price >= 0),
+    default_price            numeric(12,2) NOT NULL DEFAULT 0 CHECK (default_price >= 0),
     duration_minutes         integer NOT NULL DEFAULT 30 CHECK (duration_minutes > 0),
     min_tooth_digit          integer,
     max_tooth_digit          integer,
@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS service_catalog (
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_service_catalog_clinic_active_cat
-    ON service_catalog (clinic_id, is_active, category)
+    ON service_catalog (clinic_id, active, category)
     TABLESPACE {tablespace};
 
 DROP TRIGGER IF EXISTS trg_service_catalog_updated_at ON service_catalog;
@@ -278,15 +278,23 @@ CREATE TABLE IF NOT EXISTS estimates (
     patient_id              uuid            REFERENCES patients(id) ON DELETE SET NULL,
     provider_id             uuid            REFERENCES providers(id) ON DELETE SET NULL,
     created_by_provider_id  uuid            REFERENCES providers(id) ON DELETE SET NULL,
-    plan_id                 uuid            REFERENCES treatment_plans(id) ON DELETE SET NULL,
+    treatment_plan_id       uuid            REFERENCES treatment_plans(id) ON DELETE SET NULL,
+    estimate_number         text,
     version                 integer         NOT NULL DEFAULT 1 CHECK (version > 0),
     status                  estimate_status NOT NULL DEFAULT 'draft',
     title                   text,
     notes                   text,
+    currency                text            NOT NULL DEFAULT 'EUR',
     valid_until             date,
-    subtotal                numeric(12,2)   NOT NULL DEFAULT 0 CHECK (subtotal >= 0),
-    discount_total          numeric(12,2)   NOT NULL DEFAULT 0 CHECK (discount_total >= 0),
-    total                   numeric(12,2)   NOT NULL DEFAULT 0 CHECK (total >= 0),
+    subtotal_amount         numeric(12,2)   NOT NULL DEFAULT 0 CHECK (subtotal_amount >= 0),
+    discount_amount         numeric(12,2)   NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+    taxable_amount          numeric(12,2)   NOT NULL DEFAULT 0 CHECK (taxable_amount >= 0),
+    vat_amount              numeric(12,2)   NOT NULL DEFAULT 0 CHECK (vat_amount >= 0),
+    total_amount            numeric(12,2)   NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
+    issued_at               timestamptz,
+    sent_at                 timestamptz,
+    accepted_at             timestamptz,
+    rejected_at             timestamptz,
     created_at              timestamptz     NOT NULL DEFAULT now(),
     updated_at              timestamptz     NOT NULL DEFAULT now(),
     CONSTRAINT estimates_id_clinic_uq       UNIQUE (id, clinic_id)
@@ -305,7 +313,7 @@ CREATE INDEX IF NOT EXISTS ix_estimates_clinic_provider
     TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_estimates_clinic_plan
-    ON estimates (clinic_id, plan_id)
+    ON estimates (clinic_id, treatment_plan_id)
     TABLESPACE {tablespace}
     WHERE plan_id IS NOT NULL;
 
@@ -323,18 +331,22 @@ CREATE TABLE IF NOT EXISTS estimate_lines (
     estimate_id             uuid          NOT NULL REFERENCES estimates(id) ON DELETE CASCADE,
     clinic_id               uuid          NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
     treatment_plan_item_id  uuid          REFERENCES treatment_plan_items(id) ON DELETE SET NULL,
-    service_catalog_id      uuid          REFERENCES service_catalog(id) ON DELETE SET NULL,
-    description             text          NOT NULL,
-    tooth_fdi               text,
+    service_id              uuid          REFERENCES service_catalog(id) ON DELETE SET NULL,
+    description_snapshot    text          NOT NULL,
+    tooth_snapshot          text,
     surfaces                text[],
+    line_position           integer       NOT NULL DEFAULT 10,
     quantity                integer       NOT NULL DEFAULT 1 CHECK (quantity > 0),
     unit_price              numeric(12,2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0),
-    discount_pct            numeric(5,2)  NOT NULL DEFAULT 0 CHECK (discount_pct >= 0 AND discount_pct <= 100),
+    discount_amount         numeric(12,2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+    vat_rate                numeric(5,2)  NOT NULL DEFAULT 0,
+    line_subtotal           numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_subtotal >= 0),
+    line_taxable            numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_taxable >= 0),
+    line_vat_amount         numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_vat_amount >= 0),
     line_total              numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_total >= 0),
-    position                integer       NOT NULL DEFAULT 0,
     created_at              timestamptz   NOT NULL DEFAULT now(),
     updated_at              timestamptz   NOT NULL DEFAULT now(),
-    CONSTRAINT estimate_lines_description_not_empty CHECK (length(trim(description)) > 0)
+    CONSTRAINT estimate_lines_description_not_empty CHECK (length(trim(description_snapshot)) > 0)
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_estimate_lines_estimate
@@ -705,19 +717,20 @@ CREATE TABLE IF NOT EXISTS product_categories (
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS products (
-    id           uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
-    clinic_id    uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
-    supplier_id  uuid    REFERENCES suppliers(id) ON DELETE SET NULL,
-    category_id  uuid    REFERENCES product_categories(id) ON DELETE SET NULL,
-    sku          text,
-    name         text    NOT NULL,
-    description  text,
-    unit         text    NOT NULL DEFAULT 'pz',
-    min_stock    integer NOT NULL DEFAULT 0 CHECK (min_stock >= 0),
-    price_unit   numeric(12,2) NOT NULL DEFAULT 0 CHECK (price_unit >= 0),
-    is_active    boolean NOT NULL DEFAULT true,
-    created_at   timestamptz NOT NULL DEFAULT now(),
-    updated_at   timestamptz NOT NULL DEFAULT now(),
+    id                uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id         uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    supplier_id       uuid    REFERENCES suppliers(id) ON DELETE SET NULL,
+    category_id       uuid    REFERENCES product_categories(id) ON DELETE SET NULL,
+    sku               text,
+    name              text    NOT NULL,
+    description       text,
+    unit              text    NOT NULL DEFAULT 'pz',
+    min_stock_quantity numeric(12,2) NOT NULL DEFAULT 0 CHECK (min_stock_quantity >= 0),
+    reorder_quantity   numeric(12,2) NOT NULL DEFAULT 0 CHECK (reorder_quantity >= 0),
+    unit_cost          numeric(12,2) NOT NULL DEFAULT 0 CHECK (unit_cost >= 0),
+    is_active          boolean NOT NULL DEFAULT true,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT products_name_not_empty CHECK (length(trim(name)) > 0)
 ) TABLESPACE {tablespace};
 
@@ -762,13 +775,14 @@ CREATE INDEX IF NOT EXISTS ix_stock_movements_clinic_moved_at
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS service_bundle_items (
-    id                   uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
-    clinic_id            uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
-    bundle_service_id    uuid    NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
-    component_service_id uuid    NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
-    quantity             integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
-    created_at           timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (bundle_service_id, component_service_id)
+    id                uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id         uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    parent_service_id uuid    NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
+    child_service_id  uuid    NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
+    quantity          integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    sort_order        integer NOT NULL DEFAULT 0,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (parent_service_id, child_service_id)
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_service_bundle_items_bundle
@@ -780,13 +794,13 @@ CREATE INDEX IF NOT EXISTS ix_service_bundle_items_bundle
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS condition_service_defaults (
-    id                 uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
-    clinic_id          uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
-    condition          tooth_condition NOT NULL,
-    service_catalog_id uuid            NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
-    sort_order         integer         NOT NULL DEFAULT 0,
-    created_at         timestamptz     NOT NULL DEFAULT now(),
-    UNIQUE (clinic_id, condition, service_catalog_id)
+    id               uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id        uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    condition_name   tooth_condition NOT NULL,
+    service_id       uuid            NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
+    sort_order       integer         NOT NULL DEFAULT 0,
+    created_at       timestamptz     NOT NULL DEFAULT now(),
+    UNIQUE (clinic_id, condition_name, service_id)
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_condition_service_defaults_condition
@@ -798,19 +812,21 @@ CREATE INDEX IF NOT EXISTS ix_condition_service_defaults_condition
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS patient_recalls (
-    id             uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
-    clinic_id      uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
-    patient_id     uuid            NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-    provider_id    uuid            REFERENCES providers(id) ON DELETE SET NULL,
-    appointment_id uuid            REFERENCES appointments(id) ON DELETE SET NULL,
-    recall_type    text            NOT NULL DEFAULT 'routine_checkup',
-    status         recall_status   NOT NULL DEFAULT 'da_contattare',
-    priority       recall_priority NOT NULL DEFAULT 'media',
-    due_date       date            NOT NULL,
-    completed_at   timestamptz,
-    notes          text,
-    created_at     timestamptz     NOT NULL DEFAULT now(),
-    updated_at     timestamptz     NOT NULL DEFAULT now()
+    id                      uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id               uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id              uuid            NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    provider_id             uuid            REFERENCES providers(id) ON DELETE SET NULL,
+    source_appointment_id   uuid            REFERENCES appointments(id) ON DELETE SET NULL,
+    recall_type             text            NOT NULL DEFAULT 'Controllo periodico',
+    status                  recall_status   NOT NULL DEFAULT 'da_contattare',
+    priority                recall_priority NOT NULL DEFAULT 'media',
+    due_date                date            NOT NULL,
+    contact_count           integer         NOT NULL DEFAULT 0,
+    last_contact_at         date,
+    completed_at            timestamptz,
+    notes                   text,
+    created_at              timestamptz     NOT NULL DEFAULT now(),
+    updated_at              timestamptz     NOT NULL DEFAULT now()
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_patient_recalls_clinic_status
@@ -840,8 +856,8 @@ CREATE TABLE IF NOT EXISTS recall_contacts (
     clinic_id                uuid                NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
     contact_type             recall_contact_type NOT NULL,
     outcome                  recall_outcome,
-    contacted_by_provider_id uuid                REFERENCES providers(id) ON DELETE SET NULL,
-    contacted_at             timestamptz         NOT NULL DEFAULT now(),
+    created_by_provider_id   uuid                REFERENCES providers(id) ON DELETE SET NULL,
+    contact_at               timestamptz         NOT NULL DEFAULT now(),
     notes                    text,
     created_at               timestamptz         NOT NULL DEFAULT now()
 ) TABLESPACE {tablespace};
@@ -985,25 +1001,29 @@ FOR EACH ROW EXECUTE FUNCTION update_recall_on_contact();
 
 CREATE OR REPLACE VIEW v_patient_dashboard AS
 SELECT
-    p.id          AS patient_id,
+    p.id         AS patient_id,
     p.clinic_id,
-    p.first_name,
-    p.last_name,
+    p.first_name AS patient_first_name,
+    p.last_name  AS patient_last_name,
+    concat_ws(' ', p.last_name, p.first_name) AS patient_full_name,
+    p.fiscal_code,
     p.birth_date,
+    CASE WHEN p.birth_date IS NULL THEN NULL
+         ELSE date_part('year', age(CURRENT_DATE, p.birth_date))::int END AS age_years,
     p.phone,
     p.email,
+    p.city,
+    p.province,
     p.active,
-    COUNT(DISTINCT a.id)  FILTER (WHERE a.status IN ('scheduled', 'confirmed'))                         AS upcoming_appointments,
-    COUNT(DISTINCT a.id)  FILTER (WHERE a.status = 'completed')                                         AS completed_appointments,
-    COUNT(DISTINCT tp.id) FILTER (WHERE tp.status NOT IN ('rejected', 'archived'))                      AS active_plans,
-    COUNT(DISTINCT e.id)  FILTER (WHERE e.status IN ('draft', 'sent'))                                  AS pending_estimates,
-    MAX(a.starts_at)      FILTER (WHERE a.status = 'completed')                                         AS last_appointment_at,
-    MIN(a.starts_at)      FILTER (WHERE a.status IN ('scheduled', 'confirmed') AND a.starts_at > now()) AS next_appointment_at
+    COUNT(DISTINCT tp.id)  FILTER (WHERE tp.status NOT IN ('rejected','archived'))              AS treatment_plans_count,
+    COUNT(DISTINCT tpi.id) FILTER (WHERE tpi.status IN ('planned','accepted','scheduled'))      AS open_treatment_items_count,
+    COALESCE(SUM(e.total)  FILTER (WHERE e.status = 'accepted'), 0.00)                         AS accepted_estimates_amount
 FROM patients p
-LEFT JOIN appointments    a  ON a.patient_id  = p.id AND a.clinic_id  = p.clinic_id
-LEFT JOIN treatment_plans tp ON tp.patient_id = p.id AND tp.clinic_id = p.clinic_id
-LEFT JOIN estimates       e  ON e.patient_id  = p.id AND e.clinic_id  = p.clinic_id
-GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.birth_date, p.phone, p.email, p.active;
+LEFT JOIN treatment_plans      tp  ON tp.patient_id  = p.id  AND tp.clinic_id  = p.clinic_id
+LEFT JOIN treatment_plan_items tpi ON tpi.plan_id    = tp.id AND tpi.clinic_id = p.clinic_id
+LEFT JOIN estimates            e   ON e.patient_id   = p.id  AND e.clinic_id   = p.clinic_id
+GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code,
+         p.birth_date, p.phone, p.email, p.city, p.province, p.active;
 
 CREATE OR REPLACE VIEW v_patient_clinical_card AS
 SELECT
@@ -1018,7 +1038,9 @@ SELECT
     p.fiscal_code,
     p.phone,
     p.email,
-    p.notes,
+    p.city,
+    p.province,
+    p.notes AS patient_notes,
     p.active,
     pa.blood_type,
     pa.smoker,
@@ -1033,7 +1055,10 @@ SELECT
     pa.current_medications,
     pa.other_allergies,
     pa.pacemaker,
-    pa.recorded_at AS anamnesis_date
+    pa.notes       AS anamnesis_notes,
+    pa.recorded_at AS anamnesis_date,
+    (SELECT COUNT(*) FROM appointments a
+     WHERE a.patient_id = p.id AND a.clinic_id = p.clinic_id) AS total_appointments
 FROM patients p
 LEFT JOIN patient_anamnesis pa
        ON pa.patient_id = p.id
@@ -1118,44 +1143,34 @@ LEFT JOIN providers            pr  ON pr.id  = a.provider_id
 LEFT JOIN treatment_plan_items tpi ON tpi.id = a.treatment_plan_item_id
 LEFT JOIN service_catalog      sc  ON sc.id  = tpi.service_catalog_id;
 
-CREATE OR REPLACE VIEW v_patient_estimates_summary AS
+DROP VIEW IF EXISTS v_patient_estimates_summary;
+CREATE VIEW v_patient_estimates_summary AS
 SELECT
     e.id                    AS estimate_id,
     e.clinic_id,
     e.patient_id,
-    e.provider_id,
     e.created_by_provider_id,
-    e.plan_id,
     e.version,
-    e.status,
-    e.title,
+    e.status::text          AS estimate_status,
+    e.title                 AS estimate_title,
+    e.estimate_number,
+    e.currency,
+    e.subtotal_amount,
+    e.discount_amount,
+    e.taxable_amount,
+    e.vat_amount,
+    e.total_amount,
+    concat_ws(' ', p.last_name, p.first_name) AS patient_full_name,
+    p.fiscal_code           AS patient_fiscal_code,
+    p.phone                 AS patient_phone,
+    e.issued_at,
+    e.sent_at,
     e.valid_until,
-    e.subtotal,
-    e.discount_total,
-    e.total,
-    e.created_at,
-    e.updated_at,
-    p.first_name            AS patient_first_name,
-    p.last_name             AS patient_last_name,
-    pr.first_name           AS provider_first_name,
-    pr.last_name            AS provider_last_name,
-    COUNT(el.id)            AS line_count,
-    CASE
-        WHEN e.valid_until IS NULL                                    THEN false
-        WHEN e.status IN ('accepted', 'rejected', 'cancelled')        THEN false
-        WHEN e.valid_until < CURRENT_DATE                             THEN true
-        ELSE false
-    END AS is_expired,
-    CASE WHEN e.valid_until IS NULL THEN NULL
-         ELSE e.valid_until - CURRENT_DATE END AS days_to_expiry
+    e.accepted_at,
+    e.rejected_at,
+    e.created_at            AS estimate_created_at
 FROM estimates e
-LEFT JOIN patients       p  ON p.id  = e.patient_id
-LEFT JOIN providers      pr ON pr.id = e.provider_id
-LEFT JOIN estimate_lines el ON el.estimate_id = e.id
-GROUP BY e.id, e.clinic_id, e.patient_id, e.provider_id, e.created_by_provider_id,
-         e.plan_id, e.version, e.status, e.title, e.valid_until,
-         e.subtotal, e.discount_total, e.total, e.created_at, e.updated_at,
-         p.first_name, p.last_name, pr.first_name, pr.last_name;
+LEFT JOIN patients p ON p.id = e.patient_id AND p.clinic_id = e.clinic_id;
 
 DROP VIEW IF EXISTS v_clinic_dashboard;
 CREATE VIEW v_clinic_dashboard AS
