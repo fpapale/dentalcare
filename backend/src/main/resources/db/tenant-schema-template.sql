@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS patients (
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT patients_first_name_not_empty CHECK (length(trim(first_name)) > 0),
-    CONSTRAINT patients_last_name_not_empty  CHECK (length(trim(last_name)) > 0)
+    CONSTRAINT patients_last_name_not_empty  CHECK (length(trim(last_name)) > 0),
+    CONSTRAINT patients_id_clinic_uq         UNIQUE (id, clinic_id)
 ) TABLESPACE {tablespace};
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_patients_clinic_fiscal_code
@@ -120,7 +121,8 @@ CREATE TABLE IF NOT EXISTS providers (
     updated_at           timestamptz   NOT NULL DEFAULT now(),
     CONSTRAINT providers_first_name_not_empty CHECK (length(trim(first_name)) > 0),
     CONSTRAINT providers_last_name_not_empty  CHECK (length(trim(last_name)) > 0),
-    CONSTRAINT providers_color_hex_format     CHECK (color_hex ~ '^#[0-9A-Fa-f]{6}$')
+    CONSTRAINT providers_color_hex_format     CHECK (color_hex ~ '^#[0-9A-Fa-f]{6}$'),
+    CONSTRAINT providers_id_clinic_uq         UNIQUE (id, clinic_id)
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_providers_clinic_role_active
@@ -285,7 +287,8 @@ CREATE TABLE IF NOT EXISTS estimates (
     discount_total          numeric(12,2)   NOT NULL DEFAULT 0 CHECK (discount_total >= 0),
     total                   numeric(12,2)   NOT NULL DEFAULT 0 CHECK (total >= 0),
     created_at              timestamptz     NOT NULL DEFAULT now(),
-    updated_at              timestamptz     NOT NULL DEFAULT now()
+    updated_at              timestamptz     NOT NULL DEFAULT now(),
+    CONSTRAINT estimates_id_clinic_uq       UNIQUE (id, clinic_id)
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_estimates_clinic_patient
