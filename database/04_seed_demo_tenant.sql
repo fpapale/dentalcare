@@ -108,6 +108,7 @@ DECLARE
     v_clinic uuid := '9d754153-6579-4b7e-a56b-025f00299cd9'::uuid;
 
     -- Provider IDs
+    v_pr0 uuid := 'a0000001-0000-0000-0000-000000000010'::uuid; -- Admin Demo (tenant_admin)
     v_pr1 uuid := 'b1000001-0000-0000-0000-000000000001'::uuid; -- Ferretti Laura (dentist)
     v_pr2 uuid := 'b1000001-0000-0000-0000-000000000002'::uuid; -- Marchetti Paolo (surgeon)
     v_pr3 uuid := 'b1000001-0000-0000-0000-000000000003'::uuid; -- Amato Serena (orthodontist)
@@ -206,12 +207,15 @@ BEGIN
     --   invoice_prefix, photo_url
     -- =========================================================================
 
-    INSERT INTO providers (id, clinic_id, first_name, last_name, role, phone, active)
+    INSERT INTO providers (id, clinic_id, first_name, last_name, email, password_hash, role, phone, active)
     VALUES
-      (v_pr1, v_clinic, 'Laura',   'Ferretti',  'dentist',      '+39 334 1001001', true),
-      (v_pr2, v_clinic, 'Paolo',   'Marchetti', 'surgeon',      '+39 334 1001002', true),
-      (v_pr3, v_clinic, 'Serena',  'Amato',     'orthodontist', '+39 334 1001003', true),
-      (v_pr4, v_clinic, 'Michele', 'Gentili',   'hygienist',    '+39 334 1001004', true);
+      (v_pr0, v_clinic, 'Admin',   'Demo',      'admin@demo.dentalcare.it',
+       '$2b$10$UbHqgP2xq774oyP29hFhR.IsIw9vf4QWMpbpUqsuxHpDzQ3efAn7O',
+       CAST('tenant_admin' AS dentalcare.provider_role), NULL, true),
+      (v_pr1, v_clinic, 'Laura',   'Ferretti',  NULL, NULL, CAST('dentist'      AS dentalcare.provider_role), '+39 334 1001001', true),
+      (v_pr2, v_clinic, 'Paolo',   'Marchetti', NULL, NULL, CAST('surgeon'      AS dentalcare.provider_role), '+39 334 1001002', true),
+      (v_pr3, v_clinic, 'Serena',  'Amato',     NULL, NULL, CAST('orthodontist' AS dentalcare.provider_role), '+39 334 1001003', true),
+      (v_pr4, v_clinic, 'Michele', 'Gentili',   NULL, NULL, CAST('hygienist'    AS dentalcare.provider_role), '+39 334 1001004', true);
 
     -- =========================================================================
     -- PATIENTS (20 pazienti con nomi italiani realistici)

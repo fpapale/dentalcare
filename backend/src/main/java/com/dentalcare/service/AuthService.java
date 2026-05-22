@@ -22,8 +22,7 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    private static final String DEMO_CLINIC_ID = "a0000001-0000-0000-0000-000000000001";
-    private static final String DEMO_SCHEMA    = "t_a0000001";
+    private static final String DEMO_SCHEMA = "t_9d754153";
 
     private final JdbcTemplate jdbc;
     private final JwtService jwtService;
@@ -47,24 +46,23 @@ public class AuthService {
         if (!demoEnabled) {
             throw new ResourceNotFoundException("Demo mode not enabled");
         }
-        UUID clinicId = UUID.fromString(DEMO_CLINIC_ID);
         Map<String, Object> row;
         try {
             row = jdbc.queryForMap(
-                "SELECT id, role, first_name, last_name FROM " + DEMO_SCHEMA +
-                ".providers WHERE clinic_id = ? AND active = true ORDER BY created_at LIMIT 1",
-                clinicId);
+                "SELECT id, clinic_id, role::text AS role, first_name, last_name FROM " + DEMO_SCHEMA +
+                ".providers WHERE active = true AND role::text = 'tenant_admin' ORDER BY created_at LIMIT 1");
         } catch (EmptyResultDataAccessException e) {
-            throw new ResourceNotFoundException("Demo provider not found");
+            throw new ResourceNotFoundException("Demo tenant_admin provider not found");
         }
         UUID providerId = (UUID) row.get("id");
+        UUID clinicId   = (UUID) row.get("clinic_id");
         String role     = String.valueOf(row.get("role"));
         String firstName = (String) row.get("first_name");
         String lastName  = (String) row.get("last_name");
         String tenantName = fetchTenantName(DEMO_SCHEMA);
         String token = jwtService.generate(providerId, clinicId, DEMO_SCHEMA, role, tenantName);
         log.info("Demo login: provider={} clinic={}", providerId, clinicId);
-        return new LoginResponse(token, providerId.toString(), DEMO_CLINIC_ID, role, firstName, lastName, DEMO_SCHEMA, tenantName);
+        return new LoginResponse(token, providerId.toString(), clinicId.toString(), role, firstName, lastName, DEMO_SCHEMA, tenantName);
     }
 
     private String fetchTenantName(String schemaName) {
