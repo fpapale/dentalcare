@@ -40,7 +40,7 @@ public class DashboardService {
         Map<String, Object> row = jdbc.queryForMap(sql, params);
 
         String estProviderFilter  = providerId != null ? "AND created_by_provider_id = :providerId" : "";
-        String planProviderFilter = providerId != null ? "AND provider_id = :providerId" : "";
+        String planProviderFilter = providerId != null ? "AND created_by_provider_id = :providerId" : "";
         MapSqlParameterSource scopedParams = new MapSqlParameterSource().addValue("clinicId", clinicId);
         if (providerId != null) scopedParams.addValue("providerId", providerId);
 
