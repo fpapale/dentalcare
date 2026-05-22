@@ -6,6 +6,8 @@ import { UserContextService, UserRole } from './core/services/user-context.servi
 import { ProviderService } from './core/services/provider.service';
 import { Provider } from './core/models/provider.model';
 import { LayoutService } from './core/services/layout.service';
+import { AuthService } from './core/auth/auth.service';
+import { ClinicSettingsService } from './core/services/clinic-settings.service';
 
 @Component({
   selector: 'app-root',
@@ -18,6 +20,8 @@ export class App implements OnInit {
   private readonly providerService = inject(ProviderService);
   private readonly layoutService = inject(LayoutService);
   private readonly router        = inject(Router);
+  private readonly authService   = inject(AuthService);
+  private readonly clinicSettingsService = inject(ClinicSettingsService);
 
   readonly rightPanel = this.layoutService.rightPanel;
   readonly isPublicRoute = signal(false);
@@ -27,8 +31,6 @@ export class App implements OnInit {
   readonly currentRole = this.userContext.role;
   readonly currentUserName = this.userContext.userName;
   readonly currentUserInitials = this.userContext.userInitials;
-  currentTenant = signal('12345678-1234-1234-1234-123456789012');
-  currentStudio = signal('Studio Roma Centro');
   today = new Date();
   readonly clinicName = this.userContext.clinicName;
 
@@ -51,7 +53,15 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
-    this.userContext.setRole('secretary');
+    const user = this.authService.getCurrentUser();
+    if (user) {
+      this.userContext.initFromAuth(user);
+      this.selectedKey.set(user.providerId);
+    }
+    this.clinicSettingsService.get().subscribe({
+      next: c => this.userContext.setClinicName(c.name),
+      error: () => {}
+    });
     this.providerService.findAll().subscribe({
       next: list => this.providers.set(list),
       error: () => {}

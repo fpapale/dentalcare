@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { AuthUser } from '../auth/auth.model';
 
 export type UserRole = 'secretary' | 'doctor' | 'hygienist' | 'admin';
 
@@ -34,5 +35,24 @@ export class UserContextService {
 
   setClinicName(name: string): void {
     this.clinicName.set(name);
+  }
+
+  initFromAuth(user: AuthUser): void {
+    const mappedRole: UserRole =
+      user.role === 'admin' ? 'admin'
+      : user.role === 'hygienist' ? 'hygienist'
+      : 'doctor';
+
+    const fullName = `${user.firstName} ${user.lastName}`;
+    const name = mappedRole === 'doctor' || mappedRole === 'hygienist'
+      ? `Dr. ${fullName}`
+      : fullName;
+
+    const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase();
+
+    this.role.set(mappedRole);
+    this.userName.set(name);
+    this.userInitials.set(initials);
+    this.providerId.set(user.providerId);
   }
 }
