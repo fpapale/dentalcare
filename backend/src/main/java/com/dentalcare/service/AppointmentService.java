@@ -197,18 +197,18 @@ public class AppointmentService {
         String stateQuery = """
             SELECT s.id
             FROM %s.clinics cl
-            JOIN %s.cities  ci ON ci.id = cl.city_id
-            JOIN %s.regions r  ON r.id  = ci.region_id
-            JOIN %s.states  s  ON s.id  = r.state_id
+            JOIN dentalcare.cities  ci ON ci.id = cl.city_id
+            JOIN dentalcare.regions r  ON r.id  = ci.region_id
+            JOIN dentalcare.states  s  ON s.id  = r.state_id
             WHERE cl.id = :clinicId
-            """.formatted(s(), s(), s(), s());
+            """.formatted(s());
         List<UUID> stateIds = jdbc.queryForList(stateQuery,
                 new MapSqlParameterSource("clinicId", clinicId), UUID.class);
 
         if (stateIds.isEmpty()) return; // no geo data → skip holiday check
 
         String holidayQuery = """
-            SELECT name FROM %s.national_holidays
+            SELECT name FROM dentalcare.national_holidays
             WHERE state_id = :stateId
               AND (
                 (is_recurring = TRUE  AND month = :month AND day = :day)
@@ -216,7 +216,7 @@ public class AppointmentService {
                 (is_recurring = FALSE AND holiday_date = :date)
               )
             LIMIT 1
-            """.formatted(s());
+            """;
         List<String> names = jdbc.queryForList(holidayQuery,
                 new MapSqlParameterSource()
                         .addValue("stateId", stateIds.get(0))
