@@ -7,6 +7,7 @@ import com.dentalcare.security.JwtService;
 import com.dentalcare.security.TenantSchemaRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -21,10 +22,16 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
+    private static final String DEMO_CLINIC_ID = "a0000001-0000-0000-0000-000000000001";
+    private static final String DEMO_SCHEMA    = "t_a0000001";
+
     private final JdbcTemplate jdbc;
     private final JwtService jwtService;
     private final TenantSchemaRegistry registry;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.demo.enabled:false}")
+    private boolean demoEnabled;
 
     public AuthService(JdbcTemplate jdbc,
                        JwtService jwtService,
@@ -34,6 +41,29 @@ public class AuthService {
         this.jwtService = jwtService;
         this.registry = registry;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    public LoginResponse demoToken() {
+        if (!demoEnabled) {
+            throw new ResourceNotFoundException("Demo mode not enabled");
+        }
+        UUID clinicId = UUID.fromString(DEMO_CLINIC_ID);
+        Map<String, Object> row;
+        try {
+            row = jdbc.queryForMap(
+                "SELECT id, role, first_name, last_name FROM " + DEMO_SCHEMA +
+                ".providers WHERE clinic_id = ? AND active = true ORDER BY created_at LIMIT 1",
+                clinicId);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ResourceNotFoundException("Demo provider not found");
+        }
+        UUID providerId = (UUID) row.get("id");
+        String role     = String.valueOf(row.get("role"));
+        String firstName = (String) row.get("first_name");
+        String lastName  = (String) row.get("last_name");
+        String token = jwtService.generate(providerId, clinicId, DEMO_SCHEMA, role);
+        log.info("Demo login: provider={} clinic={}", providerId, clinicId);
+        return new LoginResponse(token, providerId.toString(), DEMO_CLINIC_ID, role, firstName, lastName, DEMO_SCHEMA);
     }
 
     public LoginResponse login(LoginRequest request) {

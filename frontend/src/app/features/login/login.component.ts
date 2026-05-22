@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,7 +11,7 @@ import { AuthService } from '../../core/auth/auth.service';
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -19,12 +19,20 @@ export class LoginComponent {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly today = new Date().getFullYear();
+  readonly demoChecking = signal(true);
 
   readonly form = this.fb.nonNullable.group({
     clinicId: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]]
   });
+
+  ngOnInit(): void {
+    this.auth.getDemoToken().subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: () => this.demoChecking.set(false)
+    });
+  }
 
   onSubmit(): void {
     if (this.form.invalid || this.loading()) {

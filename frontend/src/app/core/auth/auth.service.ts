@@ -16,22 +16,30 @@ export class AuthService {
   private readonly _currentUser = signal<AuthUser | null>(this.readUserFromStorage());
   readonly currentUser = this._currentUser.asReadonly();
 
+  private storeSession(res: LoginResponse): void {
+    const user: AuthUser = {
+      providerId: res.providerId,
+      clinicId: res.clinicId,
+      role: res.role,
+      firstName: res.firstName,
+      lastName: res.lastName,
+      schemaName: res.schemaName,
+      token: res.token
+    };
+    localStorage.setItem(TOKEN_KEY, res.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this._currentUser.set(user);
+  }
+
   login(request: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${environment.apiBaseUrl}/public/login`, request).pipe(
-      tap(res => {
-        const user: AuthUser = {
-          providerId: res.providerId,
-          clinicId: res.clinicId,
-          role: res.role,
-          firstName: res.firstName,
-          lastName: res.lastName,
-          schemaName: res.schemaName,
-          token: res.token
-        };
-        localStorage.setItem(TOKEN_KEY, res.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
-        this._currentUser.set(user);
-      })
+      tap(res => this.storeSession(res))
+    );
+  }
+
+  getDemoToken(): Observable<LoginResponse> {
+    return this.http.get<LoginResponse>(`${environment.apiBaseUrl}/public/demo-token`).pipe(
+      tap(res => this.storeSession(res))
     );
   }
 

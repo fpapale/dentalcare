@@ -51,4 +51,13 @@ public class PublicController {
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @GetMapping("/demo-token")
+    public ResponseEntity<LoginResponse> demoToken() {
+        try {
+            return ResponseEntity.ok(authService.demoToken());
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }
