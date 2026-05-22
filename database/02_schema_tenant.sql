@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS clinics (
     vat_number     text,
     fiscal_code    text,
     phone          text,
+    email          text,
     address_line1  text,
     address_line2  text,
     city           text,

@@ -58,6 +58,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
                 continue;
             }
             try {
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS email TEXT");
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true");
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS photo_url TEXT");
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS photo_url TEXT");
