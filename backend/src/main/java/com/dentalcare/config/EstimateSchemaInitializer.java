@@ -276,8 +276,8 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  pa.blood_type, pa.smoker, pa.hypertension, pa.diabetes, pa.heart_disease," +
             "  pa.taking_anticoagulants, pa.taking_bisphosphonates," +
             "  pa.allergy_penicillin, pa.allergy_latex, pa.allergy_anesthetic," +
-            "  pa.current_medications, pa.other_allergies, pa.pacemaker," +
-            "  pa.notes AS anamnesis_notes," +
+            "  pa.current_medications, pa.other_allergies," +
+            "  pa.general_notes AS anamnesis_notes," +
             "  pa.recorded_at AS anamnesis_date," +
             "  (SELECT COUNT(*) FROM " + schema + ".appointments a" +
             "   WHERE a.patient_id = p.id AND a.clinic_id = p.clinic_id) AS total_appointments" +
