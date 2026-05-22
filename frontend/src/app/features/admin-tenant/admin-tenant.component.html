@@ -49,30 +49,283 @@
       </div>
     </div>
 
+    <!-- Errore globale -->
+    @if (error()) {
+      <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 flex items-start gap-2">
+        <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-[20px] shrink-0">error</span>
+        <p class="text-sm text-red-700 dark:text-red-300">{{ error() }}</p>
+      </div>
+    }
+
     <!-- Sezione cliniche -->
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-[20px]">local_hospital</span>
           <h2 class="font-semibold text-slate-800 dark:text-slate-100">Cliniche</h2>
+          <span class="text-xs text-slate-400 dark:text-slate-500">({{ clinics().length }})</span>
         </div>
-        <button disabled
-                class="text-sm font-medium px-3 py-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-[18px]">add</span>
-          Nuova clinica
+        <button type="button"
+                (click)="toggleCreateClinic()"
+                class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[18px]">{{ showCreateClinic() ? 'close' : 'add' }}</span>
+          {{ showCreateClinic() ? 'Annulla' : 'Nuova clinica' }}
         </button>
       </div>
 
-      <!-- Empty state / placeholder -->
-      <div class="px-6 py-16 flex flex-col items-center text-center">
-        <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-          <span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[32px]">hourglass_empty</span>
+      <!-- Form creazione clinica -->
+      @if (showCreateClinic()) {
+        <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-700">
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Nuova clinica</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Nome *</label>
+              <input type="text"
+                     [ngModel]="clinicForm().name"
+                     (ngModelChange)="updateClinicField('name', $event)"
+                     name="clinicName"
+                     placeholder="Nome clinica"
+                     class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Città</label>
+              <input type="text"
+                     [ngModel]="clinicForm().city"
+                     (ngModelChange)="updateClinicField('city', $event)"
+                     name="clinicCity"
+                     placeholder="Città"
+                     class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Email</label>
+              <input type="email"
+                     [ngModel]="clinicForm().email"
+                     (ngModelChange)="updateClinicField('email', $event)"
+                     name="clinicEmail"
+                     placeholder="email@clinica.it"
+                     class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button"
+                    (click)="submitCreateClinic()"
+                    [disabled]="creatingClinic()"
+                    class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span class="material-symbols-outlined text-[18px]">{{ creatingClinic() ? 'progress_activity' : 'check' }}</span>
+              {{ creatingClinic() ? 'Creazione...' : 'Crea clinica' }}
+            </button>
+            <button type="button"
+                    (click)="toggleCreateClinic()"
+                    [disabled]="creatingClinic()"
+                    class="text-sm font-medium px-3 py-1.5 rounded-md bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors">
+              Annulla
+            </button>
+          </div>
         </div>
-        <h3 class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Gestione cliniche in arrivo</h3>
-        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md">
-          La funzionalità di creazione e gestione delle cliniche del tenant sarà disponibile nella prossima fase.
-        </p>
-      </div>
+      }
+
+      <!-- Loading state -->
+      @if (loading()) {
+        <div class="px-6 py-16 flex flex-col items-center text-center">
+          <span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[32px] animate-spin">progress_activity</span>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">Caricamento cliniche...</p>
+        </div>
+      } @else if (clinics().length === 0) {
+        <!-- Empty state -->
+        <div class="px-6 py-16 flex flex-col items-center text-center">
+          <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+            <span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[32px]">local_hospital</span>
+          </div>
+          <h3 class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Nessuna clinica</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+            Crea la prima clinica del tuo tenant per iniziare a gestire pazienti, appuntamenti e operatori.
+          </p>
+        </div>
+      } @else {
+        <!-- Lista cliniche -->
+        <ul class="divide-y divide-slate-200 dark:divide-slate-700">
+          @for (clinic of clinics(); track clinic.id) {
+            <li class="px-6 py-4">
+              <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-semibold text-slate-800 dark:text-slate-100 truncate">{{ clinic.name }}</h3>
+                    @if (!clinic.active) {
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 uppercase tracking-wider font-semibold">Inattiva</span>
+                    }
+                  </div>
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    @if (clinic.city) {
+                      <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">location_on</span>
+                        {{ clinic.city }}
+                      </span>
+                    }
+                    @if (clinic.email) {
+                      <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">mail</span>
+                        {{ clinic.email }}
+                      </span>
+                    }
+                    @if (clinic.phone) {
+                      <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">call</span>
+                        {{ clinic.phone }}
+                      </span>
+                    }
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button type="button"
+                          (click)="toggleClinicUsers(clinic.id)"
+                          class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-teal-50 hover:bg-teal-100 dark:bg-teal-900/30 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">{{ expandedClinicId() === clinic.id ? 'expand_less' : 'group' }}</span>
+                    Gestisci utenti
+                  </button>
+                  @if (confirmDeleteClinicId() === clinic.id) {
+                    <span class="text-xs text-slate-600 dark:text-slate-300">Sei sicuro?</span>
+                    <button type="button"
+                            (click)="confirmDeleteClinic(clinic.id)"
+                            [disabled]="deletingClinicId() === clinic.id"
+                            class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors flex items-center gap-1 disabled:opacity-50">
+                      <span class="material-symbols-outlined text-[16px]">{{ deletingClinicId() === clinic.id ? 'progress_activity' : 'check' }}</span>
+                      Conferma
+                    </button>
+                    <button type="button"
+                            (click)="cancelDeleteClinic()"
+                            class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors">
+                      Annulla
+                    </button>
+                  } @else {
+                    <button type="button"
+                            (click)="askDeleteClinic(clinic.id)"
+                            class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 transition-colors flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[16px]">delete</span>
+                      Elimina
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- Sezione utenti espansa -->
+              @if (expandedClinicId() === clinic.id) {
+                <div class="mt-4 pl-4 border-l-2 border-teal-200 dark:border-teal-800">
+                  <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-[18px]">group</span>
+                      Utenti
+                      <span class="text-xs text-slate-400 dark:text-slate-500">({{ usersFor(clinic.id).length }})</span>
+                    </h4>
+                    <button type="button"
+                            (click)="toggleCreateUser(clinic.id)"
+                            class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[16px]">{{ showCreateUser() === clinic.id ? 'close' : 'person_add' }}</span>
+                      {{ showCreateUser() === clinic.id ? 'Annulla' : 'Aggiungi utente' }}
+                    </button>
+                  </div>
+
+                  <!-- Form creazione utente -->
+                  @if (showCreateUser() === clinic.id) {
+                    <div class="mb-3 p-3 rounded-md bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700">
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Nome *</label>
+                          <input type="text"
+                                 [ngModel]="userForm().firstName"
+                                 (ngModelChange)="updateUserField('firstName', $event)"
+                                 name="userFirstName"
+                                 class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Cognome *</label>
+                          <input type="text"
+                                 [ngModel]="userForm().lastName"
+                                 (ngModelChange)="updateUserField('lastName', $event)"
+                                 name="userLastName"
+                                 class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Email *</label>
+                          <input type="email"
+                                 [ngModel]="userForm().email"
+                                 (ngModelChange)="updateUserField('email', $event)"
+                                 name="userEmail"
+                                 class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Password * (min 8)</label>
+                          <input type="password"
+                                 [ngModel]="userForm().password"
+                                 (ngModelChange)="updateUserField('password', $event)"
+                                 name="userPassword"
+                                 class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div class="md:col-span-2">
+                          <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Ruolo *</label>
+                          <select [ngModel]="userForm().role"
+                                  (ngModelChange)="updateUserField('role', $event)"
+                                  name="userRole"
+                                  class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            @for (r of availableRoles; track r) {
+                              <option [value]="r">{{ r }}</option>
+                            }
+                          </select>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button type="button"
+                                (click)="submitCreateUser(clinic.id)"
+                                [disabled]="creatingUser()"
+                                class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                          <span class="material-symbols-outlined text-[18px]">{{ creatingUser() ? 'progress_activity' : 'check' }}</span>
+                          {{ creatingUser() ? 'Creazione...' : 'Crea utente' }}
+                        </button>
+                        <button type="button"
+                                (click)="toggleCreateUser(clinic.id)"
+                                [disabled]="creatingUser()"
+                                class="text-sm font-medium px-3 py-1.5 rounded-md bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors">
+                          Annulla
+                        </button>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Lista utenti -->
+                  @if (usersLoading() === clinic.id) {
+                    <div class="py-4 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                      <span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+                      <span class="text-sm ml-2">Caricamento utenti...</span>
+                    </div>
+                  } @else if (usersFor(clinic.id).length === 0) {
+                    <p class="text-sm text-slate-400 dark:text-slate-500 py-2 italic">Nessun utente associato alla clinica.</p>
+                  } @else {
+                    <ul class="space-y-1">
+                      @for (u of usersFor(clinic.id); track u.id) {
+                        <li class="flex items-center justify-between px-3 py-2 rounded-md bg-slate-50 dark:bg-slate-900/40">
+                          <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center shrink-0">
+                              <span class="text-xs font-bold text-teal-700 dark:text-teal-300">
+                                {{ (u.firstName[0] ?? '') + (u.lastName[0] ?? '') }}
+                              </span>
+                            </div>
+                            <div class="min-w-0">
+                              <p class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{{ u.firstName }} {{ u.lastName }}</p>
+                              <p class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ u.email }}</p>
+                            </div>
+                          </div>
+                          <span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 shrink-0">
+                            {{ u.role }}
+                          </span>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
     </section>
   </main>
 </div>

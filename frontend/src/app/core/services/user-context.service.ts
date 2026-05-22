@@ -40,7 +40,7 @@ export class UserContextService {
 
   initFromAuth(user: AuthUser): void {
     const mappedRole: UserRole =
-      user.role === 'admin' ? 'admin'
+      user.role === 'admin' || user.role === 'tenant_admin' ? 'admin'
       : user.role === 'hygienist' ? 'hygienist'
       : 'doctor';
 
