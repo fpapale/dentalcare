@@ -29,7 +29,22 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         }
     }
 
+    private void patchGlobalEnums() {
+        for (String val : List.of("tenant_admin", "orthodontist", "surgeon", "assistant", "other")) {
+            try {
+                jdbc.execute("DO $$ BEGIN " +
+                        "IF NOT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid " +
+                        "WHERE t.typname = 'provider_role' AND e.enumlabel = '" + val + "') " +
+                        "THEN ALTER TYPE dentalcare.provider_role ADD VALUE '" + val + "'; END IF; END $$");
+            } catch (Exception e) {
+                log.warn("EstimateSchemaInitializer: failed to add enum value {}: {}", val, e.getMessage());
+            }
+        }
+    }
+
     private void applyTenantOperationalPatches() {
+        patchGlobalEnums();
+
         List<String> schemas = jdbc.queryForList(
                 "SELECT schema_name FROM dentalcare.tenants WHERE active = true",
                 String.class);

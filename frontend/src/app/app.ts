@@ -33,6 +33,7 @@ export class App implements OnInit {
   readonly currentUserInitials = this.userContext.userInitials;
   today = new Date();
   readonly clinicName = this.userContext.clinicName;
+  readonly tenantName = this.userContext.tenantName;
 
   providers = signal<Provider[]>([]);
   selectedKey = signal<string>('__secretary__');
@@ -49,7 +50,7 @@ export class App implements OnInit {
   ];
 
   private isPublic(url: string): boolean {
-    return url.startsWith('/landing') || url.startsWith('/registrati') || url.startsWith('/features/') || url.startsWith('/login');
+    return url.startsWith('/landing') || url.startsWith('/registrati') || url.startsWith('/features/') || url.startsWith('/login') || url.startsWith('/admin-tenant');
   }
 
   ngOnInit(): void {

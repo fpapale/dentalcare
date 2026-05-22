@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { tenantAdminGuard } from './core/guards/tenant-admin.guard';
 
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./features/login/login.component').then(m => m.LoginComponent) },
@@ -105,5 +106,10 @@ export const routes: Routes = [
     path: 'magazzino',
     canActivate: [authGuard],
     loadComponent: () => import('./features/magazzino/magazzino.component').then(m => m.MagazzinoComponent)
+  },
+  {
+    path: 'admin-tenant',
+    canActivate: [tenantAdminGuard],
+    loadComponent: () => import('./features/admin-tenant/admin-tenant.component').then(m => m.AdminTenantComponent)
   },
 ];

@@ -12,6 +12,7 @@ export interface LoginResponse {
   firstName: string;
   lastName: string;
   schemaName: string;
+  tenantName: string;
 }
 
 export interface AuthUser {
@@ -21,5 +22,6 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   schemaName: string;
+  tenantName: string;
   token: string;
 }

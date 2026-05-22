@@ -7,5 +7,6 @@ public record LoginResponse(
         String role,
         String firstName,
         String lastName,
-        String schemaName
+        String schemaName,
+        String tenantName
 ) {}

@@ -25,12 +25,13 @@ public class JwtService {
         this.expirationMs = expirationMs;
     }
 
-    public String generate(UUID providerId, UUID clinicId, String schemaName, String role) {
+    public String generate(UUID providerId, UUID clinicId, String schemaName, String role, String tenantName) {
         return Jwts.builder()
                 .subject(providerId.toString())
                 .claim("clinicId", clinicId.toString())
                 .claim("schemaName", schemaName)
                 .claim("role", role)
+                .claim("tenantName", tenantName)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(key)

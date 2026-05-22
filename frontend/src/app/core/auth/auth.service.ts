@@ -24,6 +24,7 @@ export class AuthService {
       firstName: res.firstName,
       lastName: res.lastName,
       schemaName: res.schemaName,
+      tenantName: res.tenantName,
       token: res.token
     };
     localStorage.setItem(TOKEN_KEY, res.token);

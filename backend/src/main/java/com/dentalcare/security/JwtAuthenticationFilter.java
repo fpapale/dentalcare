@@ -50,6 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String clinicId = claims.get("clinicId", String.class);
             String schemaName = claims.get("schemaName", String.class);
             String role = claims.get("role", String.class);
+            claims.get("tenantName", String.class);
 
             TenantContext.setCurrentClinicId(clinicId);
             TenantContext.setCurrentSchema(schemaName);

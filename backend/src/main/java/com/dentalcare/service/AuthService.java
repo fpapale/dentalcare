@@ -61,9 +61,21 @@ public class AuthService {
         String role     = String.valueOf(row.get("role"));
         String firstName = (String) row.get("first_name");
         String lastName  = (String) row.get("last_name");
-        String token = jwtService.generate(providerId, clinicId, DEMO_SCHEMA, role);
+        String tenantName = fetchTenantName(DEMO_SCHEMA);
+        String token = jwtService.generate(providerId, clinicId, DEMO_SCHEMA, role, tenantName);
         log.info("Demo login: provider={} clinic={}", providerId, clinicId);
-        return new LoginResponse(token, providerId.toString(), DEMO_CLINIC_ID, role, firstName, lastName, DEMO_SCHEMA);
+        return new LoginResponse(token, providerId.toString(), DEMO_CLINIC_ID, role, firstName, lastName, DEMO_SCHEMA, tenantName);
+    }
+
+    private String fetchTenantName(String schemaName) {
+        try {
+            String name = jdbc.queryForObject(
+                    "SELECT name FROM dentalcare.tenants WHERE schema_name = ?",
+                    String.class, schemaName);
+            return name != null ? name : "";
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -111,7 +123,8 @@ public class AuthService {
         String firstName = (String) row.get("first_name");
         String lastName = (String) row.get("last_name");
 
-        String token = jwtService.generate(providerId, clinicUuid, schemaName, role);
+        String tenantName = fetchTenantName(schemaName);
+        String token = jwtService.generate(providerId, clinicUuid, schemaName, role, tenantName);
 
         log.info("Login OK provider={} clinic={} schema={}", providerId, clinicUuid, schemaName);
 
@@ -122,6 +135,7 @@ public class AuthService {
                 role,
                 firstName,
                 lastName,
-                schemaName);
+                schemaName,
+                tenantName);
     }
 }

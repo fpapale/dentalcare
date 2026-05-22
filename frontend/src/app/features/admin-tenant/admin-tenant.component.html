@@ -1,0 +1,78 @@
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900">
+  <!-- Header dedicato (no sidebar) -->
+  <header class="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center px-6 shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-600 to-teal-800 flex items-center justify-center shadow-sm">
+        <span class="material-symbols-outlined text-white text-[20px]">admin_panel_settings</span>
+      </div>
+      <div>
+        <p class="font-bold text-slate-800 dark:text-slate-100 text-[15px] leading-tight">Amministrazione Tenant</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">Gestione cliniche e configurazione</p>
+      </div>
+    </div>
+
+    <div class="ml-auto flex items-center gap-3">
+      <a routerLink="/dashboard"
+         class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        Torna alla clinica
+      </a>
+      <div class="flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-700">
+        <div class="text-right">
+          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-none">{{ userName() }}</p>
+          <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Tenant Admin</p>
+        </div>
+        <div class="w-9 h-9 rounded-full bg-teal-100 dark:bg-teal-900 border-2 border-teal-200 dark:border-teal-800 flex items-center justify-center font-bold text-teal-700 dark:text-teal-300 text-sm">
+          {{ userInitials() }}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenuto principale -->
+  <main class="max-w-5xl mx-auto px-6 py-8">
+    <!-- Hero tenant -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-6">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/40 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-teal-600 dark:text-teal-400 text-[26px]">domain</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 mb-1">Tenant</p>
+          <h1 class="text-2xl font-bold text-slate-800 dark:text-slate-100 truncate">
+            {{ tenantName() ?? 'Tenant non identificato' }}
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Hub di amministrazione per la gestione delle cliniche associate al tuo tenant.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sezione cliniche -->
+    <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-[20px]">local_hospital</span>
+          <h2 class="font-semibold text-slate-800 dark:text-slate-100">Cliniche</h2>
+        </div>
+        <button disabled
+                class="text-sm font-medium px-3 py-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[18px]">add</span>
+          Nuova clinica
+        </button>
+      </div>
+
+      <!-- Empty state / placeholder -->
+      <div class="px-6 py-16 flex flex-col items-center text-center">
+        <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+          <span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[32px]">hourglass_empty</span>
+        </div>
+        <h3 class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Gestione cliniche in arrivo</h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+          La funzionalità di creazione e gestione delle cliniche del tenant sarà disponibile nella prossima fase.
+        </p>
+      </div>
+    </section>
+  </main>
+</div>
