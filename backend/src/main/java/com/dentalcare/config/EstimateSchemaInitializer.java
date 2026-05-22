@@ -218,10 +218,9 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  pr.id AS provider_id," +
             "  concat_ws(' ', pr.first_name, pr.last_name) AS provider_name," +
             "  pr.role::text AS provider_role," +
-            "  pr.color_hex AS provider_color," +
             "  sc.name AS service_name," +
             "  sc.category AS service_category," +
-            "  tpi.tooth_fdi AS tooth_number," +
+            "  tpi.tooth_number AS tooth_number," +
             "  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis pa2" +
             "    WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true" +
             "    AND (pa2.allergy_penicillin OR pa2.allergy_latex OR pa2.allergy_anesthetic" +
@@ -229,12 +228,12 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis pa2" +
             "    WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true" +
             "    AND (pa2.taking_anticoagulants OR pa2.taking_bisphosphonates" +
-            "         OR pa2.heart_disease OR pa2.pacemaker)) AS has_medication_alert" +
+            "         OR pa2.heart_disease)) AS has_medication_alert" +
             " FROM " + schema + ".appointments a" +
             " LEFT JOIN " + schema + ".patients             p   ON p.id   = a.patient_id" +
             " LEFT JOIN " + schema + ".providers            pr  ON pr.id  = a.provider_id" +
             " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.id = a.treatment_plan_item_id" +
-            " LEFT JOIN " + schema + ".service_catalog      sc  ON sc.id  = tpi.service_catalog_id"
+            " LEFT JOIN " + schema + ".service_catalog      sc  ON sc.id  = tpi.service_id"
         );
     }
 
@@ -255,7 +254,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  COALESCE(SUM(e.total_amount) FILTER (WHERE e.status = 'accepted'), 0.00) AS accepted_estimates_amount" +
             " FROM " + schema + ".patients p" +
             " LEFT JOIN " + schema + ".treatment_plans tp ON tp.patient_id = p.id AND tp.clinic_id = p.clinic_id" +
-            " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.plan_id = tp.id AND tpi.clinic_id = p.clinic_id" +
+            " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.treatment_plan_id = tp.id AND tpi.clinic_id = p.clinic_id" +
             " LEFT JOIN " + schema + ".estimates e ON e.patient_id = p.id AND e.clinic_id = p.clinic_id" +
             " GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code," +
             "          p.birth_date, p.phone, p.email, p.city, p.province, p.active"
