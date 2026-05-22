@@ -4,7 +4,10 @@ import com.dentalcare.dto.CreateTenantClinicRequest;
 import com.dentalcare.dto.CreateTenantUserRequest;
 import com.dentalcare.dto.TenantClinicDto;
 import com.dentalcare.dto.TenantUserDto;
+import com.dentalcare.security.TenantContext;
 import com.dentalcare.service.TenantAdminService;
+import com.dentalcare.service.TenantExportService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,9 +29,12 @@ import java.util.UUID;
 public class TenantAdminController {
 
     private final TenantAdminService tenantAdminService;
+    private final TenantExportService tenantExportService;
 
-    public TenantAdminController(TenantAdminService tenantAdminService) {
+    public TenantAdminController(TenantAdminService tenantAdminService,
+                                 TenantExportService tenantExportService) {
         this.tenantAdminService = tenantAdminService;
+        this.tenantExportService = tenantExportService;
     }
 
     @GetMapping("/clinics")
@@ -56,5 +64,15 @@ public class TenantAdminController {
     public TenantUserDto createUser(@PathVariable UUID clinicId,
                                     @Valid @RequestBody CreateTenantUserRequest request) {
         return tenantAdminService.createUser(clinicId, request);
+    }
+
+    @GetMapping("/export")
+    public void export(HttpServletResponse response) throws IOException {
+        response.setContentType("application/zip");
+        String filename = "tenant_" + TenantContext.validatedSchema()
+                + "_export_" + LocalDate.now() + ".zip";
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        tenantExportService.exportToStream(response.getOutputStream());
+        response.flushBuffer();
     }
 }

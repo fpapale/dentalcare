@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/auth/auth.service';
+import { ClinicOption, LoginPreflightResponse } from '../../core/auth/auth.model';
 
 @Component({
   selector: 'app-login',
@@ -21,15 +22,23 @@ export class LoginComponent implements OnInit {
   readonly today = new Date().getFullYear();
   readonly demoChecking = signal(true);
 
+  readonly step = signal<'form' | 'choose'>('form');
+  readonly chooseOptions = signal<ClinicOption[]>([]);
+  readonly pendingEmail = signal('');
+  readonly pendingPassword = signal('');
+  readonly confirmingClinicId = signal<string | null>(null);
+
   readonly form = this.fb.nonNullable.group({
-    clinicId: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]]
   });
 
   ngOnInit(): void {
     this.auth.getDemoToken().subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: (res) => {
+        const dest = res.role === 'tenant_admin' ? '/admin-tenant' : '/dashboard';
+        this.router.navigate([dest]);
+      },
       error: () => this.demoChecking.set(false)
     });
   }
@@ -42,21 +51,77 @@ export class LoginComponent implements OnInit {
     this.error.set(null);
     this.loading.set(true);
 
-    this.auth.login(this.form.getRawValue()).subscribe({
-      next: () => {
+    const { email, password } = this.form.getRawValue();
+    this.pendingEmail.set(email);
+    this.pendingPassword.set(password);
+
+    this.auth.login({ email, password }).subscribe({
+      next: (res) => {
         this.loading.set(false);
-        this.router.navigate(['/dashboard']);
+        this.handlePreflight(res);
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);
-        if (err.status === 401) {
-          this.error.set('Credenziali non valide');
-        } else if (err.status === 404) {
-          this.error.set('Studio non trovato');
-        } else {
-          this.error.set('Si è verificato un errore. Riprova più tardi.');
-        }
+        this.handleError(err);
       }
     });
+  }
+
+  private handlePreflight(res: LoginPreflightResponse): void {
+    if (res.type === 'direct') {
+      this.auth.storeDirectLogin(res);
+      const dest = res.role === 'tenant_admin' ? '/admin-tenant' : '/dashboard';
+      this.router.navigate([dest]);
+      return;
+    }
+
+    const options = res.options ?? [];
+    if (options.length === 1) {
+      this.onConfirm(options[0]);
+      return;
+    }
+
+    this.chooseOptions.set(options);
+    this.step.set('choose');
+  }
+
+  onConfirm(option: ClinicOption): void {
+    if (this.confirmingClinicId() !== null) {
+      return;
+    }
+    this.error.set(null);
+    this.confirmingClinicId.set(option.clinicId);
+
+    this.auth.confirmLogin({
+      email: this.pendingEmail(),
+      password: this.pendingPassword(),
+      clinicId: option.clinicId
+    }).subscribe({
+      next: () => {
+        this.confirmingClinicId.set(null);
+        const isAdmin = option.isTenantAdmin || option.role === 'tenant_admin';
+        this.router.navigate([isAdmin ? '/admin-tenant' : '/dashboard']);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.confirmingClinicId.set(null);
+        this.handleError(err);
+      }
+    });
+  }
+
+  backToForm(): void {
+    this.step.set('form');
+    this.chooseOptions.set([]);
+    this.error.set(null);
+  }
+
+  private handleError(err: HttpErrorResponse): void {
+    if (err.status === 401) {
+      this.error.set('Credenziali non valide');
+    } else if (err.status === 404) {
+      this.error.set('Studio non trovato');
+    } else {
+      this.error.set('Si è verificato un errore. Riprova più tardi.');
+    }
   }
 }

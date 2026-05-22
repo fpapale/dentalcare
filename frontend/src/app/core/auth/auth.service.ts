@@ -3,7 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthUser, LoginRequest, LoginResponse } from './auth.model';
+import {
+  AuthUser,
+  LoginConfirmRequest,
+  LoginPreflightResponse,
+  LoginResponse
+} from './auth.model';
 
 const TOKEN_KEY = 'dentalcare_token';
 const USER_KEY = 'dentalcare_user';
@@ -32,8 +37,32 @@ export class AuthService {
     this._currentUser.set(user);
   }
 
-  login(request: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${environment.apiBaseUrl}/public/login`, request).pipe(
+  storeDirectLogin(res: LoginPreflightResponse): void {
+    if (!res.token || !res.providerId || !res.clinicId || !res.role
+        || !res.firstName || !res.lastName || !res.schemaName || !res.tenantName) {
+      throw new Error('Direct login response incomplete');
+    }
+    const user: AuthUser = {
+      providerId: res.providerId,
+      clinicId: res.clinicId,
+      role: res.role,
+      firstName: res.firstName,
+      lastName: res.lastName,
+      schemaName: res.schemaName,
+      tenantName: res.tenantName,
+      token: res.token
+    };
+    localStorage.setItem(TOKEN_KEY, res.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this._currentUser.set(user);
+  }
+
+  login(request: { email: string; password: string }): Observable<LoginPreflightResponse> {
+    return this.http.post<LoginPreflightResponse>(`${environment.apiBaseUrl}/public/login`, request);
+  }
+
+  confirmLogin(request: LoginConfirmRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${environment.apiBaseUrl}/public/login/confirm`, request).pipe(
       tap(res => this.storeSession(res))
     );
   }

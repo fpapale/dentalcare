@@ -1,12 +1,15 @@
 package com.dentalcare.controller;
 
-import com.dentalcare.dto.LoginRequest;
+import com.dentalcare.dto.LoginConfirmRequest;
+import com.dentalcare.dto.LoginPreflightRequest;
+import com.dentalcare.dto.LoginPreflightResponse;
 import com.dentalcare.dto.LoginResponse;
 import com.dentalcare.dto.RegistrationRequest;
 import com.dentalcare.dto.RegistrationResponse;
 import com.dentalcare.dto.TenantProvisioningResult;
 import com.dentalcare.service.AuthService;
 import com.dentalcare.service.TenantProvisioningService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -48,8 +51,13 @@ public class PublicController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<LoginPreflightResponse> login(@Valid @RequestBody LoginPreflightRequest request) {
+        return ResponseEntity.ok(authService.preflight(request));
+    }
+
+    @PostMapping("/login/confirm")
+    public ResponseEntity<LoginResponse> confirm(@Valid @RequestBody LoginConfirmRequest request) {
+        return ResponseEntity.ok(authService.confirm(request));
     }
 
     @GetMapping("/demo-token")

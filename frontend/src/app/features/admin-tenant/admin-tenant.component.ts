@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { UserContextService } from '../../core/services/user-context.service';
 import { AdminTenantService } from './admin-tenant.service';
 import {
@@ -34,6 +35,7 @@ export class AdminTenantComponent implements OnInit {
   readonly userInitials = this.userContext.userInitials;
 
   readonly availableRoles = AVAILABLE_ROLES;
+  readonly apiBase = environment.apiBaseUrl;
 
   readonly clinics = signal<TenantClinicDto[]>([]);
   readonly loading = signal(false);
@@ -56,6 +58,10 @@ export class AdminTenantComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadClinics();
+  }
+
+  downloadExport(): void {
+    window.location.href = `${environment.apiBaseUrl}/tenant-admin/export`;
   }
 
   loadClinics(): void {
