@@ -1,6 +1,16 @@
--- ─── 1. Delete weekend appointments ──────────────────────────────────────────
-DELETE FROM dentalcare.appointments
-WHERE EXTRACT(DOW FROM starts_at AT TIME ZONE 'Europe/Rome') IN (0, 6);
+-- ─── 1. Delete weekend appointments (only if column exists — safe for fresh installs) ──
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'dentalcare'
+      AND table_name   = 'appointments'
+      AND column_name  = 'starts_at'
+  ) THEN
+    DELETE FROM dentalcare.appointments
+    WHERE EXTRACT(DOW FROM starts_at AT TIME ZONE 'Europe/Rome') IN (0, 6);
+  END IF;
+END $$;
 
 -- ─── 2. Geo tables ────────────────────────────────────────────────────────────
 
