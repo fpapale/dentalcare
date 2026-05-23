@@ -57,7 +57,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
                 log.warn("EstimateSchemaInitializer: schema {} registered but does not exist — skipping", schema);
                 continue;
             }
-            try {
+            runStep(schema, "clinics/patients/providers columns", () -> {
                 jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS email TEXT");
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true");
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS photo_url TEXT");
@@ -74,18 +74,17 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_iban TEXT");
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_sdi_code TEXT");
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS invoice_prefix TEXT");
-                patchEstimatesAndLinesSchema(schema);
-                patchRecallsSchema(schema);
-                patchProductsSchema(schema);
-                rebuildDashboardView(schema);
-                rebuildAgendaView(schema);
-                rebuildPatientDashboardView(schema);
-                rebuildPatientClinicalCardView(schema);
-                rebuildEstimatesSummaryView(schema);
-                log.debug("EstimateSchemaInitializer: patched schema {}", schema);
-            } catch (Exception e) {
-                log.warn("EstimateSchemaInitializer: patch failed for schema {}: {}", schema, e.getMessage());
-            }
+                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS password_temporary BOOLEAN NOT NULL DEFAULT false");
+            });
+            runStep(schema, "estimates+lines",  () -> patchEstimatesAndLinesSchema(schema));
+            runStep(schema, "recalls",          () -> patchRecallsSchema(schema));
+            runStep(schema, "products",         () -> patchProductsSchema(schema));
+            runStep(schema, "v_clinic_dashboard",           () -> rebuildDashboardView(schema));
+            runStep(schema, "v_agenda_daily",               () -> rebuildAgendaView(schema));
+            runStep(schema, "v_patient_dashboard",          () -> rebuildPatientDashboardView(schema));
+            runStep(schema, "v_patient_clinical_card",      () -> rebuildPatientClinicalCardView(schema));
+            runStep(schema, "v_patient_estimates_summary",  () -> rebuildEstimatesSummaryView(schema));
+            log.debug("EstimateSchemaInitializer: patched schema {}", schema);
         }
     }
 
@@ -205,6 +204,19 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
     }
 
     private void rebuildAgendaView(String schema) {
+        boolean hasAnamnesis = tableExists(schema, "patient_anamnesis");
+        String alertCols = hasAnamnesis
+            ? "  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis pa2" +
+              "    WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true" +
+              "    AND (pa2.allergy_penicillin OR pa2.allergy_latex OR pa2.allergy_anesthetic" +
+              "         OR pa2.allergy_aspirin OR pa2.other_allergies IS NOT NULL)) AS has_allergy_alert," +
+              "  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis pa2" +
+              "    WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true" +
+              "    AND (pa2.taking_anticoagulants OR pa2.taking_bisphosphonates" +
+              "         OR pa2.heart_disease)) AS has_medication_alert"
+            : "  false AS has_allergy_alert," +
+              "  false AS has_medication_alert";
+
         jdbc.execute("DROP VIEW IF EXISTS " + schema + ".v_agenda_daily");
         jdbc.execute(
             "CREATE VIEW " + schema + ".v_agenda_daily AS " +
@@ -221,20 +233,28 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  sc.name AS service_name," +
             "  sc.category AS service_category," +
             "  tpi.tooth_number AS tooth_number," +
-            "  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis pa2" +
-            "    WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true" +
-            "    AND (pa2.allergy_penicillin OR pa2.allergy_latex OR pa2.allergy_anesthetic" +
-            "         OR pa2.allergy_aspirin OR pa2.other_allergies IS NOT NULL)) AS has_allergy_alert," +
-            "  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis pa2" +
-            "    WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true" +
-            "    AND (pa2.taking_anticoagulants OR pa2.taking_bisphosphonates" +
-            "         OR pa2.heart_disease)) AS has_medication_alert" +
+            alertCols +
             " FROM " + schema + ".appointments a" +
             " LEFT JOIN " + schema + ".patients             p   ON p.id   = a.patient_id" +
             " LEFT JOIN " + schema + ".providers            pr  ON pr.id  = a.provider_id" +
             " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.id = a.treatment_plan_item_id" +
             " LEFT JOIN " + schema + ".service_catalog      sc  ON sc.id  = tpi.service_id"
         );
+    }
+
+    private boolean tableExists(String schema, String table) {
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
+                Integer.class, schema, table);
+        return count != null && count > 0;
+    }
+
+    private void runStep(String schema, String step, Runnable action) {
+        try {
+            action.run();
+        } catch (Exception e) {
+            log.warn("EstimateSchemaInitializer: {} failed for schema {}: {}", step, schema, e.getMessage());
+        }
     }
 
     private void rebuildPatientDashboardView(String schema) {
