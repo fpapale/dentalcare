@@ -6,21 +6,21 @@
         <span class="material-symbols-outlined text-white text-[20px]">admin_panel_settings</span>
       </div>
       <div>
-        <p class="font-bold text-slate-800 dark:text-slate-100 text-[15px] leading-tight">Amministrazione Tenant</p>
-        <p class="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">Gestione cliniche e configurazione</p>
+        <p class="font-bold text-slate-800 dark:text-slate-100 text-[15px] leading-tight">Amministrazione Clinica</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">Gestione studi e configurazione</p>
       </div>
     </div>
 
     <div class="ml-auto flex items-center gap-3">
-      <a routerLink="/dashboard"
+      <a routerLink="/login"
          class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors flex items-center gap-1.5">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-        Torna alla clinica
+        Seleziona accesso
       </a>
       <div class="flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-700">
         <div class="text-right">
           <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-none">{{ userName() }}</p>
-          <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Tenant Admin</p>
+          <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Clinica Admin</p>
         </div>
         <div class="w-9 h-9 rounded-full bg-teal-100 dark:bg-teal-900 border-2 border-teal-200 dark:border-teal-800 flex items-center justify-center font-bold text-teal-700 dark:text-teal-300 text-sm">
           {{ userInitials() }}
@@ -38,19 +38,19 @@
           <span class="material-symbols-outlined text-teal-600 dark:text-teal-400 text-[26px]">domain</span>
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 mb-1">Tenant</p>
+          <p class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 mb-1">Clinica</p>
           <h1 class="text-2xl font-bold text-slate-800 dark:text-slate-100 truncate">
-            {{ tenantName() ?? 'Tenant non identificato' }}
+            {{ tenantName() ?? 'Clinica non identificata' }}
           </h1>
           <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Hub di amministrazione per la gestione delle cliniche associate al tuo tenant.
+            Hub di amministrazione per la gestione degli studi associati alla tua clinica.
           </p>
         </div>
         <button type="button"
                 (click)="downloadExport()"
                 class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium shadow-sm transition-colors">
           <span class="material-symbols-outlined text-[18px]">download</span>
-          Esporta dati tenant
+          Esporta dati clinica
         </button>
       </div>
     </div>
@@ -68,21 +68,21 @@
       <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-[20px]">local_hospital</span>
-          <h2 class="font-semibold text-slate-800 dark:text-slate-100">Cliniche</h2>
+          <h2 class="font-semibold text-slate-800 dark:text-slate-100">Studi</h2>
           <span class="text-xs text-slate-400 dark:text-slate-500">({{ clinics().length }})</span>
         </div>
         <button type="button"
                 (click)="toggleCreateClinic()"
                 class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[18px]">{{ showCreateClinic() ? 'close' : 'add' }}</span>
-          {{ showCreateClinic() ? 'Annulla' : 'Nuova clinica' }}
+          {{ showCreateClinic() ? 'Annulla' : 'Nuovo studio' }}
         </button>
       </div>
 
       <!-- Form creazione clinica -->
       @if (showCreateClinic()) {
         <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-700">
-          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Nuova clinica</h3>
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Nuovo studio</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
               <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Nome *</label>
@@ -90,7 +90,7 @@
                      [ngModel]="clinicForm().name"
                      (ngModelChange)="updateClinicField('name', $event)"
                      name="clinicName"
-                     placeholder="Nome clinica"
+                     placeholder="Nome studio"
                      class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
             </div>
             <div>
@@ -108,7 +108,7 @@
                      [ngModel]="clinicForm().email"
                      (ngModelChange)="updateClinicField('email', $event)"
                      name="clinicEmail"
-                     placeholder="email@clinica.it"
+                     placeholder="email@studio.it"
                      class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
             </div>
           </div>
@@ -118,7 +118,7 @@
                     [disabled]="creatingClinic()"
                     class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
               <span class="material-symbols-outlined text-[18px]">{{ creatingClinic() ? 'progress_activity' : 'check' }}</span>
-              {{ creatingClinic() ? 'Creazione...' : 'Crea clinica' }}
+              {{ creatingClinic() ? 'Creazione...' : 'Crea studio' }}
             </button>
             <button type="button"
                     (click)="toggleCreateClinic()"
@@ -142,9 +142,9 @@
           <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
             <span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[32px]">local_hospital</span>
           </div>
-          <h3 class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Nessuna clinica</h3>
+          <h3 class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Nessuno studio</h3>
           <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md">
-            Crea la prima clinica del tuo tenant per iniziare a gestire pazienti, appuntamenti e operatori.
+            Crea il primo studio della tua clinica per iniziare a gestire pazienti, appuntamenti e operatori.
           </p>
         </div>
       } @else {
@@ -188,28 +188,27 @@
                     <span class="material-symbols-outlined text-[16px]">{{ expandedClinicId() === clinic.id ? 'expand_less' : 'group' }}</span>
                     Gestisci utenti
                   </button>
-                  @if (confirmDeleteClinicId() === clinic.id) {
-                    <span class="text-xs text-slate-600 dark:text-slate-300">Sei sicuro?</span>
-                    <button type="button"
-                            (click)="confirmDeleteClinic(clinic.id)"
-                            [disabled]="deletingClinicId() === clinic.id"
-                            class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors flex items-center gap-1 disabled:opacity-50">
-                      <span class="material-symbols-outlined text-[16px]">{{ deletingClinicId() === clinic.id ? 'progress_activity' : 'check' }}</span>
-                      Conferma
-                    </button>
-                    <button type="button"
-                            (click)="cancelDeleteClinic()"
-                            class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors">
-                      Annulla
-                    </button>
-                  } @else {
-                    <button type="button"
-                            (click)="askDeleteClinic(clinic.id)"
-                            class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 transition-colors flex items-center gap-1">
-                      <span class="material-symbols-outlined text-[16px]">delete</span>
-                      Elimina
-                    </button>
-                  }
+                  <button type="button"
+                          (click)="toggleSelfAdmin(clinic.id)"
+                          [disabled]="addingSelfToClinicId() === clinic.id"
+                          [class]="isSelfAdmin(clinic.id)
+                            ? 'text-xs font-medium px-2.5 py-1.5 rounded-md bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed'
+                            : 'text-xs font-medium px-2.5 py-1.5 rounded-md bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed'">
+                    @if (addingSelfToClinicId() === clinic.id) {
+                      <span [class]="isSelfAdmin(clinic.id)
+                        ? 'inline-block w-3.5 h-3.5 border-2 border-amber-400/40 border-t-amber-600 rounded-full animate-spin'
+                        : 'inline-block w-3.5 h-3.5 border-2 border-indigo-400/40 border-t-indigo-600 rounded-full animate-spin'"></span>
+                    } @else {
+                      <span class="material-symbols-outlined text-[16px]">{{ isSelfAdmin(clinic.id) ? 'person_remove' : 'person_add' }}</span>
+                    }
+                    {{ isSelfAdmin(clinic.id) ? 'Rimuoviti come admin' : 'Aggiungiti come admin' }}
+                  </button>
+                  <button type="button"
+                          (click)="askDeleteClinic(clinic)"
+                          class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                    Elimina
+                  </button>
                 </div>
               </div>
 
@@ -258,13 +257,8 @@
                                  name="userEmail"
                                  class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
                         </div>
-                        <div>
-                          <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Password * (min 8)</label>
-                          <input type="password"
-                                 [ngModel]="userForm().password"
-                                 (ngModelChange)="updateUserField('password', $event)"
-                                 name="userPassword"
-                                 class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        <div class="md:col-span-2">
+                          <p class="text-xs text-slate-500 dark:text-slate-400 italic">Una password temporanea verrà generata e inviata via email al nuovo utente.</p>
                         </div>
                         <div class="md:col-span-2">
                           <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Ruolo *</label>
@@ -303,7 +297,7 @@
                       <span class="text-sm ml-2">Caricamento utenti...</span>
                     </div>
                   } @else if (usersFor(clinic.id).length === 0) {
-                    <p class="text-sm text-slate-400 dark:text-slate-500 py-2 italic">Nessun utente associato alla clinica.</p>
+                    <p class="text-sm text-slate-400 dark:text-slate-500 py-2 italic">Nessun utente associato allo studio.</p>
                   } @else {
                     <ul class="space-y-1">
                       @for (u of usersFor(clinic.id); track u.id) {
@@ -335,3 +329,66 @@
     </section>
   </main>
 </div>
+
+<!-- Modal conferma eliminazione clinica -->
+@if (deleteTargetClinic(); as clinic) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       role="dialog" aria-modal="true">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="cancelDeleteClinic()"></div>
+
+    <!-- Dialog -->
+    <div class="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-5">
+
+      <!-- Icona avviso -->
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-[26px]">warning</span>
+        </div>
+        <div>
+          <h3 class="font-bold text-slate-800 dark:text-slate-100 text-lg leading-tight">Elimina studio</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{{ clinic.name }}</p>
+        </div>
+      </div>
+
+      <!-- Testo avviso -->
+      <div class="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 flex items-start gap-2">
+        <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[20px] shrink-0 mt-0.5">info</span>
+        <p class="text-sm text-amber-800 dark:text-amber-200">
+          L'eliminazione è <strong>irreversibile</strong>. Tutti i dati dello studio (pazienti, appuntamenti, documenti clinici) verranno cancellati definitivamente.
+          Ti consigliamo di scaricare i dati prima di procedere.
+        </p>
+      </div>
+
+      <!-- Pulsante download -->
+      <button type="button"
+              (click)="downloadClinicExport(clinic.id)"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 font-medium text-sm transition-colors">
+        <span class="material-symbols-outlined text-[20px]">download</span>
+        Scarica tutti i dati dello studio
+      </button>
+
+      <!-- Azioni -->
+      <div class="flex items-center gap-3 pt-1">
+        <button type="button"
+                (click)="cancelDeleteClinic()"
+                [disabled]="!!deletingClinicId()"
+                class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          Annulla
+        </button>
+        <button type="button"
+                (click)="confirmDeleteClinic()"
+                [disabled]="!!deletingClinicId()"
+                class="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed">
+          @if (deletingClinicId()) {
+            <span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+            Eliminazione...
+          } @else {
+            <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+            Elimina definitivamente
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

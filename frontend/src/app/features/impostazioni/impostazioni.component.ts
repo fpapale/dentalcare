@@ -31,6 +31,7 @@ export class ImpostazioniComponent implements OnInit {
   loadingClinic = signal(true);
   savingClinic = signal(false);
   clinicSaved = signal(false);
+  clinicError = signal<string | null>(null);
 
   // ── Professionisti ─────────────────────────────────────────────────────────
   providers = signal<Provider[]>([]);
@@ -173,9 +174,17 @@ export class ImpostazioniComponent implements OnInit {
   // ── Studio ─────────────────────────────────────────────────────────────────
   saveClinic(): void {
     this.savingClinic.set(true);
+    this.clinicError.set(null);
     this.clinicService.update(this.clinicForm).subscribe({
-      next: () => { this.savingClinic.set(false); this.clinicSaved.set(true); setTimeout(() => this.clinicSaved.set(false), 2500); },
-      error: () => this.savingClinic.set(false)
+      next: () => {
+        this.savingClinic.set(false);
+        this.clinicSaved.set(true);
+        setTimeout(() => this.clinicSaved.set(false), 2500);
+      },
+      error: (err) => {
+        this.savingClinic.set(false);
+        this.clinicError.set(err?.error?.message || 'Errore nel salvataggio. Riprova.');
+      }
     });
   }
 

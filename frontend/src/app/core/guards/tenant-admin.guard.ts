@@ -1,11 +1,12 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { UserContextService } from '../services/user-context.service';
+import { AuthService } from '../auth/auth.service';
 
 export const tenantAdminGuard: CanActivateFn = () => {
-  const userContext = inject(UserContextService);
+  const auth = inject(AuthService);
   const router = inject(Router);
-  if (userContext.role() === 'admin') {
+  const user = auth.getCurrentUser();
+  if (user && (user.role === 'tenant_admin' || user.role === 'admin')) {
     return true;
   }
   return router.createUrlTree(['/dashboard']);

@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { UserContextService } from '../../core/services/user-context.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { AdminTenantService } from './admin-tenant.service';
 import {
   CreateTenantClinicRequest,
@@ -17,7 +18,7 @@ const AVAILABLE_ROLES = ['admin', 'doctor', 'hygienist', 'orthodontist', 'surgeo
 
 const emptyClinicForm = (): CreateTenantClinicRequest => ({ name: '', city: '', email: '' });
 const emptyUserForm = (): CreateTenantUserRequest => ({
-  firstName: '', lastName: '', email: '', password: '', role: 'doctor'
+  firstName: '', lastName: '', email: '', role: 'doctor'
 });
 
 @Component({
@@ -28,6 +29,7 @@ const emptyUserForm = (): CreateTenantUserRequest => ({
 })
 export class AdminTenantComponent implements OnInit {
   private readonly userContext = inject(UserContextService);
+  private readonly auth = inject(AuthService);
   private readonly api = inject(AdminTenantService);
 
   readonly tenantName = this.userContext.tenantName;
@@ -53,15 +55,30 @@ export class AdminTenantComponent implements OnInit {
   readonly creatingUser = signal(false);
   readonly userForm = signal<CreateTenantUserRequest>(emptyUserForm());
 
-  readonly confirmDeleteClinicId = signal<string | null>(null);
+  readonly deleteTargetClinic = signal<TenantClinicDto | null>(null);
   readonly deletingClinicId = signal<string | null>(null);
+  readonly addingSelfToClinicId = signal<string | null>(null);
+  readonly selfAdminClinicIds = signal<Set<string>>(new Set());
 
   ngOnInit(): void {
     this.loadClinics();
+    this.loadSelfAdminClinics();
+  }
+
+  private loadSelfAdminClinics(): void {
+    this.api.getSelfAdminClinicIds().subscribe({
+      next: (ids) => this.selfAdminClinicIds.set(new Set(ids)),
+      error: () => {}
+    });
+  }
+
+  isSelfAdmin(clinicId: string): boolean {
+    return this.selfAdminClinicIds().has(clinicId);
   }
 
   downloadExport(): void {
-    window.location.href = `${environment.apiBaseUrl}/tenant-admin/export`;
+    const token = this.auth.getToken();
+    window.location.href = `${environment.apiBaseUrl}/tenant-admin/export?token=${token}`;
   }
 
   loadClinics(): void {
@@ -73,7 +90,7 @@ export class AdminTenantComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.error.set(this.extractError(err, 'Errore nel caricamento delle cliniche.'));
+        this.error.set(this.extractError(err, 'Errore nel caricamento degli studi.'));
         this.loading.set(false);
       }
     });
@@ -90,7 +107,7 @@ export class AdminTenantComponent implements OnInit {
   submitCreateClinic(): void {
     const form = this.clinicForm();
     if (!form.name?.trim()) {
-      this.error.set('Il nome della clinica è obbligatorio.');
+      this.error.set('Il nome dello studio è obbligatorio.');
       return;
     }
     this.creatingClinic.set(true);
@@ -108,7 +125,7 @@ export class AdminTenantComponent implements OnInit {
         this.creatingClinic.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.error.set(this.extractError(err, 'Errore nella creazione della clinica.'));
+        this.error.set(this.extractError(err, 'Errore nella creazione dello studio.'));
         this.creatingClinic.set(false);
       }
     });
@@ -161,12 +178,8 @@ export class AdminTenantComponent implements OnInit {
 
   submitCreateUser(clinicId: string): void {
     const form = this.userForm();
-    if (!form.firstName?.trim() || !form.lastName?.trim() || !form.email?.trim() || !form.password || !form.role) {
+    if (!form.firstName?.trim() || !form.lastName?.trim() || !form.email?.trim() || !form.role) {
       this.error.set('Tutti i campi sono obbligatori.');
-      return;
-    }
-    if (form.password.length < 8) {
-      this.error.set('La password deve avere almeno 8 caratteri.');
       return;
     }
     this.creatingUser.set(true);
@@ -175,7 +188,6 @@ export class AdminTenantComponent implements OnInit {
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       email: form.email.trim(),
-      password: form.password,
       role: form.role
     };
     this.api.createUser(clinicId, payload).subscribe({
@@ -199,35 +211,99 @@ export class AdminTenantComponent implements OnInit {
     });
   }
 
-  askDeleteClinic(clinicId: string): void {
-    this.confirmDeleteClinicId.set(clinicId);
+  askDeleteClinic(clinic: TenantClinicDto): void {
+    this.deleteTargetClinic.set(clinic);
   }
 
   cancelDeleteClinic(): void {
-    this.confirmDeleteClinicId.set(null);
+    this.deleteTargetClinic.set(null);
   }
 
-  confirmDeleteClinic(clinicId: string): void {
-    this.deletingClinicId.set(clinicId);
+  downloadClinicExport(clinicId: string): void {
+    const token = this.auth.getToken();
+    window.location.href = `${this.apiBase}/tenant-admin/clinics/${clinicId}/export?token=${token}`;
+  }
+
+  confirmDeleteClinic(): void {
+    const clinic = this.deleteTargetClinic();
+    if (!clinic) return;
+    this.deletingClinicId.set(clinic.id);
     this.error.set(null);
-    this.api.deleteClinic(clinicId).subscribe({
+    this.api.deleteClinic(clinic.id).subscribe({
       next: () => {
-        this.clinics.update(list => list.filter(c => c.id !== clinicId));
+        this.clinics.update(list => list.filter(c => c.id !== clinic.id));
+        this.clinicUsers.update(map => {
+          const next = new Map(map);
+          next.delete(clinic.id);
+          return next;
+        });
+        if (this.expandedClinicId() === clinic.id) {
+          this.expandedClinicId.set(null);
+        }
+        this.deleteTargetClinic.set(null);
+        this.deletingClinicId.set(null);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.extractError(err, 'Impossibile eliminare lo studio.'));
+        this.deletingClinicId.set(null);
+        this.deleteTargetClinic.set(null);
+      }
+    });
+  }
+
+  toggleSelfAdmin(clinicId: string): void {
+    if (this.isSelfAdmin(clinicId)) {
+      this.removeSelfAdmin(clinicId);
+    } else {
+      this.addSelfAdmin(clinicId);
+    }
+  }
+
+  private addSelfAdmin(clinicId: string): void {
+    this.addingSelfToClinicId.set(clinicId);
+    this.error.set(null);
+    this.api.addSelfAsAdmin(clinicId).subscribe({
+      next: (created) => {
+        this.selfAdminClinicIds.update(s => new Set([...s, clinicId]));
+        this.clinicUsers.update(map => {
+          const next = new Map(map);
+          const current = next.get(clinicId) ?? [];
+          if (!current.some(u => u.id === created.id)) {
+            next.set(clinicId, [...current, created].sort((a, b) =>
+              (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName)
+            ));
+          }
+          return next;
+        });
+        this.addingSelfToClinicId.set(null);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.extractError(err, 'Errore durante l\'aggiunta come amministratore.'));
+        this.addingSelfToClinicId.set(null);
+      }
+    });
+  }
+
+  private removeSelfAdmin(clinicId: string): void {
+    this.addingSelfToClinicId.set(clinicId);
+    this.error.set(null);
+    this.api.removeSelfAsAdmin(clinicId).subscribe({
+      next: () => {
+        this.selfAdminClinicIds.update(s => {
+          const next = new Set(s);
+          next.delete(clinicId);
+          return next;
+        });
         this.clinicUsers.update(map => {
           const next = new Map(map);
           next.delete(clinicId);
           return next;
         });
-        if (this.expandedClinicId() === clinicId) {
-          this.expandedClinicId.set(null);
-        }
-        this.confirmDeleteClinicId.set(null);
-        this.deletingClinicId.set(null);
+        this.addingSelfToClinicId.set(null);
       },
       error: (err: HttpErrorResponse) => {
-        this.error.set(this.extractError(err, 'Impossibile eliminare la clinica.'));
-        this.deletingClinicId.set(null);
-        this.confirmDeleteClinicId.set(null);
+        this.error.set(this.extractError(err, 'Errore durante la rimozione come amministratore.'));
+        this.addingSelfToClinicId.set(null);
       }
     });
   }

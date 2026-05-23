@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -37,6 +38,79 @@ public class TenantExportService {
         this.objectMapper = objectMapper;
     }
 
+    public void exportClinicToStream(UUID clinicId, OutputStream out) throws IOException {
+        String schema = TenantContext.validatedSchema();
+        log.info("Clinic export started for schema={} clinicId={}", schema, clinicId);
+
+        Map<String, Integer> rowCounts = new LinkedHashMap<>();
+
+        try (ZipOutputStream zip = new ZipOutputStream(out, StandardCharsets.UTF_8)) {
+
+            MapSqlParameterSource cidParam = new MapSqlParameterSource("clinicId", clinicId);
+
+            rowCounts.put("users", writeCsvNamed(zip, "data/users.csv",
+                    "SELECT id, first_name, last_name, email, role::text AS role, active " +
+                            "FROM " + schema + ".providers WHERE clinic_id = :clinicId ORDER BY last_name, first_name",
+                    new String[]{"id", "first_name", "last_name", "email", "role", "active"}, cidParam));
+
+            rowCounts.put("customers", writeCsvNamed(zip, "data/customers.csv",
+                    "SELECT id, first_name, last_name, fiscal_code, birth_date, phone, city " +
+                            "FROM " + schema + ".patients WHERE clinic_id = :clinicId ORDER BY last_name, first_name",
+                    new String[]{"id", "first_name", "last_name", "fiscal_code", "birth_date", "phone", "city"}, cidParam));
+
+            rowCounts.put("appointments", writeCsvNamed(zip, "data/appointments.csv",
+                    "SELECT id, patient_id, provider_id, starts_at, ends_at, status::text AS status, notes " +
+                            "FROM " + schema + ".appointments WHERE clinic_id = :clinicId ORDER BY starts_at",
+                    new String[]{"id", "patient_id", "provider_id", "starts_at", "ends_at", "status", "notes"}, cidParam));
+
+            if (tableExists(schema, "invoices")) {
+                rowCounts.put("invoices", writeCsvNamed(zip, "data/invoices.csv",
+                        "SELECT id, invoice_number, patient_id, status::text AS status, total_amount, issued_at " +
+                                "FROM " + schema + ".invoices WHERE clinic_id = :clinicId ORDER BY invoice_number",
+                        new String[]{"id", "invoice_number", "patient_id", "status", "total_amount", "issued_at"}, cidParam));
+            }
+
+            List<Map<String, Object>> plans = jdbc.query(
+                    "SELECT id, patient_id, name, description, status::text AS status, " +
+                            "created_by_provider_id, proposed_at, accepted_at, completed_at, rejected_at, created_at " +
+                            "FROM " + schema + ".treatment_plans WHERE clinic_id = :clinicId ORDER BY created_at DESC",
+                    cidParam, (rs, n) -> rowToMap(rs));
+            List<Map<String, Object>> history = jdbc.query(
+                    "SELECT id, patient_id, appointment_id, provider_id, entry_date, " +
+                            "tooth_number, service_code, service_name, clinical_notes, materials_used, created_at " +
+                            "FROM " + schema + ".clinical_history_entries WHERE clinic_id = :clinicId ORDER BY entry_date DESC",
+                    cidParam, (rs, n) -> rowToMap(rs));
+            Map<String, Object> clinical = new LinkedHashMap<>();
+            clinical.put("treatment_plans", plans);
+            clinical.put("clinical_history", history);
+            zip.putNextEntry(new ZipEntry("data/clinical_records.json"));
+            zip.write(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(clinical));
+            zip.closeEntry();
+            rowCounts.put("clinical_records", plans.size() + history.size());
+
+            zip.putNextEntry(new ZipEntry("files/.gitkeep"));
+            zip.closeEntry();
+
+            writeAuditLog(zip);
+
+            Map<String, Object> meta = new LinkedHashMap<>();
+            meta.put("clinicId", clinicId.toString());
+            meta.put("schema", schema);
+            meta.put("exportDate", LocalDate.now().toString());
+            meta.put("rowCounts", rowCounts);
+            zip.putNextEntry(new ZipEntry("schema/schema.json"));
+            zip.write(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(meta));
+            zip.closeEntry();
+
+            zip.putNextEntry(new ZipEntry("schema/README.md"));
+            zip.write(("# Clinic Export\n\nClinic: " + clinicId + "\nSchema: " + schema +
+                    "\nData export: " + LocalDate.now() + "\n").getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
+
+        log.info("Clinic export completed for clinicId={} counts={}", clinicId, rowCounts);
+    }
+
     public void exportToStream(OutputStream out) throws IOException {
         String schema = TenantContext.validatedSchema();
         log.info("Tenant export started for schema={}", schema);
@@ -45,12 +119,13 @@ public class TenantExportService {
 
         try (ZipOutputStream zip = new ZipOutputStream(out, StandardCharsets.UTF_8)) {
 
-            rowCounts.put("providers", writeCsv(zip, "data/providers.csv",
+            // /data
+            rowCounts.put("users", writeCsv(zip, "data/users.csv",
                     "SELECT id, first_name, last_name, email, role::text AS role, active " +
                             "FROM " + schema + ".providers ORDER BY last_name, first_name",
                     new String[]{"id", "first_name", "last_name", "email", "role", "active"}));
 
-            rowCounts.put("patients", writeCsv(zip, "data/patients.csv",
+            rowCounts.put("customers", writeCsv(zip, "data/customers.csv",
                     "SELECT id, first_name, last_name, fiscal_code, birth_date, phone, city " +
                             "FROM " + schema + ".patients ORDER BY last_name, first_name",
                     new String[]{"id", "first_name", "last_name", "fiscal_code", "birth_date", "phone", "city"}));
@@ -63,27 +138,59 @@ public class TenantExportService {
             if (tableExists(schema, "invoices")) {
                 rowCounts.put("invoices", writeCsv(zip, "data/invoices.csv",
                         "SELECT id, invoice_number, patient_id, status::text AS status, total_amount, issued_at " +
-                                "FROM " + schema + ".invoices ORDER BY invoice_date DESC, invoice_number",
+                                "FROM " + schema + ".invoices ORDER BY invoice_number",
                         new String[]{"id", "invoice_number", "patient_id", "status", "total_amount", "issued_at"}));
             }
 
-            rowCounts.put("treatment_plans", writeJson(zip, "clinical/treatment_plans.json",
-                    "SELECT id, clinic_id, patient_id, name, description, status::text AS status, " +
-                            "created_by_provider_id, proposed_at, accepted_at, completed_at, rejected_at, " +
-                            "created_at, updated_at " +
-                            "FROM " + schema + ".treatment_plans ORDER BY created_at DESC"));
+            rowCounts.put("clinical_records", writeClinicalRecords(zip, schema));
 
-            rowCounts.put("clinical_history", writeJson(zip, "clinical/clinical_history.json",
-                    "SELECT id, clinic_id, patient_id, appointment_id, provider_id, entry_date, " +
-                            "tooth_number, service_code, service_name, clinical_notes, materials_used, " +
-                            "next_visit_notes, created_at, updated_at " +
-                            "FROM " + schema + ".clinical_history_entries ORDER BY entry_date DESC"));
+            // /files — placeholder (allegati non ancora implementati)
+            zip.putNextEntry(new ZipEntry("files/.gitkeep"));
+            zip.closeEntry();
 
+            // /audit
+            writeAuditLog(zip);
+
+            // /schema
             writeSchemaJson(zip, schema, rowCounts);
             writeReadme(zip, schema);
         }
 
         log.info("Tenant export completed for schema={} counts={}", schema, rowCounts);
+    }
+
+    private int writeClinicalRecords(ZipOutputStream zip, String schema) throws IOException {
+        List<Map<String, Object>> plans = jdbc.query(
+                "SELECT id, clinic_id, patient_id, name, description, status::text AS status, " +
+                        "created_by_provider_id, proposed_at, accepted_at, completed_at, rejected_at, " +
+                        "created_at, updated_at " +
+                        "FROM " + schema + ".treatment_plans ORDER BY created_at DESC",
+                new MapSqlParameterSource(), (rs, n) -> rowToMap(rs));
+
+        List<Map<String, Object>> history = jdbc.query(
+                "SELECT id, clinic_id, patient_id, appointment_id, provider_id, entry_date, " +
+                        "tooth_number, service_code, service_name, clinical_notes, materials_used, " +
+                        "next_visit_notes, created_at, updated_at " +
+                        "FROM " + schema + ".clinical_history_entries ORDER BY entry_date DESC",
+                new MapSqlParameterSource(), (rs, n) -> rowToMap(rs));
+
+        Map<String, Object> combined = new LinkedHashMap<>();
+        combined.put("treatment_plans", plans);
+        combined.put("clinical_history", history);
+
+        zip.putNextEntry(new ZipEntry("data/clinical_records.json"));
+        zip.write(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(combined));
+        zip.closeEntry();
+
+        return plans.size() + history.size();
+    }
+
+    private void writeAuditLog(ZipOutputStream zip) throws IOException {
+        zip.putNextEntry(new ZipEntry("audit/audit_log.csv"));
+        PrintWriter writer = new PrintWriter(new OutputStreamWriter(zip, StandardCharsets.UTF_8));
+        writer.println("id,timestamp,provider_id,action,table_name,record_id,description");
+        writer.flush();
+        zip.closeEntry();
     }
 
     private boolean tableExists(String schema, String table) {
@@ -102,12 +209,17 @@ public class TenantExportService {
     }
 
     private int writeCsv(ZipOutputStream zip, String entryName, String sql, String[] headers) throws IOException {
+        return writeCsvNamed(zip, entryName, sql, headers, new MapSqlParameterSource());
+    }
+
+    private int writeCsvNamed(ZipOutputStream zip, String entryName, String sql, String[] headers,
+                              MapSqlParameterSource params) throws IOException {
         zip.putNextEntry(new ZipEntry(entryName));
         PrintWriter writer = new PrintWriter(new OutputStreamWriter(zip, StandardCharsets.UTF_8));
         writer.println(String.join(",", headers));
 
         int[] count = {0};
-        jdbc.query(sql, new MapSqlParameterSource(), rs -> {
+        jdbc.query(sql, params, rs -> {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < headers.length; i++) {
                 if (i > 0) sb.append(',');
@@ -125,15 +237,6 @@ public class TenantExportService {
         writer.flush();
         zip.closeEntry();
         return count[0];
-    }
-
-    private int writeJson(ZipOutputStream zip, String entryName, String sql) throws IOException {
-        List<Map<String, Object>> rows = jdbc.query(sql, new MapSqlParameterSource(), (rs, n) -> rowToMap(rs));
-        zip.putNextEntry(new ZipEntry(entryName));
-        byte[] bytes = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(rows);
-        zip.write(bytes);
-        zip.closeEntry();
-        return rows.size();
     }
 
     private Map<String, Object> rowToMap(ResultSet rs) throws SQLException {
@@ -177,13 +280,22 @@ public class TenantExportService {
 
                 ## Struttura
 
-                - `data/providers.csv` — utenti operativi (id, first_name, last_name, email, role, active)
-                - `data/patients.csv` — anagrafica pazienti (id, first_name, last_name, fiscal_code, birth_date, phone, city)
-                - `data/appointments.csv` — appuntamenti (id, patient_id, provider_id, starts_at, ends_at, status, notes)
-                - `data/invoices.csv` — fatture (id, invoice_number, patient_id, status, total_amount, issued_at)
-                - `clinical/treatment_plans.json` — piani di cura
-                - `clinical/clinical_history.json` — voci di storico clinico
-                - `schema/schema.json` — metadati export (tenant, schema, data, conteggi)
+                ### /data
+                - `users.csv` — utenti operativi (id, first_name, last_name, email, role, active)
+                - `customers.csv` — anagrafica pazienti (id, first_name, last_name, fiscal_code, birth_date, phone, city)
+                - `appointments.csv` — appuntamenti (id, patient_id, provider_id, starts_at, ends_at, status, notes)
+                - `invoices.csv` — fatture (id, invoice_number, patient_id, status, total_amount, issued_at)
+                - `clinical_records.json` — dati clinici (treatment_plans + clinical_history)
+
+                ### /files
+                Allegati originali (non ancora implementati — cartella placeholder).
+
+                ### /audit
+                - `audit_log.csv` — log delle operazioni (non ancora implementato — intestazioni presenti)
+
+                ### /schema
+                - `schema.json` — metadati export (tenant, schema, data, conteggi)
+                - `README.md` — questo file
 
                 ## Encoding
 

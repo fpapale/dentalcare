@@ -24,7 +24,7 @@ SET search_path TO dentalcare, public;
 INSERT INTO dentalcare.tenants (id, name, schema_name, email, phone, plan, active)
 VALUES (
     'a0000001-0000-0000-0000-000000000001'::uuid,
-    'Studio Demo DentalCare',
+    'Clinica Demo DentalCare',
     't_9d754153',
     'demo@dentalcare.it',
     '+39 06 5550100',
@@ -83,7 +83,7 @@ INSERT INTO clinics (id, name, legal_name, vat_number, fiscal_code, phone,
     address_line1, city, province, postal_code, country)
 VALUES (
     '9d754153-6579-4b7e-a56b-025f00299cd9'::uuid,
-    'Studio Demo DentalCare Roma',
+    'Clinica Demo DentalCare Roma',
     'DentalCare Roma S.r.l.',
     'DEMO-ROMA-001',
     'DEMOROMA001',
@@ -109,6 +109,7 @@ DECLARE
 
     -- Provider IDs
     v_pr0 uuid := 'a0000001-0000-0000-0000-000000000010'::uuid; -- Admin Demo (tenant_admin)
+    v_pr0a uuid := 'a0000001-0000-0000-0000-000000000011'::uuid; -- Admin Demo (admin clinica)
     v_pr1 uuid := 'b1000001-0000-0000-0000-000000000001'::uuid; -- Ferretti Laura (dentist)
     v_pr2 uuid := 'b1000001-0000-0000-0000-000000000002'::uuid; -- Marchetti Paolo (surgeon)
     v_pr3 uuid := 'b1000001-0000-0000-0000-000000000003'::uuid; -- Amato Serena (orthodontist)
@@ -209,9 +210,12 @@ BEGIN
 
     INSERT INTO providers (id, clinic_id, first_name, last_name, email, password_hash, role, phone, active)
     VALUES
-      (v_pr0, v_clinic, 'Admin',   'Demo',      'admin@demo.dentalcare.it',
+      (v_pr0,  v_clinic, 'Admin',   'Demo', 'admin@demo.dentalcare.it',
        '$2b$10$UbHqgP2xq774oyP29hFhR.IsIw9vf4QWMpbpUqsuxHpDzQ3efAn7O',
        CAST('tenant_admin' AS dentalcare.provider_role), NULL, true),
+      (v_pr0a, v_clinic, 'Admin',   'Demo', 'admin@demo.dentalcare.it',
+       '$2b$10$UbHqgP2xq774oyP29hFhR.IsIw9vf4QWMpbpUqsuxHpDzQ3efAn7O',
+       CAST('admin' AS dentalcare.provider_role), NULL, true),
       (v_pr1, v_clinic, 'Laura',   'Ferretti',  NULL, NULL, CAST('dentist'      AS dentalcare.provider_role), '+39 334 1001001', true),
       (v_pr2, v_clinic, 'Paolo',   'Marchetti', NULL, NULL, CAST('surgeon'      AS dentalcare.provider_role), '+39 334 1001002', true),
       (v_pr3, v_clinic, 'Serena',  'Amato',     NULL, NULL, CAST('orthodontist' AS dentalcare.provider_role), '+39 334 1001003', true),

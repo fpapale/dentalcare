@@ -8,5 +8,6 @@ public record LoginResponse(
         String firstName,
         String lastName,
         String schemaName,
-        String tenantName
+        String tenantName,
+        boolean mustChangePassword
 ) {}

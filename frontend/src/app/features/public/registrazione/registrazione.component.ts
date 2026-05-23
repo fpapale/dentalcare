@@ -71,10 +71,32 @@ export class RegistrazioneComponent {
 
   goToStep(n: number): void {
     this.error.set(null);
+    if (n === 3 && this.step() === 2) {
+      if (!this.studioForm.nome.trim()) {
+        this.error.set('Il nome dello studio è obbligatorio.');
+        return;
+      }
+      if (!this.studioForm.email.trim()) {
+        this.error.set("L'email dello studio è obbligatoria.");
+        return;
+      }
+    }
     this.step.set(n);
   }
 
   submitRegistrazione(): void {
+    if (!this.adminForm.nome.trim()) {
+      this.error.set('Il nome è obbligatorio.');
+      return;
+    }
+    if (!this.adminForm.cognome.trim()) {
+      this.error.set('Il cognome è obbligatorio.');
+      return;
+    }
+    if (!this.adminForm.email.trim()) {
+      this.error.set("L'email dell'amministratore è obbligatoria.");
+      return;
+    }
     if (this.adminForm.password.length < 8) {
       this.error.set('La password deve essere di almeno 8 caratteri');
       return;

@@ -13,6 +13,7 @@ export interface LoginResponse {
   lastName: string;
   schemaName: string;
   tenantName: string;
+  mustChangePassword: boolean;
 }
 
 export interface AuthUser {
@@ -24,9 +25,11 @@ export interface AuthUser {
   schemaName: string;
   tenantName: string;
   token: string;
+  mustChangePassword?: boolean;
 }
 
 export interface ClinicOption {
+  providerId: string;
   clinicId: string;
   clinicName: string;
   role: string;
@@ -47,10 +50,18 @@ export interface LoginPreflightResponse {
   schemaName?: string;
   tenantName?: string;
   options?: ClinicOption[];
+  mustChangePassword?: boolean;
 }
 
 export interface LoginConfirmRequest {
   email: string;
   password: string;
   clinicId: string;
+  providerId?: string;
+}
+
+export interface DemoConfigResponse {
+  enabled: boolean;
+  email?: string;
+  password?: string;
 }

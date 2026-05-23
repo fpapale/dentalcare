@@ -5,10 +5,18 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AuthUser,
+  ClinicOption,
+  DemoConfigResponse,
   LoginConfirmRequest,
   LoginPreflightResponse,
   LoginResponse
 } from './auth.model';
+
+interface PendingChoose {
+  options: ClinicOption[];
+  email: string;
+  password: string;
+}
 
 const TOKEN_KEY = 'dentalcare_token';
 const USER_KEY = 'dentalcare_user';
@@ -21,6 +29,23 @@ export class AuthService {
   private readonly _currentUser = signal<AuthUser | null>(this.readUserFromStorage());
   readonly currentUser = this._currentUser.asReadonly();
 
+  private _pendingChoose: PendingChoose | null = null;
+
+  storePendingChoose(options: ClinicOption[], email: string, password: string): void {
+    this._pendingChoose = { options, email, password };
+  }
+
+  getPendingChoose(): PendingChoose | null {
+    if (!this.isAuthenticated()) {
+      this._pendingChoose = null;
+    }
+    return this._pendingChoose;
+  }
+
+  clearPendingChoose(): void {
+    this._pendingChoose = null;
+  }
+
   private storeSession(res: LoginResponse): void {
     const user: AuthUser = {
       providerId: res.providerId,
@@ -30,7 +55,8 @@ export class AuthService {
       lastName: res.lastName,
       schemaName: res.schemaName,
       tenantName: res.tenantName,
-      token: res.token
+      token: res.token,
+      mustChangePassword: res.mustChangePassword
     };
     localStorage.setItem(TOKEN_KEY, res.token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -50,7 +76,8 @@ export class AuthService {
       lastName: res.lastName,
       schemaName: res.schemaName,
       tenantName: res.tenantName,
-      token: res.token
+      token: res.token,
+      mustChangePassword: res.mustChangePassword
     };
     localStorage.setItem(TOKEN_KEY, res.token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -67,16 +94,23 @@ export class AuthService {
     );
   }
 
-  getDemoToken(): Observable<LoginResponse> {
-    return this.http.get<LoginResponse>(`${environment.apiBaseUrl}/public/demo-token`).pipe(
-      tap(res => this.storeSession(res))
-    );
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/auth/change-password`, { currentPassword, newPassword });
+  }
+
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/public/forgot-password`, { email });
+  }
+
+  getDemoConfig(): Observable<DemoConfigResponse> {
+    return this.http.get<DemoConfigResponse>(`${environment.apiBaseUrl}/public/demo-config`);
   }
 
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     this._currentUser.set(null);
+    this._pendingChoose = null;
     this.router.navigate(['/login']);
   }
 

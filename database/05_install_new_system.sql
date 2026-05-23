@@ -132,7 +132,7 @@ ON CONFLICT (installed_rank) DO NOTHING;
 \echo '============================================================'
 \echo ''
 \echo '  Tenant demo creato:'
-\echo '    Nome:        Studio Demo DentalCare Roma'
+\echo '    Nome:        Clinica Demo DentalCare Roma'
 \echo '    Schema:      t_9d754153'
 \echo '    Clinic UUID: 9d754153-6579-4b7e-a56b-025f00299cd9'
 \echo '    Email:       roma@dentalcare.demo'

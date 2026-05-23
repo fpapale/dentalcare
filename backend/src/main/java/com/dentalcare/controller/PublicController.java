@@ -1,5 +1,7 @@
 package com.dentalcare.controller;
 
+import com.dentalcare.dto.DemoConfigResponse;
+import com.dentalcare.dto.ForgotPasswordRequest;
 import com.dentalcare.dto.LoginConfirmRequest;
 import com.dentalcare.dto.LoginPreflightRequest;
 import com.dentalcare.dto.LoginPreflightResponse;
@@ -36,7 +38,7 @@ public class PublicController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public RegistrationResponse register(@RequestBody RegistrationRequest request) {
+    public RegistrationResponse register(@Valid @RequestBody RegistrationRequest request) {
         log.info("Nuova registrazione: studio='{}' piano='{}' admin='{} {}' <{}>",
                 request.studioName(), request.plan(),
                 request.adminNome(), request.adminCognome(), request.adminEmail());
@@ -60,12 +62,14 @@ public class PublicController {
         return ResponseEntity.ok(authService.confirm(request));
     }
 
-    @GetMapping("/demo-token")
-    public ResponseEntity<LoginResponse> demoToken() {
-        try {
-            return ResponseEntity.ok(authService.demoToken());
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+    @GetMapping("/demo-config")
+    public ResponseEntity<DemoConfigResponse> demoConfig() {
+        return ResponseEntity.ok(authService.demoConfig());
+    }
+
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.email());
     }
 }

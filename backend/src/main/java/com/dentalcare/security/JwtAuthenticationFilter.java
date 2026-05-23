@@ -29,13 +29,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
+        String token;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        } else {
+            token = request.getParameter("token");
+            if (token == null || token.isBlank()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
-
-        String token = authHeader.substring(7);
 
         if (!jwtService.isValid(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

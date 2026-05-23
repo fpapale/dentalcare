@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS providers (
     billing_postal_code  text,
     billing_country      text          NOT NULL DEFAULT 'IT',
     password_hash        text,
+    password_temporary   boolean       NOT NULL DEFAULT false,
     created_at           timestamptz   NOT NULL DEFAULT now(),
     updated_at           timestamptz   NOT NULL DEFAULT now(),
     CONSTRAINT providers_first_name_not_empty CHECK (length(trim(first_name)) > 0),
@@ -161,7 +162,7 @@ CREATE TABLE IF NOT EXISTS service_catalog (
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_service_catalog_clinic_active_cat
-    ON service_catalog (clinic_id, active, category)
+    ON service_catalog (clinic_id, is_active, category)
     TABLESPACE {tablespace};
 
 DROP TRIGGER IF EXISTS trg_service_catalog_updated_at ON service_catalog;
@@ -315,7 +316,7 @@ CREATE INDEX IF NOT EXISTS ix_estimates_clinic_provider
 CREATE INDEX IF NOT EXISTS ix_estimates_clinic_plan
     ON estimates (clinic_id, treatment_plan_id)
     TABLESPACE {tablespace}
-    WHERE plan_id IS NOT NULL;
+    WHERE treatment_plan_id IS NOT NULL;
 
 DROP TRIGGER IF EXISTS trg_estimates_updated_at ON estimates;
 CREATE TRIGGER trg_estimates_updated_at
@@ -786,7 +787,7 @@ CREATE TABLE IF NOT EXISTS service_bundle_items (
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_service_bundle_items_bundle
-    ON service_bundle_items (clinic_id, bundle_service_id)
+    ON service_bundle_items (clinic_id, parent_service_id)
     TABLESPACE {tablespace};
 
 -- =============================================================================
@@ -804,7 +805,7 @@ CREATE TABLE IF NOT EXISTS condition_service_defaults (
 ) TABLESPACE {tablespace};
 
 CREATE INDEX IF NOT EXISTS ix_condition_service_defaults_condition
-    ON condition_service_defaults (clinic_id, condition)
+    ON condition_service_defaults (clinic_id, condition_name)
     TABLESPACE {tablespace};
 
 -- =============================================================================
@@ -1017,7 +1018,7 @@ SELECT
     p.active,
     COUNT(DISTINCT tp.id)  FILTER (WHERE tp.status NOT IN ('rejected','archived'))              AS treatment_plans_count,
     COUNT(DISTINCT tpi.id) FILTER (WHERE tpi.status IN ('planned','accepted','scheduled'))      AS open_treatment_items_count,
-    COALESCE(SUM(e.total)  FILTER (WHERE e.status = 'accepted'), 0.00)                         AS accepted_estimates_amount
+    COALESCE(SUM(e.total_amount)  FILTER (WHERE e.status = 'accepted'), 0.00)                  AS accepted_estimates_amount
 FROM patients p
 LEFT JOIN treatment_plans      tp  ON tp.patient_id  = p.id  AND tp.clinic_id  = p.clinic_id
 LEFT JOIN treatment_plan_items tpi ON tpi.plan_id    = tp.id AND tpi.clinic_id = p.clinic_id
@@ -1072,7 +1073,7 @@ SELECT
     pr.name      AS product_name,
     pr.sku,
     pr.unit,
-    pr.min_stock,
+    pr.min_stock_quantity,
     pc.name      AS category_name,
     s.name       AS supplier_name,
     COALESCE(SUM(
@@ -1084,24 +1085,24 @@ SELECT
             ELSE 0
         END
     ), 0) AS current_stock,
-    pr.min_stock AS min_stock_threshold,
+    pr.min_stock_quantity AS min_stock_threshold,
     pr.is_active,
     CASE
         WHEN COALESCE(SUM(CASE sm.movement_type
                 WHEN 'carico' THEN sm.quantity WHEN 'rientro' THEN sm.quantity
                 WHEN 'scarico' THEN -sm.quantity WHEN 'rettifica' THEN sm.quantity ELSE 0
-             END), 0) = 0              THEN 'critico'
+             END), 0) = 0                           THEN 'critico'
         WHEN COALESCE(SUM(CASE sm.movement_type
                 WHEN 'carico' THEN sm.quantity WHEN 'rientro' THEN sm.quantity
                 WHEN 'scarico' THEN -sm.quantity WHEN 'rettifica' THEN sm.quantity ELSE 0
-             END), 0) <= pr.min_stock  THEN 'basso'
+             END), 0) <= pr.min_stock_quantity       THEN 'basso'
         ELSE 'ok'
     END AS stock_status
 FROM products pr
 LEFT JOIN product_categories pc ON pc.id = pr.category_id AND pc.clinic_id = pr.clinic_id
 LEFT JOIN suppliers          s  ON s.id  = pr.supplier_id  AND s.clinic_id  = pr.clinic_id
 LEFT JOIN stock_movements    sm ON sm.product_id = pr.id   AND sm.clinic_id = pr.clinic_id
-GROUP BY pr.clinic_id, pr.id, pr.name, pr.sku, pr.unit, pr.min_stock,
+GROUP BY pr.clinic_id, pr.id, pr.name, pr.sku, pr.unit, pr.min_stock_quantity,
          pc.name, s.name, pr.is_active;
 
 DROP VIEW IF EXISTS v_agenda_daily;

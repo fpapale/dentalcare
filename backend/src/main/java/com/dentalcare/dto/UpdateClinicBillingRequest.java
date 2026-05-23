@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record UpdateClinicBillingRequest(
         @NotBlank
+        String name,
         String legalName,
         String vatNumber,
         String fiscalCode,

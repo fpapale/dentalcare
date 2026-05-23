@@ -20,13 +20,23 @@ export class LoginComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly today = new Date().getFullYear();
-  readonly demoChecking = signal(true);
 
-  readonly step = signal<'form' | 'choose'>('form');
+  readonly step = signal<'form' | 'choose' | 'change-password' | 'forgot-password'>('form');
   readonly chooseOptions = signal<ClinicOption[]>([]);
   readonly pendingEmail = signal('');
   readonly pendingPassword = signal('');
   readonly confirmingClinicId = signal<string | null>(null);
+  readonly showPassword = signal(false);
+
+  readonly changePwdError = signal<string | null>(null);
+  readonly changePwdSaving = signal(false);
+  readonly newPassword = signal('');
+  readonly confirmNewPassword = signal('');
+
+  readonly forgotEmail = signal('');
+  readonly forgotSaving = signal(false);
+  readonly forgotSent = signal(false);
+  readonly forgotError = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -34,12 +44,22 @@ export class LoginComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.auth.getDemoToken().subscribe({
+    const pending = this.auth.getPendingChoose();
+    if (pending) {
+      this.chooseOptions.set(pending.options);
+      this.pendingEmail.set(pending.email);
+      this.pendingPassword.set(pending.password);
+      this.step.set('choose');
+      return;
+    }
+
+    this.auth.getDemoConfig().subscribe({
       next: (res) => {
-        const dest = res.role === 'tenant_admin' ? '/admin-tenant' : '/dashboard';
-        this.router.navigate([dest]);
+        if (res.enabled && res.email && res.password) {
+          this.form.patchValue({ email: res.email, password: res.password });
+        }
       },
-      error: () => this.demoChecking.set(false)
+      error: () => {}
     });
   }
 
@@ -70,6 +90,11 @@ export class LoginComponent implements OnInit {
   private handlePreflight(res: LoginPreflightResponse): void {
     if (res.type === 'direct') {
       this.auth.storeDirectLogin(res);
+      if (res.mustChangePassword) {
+        this.step.set('change-password');
+        this.changePwdError.set(null);
+        return;
+      }
       const dest = res.role === 'tenant_admin' ? '/admin-tenant' : '/dashboard';
       this.router.navigate([dest]);
       return;
@@ -81,6 +106,7 @@ export class LoginComponent implements OnInit {
       return;
     }
 
+    this.auth.storePendingChoose(options, this.pendingEmail(), this.pendingPassword());
     this.chooseOptions.set(options);
     this.step.set('choose');
   }
@@ -95,10 +121,17 @@ export class LoginComponent implements OnInit {
     this.auth.confirmLogin({
       email: this.pendingEmail(),
       password: this.pendingPassword(),
-      clinicId: option.clinicId
+      clinicId: option.clinicId,
+      providerId: option.providerId
     }).subscribe({
-      next: () => {
+      next: (res) => {
         this.confirmingClinicId.set(null);
+        this.auth.clearPendingChoose();
+        if (res.mustChangePassword) {
+          this.step.set('change-password');
+          this.changePwdError.set(null);
+          return;
+        }
         const isAdmin = option.isTenantAdmin || option.role === 'tenant_admin';
         this.router.navigate([isAdmin ? '/admin-tenant' : '/dashboard']);
       },
@@ -109,10 +142,55 @@ export class LoginComponent implements OnInit {
     });
   }
 
+  submitChangePassword(): void {
+    if (this.newPassword().length < 8) {
+      this.changePwdError.set('La password deve avere almeno 8 caratteri.');
+      return;
+    }
+    if (this.newPassword() !== this.confirmNewPassword()) {
+      this.changePwdError.set('Le password non coincidono.');
+      return;
+    }
+    this.changePwdSaving.set(true);
+    this.changePwdError.set(null);
+
+    this.auth.changePassword(this.pendingPassword(), this.newPassword()).subscribe({
+      next: () => {
+        this.changePwdSaving.set(false);
+        const u = this.auth.getCurrentUser();
+        const isAdmin = u?.role === 'tenant_admin' || u?.role === 'admin';
+        this.router.navigate([isAdmin ? '/admin-tenant' : '/dashboard']);
+      },
+      error: (err) => {
+        this.changePwdSaving.set(false);
+        this.changePwdError.set(err?.error?.message || 'Errore nel cambio password.');
+      }
+    });
+  }
+
+  submitForgotPassword(): void {
+    if (!this.forgotEmail()) return;
+    this.forgotSaving.set(true);
+    this.forgotError.set(null);
+
+    this.auth.forgotPassword(this.forgotEmail()).subscribe({
+      next: () => { this.forgotSaving.set(false); this.forgotSent.set(true); },
+      error: () => { this.forgotSaving.set(false); this.forgotError.set("Errore nell'invio. Riprova."); }
+    });
+  }
+
   backToForm(): void {
+    this.auth.clearPendingChoose();
     this.step.set('form');
     this.chooseOptions.set([]);
     this.error.set(null);
+  }
+
+  backToLoginForm(): void {
+    this.step.set('form');
+    this.forgotSent.set(false);
+    this.forgotError.set(null);
+    this.forgotEmail.set('');
   }
 
   private handleError(err: HttpErrorResponse): void {

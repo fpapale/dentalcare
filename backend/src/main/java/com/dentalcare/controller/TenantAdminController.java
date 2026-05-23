@@ -75,4 +75,30 @@ public class TenantAdminController {
         tenantExportService.exportToStream(response.getOutputStream());
         response.flushBuffer();
     }
+
+    @GetMapping("/clinics/self-admin")
+    public List<String> getSelfAdminClinicIds() {
+        return tenantAdminService.getSelfAdminClinicIds();
+    }
+
+    @PostMapping("/clinics/{clinicId}/self-admin")
+    @ResponseStatus(HttpStatus.CREATED)
+    public TenantUserDto addSelfAsClinicAdmin(@PathVariable UUID clinicId) {
+        return tenantAdminService.addSelfAsClinicAdmin(clinicId);
+    }
+
+    @DeleteMapping("/clinics/{clinicId}/self-admin")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeSelfAsClinicAdmin(@PathVariable UUID clinicId) {
+        tenantAdminService.removeSelfAsClinicAdmin(clinicId);
+    }
+
+    @GetMapping("/clinics/{clinicId}/export")
+    public void exportClinic(@PathVariable UUID clinicId, HttpServletResponse response) throws IOException {
+        response.setContentType("application/zip");
+        String filename = "clinic_" + clinicId + "_export_" + LocalDate.now() + ".zip";
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        tenantExportService.exportClinicToStream(clinicId, response.getOutputStream());
+        response.flushBuffer();
+    }
 }

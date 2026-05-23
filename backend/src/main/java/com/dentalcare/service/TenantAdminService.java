@@ -5,8 +5,10 @@ import com.dentalcare.dto.CreateTenantUserRequest;
 import com.dentalcare.dto.TenantClinicDto;
 import com.dentalcare.dto.TenantUserDto;
 import com.dentalcare.security.TenantContext;
+import com.dentalcare.util.TempPasswordGenerator;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -21,10 +24,12 @@ public class TenantAdminService {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
-    public TenantAdminService(NamedParameterJdbcTemplate jdbc, PasswordEncoder passwordEncoder) {
+    public TenantAdminService(NamedParameterJdbcTemplate jdbc, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.jdbc = jdbc;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     private String s() { return TenantContext.validatedSchema(); }
@@ -101,6 +106,7 @@ public class TenantAdminService {
             SELECT id, clinic_id, first_name, last_name, email, role::text AS role, active
             FROM %s.providers
             WHERE clinic_id = :clinicId AND active = true
+              AND role != CAST('tenant_admin' AS dentalcare.provider_role)
             ORDER BY last_name, first_name
             """.formatted(s());
         return jdbc.query(sql,
@@ -111,12 +117,13 @@ public class TenantAdminService {
     @Transactional
     public TenantUserDto createUser(UUID clinicId, CreateTenantUserRequest request) {
         UUID id = UUID.randomUUID();
-        String hashed = passwordEncoder.encode(request.password());
+        String tempPassword = TempPasswordGenerator.generate();
+        String hashed = passwordEncoder.encode(tempPassword);
 
         String sql = """
-            INSERT INTO %s.providers (id, clinic_id, first_name, last_name, email, password_hash, role, active)
+            INSERT INTO %s.providers (id, clinic_id, first_name, last_name, email, password_hash, role, active, password_temporary)
             VALUES (:id, :clinicId, :firstName, :lastName, :email, :passwordHash,
-                    CAST(:role AS dentalcare.provider_role), true)
+                    CAST(:role AS dentalcare.provider_role), true, true)
             """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", id)
@@ -128,6 +135,8 @@ public class TenantAdminService {
                 .addValue("role", request.role());
         jdbc.update(sql, params);
 
+        emailService.sendTempPassword(request.email(), request.firstName(), tempPassword);
+
         return new TenantUserDto(
                 id,
                 clinicId,
@@ -137,6 +146,84 @@ public class TenantAdminService {
                 request.role(),
                 true
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getSelfAdminClinicIds() {
+        String schema = s();
+        String currentProviderId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+
+        String email = jdbc.queryForObject(
+                "SELECT email FROM " + schema + ".providers WHERE id = :id AND active = true",
+                new MapSqlParameterSource("id", UUID.fromString(currentProviderId)),
+                String.class);
+
+        return jdbc.queryForList(
+                "SELECT clinic_id::text FROM " + schema +
+                        ".providers WHERE lower(email) = lower(:email) AND role = CAST('admin' AS dentalcare.provider_role) AND active = true",
+                new MapSqlParameterSource("email", email),
+                String.class);
+    }
+
+    @Transactional
+    public void removeSelfAsClinicAdmin(UUID clinicId) {
+        String schema = s();
+        String currentProviderId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+
+        String email = jdbc.queryForObject(
+                "SELECT email FROM " + schema + ".providers WHERE id = :id AND active = true",
+                new MapSqlParameterSource("id", UUID.fromString(currentProviderId)),
+                String.class);
+
+        int deleted = jdbc.update(
+                "DELETE FROM " + schema +
+                        ".providers WHERE lower(email) = lower(:email) AND clinic_id = :clinicId AND role = CAST('admin' AS dentalcare.provider_role)",
+                new MapSqlParameterSource("email", email).addValue("clinicId", clinicId));
+
+        if (deleted == 0) {
+            throw new IllegalStateException("Not admin of this clinic");
+        }
+    }
+
+    @Transactional
+    public TenantUserDto addSelfAsClinicAdmin(UUID clinicId) {
+        String schema = s();
+        String currentProviderId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+
+        Map<String, Object> self = jdbc.queryForMap(
+                "SELECT id, first_name, last_name, email, password_hash FROM " + schema +
+                        ".providers WHERE id = :id AND active = true",
+                new MapSqlParameterSource("id", UUID.fromString(currentProviderId)));
+
+        String email = (String) self.get("email");
+        String firstName = (String) self.get("first_name");
+        String lastName = (String) self.get("last_name");
+        String passwordHash = (String) self.get("password_hash");
+
+        Integer existing = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM " + schema +
+                        ".providers WHERE lower(email) = lower(:email) AND clinic_id = :clinicId AND role = CAST('admin' AS dentalcare.provider_role) AND active = true",
+                new MapSqlParameterSource("email", email).addValue("clinicId", clinicId),
+                Integer.class);
+        if (existing != null && existing > 0) {
+            throw new IllegalStateException("Already admin of this clinic");
+        }
+
+        UUID newId = UUID.randomUUID();
+        String sql = """
+            INSERT INTO %s.providers (id, clinic_id, first_name, last_name, email, password_hash, role, active)
+            VALUES (:id, :clinicId, :firstName, :lastName, :email, :passwordHash,
+                    CAST('admin' AS dentalcare.provider_role), true)
+            """.formatted(schema);
+        jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("id", newId)
+                .addValue("clinicId", clinicId)
+                .addValue("firstName", firstName)
+                .addValue("lastName", lastName)
+                .addValue("email", email)
+                .addValue("passwordHash", passwordHash));
+
+        return new TenantUserDto(newId, clinicId, firstName, lastName, email, "admin", true);
     }
 
     private TenantClinicDto mapClinic(ResultSet rs) throws SQLException {

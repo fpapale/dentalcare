@@ -114,7 +114,8 @@ public class ClinicSettingsService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
             UPDATE %s.clinics
-            SET legal_name   = :legalName,
+            SET name         = :name,
+                legal_name   = :legalName,
                 vat_number   = :vatNumber,
                 fiscal_code  = :fiscalCode,
                 phone        = :phone,
@@ -130,6 +131,7 @@ public class ClinicSettingsService {
             """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", clinicId)
+                        .addValue("name", request.name())
                         .addValue("legalName", request.legalName())
                         .addValue("vatNumber", request.vatNumber())
                         .addValue("fiscalCode", request.fiscalCode())

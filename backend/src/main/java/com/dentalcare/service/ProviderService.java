@@ -39,6 +39,7 @@ public class ProviderService {
             FROM %s.providers
             WHERE clinic_id = :clinicId
               AND (:activeOnly = false OR active = true)
+              AND role != CAST('tenant_admin' AS dentalcare.provider_role)
             ORDER BY last_name, first_name
             """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()

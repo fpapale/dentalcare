@@ -1,16 +1,19 @@
 package com.dentalcare.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
 public record RegistrationRequest(
         String plan,
-        String studioName,
+        @NotBlank String studioName,
         String telefono,
-        String email,
+        @NotBlank @Email String email,
         String indirizzo,
         String citta,
         String provincia,
         String partitaIva,
-        String adminNome,
-        String adminCognome,
-        String adminEmail,
-        String adminPassword
+        @NotBlank String adminNome,
+        @NotBlank String adminCognome,
+        @NotBlank @Email String adminEmail,
+        @NotBlank String adminPassword
 ) {}

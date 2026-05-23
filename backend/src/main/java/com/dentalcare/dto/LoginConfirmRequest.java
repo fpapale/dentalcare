@@ -6,5 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 public record LoginConfirmRequest(
         @NotBlank @Email String email,
         @NotBlank String password,
-        @NotBlank String clinicId
+        @NotBlank String clinicId,
+        String providerId
 ) {}

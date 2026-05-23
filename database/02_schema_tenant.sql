@@ -137,6 +137,7 @@ CREATE TABLE IF NOT EXISTS providers (
     phone                    text,
     email                    text,
     active                   boolean                 NOT NULL DEFAULT true,
+    password_temporary       boolean                 NOT NULL DEFAULT false,
     created_at               timestamptz             NOT NULL DEFAULT now(),
     updated_at               timestamptz             NOT NULL DEFAULT now(),
     vat_number               text,

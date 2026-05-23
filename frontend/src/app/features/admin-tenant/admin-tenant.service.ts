@@ -33,4 +33,16 @@ export class AdminTenantService {
   createUser(clinicId: string, req: CreateTenantUserRequest): Observable<TenantUserDto> {
     return this.http.post<TenantUserDto>(`${this.base}/clinics/${clinicId}/users`, req);
   }
+
+  getSelfAdminClinicIds(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.base}/clinics/self-admin`);
+  }
+
+  addSelfAsAdmin(clinicId: string): Observable<TenantUserDto> {
+    return this.http.post<TenantUserDto>(`${this.base}/clinics/${clinicId}/self-admin`, {});
+  }
+
+  removeSelfAsAdmin(clinicId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/clinics/${clinicId}/self-admin`);
+  }
 }

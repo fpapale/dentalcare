@@ -36,6 +36,5 @@ export interface CreateTenantUserRequest {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
   role: string;
 }

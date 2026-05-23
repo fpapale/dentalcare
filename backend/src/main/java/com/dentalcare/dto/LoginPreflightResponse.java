@@ -16,7 +16,8 @@ public record LoginPreflightResponse(
         String lastName,
         String schemaName,
         String tenantName,
-        List<ClinicOption> options
+        List<ClinicOption> options,
+        Boolean mustChangePassword
 ) {
 
     public static LoginPreflightResponse direct(
@@ -28,15 +29,17 @@ public record LoginPreflightResponse(
             String firstName,
             String lastName,
             String schemaName,
-            String tenantName) {
+            String tenantName,
+            boolean mustChangePassword) {
         return new LoginPreflightResponse(
                 "direct", email, token, providerId, clinicId, role,
-                firstName, lastName, schemaName, tenantName, null);
+                firstName, lastName, schemaName, tenantName, null,
+                mustChangePassword ? true : null);
     }
 
     public static LoginPreflightResponse choose(String email, List<ClinicOption> options) {
         return new LoginPreflightResponse(
                 "choose", email, null, null, null, null,
-                null, null, null, null, options);
+                null, null, null, null, options, null);
     }
 }
