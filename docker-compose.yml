@@ -22,11 +22,11 @@ services:
     environment:
       - SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:/app/config/
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health > /dev/null 2>&1 || wget -qO- http://localhost:8080/ > /dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/public/demo-config > /dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 90s
+      retries: 5
+      start_period: 120s
     networks:
       - dentalcarepro
 
