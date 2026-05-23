@@ -1,11 +1,12 @@
-# DentalCare Pro — Ambiente di Produzione
-# Avvio: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# DentalCare Pro — Override Produzione
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Differenze rispetto al base: backend non esposto, limiti memoria, porta 80 frontend.
 
 services:
 
   backend:
     container_name: dentalcarepro-backend-prod
-    ports: []           # Backend NON esposto all'esterno in produzione
+    ports: []
     environment:
       - SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:/app/config/
       - SPRING_PROFILES_ACTIVE=prod
@@ -17,7 +18,7 @@ services:
   frontend:
     container_name: dentalcarepro-frontend-prod
     ports:
-      - "${FRONTEND_PORT:-80}:80"  # Default 80; override via .env
+      - "${FRONTEND_PORT:-80}:80"
     deploy:
       resources:
         limits:

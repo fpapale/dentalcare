@@ -44,5 +44,9 @@ config/backend/application.properties
 config/frontend/default.conf
 backend/config/
 
+# FakeSMTP output
+fakesmtp/
+backend/fakesmtp/
+
 # Claude internal
 .claude/
