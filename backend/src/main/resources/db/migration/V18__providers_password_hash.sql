@@ -1,10 +1,18 @@
 -- V18: Add password_hash to providers for real JWT authentication.
+-- Skips gracefully if dentalcare.tenants doesn't exist yet (old DB state).
 SET search_path TO t_9d754153, dentalcare, public;
 
 DO $$
 DECLARE
     r RECORD;
 BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'dentalcare' AND table_name = 'tenants'
+    ) THEN
+        RETURN;
+    END IF;
+
     FOR r IN
         SELECT t.schema_name
         FROM dentalcare.tenants t

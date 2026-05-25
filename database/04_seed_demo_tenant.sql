@@ -28,7 +28,7 @@ VALUES (
     't_9d754153',
     'demo@dentalcare.it',
     '+39 06 5550100',
-    'base',
+    'trial',
     true
 )
 ON CONFLICT (id) DO UPDATE SET active = true, name = EXCLUDED.name;
@@ -210,9 +210,6 @@ BEGIN
 
     INSERT INTO providers (id, clinic_id, first_name, last_name, email, password_hash, role, phone, active)
     VALUES
-      (v_pr0,  v_clinic, 'Admin',   'Demo', 'admin@demo.dentalcare.it',
-       '$2b$10$UbHqgP2xq774oyP29hFhR.IsIw9vf4QWMpbpUqsuxHpDzQ3efAn7O',
-       CAST('tenant_admin' AS dentalcare.provider_role), NULL, true),
       (v_pr0a, v_clinic, 'Admin',   'Demo', 'admin@demo.dentalcare.it',
        '$2b$10$UbHqgP2xq774oyP29hFhR.IsIw9vf4QWMpbpUqsuxHpDzQ3efAn7O',
        CAST('admin' AS dentalcare.provider_role), NULL, true),
@@ -871,42 +868,39 @@ BEGIN
     -- Live DB columns: id, clinic_id, patient_id, recall_type, due_date,
     --   status, priority, notes, source_appointment_id, booked_appointment_id,
     --   last_contact_at, contact_count
-    -- NOTE: enum values in live DB: status='da_contattare'/'contattato'/'confermato'/'chiuso'/'annullato'
-    --       priority='alta'/'media'/'bassa'
-    --       no provider_id, appointment_id, completed_at in live DB recalls
     -- =========================================================================
 
     INSERT INTO patient_recalls (clinic_id, patient_id, recall_type,
         status, priority, due_date, notes)
     VALUES
       -- Scaduti (alta priorita')
-      (v_clinic, v_p09, 'Controllo periodico', 'da_contattare', 'alta',
+      (v_clinic, v_p09, 'Controllo periodico', 'pending', 'high',
        CURRENT_DATE - 30, 'Igiene semestrale scaduta da un mese'),
-      (v_clinic, v_p13, 'Controllo periodico', 'da_contattare', 'alta',
+      (v_clinic, v_p13, 'Controllo periodico', 'pending', 'high',
        CURRENT_DATE - 7,  'Igiene - paziente no-show da ricontattare'),
 
       -- In scadenza
-      (v_clinic, v_p15, 'Controllo post-trattamento', 'contattato', 'media',
+      (v_clinic, v_p15, 'Controllo post-trattamento', 'contacted', 'medium',
        CURRENT_DATE + 3,  'Follow-up post-otturazione 37'),
-      (v_clinic, v_p17, 'Controllo periodico', 'da_contattare', 'media',
+      (v_clinic, v_p17, 'Controllo periodico', 'pending', 'medium',
        CURRENT_DATE + 5,  'Igiene annuale - paziente anziano'),
 
       -- Media priorita'
-      (v_clinic, v_p04, 'Controllo periodico', 'confermato', 'media',
+      (v_clinic, v_p04, 'Controllo periodico', 'booked', 'medium',
        CURRENT_DATE + 10, 'Igiene programmata - appuntamento fissato'),
-      (v_clinic, v_p06, 'Controllo post-trattamento', 'da_contattare', 'media',
+      (v_clinic, v_p06, 'Controllo post-trattamento', 'pending', 'medium',
        CURRENT_DATE + 14, 'Controllo post-igiene profonda'),
-      (v_clinic, v_p11, 'Controllo periodico', 'da_contattare', 'media',
+      (v_clinic, v_p11, 'Controllo periodico', 'pending', 'medium',
        CURRENT_DATE + 20, 'Igiene semestrale programmata'),
 
       -- Bassa priorita' (futura)
-      (v_clinic, v_p19, 'Controllo periodico', 'da_contattare', 'bassa',
+      (v_clinic, v_p19, 'Controllo periodico', 'pending', 'low',
        CURRENT_DATE + 45, 'Visita annuale di controllo'),
-      (v_clinic, v_p20, 'Controllo ortodontico', 'da_contattare', 'bassa',
+      (v_clinic, v_p20, 'Controllo ortodontico', 'pending', 'low',
        CURRENT_DATE + 60, 'Prima visita ortodontica di controllo'),
 
       -- Chiusi
-      (v_clinic, v_p01, 'Controllo post-trattamento', 'chiuso', 'bassa',
+      (v_clinic, v_p01, 'Controllo post-trattamento', 'completed', 'low',
        CURRENT_DATE - 5,  'Follow-up completato - paziente tornato in cura');
 
     -- =========================================================================
@@ -960,8 +954,8 @@ BEGIN
     SELECT
         pr.id,
         v_clinic,
-        'telefono',
-        'messaggio_lasciato',
+        'phone',
+        'left_message',
         v_pr4,
         now() - INTERVAL '2 days',
         'Lasciato messaggio in segreteria'

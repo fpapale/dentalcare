@@ -30,6 +30,14 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
     }
 
     private void patchGlobalEnums() {
+        Integer enumExists = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace" +
+                " WHERE t.typname = 'provider_role' AND n.nspname = 'dentalcare'",
+                Integer.class);
+        if (enumExists == null || enumExists == 0) {
+            log.debug("EstimateSchemaInitializer: dentalcare.provider_role not found — skipping enum patches");
+            return;
+        }
         for (String val : List.of("tenant_admin", "orthodontist", "surgeon", "assistant", "other")) {
             try {
                 jdbc.execute("DO $$ BEGIN " +
@@ -44,6 +52,14 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
 
     private void applyTenantOperationalPatches() {
         patchGlobalEnums();
+
+        Integer tenantsTableExists = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'dentalcare' AND table_name = 'tenants'",
+                Integer.class);
+        if (tenantsTableExists == null || tenantsTableExists == 0) {
+            log.warn("EstimateSchemaInitializer: dentalcare.tenants not found — skipping tenant patches");
+            return;
+        }
 
         List<String> schemas = jdbc.queryForList(
                 "SELECT schema_name FROM dentalcare.tenants WHERE active = true",

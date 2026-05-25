@@ -137,6 +137,7 @@ CREATE TABLE IF NOT EXISTS providers (
     phone                    text,
     email                    text,
     active                   boolean                 NOT NULL DEFAULT true,
+    password_hash            text,
     password_temporary       boolean                 NOT NULL DEFAULT false,
     created_at               timestamptz             NOT NULL DEFAULT now(),
     updated_at               timestamptz             NOT NULL DEFAULT now(),
@@ -158,6 +159,8 @@ CREATE TABLE IF NOT EXISTS providers (
     CONSTRAINT providers_first_name_not_empty CHECK (length(TRIM(BOTH FROM first_name)) > 0),
     CONSTRAINT providers_last_name_not_empty  CHECK (length(TRIM(BOTH FROM last_name)) > 0)
 ) TABLESPACE :"tenant_tablespace";
+
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS password_hash TEXT;
 
 ALTER TABLE providers
     DROP CONSTRAINT IF EXISTS providers_clinic_id_fkey;
@@ -561,10 +564,29 @@ CREATE INDEX IF NOT EXISTS ix_estimate_lines_treatment_item
     TABLESPACE :"tenant_tablespace"
     WHERE treatment_plan_item_id IS NOT NULL;
 
+CREATE OR REPLACE FUNCTION recalc_estimate_totals()
+RETURNS trigger AS $$
+DECLARE
+    v_estimate_id uuid;
+BEGIN
+    v_estimate_id := COALESCE(NEW.estimate_id, OLD.estimate_id);
+    UPDATE estimates
+    SET
+        subtotal_amount  = COALESCE((SELECT SUM(line_subtotal)    FROM estimate_lines WHERE estimate_id = v_estimate_id), 0),
+        discount_amount  = COALESCE((SELECT SUM(discount_amount)  FROM estimate_lines WHERE estimate_id = v_estimate_id), 0),
+        taxable_amount   = COALESCE((SELECT SUM(line_taxable)     FROM estimate_lines WHERE estimate_id = v_estimate_id), 0),
+        vat_amount       = COALESCE((SELECT SUM(line_vat_amount)  FROM estimate_lines WHERE estimate_id = v_estimate_id), 0),
+        total_amount     = COALESCE((SELECT SUM(line_total)       FROM estimate_lines WHERE estimate_id = v_estimate_id), 0),
+        updated_at       = now()
+    WHERE id = v_estimate_id;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS trg_estimate_lines_recalc_totals ON estimate_lines;
 CREATE TRIGGER trg_estimate_lines_recalc_totals
 AFTER INSERT OR DELETE OR UPDATE ON estimate_lines
-FOR EACH ROW EXECUTE FUNCTION dentalcare.trg_recalc_estimate_totals();
+FOR EACH ROW EXECUTE FUNCTION recalc_estimate_totals();
 
 DROP TRIGGER IF EXISTS trg_estimate_lines_updated_at ON estimate_lines;
 CREATE TRIGGER trg_estimate_lines_updated_at
@@ -1015,7 +1037,7 @@ CREATE TABLE IF NOT EXISTS patient_documents (
     patient_id              uuid                      NOT NULL,
     appointment_id          uuid,
     uploaded_by_provider_id uuid,
-    document_type           dentalcare.document_type  NOT NULL DEFAULT 'altro',
+    document_type           dentalcare.document_type  NOT NULL DEFAULT 'other',
     title                   text                      NOT NULL,
     description             text,
     file_name               text                      NOT NULL,
@@ -1368,10 +1390,44 @@ CREATE INDEX IF NOT EXISTS ix_recall_contacts_recall
     ON recall_contacts (recall_id, contact_at DESC)
     TABLESPACE :"tenant_tablespace";
 
+CREATE OR REPLACE FUNCTION compute_recall_priority(p_due_date date)
+RETURNS dentalcare.recall_priority AS $$
+BEGIN
+    IF p_due_date < CURRENT_DATE THEN
+        RETURN 'urgent';
+    ELSIF p_due_date <= CURRENT_DATE + 7 THEN
+        RETURN 'high';
+    ELSIF p_due_date <= CURRENT_DATE + 30 THEN
+        RETURN 'medium';
+    ELSE
+        RETURN 'low';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_recall_on_contact()
+RETURNS trigger AS $$
+BEGIN
+    IF NEW.outcome = 'booked' THEN
+        UPDATE patient_recalls
+        SET status     = 'booked'::dentalcare.recall_status,
+            updated_at = now()
+        WHERE id = NEW.recall_id;
+    ELSIF NEW.outcome IN ('refused', 'already_booked', 'scheduled_later') THEN
+        UPDATE patient_recalls
+        SET status       = 'completed'::dentalcare.recall_status,
+            completed_at = now(),
+            updated_at   = now()
+        WHERE id = NEW.recall_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS trg_recall_contact_update ON recall_contacts;
 CREATE TRIGGER trg_recall_contact_update
 AFTER INSERT ON recall_contacts
-FOR EACH ROW EXECUTE FUNCTION dentalcare.update_recall_on_contact();
+FOR EACH ROW EXECUTE FUNCTION update_recall_on_contact();
 
 -- =============================================================================
 -- 25. AI_CONVERSATIONS
