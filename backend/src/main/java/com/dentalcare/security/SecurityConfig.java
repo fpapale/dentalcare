@@ -38,6 +38,12 @@ public class SecurityConfig {
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .requestMatchers("/api/tenant-admin/**").hasRole("TENANT_ADMIN")
                     .anyRequest().authenticated())
+            .exceptionHandling(ex -> ex
+                    .authenticationEntryPoint((req, res, e) -> {
+                        res.setStatus(401);
+                        res.setContentType("application/json");
+                        res.getWriter().write("{\"code\":\"UNAUTHORIZED\",\"message\":\"Authentication required\"}");
+                    }))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

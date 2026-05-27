@@ -115,8 +115,14 @@ public class AuthService {
             activeTenants = jdbc.queryForList(
                     "SELECT schema_name FROM dentalcare.tenants WHERE active = true");
         } catch (Exception e) {
-            log.warn("Preflight: tenant lookup failed: {}", e.getMessage());
-            throw new BadCredentialsException("Invalid credentials");
+            log.warn("Preflight: dentalcare.tenants not found, using pattern fallback: {}", e.getMessage());
+            try {
+                activeTenants = jdbc.queryForList(
+                        "SELECT schema_name FROM information_schema.schemata WHERE schema_name ~ '^t_[0-9a-f]{8}$'");
+            } catch (Exception e2) {
+                log.warn("Preflight: pattern fallback also failed: {}", e2.getMessage());
+                throw new BadCredentialsException("Invalid credentials");
+            }
         }
 
         List<Match> matches = new ArrayList<>();
