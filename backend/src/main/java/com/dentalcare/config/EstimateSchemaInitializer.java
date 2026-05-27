@@ -30,13 +30,17 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
     }
 
     private void patchGlobalEnums() {
-        Integer enumExists = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace" +
-                " WHERE t.typname = 'provider_role' AND n.nspname = 'dentalcare'",
-                Integer.class);
-        if (enumExists == null || enumExists == 0) {
-            log.debug("EstimateSchemaInitializer: dentalcare.provider_role not found — skipping enum patches");
-            return;
+        // Idempotent: create enum with all values if not exists, then add any missing values
+        try {
+            jdbc.execute(
+                "DO $$ BEGIN " +
+                "IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace " +
+                "WHERE t.typname = 'provider_role' AND n.nspname = 'dentalcare') THEN " +
+                "CREATE TYPE dentalcare.provider_role AS ENUM " +
+                "('dentist','hygienist','orthodontist','surgeon','assistant','admin','tenant_admin','other'); " +
+                "END IF; END $$");
+        } catch (Exception e) {
+            log.warn("EstimateSchemaInitializer: patchGlobalEnums create failed: {}", e.getMessage());
         }
         for (String val : List.of("tenant_admin", "orthodontist", "surgeon", "assistant", "other")) {
             try {
@@ -56,14 +60,18 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         Integer tenantsTableExists = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'dentalcare' AND table_name = 'tenants'",
                 Integer.class);
-        if (tenantsTableExists == null || tenantsTableExists == 0) {
-            log.warn("EstimateSchemaInitializer: dentalcare.tenants not found — skipping tenant patches");
-            return;
-        }
 
-        List<String> schemas = jdbc.queryForList(
-                "SELECT schema_name FROM dentalcare.tenants WHERE active = true",
-                String.class);
+        List<String> schemas;
+        if (tenantsTableExists != null && tenantsTableExists > 0) {
+            schemas = jdbc.queryForList(
+                    "SELECT schema_name FROM dentalcare.tenants WHERE active = true",
+                    String.class);
+        } else {
+            schemas = jdbc.queryForList(
+                    "SELECT schema_name FROM information_schema.schemata WHERE schema_name ~ '^t_[0-9a-f]{8}$'",
+                    String.class);
+            log.warn("EstimateSchemaInitializer: dentalcare.tenants not found — discovered {} tenant schema(s) by pattern", schemas.size());
+        }
 
         for (String schema : schemas) {
             Integer exists = jdbc.queryForObject(
@@ -75,6 +83,17 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             }
             runStep(schema, "clinics/patients/providers columns", () -> {
                 jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS email TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS legal_name TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS vat_number TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS fiscal_code TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS phone TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS address_line1 TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS address_line2 TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS city TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS province TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS postal_code TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS country TEXT NOT NULL DEFAULT 'IT'");
+                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()");
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true");
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS photo_url TEXT");
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS photo_url TEXT");
@@ -91,6 +110,11 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_sdi_code TEXT");
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS invoice_prefix TEXT");
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS password_temporary BOOLEAN NOT NULL DEFAULT false");
+            });
+            runStep(schema, "providers/role+phone", () -> {
+                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS phone TEXT");
+                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()");
+                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS role dentalcare.provider_role NOT NULL DEFAULT 'dentist'");
             });
             runStep(schema, "estimates+lines",  () -> patchEstimatesAndLinesSchema(schema));
             runStep(schema, "recalls",          () -> patchRecallsSchema(schema));

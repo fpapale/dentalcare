@@ -1037,7 +1037,7 @@ CREATE TABLE IF NOT EXISTS patient_documents (
     patient_id              uuid                      NOT NULL,
     appointment_id          uuid,
     uploaded_by_provider_id uuid,
-    document_type           dentalcare.document_type  NOT NULL DEFAULT 'other',
+    document_type           dentalcare.document_type  NOT NULL DEFAULT 'altro',
     title                   text                      NOT NULL,
     description             text,
     file_name               text                      NOT NULL,

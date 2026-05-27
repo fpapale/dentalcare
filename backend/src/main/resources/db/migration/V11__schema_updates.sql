@@ -43,7 +43,19 @@ WHERE NOT EXISTS (
 );
 
 -- =========================================================
--- 4. ai_conversations — create in tenant schema
+-- 4. set_updated_at function in dentalcare schema (idempotent)
+-- =========================================================
+
+CREATE OR REPLACE FUNCTION dentalcare.set_updated_at()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$;
+
+-- =========================================================
+-- 5. ai_conversations — create in tenant schema
 -- =========================================================
 
 SET search_path TO t_9d754153, dentalcare, public;
@@ -65,6 +77,6 @@ CREATE INDEX IF NOT EXISTS ix_ai_conversations_clinic
 DO $$ BEGIN
     CREATE TRIGGER trg_ai_conversations_updated_at
     BEFORE UPDATE ON ai_conversations
-    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+    FOR EACH ROW EXECUTE FUNCTION dentalcare.set_updated_at();
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;

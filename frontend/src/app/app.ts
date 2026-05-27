@@ -58,7 +58,21 @@ export class App implements OnInit {
     if (user) {
       this.userContext.initFromAuth(user);
       this.selectedKey.set(user.providerId);
+      this.loadAppData();
     }
+    this.isPublicRoute.set(this.isPublic(this.router.url));
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(e => {
+      const url = (e as NavigationEnd).urlAfterRedirects;
+      this.isPublicRoute.set(this.isPublic(url));
+      if (!this.isPublic(url) && this.providers().length === 0 && this.authService.isAuthenticated()) {
+        const u = this.authService.getCurrentUser();
+        if (u) { this.userContext.initFromAuth(u); this.selectedKey.set(u.providerId); }
+        this.loadAppData();
+      }
+    });
+  }
+
+  private loadAppData(): void {
     this.clinicSettingsService.get().subscribe({
       next: c => this.userContext.setClinicName(c.name),
       error: () => {}
@@ -66,10 +80,6 @@ export class App implements OnInit {
     this.providerService.findAll().subscribe({
       next: list => this.providers.set(list),
       error: () => {}
-    });
-    this.isPublicRoute.set(this.isPublic(this.router.url));
-    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(e => {
-      this.isPublicRoute.set(this.isPublic((e as NavigationEnd).urlAfterRedirects));
     });
   }
 
