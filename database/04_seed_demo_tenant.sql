@@ -594,13 +594,13 @@ BEGIN
     -- Fattura 1: Rossi Marco - otturazioni (pagata)
     INSERT INTO invoices (id, clinic_id, patient_id, estimate_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         payment_method, paid_at, issued_at)
     VALUES (v_inv1, v_clinic, v_p01, v_est1,
         'FAT-2024-0001', 'fattura', CURRENT_DATE - 8, CURRENT_DATE, 'paid', 'clinic',
-        'Marco', 'Rossi', 'RSSMRC85A01H501X',
+        'Marco Rossi', 'RSSMRC85A01H501X',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         292.50, 0.00, 292.50, 0.00, 292.50, 'EUR',
         'carta', (CURRENT_DATE - 8)::timestamptz + TIME '11:00', (CURRENT_DATE - 8)::timestamptz + TIME '11:00');
@@ -617,13 +617,13 @@ BEGIN
     -- Fattura 2: Romano Luca - CBCT (pagata parziale anticipo)
     INSERT INTO invoices (id, clinic_id, patient_id, estimate_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         payment_method, paid_at, issued_at)
     VALUES (v_inv2, v_clinic, v_p03, v_est2,
         'FAT-2024-0002', 'ricevuta', CURRENT_DATE - 20, CURRENT_DATE - 20, 'paid', 'clinic',
-        'Luca', 'Romano', 'RMNLCU78C03H501Z',
+        'Luca Romano', 'RMNLCU78C03H501Z',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         180.00, 0.00, 180.00, 0.00, 180.00, 'EUR',
         'bonifico', (CURRENT_DATE - 20)::timestamptz + TIME '10:30', (CURRENT_DATE - 20)::timestamptz + TIME '10:30');
@@ -637,13 +637,13 @@ BEGIN
     -- Fattura 3: Bruno Francesca - estrazione (pagata)
     INSERT INTO invoices (id, clinic_id, patient_id, estimate_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         payment_method, paid_at, issued_at)
     VALUES (v_inv3, v_clinic, v_p08, v_est6,
         'FAT-2024-0003', 'fattura', CURRENT_DATE - 45, CURRENT_DATE - 45, 'paid', 'clinic',
-        'Francesca', 'Bruno', 'BRNFNC95H48H501S',
+        'Francesca Bruno', 'BRNFNC95H48H501S',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         230.00, 0.00, 230.00, 0.00, 230.00, 'EUR',
         'contanti', (CURRENT_DATE - 45)::timestamptz + TIME '11:30', (CURRENT_DATE - 45)::timestamptz + TIME '11:30');
@@ -658,13 +658,13 @@ BEGIN
     -- Fattura 4: Gallo Matteo - igiene (pagata)
     INSERT INTO invoices (id, clinic_id, patient_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         payment_method, paid_at, issued_at)
     VALUES (v_inv4, v_clinic, v_p09,
         'FAT-2024-0004', 'ricevuta', CURRENT_DATE - 7, CURRENT_DATE - 7, 'paid', 'clinic',
-        'Matteo', 'Gallo', 'GLLMTT82I09H501R',
+        'Matteo Gallo', 'GLLMTT82I09H501R',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         80.00, 0.00, 80.00, 0.00, 80.00, 'EUR',
         'contanti', (CURRENT_DATE - 7)::timestamptz + TIME '09:45', (CURRENT_DATE - 7)::timestamptz + TIME '09:45');
@@ -678,13 +678,13 @@ BEGIN
     -- Fattura 5: Greco Stefano - controllo ortodonzia (pagata)
     INSERT INTO invoices (id, clinic_id, patient_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         payment_method, paid_at, issued_at)
     VALUES (v_inv5, v_clinic, v_p07,
         'FAT-2024-0005', 'ricevuta', CURRENT_DATE - 1, CURRENT_DATE - 1, 'paid', 'clinic',
-        'Stefano', 'Greco', 'GRCSFN75G07H501T',
+        'Stefano Greco', 'GRCSFN75G07H501T',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         150.00, 0.00, 150.00, 0.00, 150.00, 'EUR',
         'carta', (CURRENT_DATE - 1)::timestamptz + TIME '10:30', (CURRENT_DATE - 1)::timestamptz + TIME '10:30');
@@ -698,13 +698,13 @@ BEGIN
     -- Fattura 6: Mancini Elena - igiene profonda (emessa non pagata)
     INSERT INTO invoices (id, clinic_id, patient_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         issued_at)
     VALUES (v_inv6, v_clinic, v_p12,
         'FAT-2024-0006', 'fattura', CURRENT_DATE - 1, CURRENT_DATE + 30, 'issued', 'clinic',
-        'Elena', 'Mancini', 'MNCLNE86B52H501N',
+        'Elena Mancini', 'MNCLNE86B52H501N',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         120.00, 0.00, 120.00, 0.00, 120.00, 'EUR',
         (CURRENT_DATE - 1)::timestamptz + TIME '12:00');
@@ -718,12 +718,12 @@ BEGIN
     -- Fattura 7: Colombo Chiara - visita (bozza)
     INSERT INTO invoices (id, clinic_id, patient_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency)
     VALUES (v_inv7, v_clinic, v_p04,
         'FAT-2024-0007', 'ricevuta', CURRENT_DATE - 1, CURRENT_DATE + 15, 'draft', 'clinic',
-        'Chiara', 'Colombo', 'CLMCHR92D44H501W',
+        'Chiara Colombo', 'CLMCHR92D44H501W',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         80.00, 0.00, 80.00, 0.00, 80.00, 'EUR');
 
@@ -736,13 +736,13 @@ BEGIN
     -- Fattura 8: Conti Silvia - otturazione (pagata)
     INSERT INTO invoices (id, clinic_id, patient_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         payment_method, paid_at, issued_at)
     VALUES (v_inv8, v_clinic, v_p10,
         'FAT-2024-0008', 'ricevuta', CURRENT_DATE, CURRENT_DATE, 'paid', 'clinic',
-        'Silvia', 'Conti', 'CNTSLV91L50H501Q',
+        'Silvia Conti', 'CNTSLV91L50H501Q',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         130.00, 0.00, 130.00, 0.00, 130.00, 'EUR',
         'carta', CURRENT_DATE::timestamptz + TIME '10:45', CURRENT_DATE::timestamptz + TIME '10:45');
@@ -756,13 +756,13 @@ BEGIN
     -- Fattura 9: Rizzo Paolo - igiene (pagata)
     INSERT INTO invoices (id, clinic_id, patient_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         payment_method, paid_at, issued_at)
     VALUES (v_inv9, v_clinic, v_p15,
         'FAT-2024-0009', 'ricevuta', CURRENT_DATE - 3, CURRENT_DATE - 3, 'paid', 'clinic',
-        'Paolo', 'Rizzo', 'RZZPLA70E15H501K',
+        'Paolo Rizzo', 'RZZPLA70E15H501K',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         80.00, 0.00, 80.00, 0.00, 80.00, 'EUR',
         'contanti', (CURRENT_DATE - 3)::timestamptz + TIME '10:00', (CURRENT_DATE - 3)::timestamptz + TIME '10:00');
@@ -776,13 +776,13 @@ BEGIN
     -- Fattura 10: Barbieri Sara - visita urgente (emessa)
     INSERT INTO invoices (id, clinic_id, patient_id,
         invoice_number, document_type, invoice_date, due_date, status, issuer_type,
-        patient_first_name, patient_last_name, patient_fiscal_code,
+        patient_full_name, patient_fiscal_code,
         issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,
         subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount, currency,
         issued_at)
     VALUES (v_inv10, v_clinic, v_p18,
         'FAT-2024-0010', 'parcella', CURRENT_DATE, CURRENT_DATE + 15, 'issued', 'clinic',
-        'Sara', 'Barbieri', 'BRBSRA89H58H501H',
+        'Sara Barbieri', 'BRBSRA89H58H501H',
         'Clinica Demo DentalCare Roma', 'DEMO-ROMA-001', 'DEMOROMA001', 'Via Nomentana 123, 00162 Roma',
         105.00, 0.00, 105.00, 0.00, 105.00, 'EUR',
         CURRENT_DATE::timestamptz + TIME '18:30');
