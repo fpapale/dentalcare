@@ -374,19 +374,21 @@ BEGIN
     -- =========================================================================
     INSERT INTO condition_service_defaults (id, clinic_id, condition_name, service_id, sort_order)
     VALUES
-      (gen_random_uuid(), v_clinic, 'caries',      v_s07, 10),
-      (gen_random_uuid(), v_clinic, 'caries',      v_s04, 20),
-      (gen_random_uuid(), v_clinic, 'to_extract',  v_s18, 10),
-      (gen_random_uuid(), v_clinic, 'to_extract',  v_s25, 20),
-      (gen_random_uuid(), v_clinic, 'devitalized', v_s13, 10),
-      (gen_random_uuid(), v_clinic, 'devitalized', v_s04, 20),
-      (gen_random_uuid(), v_clinic, 'missing',     v_s06, 10),
-      (gen_random_uuid(), v_clinic, 'missing',     v_s16, 20),
-      (gen_random_uuid(), v_clinic, 'missing',     v_s17, 30),
-      (gen_random_uuid(), v_clinic, 'missing',     v_s14, 40),
-      (gen_random_uuid(), v_clinic, 'crown',       v_s14, 10),
-      (gen_random_uuid(), v_clinic, 'fracture',    v_s08, 10),
-      (gen_random_uuid(), v_clinic, 'fracture',    v_s04, 20);
+      (gen_random_uuid(), v_clinic, 'cavity',       v_s07, 10),
+      (gen_random_uuid(), v_clinic, 'cavity',       v_s04, 20),
+      (gen_random_uuid(), v_clinic, 'to_extract',   v_s18, 10),
+      (gen_random_uuid(), v_clinic, 'to_extract',   v_s25, 20),
+      (gen_random_uuid(), v_clinic, 'root_canal',   v_s13, 10),
+      (gen_random_uuid(), v_clinic, 'root_canal',   v_s04, 20),
+      (gen_random_uuid(), v_clinic, 'missing',      v_s06, 10),
+      (gen_random_uuid(), v_clinic, 'missing',      v_s16, 20),
+      (gen_random_uuid(), v_clinic, 'missing',      v_s17, 30),
+      (gen_random_uuid(), v_clinic, 'missing',      v_s14, 40),
+      (gen_random_uuid(), v_clinic, 'crown',        v_s14, 10),
+      (gen_random_uuid(), v_clinic, 'bridge_pillar',v_s14, 10),
+      (gen_random_uuid(), v_clinic, 'bridge_pontic',v_s14, 10),
+      (gen_random_uuid(), v_clinic, 'implant',      v_s06, 10),
+      (gen_random_uuid(), v_clinic, 'implant',      v_s16, 20);
 
     -- =========================================================================
     -- TREATMENT PLANS (12 piani)

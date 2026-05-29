@@ -328,6 +328,7 @@ export class OdontogrammaTabComponent implements OnInit {
     this.pianificaItems.set([]);
     this.planCreatedId.set(null);
     this.error.set(null);
+    this.creatingPlan.set(false);
     this.pianificaModeType.set('new');
     this.selectedExistingPlanId.set('');
     this.pianificaMode.set(true);

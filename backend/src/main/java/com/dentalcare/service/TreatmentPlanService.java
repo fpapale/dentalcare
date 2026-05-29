@@ -144,6 +144,8 @@ public class TreatmentPlanService {
         java.math.BigDecimal price = request.plannedPrice() != null ? request.plannedPrice() : defaults.price();
 
         UUID id = UUID.randomUUID();
+        Integer quadrant = request.quadrant();
+        if (quadrant != null && (quadrant < 1 || quadrant > 4)) quadrant = null;
         String sql = """
             INSERT INTO %s.treatment_plan_items
                 (id, clinic_id, treatment_plan_id, service_id, provider_id,
@@ -160,7 +162,7 @@ public class TreatmentPlanService {
                 .addValue("serviceId", request.serviceId())
                 .addValue("providerId", request.providerId())
                 .addValue("toothNumber", request.toothNumber())
-                .addValue("quadrant", request.quadrant())
+                .addValue("quadrant", quadrant)
                 .addValue("plannedPrice", price)
                 .addValue("priority", request.priority() != null ? request.priority() : 100)
                 .addValue("plannedDate", request.plannedDate())
@@ -207,6 +209,8 @@ public class TreatmentPlanService {
         for (int i = 0; i < items.size(); i++) {
             OdontogramPlanItemRequest item = items.get(i);
             java.math.BigDecimal price = resolveServiceDefaults(item.serviceId(), clinicId).price();
+            int rawQuadrant = item.toothFdi() / 10;
+            Integer quadrant = (rawQuadrant >= 1 && rawQuadrant <= 4) ? rawQuadrant : null;
             jdbc.update("""
                 INSERT INTO %s.treatment_plan_items
                     (id, clinic_id, treatment_plan_id, service_id, tooth_number, quadrant,
@@ -221,7 +225,7 @@ public class TreatmentPlanService {
                     .addValue("planId", planId)
                     .addValue("serviceId", item.serviceId())
                     .addValue("toothNumber", String.valueOf(item.toothFdi()))
-                    .addValue("quadrant", item.toothFdi() / 10)
+                    .addValue("quadrant", quadrant)
                     .addValue("plannedPrice", price)
                     .addValue("priority", (i + 1) * 10)
                     .addValue("clinicalNotes", item.clinicalNotes()));

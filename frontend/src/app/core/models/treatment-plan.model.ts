@@ -42,7 +42,7 @@ export interface TreatmentPlan {
   items: TreatmentPlanItem[];
 }
 
-export type TreatmentPlanStatus = 'draft' | 'proposed' | 'accepted' | 'completed' | 'rejected';
+export type TreatmentPlanStatus = 'draft' | 'proposed' | 'accepted' | 'in_progress' | 'completed' | 'rejected' | 'archived';
 export type TreatmentItemStatus = 'planned' | 'accepted' | 'scheduled' | 'completed' | 'cancelled';
 
 export interface OdontogramPlanItem {
