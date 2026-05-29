@@ -67,12 +67,24 @@ Predisporre/aggiornare il deploy Docker di produzione sulla macchina
 Al termine: commit + push su `master`.
 
 ### Comandi deploy sul server
+
+Bootstrap prima volta (scarica solo `setup.sh`, che prepara la cartella, clona
+il repo e lancia `install.sh`):
+```bash
+curl -fsSL https://raw.githubusercontent.com/fpapale/dentalcare/master/setup.sh -o /tmp/setup.sh
+bash /tmp/setup.sh
+```
+
+Se il repo è già clonato in `~/docker/dentalcarepro`:
 ```bash
 cd ~/docker/dentalcarepro
-git clone https://github.com/fpapale/dentalcare.git .   # prima volta
-chmod +x install.sh && ./install.sh                     # chiede se creare/ricreare il DB
+./setup.sh            # mkdir+cd+pull+install (aggiornamento completo)
+./setup.sh --update   # solo pull + rebuild app
 ```
-`install.sh` gestisce anche il DB (prompt). In alternativa, crearlo a mano:
+
+`setup.sh` verifica/crea `~/docker/dentalcarepro`, fa clone (dir vuota) o pull
+(repo esistente), poi esegue `install.sh` (che chiede se creare/ricreare il DB).
+In alternativa creare il DB a mano:
 ```bash
 psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare_prod -f database/install.sql
 ```
