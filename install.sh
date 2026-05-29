@@ -62,11 +62,46 @@ if [ "${1:-}" != "--update" ]; then
   fi
 fi
 
-# ── 4. Build e avvio ─────────────────────────────────────────────────────────
+# ── 4. Database (opzionale: crea/ricrea dentalcare_prod) ─────────────────────
+if [ "${1:-}" != "--update" ]; then
+  DB_HOST="192.168.0.173"
+  DB_PORT="5432"
+  DB_SUPERUSER="postgres"
+  PROD_DB="dentalcare_prod"
+
+  read -r -p "Creare/RICREARE il database ${PROD_DB} su ${DB_HOST}? [y/N] " ANSWER
+  if [[ "${ANSWER:-N}" =~ ^[YySs]$ ]]; then
+    command -v psql >/dev/null 2>&1 || err "psql non trovato: serve il client PostgreSQL per (ri)creare il DB."
+    warn "Verrà ELIMINATO e ricreato il database ${PROD_DB} (tutti i dati attuali andranno persi)."
+    read -r -p "Per confermare la cancellazione scrivi 'SI': " CONFIRM
+    [ "$CONFIRM" = "SI" ] || err "Operazione DB annullata."
+
+    if [ -z "${PGPASSWORD:-}" ]; then
+      read -r -s -p "Password utente ${DB_SUPERUSER}: " PGPASSWORD; echo
+      export PGPASSWORD
+    fi
+
+    log "Arresto container per liberare le connessioni al DB..."
+    docker compose down 2>/dev/null || true
+
+    log "Drop + ricreazione ${PROD_DB} da database/install.sql..."
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d postgres \
+         -c "DROP DATABASE IF EXISTS \"${PROD_DB}\" WITH (FORCE);" \
+      || err "Drop database fallito."
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d postgres \
+         -v ON_ERROR_STOP=1 -v dbname="${PROD_DB}" -f "$DEPLOY_DIR/database/install.sql" \
+      || err "Creazione database fallita."
+    log "Database ${PROD_DB} ricreato da install.sql."
+  else
+    log "DB ${PROD_DB} assunto già esistente — deploy della sola parte applicativa."
+  fi
+fi
+
+# ── 5. Build e avvio ─────────────────────────────────────────────────────────
 log "Build immagini e avvio container..."
 docker compose up -d --build
 
-# ── 5. Health check backend ──────────────────────────────────────────────────
+# ── 6. Health check backend ──────────────────────────────────────────────────
 log "Attendo healthcheck backend (max 120s)..."
 ELAPSED=0
 until docker inspect --format='{{.State.Health.Status}}' "$BACKEND_CONTAINER" 2>/dev/null | grep -q "healthy"; do

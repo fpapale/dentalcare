@@ -43,10 +43,19 @@ Predisporre/aggiornare il deploy Docker di produzione sulla macchina
      `git pull origin master`;
    - crea `config/application-prod.properties` da `.example` se assente, crea
      `.env` da `.env.example`;
+   - **chiede se creare/ricreare il DB `dentalcare_prod`**:
+     - risposta affermativa → doppia conferma (`SI`), `docker compose down` per
+       liberare le connessioni, poi
+       `DROP DATABASE IF EXISTS dentalcare_prod WITH (FORCE)` e ricreazione da
+       `database/install.sql` (`-v dbname=dentalcare_prod`). Richiede `psql`
+       sul server e password postgres (da `PGPASSWORD` o prompt). **Cancella i dati esistenti.**
+     - risposta negativa → si assume il DB già esistente, deploy della **sola
+       parte applicativa**.
+     - con `--update` la domanda DB è saltata.
    - `docker compose up -d --build`;
    - attende healthcheck container `dentalcarepro-backend` (max 120s);
    - stampa URL `http://<host>:8181/`.
-   - `./install.sh --update` = solo pull + rebuild.
+   - `./install.sh --update` = solo pull + rebuild (no config, no DB).
 
 6. **`.env.example`**: `FRONTEND_PORT=8181`, `VERSION`, `JDK_VERSION=21`.
 
@@ -59,12 +68,13 @@ Al termine: commit + push su `master`.
 
 ### Comandi deploy sul server
 ```bash
-# DB (una volta)
-psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare_prod -f database/install.sql
-# App
 cd ~/docker/dentalcarepro
 git clone https://github.com/fpapale/dentalcare.git .   # prima volta
-chmod +x install.sh && ./install.sh
+chmod +x install.sh && ./install.sh                     # chiede se creare/ricreare il DB
+```
+`install.sh` gestisce anche il DB (prompt). In alternativa, crearlo a mano:
+```bash
+psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare_prod -f database/install.sql
 ```
 App: `http://192.168.0.72:8181/` — login `admin@demo.dentalcare.it` / `DemoAdmin1!`.
 
