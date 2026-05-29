@@ -594,6 +594,24 @@ CREATE TABLE dentalcare.cities (
 
 
 --
+-- Name: flyway_schema_history; Type: TABLE; Schema: dentalcare; Owner: -
+--
+
+CREATE TABLE dentalcare.flyway_schema_history (
+    installed_rank integer NOT NULL,
+    version character varying(50),
+    description character varying(200) NOT NULL,
+    type character varying(20) NOT NULL,
+    script character varying(1000) NOT NULL,
+    checksum integer,
+    installed_by character varying(100) NOT NULL,
+    installed_on timestamp without time zone DEFAULT now() NOT NULL,
+    execution_time integer NOT NULL,
+    success boolean NOT NULL
+);
+
+
+--
 -- Name: national_holidays; Type: TABLE; Schema: dentalcare; Owner: -
 --
 
@@ -1721,6 +1739,34 @@ COPY dentalcare.cities (id, region_id, name, province_code, postal_code, is_capi
 
 
 --
+-- Data for Name: flyway_schema_history; Type: TABLE DATA; Schema: dentalcare; Owner: -
+--
+
+COPY dentalcare.flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, installed_on, execution_time, success) FROM stdin;
+4	4	service duration	BASELINE	V4__service_duration.sql	0	postgres	2026-05-18 21:47:53.395079	0	t
+1	1	init schema	SQL	V1__init_schema.sql	-619930894	postgres	2026-05-18 21:47:53.395079	100	t
+2	2	tooth conditions	SQL	V2__tooth_conditions.sql	-803108541	postgres	2026-05-18 21:47:53.395079	100	t
+5	5	estimates views and patch	SQL	V5__estimates_views_and_patch.sql	1739990681	postgres	2026-05-18 21:47:53.395079	100	t
+6	6	estimates provider column	SQL	V6__estimates_provider_column.sql	1634814579	postgres	2026-05-18 21:47:53.395079	100	t
+7	7	invoices	SQL	V7__invoices.sql	1664324053	postgres	2026-05-18 21:47:53.395079	100	t
+8	8	inventory	SQL	V8__inventory.sql	2129219223	postgres	2026-05-18 21:47:53.395079	100	t
+9	9	recalls	SQL	V9__recalls.sql	2091619633	postgres	2026-05-18 21:47:53.395079	100	t
+10	10	inventory seed	SQL	V10__inventory_seed.sql	-503713383	postgres	2026-05-18 21:47:53.395079	100	t
+12	12	providers email	SQL	V12__providers_email.sql	-2001566407	postgres	2026-05-19 10:19:11.059689	149	t
+13	13	patient diagnoses	SQL	V13__patient_diagnoses.sql	1170292070	postgres	2026-05-19 14:55:27.618526	306	t
+14	14	patient prescriptions	SQL	V14__patient_prescriptions.sql	-1920508479	postgres	2026-05-19 14:55:28.518558	289	t
+3	3	geo holidays	SQL	V3__geo_holidays.sql	-21960847	postgres	2026-05-18 21:47:53.395079	100	t
+11	11	schema updates	SQL	V11__schema_updates.sql	-746141274	postgres	2026-05-18 21:47:53.395079	100	t
+15	15	appointment status presente	SQL	V15__appointment_status_presente.sql	-1230221787	postgres	2026-05-19 20:08:51.852914	122	t
+16	16	fix invoices schema	SQL	V16__fix_invoices_schema.sql	1677844431	postgres	2026-05-20 01:27:08.520772	937	t
+17	17	create tenant invoice lines	SQL	V17__create_tenant_invoice_lines.sql	874400948	postgres	2026-05-20 01:34:49.282095	721	t
+18	18	providers password hash	SQL	V18__providers_password_hash.sql	356955503	postgres	2026-05-21 21:31:27.346573	167	t
+19	19	clinics billing columns	SQL	V19__clinics_billing_columns.sql	-724843636	postgres	2026-05-27 22:47:36.310081	185	t
+20	20	providers role phone	SQL	V20__providers_role_phone.sql	111531480	postgres	2026-05-27 22:47:37.044053	356	t
+\.
+
+
+--
 -- Data for Name: national_holidays; Type: TABLE DATA; Schema: dentalcare; Owner: -
 --
 
@@ -2585,9 +2631,11 @@ fc3c97bc-9882-4816-a9e5-9218491e3524	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 --
 
 COPY t_9d754153.patient_recalls (id, clinic_id, patient_id, recall_type, due_date, status, priority, notes, source_appointment_id, booked_appointment_id, last_contact_at, contact_count, created_at, updated_at) FROM stdin;
-e73173a8-27d3-4043-a963-8f2e8543a1f9	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	Controllo periodico	2026-04-29	da_contattare	alta	Igiene semestrale scaduta da un mese - paziente non risponde	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
-fdc5bdd2-220f-41d8-909c-007b047056b5	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	Controllo periodico	2026-05-22	da_contattare	alta	Igiene - paziente no-show - da ricontattare urgente	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
-59929d2c-cffd-42da-a645-33154bf34047	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	Controllo post-trattamento	2026-05-26	contattato	alta	Controllo parodontale - paziente anziano con comorbidità	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
+a7675bb6-9cc4-450c-b9fc-5d7aadfbbccb	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000018	Controllo periodico	2026-05-29	da_contattare	media	\N	\N	\N	\N	0	2026-05-29 18:35:58.578667+00	2026-05-29 18:35:58.578667+00
+fdc5bdd2-220f-41d8-909c-007b047056b5	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	Controllo periodico	2026-05-22	confermato	alta	\N	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 18:37:29.26568+00
+389b6eea-f1f1-4de9-bb8d-49a0b6d6af07	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	Controllo post-chirurgia	2026-04-21	confermato	alta	\N	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 18:37:36.139151+00
+e73173a8-27d3-4043-a963-8f2e8543a1f9	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	Controllo periodico	2026-04-29	contattato	alta	\N	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 18:37:39.232173+00
+59929d2c-cffd-42da-a645-33154bf34047	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	Controllo post-trattamento	2026-05-26	in_attesa	alta	\N	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 18:39:20.254611+00
 000a018f-8be4-4281-be74-45d8977caf45	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000015	Controllo post-trattamento	2026-06-01	contattato	media	Follow-up post-otturazione 37 - confermato per domani	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 f47fd211-c6d2-41a7-bc86-3937759b7517	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	Controllo periodico	2026-06-03	confermato	media	Igiene programmata - appuntamento fissato	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 ab32bb1a-3177-41c3-af47-4c23fa5649fe	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	Controllo post-trattamento	2026-06-05	da_contattare	media	Controllo post-igiene profonda e devitalizzazione 26	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
@@ -2604,7 +2652,6 @@ fe81a522-a228-4120-a74e-025f39be0bb8	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 93615e17-c84e-4e6e-a3a6-268adbc0b3e2	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	Controllo ortodontico	2026-06-28	confermato	media	Controllo mensile apparecchio fisso - già programmato	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 f2b4e7e8-a710-4ed8-9115-f78d267774ca	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	Controllo estetico	2026-07-13	in_attesa	bassa	Follow-up valutazione faccette - in attesa risposta preventivo	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 7464648a-32cb-4323-a580-ed99c70b89b5	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	Controllo post-trattamento	2026-05-24	chiuso	bassa	Follow-up completato - paziente tornato in cura regolare	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
-389b6eea-f1f1-4de9-bb8d-49a0b6d6af07	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	Controllo post-chirurgia	2026-04-21	chiuso	alta	Controllo post-estrazione 18 completato - guarigione ok	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 f79f3587-d82d-4e64-a8e2-65e16c221750	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	Controllo periodico	2026-03-30	annullato	media	Paziente trasferito ad altro studio - chiuso	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 41702e06-4f9e-4aa5-98b4-807ee96c0ea6	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	Controllo periodico	2026-02-28	annullato	bassa	Doppio richiamo - eliminato duplicato	\N	\N	\N	0	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 \.
@@ -2968,6 +3015,14 @@ ALTER TABLE ONLY dentalcare.anamnesis_items
 
 ALTER TABLE ONLY dentalcare.cities
     ADD CONSTRAINT cities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: flyway_schema_history flyway_schema_history_pk; Type: CONSTRAINT; Schema: dentalcare; Owner: -
+--
+
+ALTER TABLE ONLY dentalcare.flyway_schema_history
+    ADD CONSTRAINT flyway_schema_history_pk PRIMARY KEY (installed_rank);
 
 
 --
@@ -3496,6 +3551,13 @@ ALTER TABLE ONLY t_9d754153.invoices
 
 ALTER TABLE ONLY t_9d754153.service_catalog
     ADD CONSTRAINT ux_service_catalog_clinic_code UNIQUE (clinic_id, code);
+
+
+--
+-- Name: flyway_schema_history_s_idx; Type: INDEX; Schema: dentalcare; Owner: -
+--
+
+CREATE INDEX flyway_schema_history_s_idx ON dentalcare.flyway_schema_history USING btree (success);
 
 
 --
