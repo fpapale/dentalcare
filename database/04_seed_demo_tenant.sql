@@ -1563,81 +1563,55 @@ BEGIN
     -- DOCUMENTI CLINICI (25 documenti)
     -- =========================================================================
     INSERT INTO patient_documents (clinic_id, patient_id, uploaded_by_provider_id,
-        document_type, filename, notes, uploaded_at)
+        document_type, title, file_name, file_path, notes, created_at)
     VALUES
       -- p01: Rossi Marco
-      (v_clinic, v_p01, v_pr1, 'rx_endorale',           'rx_16_rossi_2024.jpg',
-       'RX endorale elemento 16 pre-otturazione', (CURRENT_DATE - 10)::timestamptz + TIME '10:00'),
-      (v_clinic, v_p01, v_pr1, 'consenso_informato',    'consenso_rossi_2024.pdf',
-       'Consenso informato piano di cura', (CURRENT_DATE - 365)::timestamptz + TIME '09:00'),
-      (v_clinic, v_p01, v_pr1, 'foto_clinica',          'foto_16_rossi_post.jpg',
-       'Foto post-otturazione 16', (CURRENT_DATE - 3)::timestamptz + TIME '10:30'),
+      (v_clinic, v_p01, v_pr1, 'radiograph',   'RX endorale 16',                   'rx_16_rossi_2024.jpg',           '/uploads/demo/rx_16_rossi_2024.jpg',           'RX endorale elemento 16 pre-otturazione',         (CURRENT_DATE - 10)::timestamptz + TIME '10:00'),
+      (v_clinic, v_p01, v_pr1, 'consent_form', 'Consenso informato piano di cura', 'consenso_rossi_2024.pdf',        '/uploads/demo/consenso_rossi_2024.pdf',        'Consenso informato piano di cura',                (CURRENT_DATE - 365)::timestamptz + TIME '09:00'),
+      (v_clinic, v_p01, v_pr1, 'photo',        'Foto post-otturazione 16',         'foto_16_rossi_post.jpg',         '/uploads/demo/foto_16_rossi_post.jpg',         'Foto post-otturazione 16',                        (CURRENT_DATE - 3)::timestamptz + TIME '10:30'),
 
       -- p02: Bianchi Giulia
-      (v_clinic, v_p02, v_pr1, 'foto_clinica',          'foto_frontale_bianchi.jpg',
-       'Foto frontale sorriso per valutazione estetica', (CURRENT_DATE - 180)::timestamptz + TIME '09:00'),
-      (v_clinic, v_p02, v_pr1, 'foto_extraorale',       'foto_profilo_bianchi.jpg',
-       'Foto profilo sinistro per valutazione', (CURRENT_DATE - 180)::timestamptz + TIME '09:05'),
+      (v_clinic, v_p02, v_pr1, 'photo',        'Foto frontale sorriso',            'foto_frontale_bianchi.jpg',      '/uploads/demo/foto_frontale_bianchi.jpg',      'Foto frontale sorriso per valutazione estetica',  (CURRENT_DATE - 180)::timestamptz + TIME '09:00'),
+      (v_clinic, v_p02, v_pr1, 'photo',        'Foto profilo valutazione',         'foto_profilo_bianchi.jpg',       '/uploads/demo/foto_profilo_bianchi.jpg',       'Foto profilo sinistro per valutazione',           (CURRENT_DATE - 180)::timestamptz + TIME '09:05'),
 
       -- p03: Romano Luca
-      (v_clinic, v_p03, v_pr2, 'cbct',                  'cbct_36_romano_2024.dcm',
-       'CBCT arcata inferiore pre-impianto 36', (CURRENT_DATE - 20)::timestamptz + TIME '09:00'),
-      (v_clinic, v_p03, v_pr2, 'rx_panoramica',         'ortopan_romano_2024.jpg',
-       'Ortopantomografia di inquadramento', (CURRENT_DATE - 25)::timestamptz + TIME '08:30'),
-      (v_clinic, v_p03, v_pr2, 'consenso_informato',    'consenso_impianto_romano.pdf',
-       'Consenso informato procedura implantare', (CURRENT_DATE - 20)::timestamptz + TIME '09:30'),
+      (v_clinic, v_p03, v_pr2, 'radiograph',   'CBCT arcata inferiore 36',         'cbct_36_romano_2024.dcm',        '/uploads/demo/cbct_36_romano_2024.dcm',        'CBCT arcata inferiore pre-impianto 36',           (CURRENT_DATE - 20)::timestamptz + TIME '09:00'),
+      (v_clinic, v_p03, v_pr2, 'radiograph',   'Ortopantomografia inquadramento',  'ortopan_romano_2024.jpg',        '/uploads/demo/ortopan_romano_2024.jpg',        'Ortopantomografia di inquadramento',              (CURRENT_DATE - 25)::timestamptz + TIME '08:30'),
+      (v_clinic, v_p03, v_pr2, 'consent_form', 'Consenso procedura implantare',    'consenso_impianto_romano.pdf',   '/uploads/demo/consenso_impianto_romano.pdf',   'Consenso informato procedura implantare',         (CURRENT_DATE - 20)::timestamptz + TIME '09:30'),
 
       -- p05: Ricci Andrea
-      (v_clinic, v_p05, v_pr4, 'rx_panoramica',         'ortopan_ricci_2024.jpg',
-       'OPT di inquadramento - gengivite generalizzata', (CURRENT_DATE - 150)::timestamptz + TIME '10:00'),
-      (v_clinic, v_p05, v_pr4, 'foto_clinica',          'foto_gengivite_ricci.jpg',
-       'Documentazione fotografica gengivite', (CURRENT_DATE - 150)::timestamptz + TIME '10:15'),
+      (v_clinic, v_p05, v_pr4, 'radiograph',   'OPT inquadramento parodontale',    'ortopan_ricci_2024.jpg',         '/uploads/demo/ortopan_ricci_2024.jpg',         'OPT di inquadramento - gengivite generalizzata',  (CURRENT_DATE - 150)::timestamptz + TIME '10:00'),
+      (v_clinic, v_p05, v_pr4, 'photo',        'Foto gengivite generalizzata',     'foto_gengivite_ricci.jpg',       '/uploads/demo/foto_gengivite_ricci.jpg',       'Documentazione fotografica gengivite',            (CURRENT_DATE - 150)::timestamptz + TIME '10:15'),
 
       -- p06: Marino Valentina
-      (v_clinic, v_p06, v_pr1, 'rx_endorale',           'rx_26_marino_pre.jpg',
-       'RX endorale 26 pre-devitalizzazione', (CURRENT_DATE - 14)::timestamptz + TIME '09:00'),
-      (v_clinic, v_p06, v_pr1, 'consenso_informato',    'consenso_devital_marino.pdf',
-       'Consenso devitalizzazione 26', (CURRENT_DATE - 14)::timestamptz + TIME '09:15'),
+      (v_clinic, v_p06, v_pr1, 'radiograph',   'RX endorale 26 pre-devitaliz.',    'rx_26_marino_pre.jpg',           '/uploads/demo/rx_26_marino_pre.jpg',           'RX endorale 26 pre-devitalizzazione',             (CURRENT_DATE - 14)::timestamptz + TIME '09:00'),
+      (v_clinic, v_p06, v_pr1, 'consent_form', 'Consenso devitalizzazione 26',     'consenso_devital_marino.pdf',    '/uploads/demo/consenso_devital_marino.pdf',    'Consenso devitalizzazione 26',                    (CURRENT_DATE - 14)::timestamptz + TIME '09:15'),
 
       -- p07: Greco Stefano
-      (v_clinic, v_p07, v_pr3, 'rx_panoramica',         'ortopan_greco_pre_orto.jpg',
-       'OPT pre-trattamento ortodontico', (CURRENT_DATE - 300)::timestamptz + TIME '09:00'),
-      (v_clinic, v_p07, v_pr3, 'foto_clinica',          'foto_intraoral_greco_pre.jpg',
-       'Foto intraorali pre-trattamento', (CURRENT_DATE - 300)::timestamptz + TIME '09:30'),
-      (v_clinic, v_p07, v_pr3, 'foto_extraorale',       'foto_profilo_greco_pre.jpg',
-       'Foto profilo pre-trattamento', (CURRENT_DATE - 300)::timestamptz + TIME '09:35'),
-      (v_clinic, v_p07, v_pr3, 'consenso_informato',    'consenso_orto_greco.pdf',
-       'Consenso trattamento ortodontico', (CURRENT_DATE - 300)::timestamptz + TIME '10:00'),
+      (v_clinic, v_p07, v_pr3, 'radiograph',   'OPT pre-trattamento ortodontico',  'ortopan_greco_pre_orto.jpg',     '/uploads/demo/ortopan_greco_pre_orto.jpg',     'OPT pre-trattamento ortodontico',                 (CURRENT_DATE - 300)::timestamptz + TIME '09:00'),
+      (v_clinic, v_p07, v_pr3, 'photo',        'Foto intraorali pre-trattamento',  'foto_intraoral_greco_pre.jpg',   '/uploads/demo/foto_intraoral_greco_pre.jpg',   'Foto intraorali pre-trattamento',                 (CURRENT_DATE - 300)::timestamptz + TIME '09:30'),
+      (v_clinic, v_p07, v_pr3, 'photo',        'Foto profilo pre-trattamento',     'foto_profilo_greco_pre.jpg',     '/uploads/demo/foto_profilo_greco_pre.jpg',     'Foto profilo pre-trattamento',                    (CURRENT_DATE - 300)::timestamptz + TIME '09:35'),
+      (v_clinic, v_p07, v_pr3, 'consent_form', 'Consenso trattamento ortodontico', 'consenso_orto_greco.pdf',        '/uploads/demo/consenso_orto_greco.pdf',        'Consenso trattamento ortodontico',                (CURRENT_DATE - 300)::timestamptz + TIME '10:00'),
 
       -- p08: Bruno Francesca
-      (v_clinic, v_p08, v_pr2, 'rx_endorale',           'rx_18_bruno_pre.jpg',
-       'RX endorale 18 incluso pre-estrazione', (CURRENT_DATE - 46)::timestamptz + TIME '09:00'),
-      (v_clinic, v_p08, v_pr2, 'consenso_informato',    'consenso_estrazione_bruno.pdf',
-       'Consenso estrazione 18', (CURRENT_DATE - 45)::timestamptz + TIME '09:30'),
-      (v_clinic, v_p08, v_pr2, 'referto',               'referto_estrazione_bruno.pdf',
-       'Referto post-estrazione 18', (CURRENT_DATE - 45)::timestamptz + TIME '11:00'),
+      (v_clinic, v_p08, v_pr2, 'radiograph',   'RX endorale 18 pre-estrazione',    'rx_18_bruno_pre.jpg',            '/uploads/demo/rx_18_bruno_pre.jpg',            'RX endorale 18 incluso pre-estrazione',           (CURRENT_DATE - 46)::timestamptz + TIME '09:00'),
+      (v_clinic, v_p08, v_pr2, 'consent_form', 'Consenso estrazione 18',           'consenso_estrazione_bruno.pdf',  '/uploads/demo/consenso_estrazione_bruno.pdf',  'Consenso estrazione 18',                          (CURRENT_DATE - 45)::timestamptz + TIME '09:30'),
+      (v_clinic, v_p08, v_pr2, 'report',       'Referto post-estrazione 18',       'referto_estrazione_bruno.pdf',   '/uploads/demo/referto_estrazione_bruno.pdf',   'Referto post-estrazione 18',                      (CURRENT_DATE - 45)::timestamptz + TIME '11:00'),
 
       -- p11: De Luca Roberto
-      (v_clinic, v_p11, v_pr4, 'rx_panoramica',         'ortopan_deluca_paro.jpg',
-       'OPT parodontologica con misurazione tasche', (CURRENT_DATE - 120)::timestamptz + TIME '09:00'),
-      (v_clinic, v_p11, v_pr4, 'documento_amministrativo','cartella_paro_deluca.pdf',
-       'Cartella parodontale completa con sondaggi', (CURRENT_DATE - 120)::timestamptz + TIME '10:00'),
+      (v_clinic, v_p11, v_pr4, 'radiograph',   'OPT parodontologica',              'ortopan_deluca_paro.jpg',        '/uploads/demo/ortopan_deluca_paro.jpg',        'OPT parodontologica con misurazione tasche',      (CURRENT_DATE - 120)::timestamptz + TIME '09:00'),
+      (v_clinic, v_p11, v_pr4, 'other',        'Cartella parodontale completa',    'cartella_paro_deluca.pdf',       '/uploads/demo/cartella_paro_deluca.pdf',       'Cartella parodontale completa con sondaggi',      (CURRENT_DATE - 120)::timestamptz + TIME '10:00'),
 
       -- p16: Lombardi Alessia
-      (v_clinic, v_p16, v_pr2, 'cbct',                  'cbct_46_lombardi_2024.dcm',
-       'CBCT arcata inferiore pre-impianto 46', (CURRENT_DATE - 1)::timestamptz + TIME '14:00'),
-      (v_clinic, v_p16, v_pr2, 'consenso_informato',    'consenso_impianto_lombardi.pdf',
-       'Consenso procedura implantare 46', (CURRENT_DATE - 1)::timestamptz + TIME '14:30'),
+      (v_clinic, v_p16, v_pr2, 'radiograph',   'CBCT arcata inferiore 46',         'cbct_46_lombardi_2024.dcm',      '/uploads/demo/cbct_46_lombardi_2024.dcm',      'CBCT arcata inferiore pre-impianto 46',           (CURRENT_DATE - 1)::timestamptz + TIME '14:00'),
+      (v_clinic, v_p16, v_pr2, 'consent_form', 'Consenso procedura implantare 46', 'consenso_impianto_lombardi.pdf', '/uploads/demo/consenso_impianto_lombardi.pdf', 'Consenso procedura implantare 46',                (CURRENT_DATE - 1)::timestamptz + TIME '14:30'),
 
       -- p18: Barbieri Sara
-      (v_clinic, v_p18, v_pr1, 'rx_endorale',           'rx_26_barbieri_urgenza.jpg',
-       'RX urgente 26 - dolore acuto', CURRENT_DATE::timestamptz + TIME '16:00'),
+      (v_clinic, v_p18, v_pr1, 'radiograph',   'RX urgente 26',                    'rx_26_barbieri_urgenza.jpg',     '/uploads/demo/rx_26_barbieri_urgenza.jpg',     'RX urgente 26 - dolore acuto',                    CURRENT_DATE::timestamptz + TIME '16:00'),
 
       -- p20: Santoro Beatrice
-      (v_clinic, v_p20, v_pr3, 'foto_extraorale',       'foto_profilo_santoro_valut.jpg',
-       'Foto profilo valutazione ortodontica', (CURRENT_DATE - 10)::timestamptz + TIME '10:00');
+      (v_clinic, v_p20, v_pr3, 'photo',        'Foto profilo valutazione orto',    'foto_profilo_santoro_valut.jpg', '/uploads/demo/foto_profilo_santoro_valut.jpg', 'Foto profilo valutazione ortodontica',            (CURRENT_DATE - 10)::timestamptz + TIME '10:00');
 
-    -- =========================================================================
     -- DIAGNOSI (15 diagnosi)
     -- =========================================================================
     INSERT INTO patient_diagnoses
