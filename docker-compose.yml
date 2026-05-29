@@ -1,10 +1,12 @@
-# DentalCare Pro — Deploy
-# Avvio:  docker compose up -d --build
-# Update: docker compose pull && docker compose up -d --build
+# DentalCare Pro — Deploy produzione (file unico)
+# Eseguire da: ~/docker/dentalcarepro/
+#   docker compose up -d --build
 #
-# Config opzionale: crea config/backend/application.properties dal template
-# config/backend/application.properties.example per sovrascrivere i default.
-# Se la cartella non esiste Spring usa i default del classpath (dev/LAN).
+# - backend  : Spring Boot, profilo "prod", NON esposto sull'host.
+#              Config esterna montata da ./config -> /app/config
+#              (Spring carica /app/config/application-prod.properties => db dentalcare_prod).
+# - frontend : nginx (porta 4200 nel container) che serve la SPA e proxa /api al backend.
+#              Esposto sull'host su ${FRONTEND_PORT:-8181} -> 4200.
 
 services:
 
@@ -18,8 +20,9 @@ services:
     container_name: dentalcarepro-backend
     restart: unless-stopped
     volumes:
-      - ./config/backend:/app/config:ro
+      - ./config:/app/config:ro
     environment:
+      - SPRING_PROFILES_ACTIVE=prod
       - SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:/app/config/
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/public/demo-config > /dev/null 2>&1 || exit 1"]
@@ -27,6 +30,10 @@ services:
       timeout: 10s
       retries: 5
       start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
     networks:
       - dentalcarepro
 
@@ -38,10 +45,14 @@ services:
     container_name: dentalcarepro-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_PORT:-8181}:4200"
     depends_on:
       backend:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256m
     networks:
       - dentalcarepro
 

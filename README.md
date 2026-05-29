@@ -122,12 +122,7 @@ dentalcare/
 │       ├── layout/                  # Shell, menu, layout a tre colonne
 │       └── app.routes.ts
 ├── database/
-│   ├── 01_schema_applicative.sql    # Schema globale dentalcare (ENUMs, tenants, geo)
-│   ├── 02_schema_tenant.sql         # Schema operativo per tenant (parametrizzato)
-│   ├── 03_seed_global.sql           # Dati globali: geo Italia, festivi, anamnesi
-│   ├── 04_seed_demo_tenant.sql      # Dati demo con appuntamenti su CURRENT_DATE
-│   ├── 05_install_new_system.sql    # Orchestratore fresh install completo
-│   └── 06_install_new_tenant.sql    # Provisioning nuovo tenant (cliente)
+│   └── install.sql                  # Installazione completa parametrica (schema dentalcare + tenant demo + dati)
 ├── directives/                      # Documenti funzionali e architetturali
 ├── userdocument/                    # Manuale utente
 └── Segretaria/                      # Configurazioni agente Retell AI
@@ -152,26 +147,21 @@ dentalcare/
 
 ### 1. Database
 
+Script unico parametrico: crea il database, lo schema globale `dentalcare`
+(enum, funzioni, dati di riferimento) e il tenant demo `t_9d754153` con tutti
+i dati di esempio. La tabella `dentalcare.tenants` contiene solo il tenant demo.
+
 ```bash
-# Crea database
-createdb dentalcarepro
-
-# Installazione completa in un solo comando
-psql -U postgres -d dentalcarepro -f database/05_install_new_system.sql
-
-# Oppure passo per passo:
-psql -d dentalcarepro -f database/01_schema_applicative.sql   # schema globale
-psql -d dentalcarepro -f database/03_seed_global.sql          # geo + festivi + anamnesi
-psql -v tenant_schema=t_9d754153 \
-     -d dentalcarepro -f database/02_schema_tenant.sql        # schema demo
-psql -d dentalcarepro -f database/04_seed_demo_tenant.sql     # dati demo
+# Connessione a un DB esistente (postgres); lo script crea il DB indicato.
+# -v dbname=... sceglie il nome (default: dentalcare)
+psql -U postgres -d postgres -v dbname=dentalcarepro   -f database/install.sql   # dev
+psql -U postgres -d postgres -v dbname=dentalcare_prod -f database/install.sql   # prod
 ```
 
-Per aggiungere un nuovo tenant (cliente):
-```bash
-# Edita le variabili in testa al file, poi:
-psql -U postgres -d dentalcarepro -f database/06_install_new_tenant.sql
-```
+Login demo: `admin@demo.dentalcare.it` / `DemoAdmin1!`.
+
+Per rigenerare `install.sql` dopo modifiche a schema/seed, fare `pg_dump`
+degli schemi `dentalcare` + tenant demo dal DB di riferimento.
 
 ### 2. Backend
 
@@ -228,26 +218,29 @@ chmod +x install.sh
 |---|---|
 | 1 | Verifica prerequisiti: `docker`, `git`, `docker compose` |
 | 2 | Prima volta: clona repo; aggiornamento: `git pull origin master` |
-| 3 | Crea `config/backend/application.properties` e `config/frontend/default.conf` dai template `.example` se assenti; fa pausa se le credenziali DB non sono ancora configurate |
-| 4 | Esegue `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` |
-| 5 | Attende healthcheck backend (max 90s) e stampa URL e stato container |
+| 3 | Crea `config/application-prod.properties` dal template `.example` se assente (già puntato a `dentalcare_prod` su 192.168.0.173); crea `.env` (FRONTEND_PORT=8181) |
+| 4 | Esegue `docker compose up -d --build` (file unico `docker-compose.yml`) |
+| 5 | Attende healthcheck backend (max 120s) e stampa URL e stato container |
 
 ### File di configurazione (da non committare)
 
 Dopo il primo `./install.sh`, personalizzare:
 
 ```
-config/backend/application.properties   ← DB host, username, password
-config/frontend/default.conf            ← nginx (proxy backend, porta)
-.env                                    ← FRONTEND_PORT (default 8081)
+config/application-prod.properties   ← DB host/nome, username, password, JWT secret
+.env                                 ← FRONTEND_PORT (default 8181)
 ```
+
+Il backend gira col profilo `prod` e carica la config esterna montata su `/app/config`
+(`SPRING_CONFIG_ADDITIONAL_LOCATION`). Il backend **non** è esposto sull'host: l'nginx
+del frontend (porta 4200 nel container) proxa `/api` al backend interno.
 
 ### Porta esposta
 
-Per default il frontend è disponibile sulla porta **8081**. Per cambiare:
+Il frontend è disponibile sulla porta **8181** dell'host (mappata su `4200` del container nginx). Per cambiare:
 
 ```bash
-echo "FRONTEND_PORT=80" >> .env
+echo "FRONTEND_PORT=9090" >> .env
 ./install.sh --update
 ```
 

@@ -1,0 +1,34 @@
+# DentalCare Pro — Config esterna di produzione
+# 1. Copiare come: config/application-prod.properties
+# 2. Montato dal compose su /app/config e caricato da Spring (profilo prod).
+#    Sovrascrive i default del classpath. Tiene le credenziali fuori dall'immagine.
+#
+# Punta al database dentalcare_prod sulla macchina 192.168.0.173.
+
+# ---- Database (PostgreSQL) ----
+spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/dentalcare_prod
+spring.datasource.username=postgres
+spring.datasource.password=ViaGoceano2021
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=2
+spring.datasource.hikari.connection-timeout=20000
+
+# ---- JWT (generare un secret reale: openssl rand -base64 48) ----
+app.jwt.secret=dentalcare-prod-secret-key-min-32-chars-change-me
+app.jwt.expiration-ms=86400000
+
+# ---- Demo mode ----
+app.demo.enabled=true
+app.demo.email=admin@demo.dentalcare.it
+app.demo.password=DemoAdmin1!
+
+# ---- Mail (SMTP) ----
+spring.mail.host=192.168.0.68
+spring.mail.port=9143
+app.mail.from=noreply@dentalcare.it
+app.mail.send-real-emails=false
+
+# ---- Errori non esposti in produzione ----
+server.error.include-message=never
+server.error.include-binding-errors=never
