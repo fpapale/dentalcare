@@ -66,9 +66,9 @@ public class StockMovementService {
                      unit_cost, notes, reference_doc, created_by_provider_id)
                 VALUES
                     (:id, :clinicId, :productId,
-                     CAST(:movementType AS %s.stock_movement_type),
+                     CAST(:movementType AS dentalcare.stock_movement_type),
                      :quantity, :unitCost, :notes, :referenceDoc, :createdByProviderId)
-                """.formatted(s(), s()),
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)

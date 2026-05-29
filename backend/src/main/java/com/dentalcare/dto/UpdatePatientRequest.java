@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record UpdatePatientRequest(
         @NotBlank @Size(max = 100) String firstName,
@@ -16,5 +17,6 @@ public record UpdatePatientRequest(
         @Size(max = 100) String city,
         @Size(max = 5) String province,
         @Size(max = 10) String postalCode,
-        String notes
+        String notes,
+        UUID primaryProviderId
 ) {}

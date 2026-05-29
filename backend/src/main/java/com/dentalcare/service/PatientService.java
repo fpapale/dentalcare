@@ -29,7 +29,7 @@ public class PatientService {
     public List<PatientListDto> findAll(String search, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String providerFilter = providerId != null
-                ? "AND EXISTS (SELECT 1 FROM " + s() + ".appointments a WHERE a.patient_id = v.patient_id AND a.provider_id = :providerId AND a.clinic_id = v.clinic_id)\n"
+                ? "AND (pat.primary_provider_id = :providerId OR EXISTS (SELECT 1 FROM " + s() + ".appointments a WHERE a.patient_id = v.patient_id AND a.provider_id = :providerId AND a.clinic_id = v.clinic_id))\n"
                 : "";
         String sql = """
             SELECT v.patient_id, v.patient_first_name, v.patient_last_name, v.patient_full_name,
@@ -62,10 +62,12 @@ public class PatientService {
         String sql = """
             INSERT INTO %s.patients
                 (id, clinic_id, first_name, last_name, fiscal_code, birth_date,
-                 phone, email, address_line1, city, province, postal_code, notes)
+                 phone, email, address_line1, city, province, postal_code, notes,
+                 primary_provider_id)
             VALUES
                 (:id, :clinicId, :firstName, :lastName, :fiscalCode, :birthDate,
-                 :phone, :email, :addressLine1, :city, :province, :postalCode, :notes)
+                 :phone, :email, :addressLine1, :city, :province, :postalCode, :notes,
+                 :primaryProviderId)
             """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", patientId)
@@ -80,7 +82,8 @@ public class PatientService {
                 .addValue("city", request.city())
                 .addValue("province", request.province())
                 .addValue("postalCode", request.postalCode())
-                .addValue("notes", request.notes());
+                .addValue("notes", request.notes())
+                .addValue("primaryProviderId", request.primaryProviderId());
         jdbc.update(sql, params);
         return patientId;
     }
@@ -99,7 +102,8 @@ public class PatientService {
                 city          = :city,
                 province      = :province,
                 postal_code   = :postalCode,
-                notes         = :notes
+                notes         = :notes,
+                primary_provider_id = :primaryProviderId
             WHERE id = :id AND clinic_id = :clinicId
             """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -114,6 +118,7 @@ public class PatientService {
                 .addValue("province",    request.province())
                 .addValue("postalCode",  request.postalCode())
                 .addValue("notes",       request.notes())
+                .addValue("primaryProviderId", request.primaryProviderId())
                 .addValue("id",          patientId)
                 .addValue("clinicId",    clinicId);
         jdbc.update(sql, params);
@@ -122,7 +127,7 @@ public class PatientService {
     public Optional<PatientDetailDto> findById(UUID patientId, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String providerFilter = providerId != null
-                ? "AND EXISTS (SELECT 1 FROM " + s() + ".appointments a WHERE a.patient_id = p.patient_id AND a.provider_id = :providerId AND a.clinic_id = p.clinic_id)"
+                ? "AND (pat.primary_provider_id = :providerId OR EXISTS (SELECT 1 FROM " + s() + ".appointments a WHERE a.patient_id = p.patient_id AND a.provider_id = :providerId AND a.clinic_id = p.clinic_id))"
                 : "";
         String sql = """
             SELECT p.patient_id, p.first_name, p.last_name, p.full_name,
@@ -139,12 +144,15 @@ public class PatientService {
                     JOIN %s.treatment_plans tp2 ON tp2.id = tpi.treatment_plan_id AND tp2.clinic_id = tpi.clinic_id
                     WHERE tp2.patient_id = p.patient_id AND tpi.clinic_id = p.clinic_id
                       AND tpi.status IN ('planned','accepted','scheduled')) AS open_treatment_items_count,
-                   pat.address_line1, pat.postal_code, pat.photo_url
+                   pat.address_line1, pat.postal_code, pat.photo_url,
+                   pat.primary_provider_id,
+                   concat_ws(' ', pp.last_name, pp.first_name) AS primary_provider_name
             FROM %s.v_patient_clinical_card p
             JOIN %s.patients pat ON pat.id = p.patient_id
+            LEFT JOIN %s.providers pp ON pp.id = pat.primary_provider_id AND pp.clinic_id = pat.clinic_id
             WHERE p.patient_id = :patientId
               AND p.clinic_id = :clinicId
-            """.formatted(s(), s(), s(), s(), s()) + providerFilter;
+            """.formatted(s(), s(), s(), s(), s(), s()) + providerFilter;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("patientId", patientId)
                 .addValue("clinicId", clinicId);
@@ -207,7 +215,9 @@ public class PatientService {
                 rs.getLong("total_appointments"),
                 rs.getLong("treatment_plans_count"),
                 rs.getLong("open_treatment_items_count"),
-                rs.getString("photo_url")
+                rs.getString("photo_url"),
+                rs.getObject("primary_provider_id", UUID.class),
+                rs.getString("primary_provider_name")
         );
     }
 

@@ -146,9 +146,9 @@ public class AppointmentService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             UPDATE %s.appointments
-            SET status = CAST(:status AS %s.appointment_status)
+            SET status = CAST(:status AS dentalcare.appointment_status)
             WHERE id = :id AND clinic_id = :clinicId
-            """.formatted(s(), s());
+            """.formatted(s());
         jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", appointmentId)
                 .addValue("clinicId", clinicId)

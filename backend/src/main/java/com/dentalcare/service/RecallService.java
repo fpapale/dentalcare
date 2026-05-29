@@ -75,8 +75,8 @@ public class RecallService {
         UUID recallId = UUID.randomUUID();
 
         String priorityExpr = (req.priority() != null && !req.priority().isBlank())
-                ? "CAST(:priority AS " + s() + ".recall_priority)"
-                : s() + ".compute_recall_priority(:dueDate)";
+                ? "CAST(:priority AS dentalcare.recall_priority)"
+                : "dentalcare.compute_recall_priority(:dueDate)";
 
         jdbc.update("""
                 INSERT INTO %s.patient_recalls (
@@ -84,8 +84,8 @@ public class RecallService {
                     status, priority, notes, source_appointment_id
                 ) VALUES (
                     :id, :clinicId, :patientId, :recallType, :dueDate,
-                    'da_contattare'::%s.recall_status,
-                    """.formatted(s(), s()) + priorityExpr + """
+                    'da_contattare'::dentalcare.recall_status,
+                    """.formatted(s()) + priorityExpr + """
                     , :notes, :sourceAppointmentId
                 )
                 """,
@@ -110,14 +110,14 @@ public class RecallService {
 
         jdbc.update("""
                 UPDATE %s.patient_recalls
-                SET status     = COALESCE(CAST(:status AS %s.recall_status), status),
-                    priority   = COALESCE(CAST(:priority AS %s.recall_priority), priority),
+                SET status     = COALESCE(CAST(:status AS dentalcare.recall_status), status),
+                    priority   = COALESCE(CAST(:priority AS dentalcare.recall_priority), priority),
                     recall_type = COALESCE(:recallType, recall_type),
                     due_date   = COALESCE(:dueDate, due_date),
                     notes      = :notes,
                     updated_at = now()
                 WHERE id = :id AND clinic_id = :clinicId
-                """.formatted(s(), s(), s()),
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
@@ -137,10 +137,10 @@ public class RecallService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
                 UPDATE %s.patient_recalls
-                SET status = 'annullato'::%s.recall_status,
+                SET status = 'annullato'::dentalcare.recall_status,
                     updated_at = now()
                 WHERE id = :id AND clinic_id = :clinicId
-                """.formatted(s(), s()),
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId));
@@ -202,11 +202,11 @@ public class RecallService {
                         status, priority, source_appointment_id
                     ) VALUES (
                         :id, :clinicId, :patientId, :recallType, :dueDate,
-                        'da_contattare'::%s.recall_status,
-                        CAST(:priority AS %s.recall_priority),
+                        'da_contattare'::dentalcare.recall_status,
+                        CAST(:priority AS dentalcare.recall_priority),
                         :sourceAppointmentId
                     )
-                    """.formatted(s(), s(), s()),
+                    """.formatted(s()),
                     new MapSqlParameterSource()
                             .addValue("id", recallId)
                             .addValue("clinicId", clinicId)
@@ -255,12 +255,12 @@ public class RecallService {
                     outcome, notes, created_by_provider_id
                 ) VALUES (
                     :id, :clinicId, :recallId,
-                    CAST(:contactType AS %s.recall_contact_type),
+                    CAST(:contactType AS dentalcare.recall_contact_type),
                     now(),
-                    CAST(:outcome AS %s.recall_outcome),
+                    CAST(:outcome AS dentalcare.recall_outcome),
                     :notes, :createdByProviderId
                 )
-                """.formatted(s(), s(), s()),
+                """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", contactId)
                         .addValue("clinicId", clinicId)

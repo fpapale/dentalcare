@@ -49,4 +49,6 @@ export interface PatientDetail {
   totalAppointments: number;
   treatmentPlansCount: number;
   openTreatmentItemsCount: number;
+  primaryProviderId: string | null;
+  primaryProviderName: string | null;
 }

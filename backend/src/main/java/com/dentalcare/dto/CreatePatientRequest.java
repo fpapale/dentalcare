@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record CreatePatientRequest(
 
@@ -40,5 +41,7 @@ public record CreatePatientRequest(
         @Size(max = 10)
         String postalCode,
 
-        String notes
+        String notes,
+
+        UUID primaryProviderId
 ) {}

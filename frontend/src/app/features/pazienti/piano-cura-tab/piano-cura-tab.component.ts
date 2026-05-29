@@ -40,7 +40,8 @@ export class PianoCuraTabComponent implements OnInit {
   statusLabel(s: TreatmentPlanStatus): string {
     const map: Record<TreatmentPlanStatus, string> = {
       draft: 'Bozza', proposed: 'Proposto', accepted: 'Accettato',
-      completed: 'Completato', rejected: 'Rifiutato'
+      in_progress: 'In corso', completed: 'Completato', rejected: 'Rifiutato',
+      archived: 'Archiviato'
     };
     return map[s] ?? s;
   }
@@ -51,6 +52,7 @@ export class PianoCuraTabComponent implements OnInit {
       case 'completed': return 'bg-slate-100 text-slate-500';
       case 'rejected':  return 'bg-red-100 text-red-700';
       case 'proposed':  return 'bg-blue-100 text-blue-700';
+      case 'in_progress': return 'bg-indigo-100 text-indigo-700';
       default:          return 'bg-yellow-50 text-yellow-700';
     }
   }

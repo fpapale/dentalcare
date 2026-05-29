@@ -75,8 +75,8 @@ public class ProviderService {
             INSERT INTO %s.providers
                 (id, clinic_id, first_name, last_name, role, phone, email, active)
             VALUES
-                (:id, :clinicId, :firstName, :lastName, :role::%s.provider_role, :phone, :email, true)
-            """.formatted(s(), s()),
+                (:id, :clinicId, :firstName, :lastName, :role::dentalcare.provider_role, :phone, :email, true)
+            """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("clinicId", clinicId)
@@ -95,13 +95,13 @@ public class ProviderService {
             UPDATE %s.providers
             SET first_name = :firstName,
                 last_name  = :lastName,
-                role       = :role::%s.provider_role,
+                role       = :role::dentalcare.provider_role,
                 phone      = :phone,
                 email      = :email,
                 active     = :active,
                 updated_at = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """.formatted(s(), s()),
+            """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("id", providerId)
                 .addValue("clinicId", clinicId)

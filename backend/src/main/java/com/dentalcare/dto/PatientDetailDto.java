@@ -37,5 +37,8 @@ public record PatientDetailDto(
         Long totalAppointments,
         Long treatmentPlansCount,
         Long openTreatmentItemsCount,
-        String photoUrl
+        String photoUrl,
+        // Medico di riferimento
+        UUID primaryProviderId,
+        String primaryProviderName
 ) {}

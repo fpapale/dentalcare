@@ -239,13 +239,13 @@ public class EstimateService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
             UPDATE %s.estimates
-            SET status     = CAST(:status AS %s.estimate_status),
+            SET status     = CAST(:status AS dentalcare.estimate_status),
                 sent_at    = CASE WHEN :status = 'sent'     AND sent_at IS NULL    THEN now() ELSE sent_at    END,
                 accepted_at = CASE WHEN :status = 'accepted' AND accepted_at IS NULL THEN now() ELSE accepted_at END,
                 rejected_at = CASE WHEN :status = 'rejected' AND rejected_at IS NULL THEN now() ELSE rejected_at END,
                 updated_at  = now()
             WHERE id = :id AND clinic_id = :clinicId
-            """.formatted(s(), s()),
+            """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", estimateId)
                         .addValue("clinicId", clinicId)

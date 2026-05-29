@@ -82,6 +82,7 @@ export class NuovoPazienteComponent implements OnInit {
       province: v.provincia || undefined,
       postalCode: v.cap || undefined,
       notes: v.note || undefined,
+      primaryProviderId: v.medicoRiferimento || undefined,
     }).subscribe({
       next: () => {
         this.saving.set(false);

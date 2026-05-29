@@ -127,9 +127,9 @@ public class TreatmentPlanService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             UPDATE %s.treatment_plans
-            SET status = CAST(:status AS %s.treatment_plan_status)
+            SET status = CAST(:status AS dentalcare.treatment_plan_status)
             WHERE id = :id AND clinic_id = :clinicId
-            """.formatted(s(), s());
+            """.formatted(s());
         jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", planId)
                 .addValue("clinicId", clinicId)
@@ -174,10 +174,10 @@ public class TreatmentPlanService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             UPDATE %s.treatment_plan_items
-            SET status = CAST(:status AS %s.treatment_item_status),
+            SET status = CAST(:status AS dentalcare.treatment_item_status),
                 completed_at = CASE WHEN :status = 'completed' THEN now() ELSE completed_at END
             WHERE id = :id AND treatment_plan_id = :planId AND clinic_id = :clinicId
-            """.formatted(s(), s());
+            """.formatted(s());
         jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", itemId)
                 .addValue("planId", planId)

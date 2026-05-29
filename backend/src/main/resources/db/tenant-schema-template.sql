@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS patients (
     postal_code   text,
     country       text    NOT NULL DEFAULT 'IT',
     notes         text,
+    primary_provider_id uuid,
     active        boolean NOT NULL DEFAULT true,
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
@@ -136,6 +137,18 @@ DROP TRIGGER IF EXISTS trg_providers_updated_at ON providers;
 CREATE TRIGGER trg_providers_updated_at
 BEFORE UPDATE ON providers
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Medico di riferimento del paziente (FK aggiunta qui: providers creata sopra)
+ALTER TABLE patients
+    DROP CONSTRAINT IF EXISTS patients_primary_provider_id_fkey;
+ALTER TABLE patients
+    ADD CONSTRAINT patients_primary_provider_id_fkey
+        FOREIGN KEY (primary_provider_id) REFERENCES providers(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS ix_patients_primary_provider
+    ON patients (clinic_id, primary_provider_id)
+    TABLESPACE {tablespace}
+    WHERE primary_provider_id IS NOT NULL;
 
 -- =============================================================================
 -- 4. SERVICE_CATALOG
@@ -900,6 +913,7 @@ RETURNS trigger AS $$
 DECLARE
     v_estimate_id uuid;
 BEGIN
+    PERFORM set_config('search_path', TG_TABLE_SCHEMA || ', dentalcare, public', true);
     v_estimate_id := COALESCE(NEW.estimate_id, OLD.estimate_id);
     UPDATE estimates
     SET
@@ -939,6 +953,7 @@ RETURNS trigger AS $$
 DECLARE
     v_invoice_id uuid;
 BEGIN
+    PERFORM set_config('search_path', TG_TABLE_SCHEMA || ', dentalcare, public', true);
     v_invoice_id := COALESCE(NEW.invoice_id, OLD.invoice_id);
     UPDATE invoices
     SET subtotal_amount = COALESCE((SELECT SUM(line_subtotal)   FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
@@ -975,6 +990,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_recall_on_contact()
 RETURNS trigger AS $$
 BEGIN
+    PERFORM set_config('search_path', TG_TABLE_SCHEMA || ', dentalcare, public', true);
     IF NEW.outcome = 'booked' THEN
         UPDATE patient_recalls
         SET status     = 'booked'::recall_status,

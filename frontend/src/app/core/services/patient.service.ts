@@ -16,6 +16,7 @@ export interface CreatePatientRequest {
   province?: string;
   postalCode?: string;
   notes?: string;
+  primaryProviderId?: string;
 }
 
 export interface UpdatePatientRequest {
@@ -30,6 +31,7 @@ export interface UpdatePatientRequest {
   province?: string;
   postalCode?: string;
   notes?: string;
+  primaryProviderId?: string;
 }
 
 @Injectable({ providedIn: 'root' })

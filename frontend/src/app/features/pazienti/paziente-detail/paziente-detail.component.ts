@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { PatientService, UpdatePatientRequest } from '../../../core/services/patient.service';
+import { ProviderService } from '../../../core/services/provider.service';
+import { Provider } from '../../../core/models/provider.model';
 import { AppointmentService, RescheduleAppointmentRequest } from '../../../core/services/appointment.service';
 import { AppSettingsService } from '../../../core/services/app-settings.service';
 import { UserContextService } from '../../../core/services/user-context.service';
@@ -66,14 +68,18 @@ export class PazienteDetailComponent implements OnInit {
   prevApptPage(): void { this.apptPage.update(p => Math.max(0, p - 1)); }
   nextApptPage(): void { this.apptPage.update(p => Math.min(this.apptPageCount - 1, p + 1)); }
 
+  providers = signal<Provider[]>([]);
+
   editForm: UpdatePatientRequest = {
     firstName: '', lastName: '', fiscalCode: '', birthDate: '',
-    phone: '', email: '', addressLine1: '', city: '', province: '', postalCode: '', notes: ''
+    phone: '', email: '', addressLine1: '', city: '', province: '', postalCode: '', notes: '',
+    primaryProviderId: ''
   };
 
   constructor(
     private route: ActivatedRoute,
     private patientService: PatientService,
+    private providerService: ProviderService,
     private appointmentService: AppointmentService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -84,6 +90,7 @@ export class PazienteDetailComponent implements OnInit {
     const apptId = this.route.snapshot.queryParamMap.get('appointmentId');
     if (tab) this.activeTab.set(tab as any);
     if (apptId) this.highlightApptId.set(apptId);
+    this.providerService.findAll().subscribe({ next: list => this.providers.set(list), error: () => {} });
     this.loadPatient(id);
     this.loadAppointments(id, apptId ?? null);
   }
@@ -100,7 +107,8 @@ export class PazienteDetailComponent implements OnInit {
       city: this.paziente.city ?? '',
       province: this.paziente.province ?? '',
       postalCode: this.paziente.postalCode ?? '',
-      notes: this.paziente.note ?? ''
+      notes: this.paziente.note ?? '',
+      primaryProviderId: this.paziente.primaryProviderId ?? ''
     };
     this.saveError.set(null);
     this.editAnagrafica.set(true);
@@ -298,6 +306,8 @@ export class PazienteDetailComponent implements OnInit {
       totalAppointments: d.totalAppointments,
       treatmentPlansCount: d.treatmentPlansCount,
       openTreatmentItemsCount: d.openTreatmentItemsCount,
+      primaryProviderId: d.primaryProviderId,
+      medicoRiferimento: d.primaryProviderName ?? '—',
     };
   }
 
