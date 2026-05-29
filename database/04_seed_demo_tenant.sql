@@ -275,7 +275,7 @@ DECLARE
     v_chair      text;
     v_start_t    time;
     v_end_t      time;
-    v_appt_status text;
+    v_appt_status dentalcare.appointment_status;
     v_slot_notes text;
     v_recall_id  uuid;
 
