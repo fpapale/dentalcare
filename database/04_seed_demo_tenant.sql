@@ -516,7 +516,7 @@ BEGIN
        1580.00, 0.00, 1580.00, 0.00, 1580.00, 'EUR'),
 
       (v_est8, v_clinic, v_p11, v_pr4, v_tp9,
-       'PRE-2024-0008', 1, 'proposed', 'Preventivo parodontologia - De Luca Roberto',
+       'PRE-2024-0008', 1, 'sent', 'Preventivo parodontologia - De Luca Roberto',
        'Piano parodontale completo in 4 sedute', CURRENT_DATE + 30,
        480.00, 0.00, 480.00, 0.00, 480.00, 'EUR');
 
