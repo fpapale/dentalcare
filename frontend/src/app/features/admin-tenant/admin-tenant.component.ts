@@ -14,7 +14,7 @@ import {
   TenantUserDto
 } from './admin-tenant.model';
 
-const AVAILABLE_ROLES = ['admin', 'doctor', 'hygienist', 'orthodontist', 'surgeon', 'assistant', 'other'] as const;
+const AVAILABLE_ROLES = ['admin', 'secretary', 'doctor', 'hygienist', 'orthodontist', 'surgeon', 'assistant', 'other'] as const;
 
 const emptyClinicForm = (): CreateTenantClinicRequest => ({ name: '', city: '', email: '' });
 const emptyUserForm = (): CreateTenantUserRequest => ({

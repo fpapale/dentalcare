@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { filter } from 'rxjs/operators';
@@ -38,16 +38,32 @@ export class App implements OnInit {
   providers = signal<Provider[]>([]);
   selectedKey = signal<string>('__secretary__');
 
-  navItems = [
-    { path: '/dashboard', icon: 'home', label: 'Dashboard' },
-    { path: '/segretaria', icon: 'forum', label: 'SegretarIA' },
-    { path: '/agenda', icon: 'event', label: 'Agenda' },
-    { path: '/pazienti', icon: 'folder_shared', label: 'Pazienti' },
-    { path: '/preventivi', icon: 'description', label: 'Preventivi' },
-    { path: '/fatturazione', icon: 'receipt_long', label: 'Fatturazione' },
-    { path: '/richiami', icon: 'notifications_active', label: 'Richiami' },
-    { path: '/magazzino', icon: 'inventory_2', label: 'Magazzino' },
-  ];
+  readonly showImpostazioni = computed(() => {
+    const r = this.userContext.authRole();
+    return r === 'admin';
+  });
+
+  readonly navItems = computed(() => {
+    const r = this.userContext.authRole();
+    if (r === 'admin' || r === 'tenant_admin') return [];
+    const secretaryItems = [
+      { path: '/agenda',      icon: 'event',               label: 'Agenda' },
+      { path: '/pazienti',    icon: 'folder_shared',       label: 'Pazienti' },
+      { path: '/preventivi',  icon: 'description',         label: 'Preventivi' },
+      { path: '/fatturazione',icon: 'receipt_long',        label: 'Fatturazione' },
+      { path: '/richiami',    icon: 'notifications_active',label: 'Richiami' },
+      { path: '/magazzino',   icon: 'inventory_2',         label: 'Magazzino' },
+    ];
+    const medicalItems = [
+      { path: '/agenda',       icon: 'event',                label: 'Agenda' },
+      { path: '/pazienti',     icon: 'folder_shared',        label: 'Pazienti' },
+      { path: '/preventivi',   icon: 'description',          label: 'Preventivi' },
+      { path: '/fatturazione', icon: 'receipt_long',         label: 'Fatturazione' },
+      { path: '/richiami',     icon: 'notifications_active', label: 'Richiami' },
+      { path: '/magazzino',    icon: 'inventory_2',          label: 'Magazzino' },
+    ];
+    return r === 'secretary' ? secretaryItems : medicalItems;
+  });
 
   private isPublic(url: string): boolean {
     return url.startsWith('/landing') || url.startsWith('/registrati') || url.startsWith('/features/') || url.startsWith('/login') || url.startsWith('/admin-tenant');

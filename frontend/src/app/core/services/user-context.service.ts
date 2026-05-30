@@ -3,9 +3,13 @@ import { AuthUser } from '../auth/auth.model';
 
 export type UserRole = 'secretary' | 'doctor' | 'hygienist' | 'admin';
 
+export const MEDICAL_JWT_ROLES = ['doctor', 'hygienist', 'orthodontist', 'surgeon', 'assistant', 'other'] as const;
+
 @Injectable({ providedIn: 'root' })
 export class UserContextService {
   readonly role = signal<UserRole>('doctor');
+  /** JWT role — set once on login, never changed by context switch */
+  readonly authRole = signal<string>('');
   readonly userName = signal('Dr. Verdi');
   readonly userInitials = signal('GV');
   readonly providerId = signal<string | null>(null);
@@ -39,8 +43,11 @@ export class UserContextService {
   }
 
   initFromAuth(user: AuthUser): void {
+    this.authRole.set(user.role);
+
     const mappedRole: UserRole =
       user.role === 'admin' || user.role === 'tenant_admin' ? 'admin'
+      : user.role === 'secretary' ? 'secretary'
       : user.role === 'hygienist' ? 'hygienist'
       : 'doctor';
 

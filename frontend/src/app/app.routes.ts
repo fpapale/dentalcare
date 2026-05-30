@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { tenantAdminGuard } from './core/guards/tenant-admin.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./features/login/login.component').then(m => m.LoginComponent) },
@@ -12,101 +13,122 @@ export const routes: Routes = [
   { path: 'features/magazzino', loadComponent: () => import('./features/public/magazzino-page/magazzino-page.component').then(m => m.MagazzinoPageComponent) },
   { path: 'features/richiami', loadComponent: () => import('./features/public/richiami-page/richiami-page.component').then(m => m.RichiamiPageComponent) },
   { path: '', redirectTo: 'landing', pathMatch: 'full' },
+
+  // dashboard: secretary + medical only
   {
     path: 'dashboard',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },
+  // SegretarIA AI: secretary only
   {
     path: 'segretaria',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary')],
     loadComponent: () => import('./features/segretaria/segretaria.component').then(m => m.SegretariaComponent)
   },
+
+  // AGENDA: secretary + medical
   {
     path: 'agenda',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/agenda/agenda.component').then(m => m.AgendaComponent)
   },
   {
     path: 'agenda/nuovo',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/agenda/nuovo-appuntamento/nuovo-appuntamento.component').then(m => m.NuovoAppuntamentoComponent)
   },
+
+  // PAZIENTI lista: secretary + medical
   {
     path: 'pazienti',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/pazienti/pazienti.component').then(m => m.PazientiComponent)
   },
+  // Nuovo paziente: solo secretary
   {
     path: 'pazienti/nuovo',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary')],
     loadComponent: () => import('./features/pazienti/nuovo-paziente/nuovo-paziente.component').then(m => m.NuovoPazienteComponent)
   },
+  // Scheda paziente (panoramica, richiami, preventivi da scheda): secretary + medical
   {
     path: 'pazienti/:id',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/pazienti/paziente-detail/paziente-detail.component').then(m => m.PazienteDetailComponent)
   },
+  // Cartella clinica: solo medical
   {
     path: 'pazienti/:id/nuova-visita',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('medical')],
     loadComponent: () => import('./features/pazienti/nuova-visita/nuova-visita.component').then(m => m.NuovaVisitaComponent)
   },
   {
     path: 'pazienti/:id/diagnosi',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('medical')],
     loadComponent: () => import('./features/pazienti/diagnosi/diagnosi.component').then(m => m.DiagnosiComponent)
   },
   {
     path: 'pazienti/:id/prescrizioni',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('medical')],
     loadComponent: () => import('./features/pazienti/prescrizioni/prescrizioni.component').then(m => m.PrescrizioniComponent)
   },
   {
     path: 'pazienti/:id/visita/:entryId',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('medical')],
     loadComponent: () => import('./features/pazienti/visita-detail/visita-detail.component').then(m => m.VisitaDetailComponent)
   },
   {
     path: 'pazienti/:id/piano-cura/:planId',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('medical')],
     loadComponent: () => import('./features/pazienti/piano-cura-detail/piano-cura-detail.component').then(m => m.PianoCuraDetailComponent)
   },
+
+  // PREVENTIVI: secretary + medical (backend filtra propri per medico)
   {
     path: 'preventivi',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/preventivi/preventivi.component').then(m => m.PreventiviComponent)
   },
   {
     path: 'preventivi/:estimateId',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/preventivi/preventivo-detail/preventivo-detail.component').then(m => m.PreventivoDetailComponent)
   },
+
+  // FATTURAZIONE: secretary + medical (backend filtra proprie per medico)
   {
     path: 'fatturazione',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/fatturazione/fatturazione.component').then(m => m.FatturazioneComponent)
   },
   {
     path: 'fatturazione/:invoiceId',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/fatturazione/fattura-detail/fattura-detail.component').then(m => m.FatturaDetailComponent)
   },
+
+  // IMPOSTAZIONI: solo admin
   {
     path: 'impostazioni',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('admin')],
     loadComponent: () => import('./features/impostazioni/impostazioni.component').then(m => m.ImpostazioniComponent)
   },
+
+  // RICHIAMI: secretary + medical (backend filtra propri per medico)
   {
     path: 'richiami',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/richiami/richiami.component').then(m => m.RichiamiComponent)
   },
+  // MAGAZZINO: secretary + medical
   {
     path: 'magazzino',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/magazzino/magazzino.component').then(m => m.MagazzinoComponent)
   },
+
+  // ADMIN TENANT: solo tenant_admin
   {
     path: 'admin-tenant',
     canActivate: [tenantAdminGuard],

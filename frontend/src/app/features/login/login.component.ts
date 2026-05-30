@@ -95,7 +95,9 @@ export class LoginComponent implements OnInit {
         this.changePwdError.set(null);
         return;
       }
-      const dest = res.role === 'tenant_admin' ? '/admin-tenant' : '/dashboard';
+      const dest = res.role === 'tenant_admin' ? '/admin-tenant'
+        : res.role === 'admin' ? '/impostazioni'
+        : '/agenda';
       this.router.navigate([dest]);
       return;
     }
@@ -132,8 +134,11 @@ export class LoginComponent implements OnInit {
           this.changePwdError.set(null);
           return;
         }
-        const isAdmin = option.isTenantAdmin || option.role === 'tenant_admin';
-        this.router.navigate([isAdmin ? '/admin-tenant' : '/dashboard']);
+        const role = option.role ?? '';
+        const dest = (option.isTenantAdmin || role === 'tenant_admin') ? '/admin-tenant'
+          : role === 'admin' ? '/impostazioni'
+          : '/agenda';
+        this.router.navigate([dest]);
       },
       error: (err: HttpErrorResponse) => {
         this.confirmingClinicId.set(null);
@@ -158,8 +163,11 @@ export class LoginComponent implements OnInit {
       next: () => {
         this.changePwdSaving.set(false);
         const u = this.auth.getCurrentUser();
-        const isAdmin = u?.role === 'tenant_admin' || u?.role === 'admin';
-        this.router.navigate([isAdmin ? '/admin-tenant' : '/dashboard']);
+        const role = u?.role ?? '';
+        const dest = role === 'tenant_admin' ? '/admin-tenant'
+          : role === 'admin' ? '/impostazioni'
+          : '/agenda';
+        this.router.navigate([dest]);
       },
       error: (err) => {
         this.changePwdSaving.set(false);

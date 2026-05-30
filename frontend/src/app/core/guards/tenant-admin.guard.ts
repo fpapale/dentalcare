@@ -6,7 +6,7 @@ export const tenantAdminGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const user = auth.getCurrentUser();
-  if (user && (user.role === 'tenant_admin' || user.role === 'admin')) {
+  if (user && user.role === 'tenant_admin') {
     return true;
   }
   return router.createUrlTree(['/dashboard']);
