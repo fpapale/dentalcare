@@ -4,6 +4,8 @@ import com.dentalcare.dto.*;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +15,7 @@ import java.sql.SQLException;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -24,7 +27,24 @@ public class InvoiceService {
         this.jdbc = jdbc;
     }
 
+    private static final Set<String> ADMIN_ROLES = Set.of("ROLE_ADMIN", "ROLE_TENANT_ADMIN", "ROLE_SECRETARY");
+
     private String s() { return TenantContext.validatedSchema(); }
+
+    /** Returns the JWT providerId of the caller, or null if not resolvable. */
+    private UUID callerProviderId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getPrincipal() == null) return null;
+        try { return UUID.fromString(auth.getPrincipal().toString()); } catch (IllegalArgumentException e) { return null; }
+    }
+
+    /** True when the caller is a medical role (doctor, hygienist, …) — must see only own records. */
+    private boolean callerIsMedical() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+                .noneMatch(a -> ADMIN_ROLES.contains(a.getAuthority()));
+    }
 
     // ── List ─────────────────────────────────────────────────────────────────
 
@@ -37,6 +57,10 @@ public class InvoiceService {
         if (status != null && !status.isBlank()) {
             filter.append(" AND i.status::text = :status");
             params.addValue("status", status);
+        }
+        // Medical users see only their own invoices regardless of request param
+        if (callerIsMedical()) {
+            providerId = callerProviderId();
         }
         if (providerId != null) {
             filter.append(" AND i.provider_id = :providerId");
@@ -64,6 +88,13 @@ public class InvoiceService {
     public InvoiceDetailDto findById(UUID invoiceId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
+        UUID callerId = callerIsMedical() ? callerProviderId() : null;
+        final String providerFilter = callerId != null ? " AND i.provider_id = :callerId" : "";
+        MapSqlParameterSource detailParams = new MapSqlParameterSource()
+                .addValue("id", invoiceId)
+                .addValue("clinicId", clinicId);
+        if (callerId != null) detailParams.addValue("callerId", callerId);
+
         String sql = """
             SELECT i.id, i.invoice_number, i.document_type::text, i.invoice_date, i.due_date,
                    i.status::text, i.issuer_type::text,
@@ -79,11 +110,10 @@ public class InvoiceService {
             FROM %s.invoices i
             LEFT JOIN %s.providers p ON p.id = i.provider_id AND p.clinic_id = i.clinic_id
             LEFT JOIN %s.estimates e ON e.id = i.estimate_id AND e.clinic_id = i.clinic_id
-            WHERE i.id = :id AND i.clinic_id = :clinicId
-            """.formatted(s(), s(), s());
+            WHERE i.id = :id AND i.clinic_id = :clinicId%s
+            """.formatted(s(), s(), s(), providerFilter);
 
-        List<InvoiceDetailDto> headers = jdbc.query(sql,
-                new MapSqlParameterSource().addValue("id", invoiceId).addValue("clinicId", clinicId),
+        List<InvoiceDetailDto> headers = jdbc.query(sql, detailParams,
                 (rs, n) -> mapDetailRow(rs, List.of()));
 
         if (headers.isEmpty()) return null;
