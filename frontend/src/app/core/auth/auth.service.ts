@@ -48,6 +48,7 @@ export class AuthService {
 
   private storeSession(res: LoginResponse): void {
     const user: AuthUser = {
+      email: res.email,
       providerId: res.providerId,
       clinicId: res.clinicId,
       role: res.role,
@@ -69,6 +70,7 @@ export class AuthService {
       throw new Error('Direct login response incomplete');
     }
     const user: AuthUser = {
+      email: res.email,
       providerId: res.providerId,
       clinicId: res.clinicId,
       role: res.role,
@@ -107,11 +109,40 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    this.clearAuthStorage();
+    this.clearAllCookies();
+    try { sessionStorage.clear(); } catch { /* ignore */ }
     this._currentUser.set(null);
     this._pendingChoose = null;
-    this.router.navigate(['/login']);
+    this.router.navigate(['/landing']);
+  }
+
+  /** Remove JWT + user from localStorage. Sweeps any stale dentalcare_* auth key,
+   *  preserving user preferences (app settings). */
+  private clearAuthStorage(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    try {
+      const keep = 'dentalcare_app_settings';
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('dentalcare_') && key !== keep) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  /** Expire every cookie visible to the app (logout cleanup). */
+  private clearAllCookies(): void {
+    const cookies = document.cookie ? document.cookie.split(';') : [];
+    for (const cookie of cookies) {
+      const name = cookie.split('=')[0].trim();
+      if (!name) continue;
+      const expire = 'Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = `${name}=; expires=${expire}; path=/`;
+      document.cookie = `${name}=; expires=${expire}; path=/; domain=${location.hostname}`;
+    }
   }
 
   isAuthenticated(): boolean {

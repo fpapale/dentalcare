@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, HostListener, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { filter } from 'rxjs/operators';
@@ -8,6 +8,8 @@ import { Provider } from './core/models/provider.model';
 import { LayoutService } from './core/services/layout.service';
 import { AuthService } from './core/auth/auth.service';
 import { ClinicSettingsService } from './core/services/clinic-settings.service';
+
+const DEMO_EMAIL = 'demo@demo.dentalcare.it';
 
 @Component({
   selector: 'app-root',
@@ -37,6 +39,51 @@ export class App implements OnInit {
 
   providers = signal<Provider[]>([]);
   selectedKey = signal<string>('__secretary__');
+  userMenuOpen = signal(false);
+
+  /** providerId of the currently authenticated user — used to detect a new login. */
+  private lastAuthProviderId: string | null = null;
+
+  readonly isDemoUser = computed(() => this.authService.currentUser()?.email === DEMO_EMAIL);
+
+  constructor() {
+    // Sync the displayed identity whenever the *logged-in* user changes (new login),
+    // independent of the operator filter (which updates userContext but not currentUser).
+    effect(() => {
+      const u = this.authService.currentUser();
+      if (u && u.providerId !== this.lastAuthProviderId) {
+        this.lastAuthProviderId = u.providerId;
+        this.userContext.initFromAuth(u);
+        this.selectedKey.set(u.providerId);
+        this.loadAppData();
+      }
+    }, { allowSignalWrites: true });
+  }
+
+  toggleUserMenu(event: Event): void {
+    event.stopPropagation();
+    this.userMenuOpen.update(v => !v);
+  }
+
+  closeUserMenu(): void {
+    this.userMenuOpen.set(false);
+  }
+
+  /** Close the operator menu on any click outside it. */
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.userMenuOpen()) this.userMenuOpen.set(false);
+  }
+
+  logout(): void {
+    this.closeUserMenu();
+    this.authService.logout();
+  }
+
+  goHome(): void {
+    const items = this.navItems();
+    if (items.length) this.router.navigate([items[0].path]);
+  }
 
   readonly showImpostazioni = computed(() => {
     const r = this.userContext.authRole();
@@ -47,6 +94,7 @@ export class App implements OnInit {
     const r = this.userContext.authRole();
     if (r === 'tenant_admin') return [];
     const allItems = [
+      { path: '/dashboard',    icon: 'dashboard',            label: 'Dashboard' },
       { path: '/agenda',       icon: 'event',                label: 'Agenda' },
       { path: '/pazienti',     icon: 'folder_shared',        label: 'Pazienti' },
       { path: '/preventivi',   icon: 'description',          label: 'Preventivi' },
@@ -62,21 +110,10 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
-    const user = this.authService.getCurrentUser();
-    if (user) {
-      this.userContext.initFromAuth(user);
-      this.selectedKey.set(user.providerId);
-      this.loadAppData();
-    }
+    // Identity sync is handled reactively by the effect in the constructor.
     this.isPublicRoute.set(this.isPublic(this.router.url));
     this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(e => {
-      const url = (e as NavigationEnd).urlAfterRedirects;
-      this.isPublicRoute.set(this.isPublic(url));
-      if (!this.isPublic(url) && this.providers().length === 0 && this.authService.isAuthenticated()) {
-        const u = this.authService.getCurrentUser();
-        if (u) { this.userContext.initFromAuth(u); this.selectedKey.set(u.providerId); }
-        this.loadAppData();
-      }
+      this.isPublicRoute.set(this.isPublic((e as NavigationEnd).urlAfterRedirects));
     });
   }
 

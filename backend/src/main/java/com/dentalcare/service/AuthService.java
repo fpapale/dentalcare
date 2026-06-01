@@ -282,6 +282,9 @@ public class AuthService {
         String lastName = (String) row.get("last_name");
         boolean mustChangePassword = Boolean.TRUE.equals(row.get("password_temporary"));
 
+        String storedEmail = (String) row.get("email");
+        String resolvedEmail = storedEmail != null ? storedEmail : email.toLowerCase();
+
         String tenantName = fetchTenantName(schemaName);
         String token = jwtService.generate(providerId, clinicUuid, schemaName, role, tenantName);
 
@@ -289,6 +292,7 @@ public class AuthService {
 
         return new LoginResponse(
                 token,
+                resolvedEmail,
                 providerId.toString(),
                 clinicUuid.toString(),
                 role,

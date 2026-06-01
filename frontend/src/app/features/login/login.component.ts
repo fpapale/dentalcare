@@ -96,8 +96,7 @@ export class LoginComponent implements OnInit {
         return;
       }
       const dest = res.role === 'tenant_admin' ? '/admin-tenant'
-        : res.role === 'admin' ? '/agenda'
-        : '/agenda';
+        : '/dashboard';
       this.router.navigate([dest]);
       return;
     }
@@ -136,8 +135,7 @@ export class LoginComponent implements OnInit {
         }
         const role = option.role ?? '';
         const dest = (option.isTenantAdmin || role === 'tenant_admin') ? '/admin-tenant'
-          : role === 'admin' ? '/agenda'
-          : '/agenda';
+          : '/dashboard';
         this.router.navigate([dest]);
       },
       error: (err: HttpErrorResponse) => {
@@ -165,8 +163,7 @@ export class LoginComponent implements OnInit {
         const u = this.auth.getCurrentUser();
         const role = u?.role ?? '';
         const dest = role === 'tenant_admin' ? '/admin-tenant'
-          : role === 'admin' ? '/agenda'
-          : '/agenda';
+          : '/dashboard';
         this.router.navigate([dest]);
       },
       error: (err) => {

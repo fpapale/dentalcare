@@ -6,6 +6,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  email: string;
   providerId: string;
   clinicId: string;
   role: string;
@@ -17,6 +18,7 @@ export interface LoginResponse {
 }
 
 export interface AuthUser {
+  email: string;
   providerId: string;
   clinicId: string;
   role: string;
