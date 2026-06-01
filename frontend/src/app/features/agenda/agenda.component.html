@@ -299,19 +299,24 @@
         <!-- Day columns -->
         @for (day of weekDays(); track day.getTime()) {
           <div class="flex-1 min-w-0 border-r border-slate-200 flex flex-col"
-            [class]="isWeekToday(day) ? 'bg-teal-50/30' : ''">
+            [class]="isWeekToday(day) ? 'bg-teal-50/30' : dayTint(day)">
 
             <!-- Day header -->
-            <div class="h-14 border-b border-slate-200 bg-white px-2 flex flex-col items-center justify-center sticky top-0 z-10 cursor-pointer hover:bg-slate-50 transition-colors"
-              [class]="isWeekToday(day) ? 'bg-teal-50' : ''"
+            <div class="h-14 border-b border-slate-200 px-2 flex flex-col items-center justify-center sticky top-0 z-10 cursor-pointer hover:bg-slate-50 transition-colors"
+              [class]="isWeekToday(day) ? 'bg-teal-50' : dayTint(day) || 'bg-white'"
+              [title]="holidayName(day)"
               (click)="navigateToDay(day)">
-              <span class="text-[10px] font-semibold text-slate-400 uppercase">
+              <span class="text-[10px] font-semibold uppercase"
+                [class]="isHoliday(day) ? 'text-rose-500' : isWeekend(day) ? 'text-slate-400' : 'text-slate-400'">
                 {{ day.toLocaleDateString('it-IT', {weekday: 'short'}) }}
               </span>
               <span class="text-lg font-black leading-tight"
-                [class]="isWeekToday(day) ? 'text-teal-600' : isWeekSelected(day) ? 'text-slate-800' : 'text-slate-600'">
+                [class]="isWeekToday(day) ? 'text-teal-600' : isHoliday(day) ? 'text-rose-600' : isWeekSelected(day) ? 'text-slate-800' : 'text-slate-600'">
                 {{ day.getDate() }}
               </span>
+              @if (isHoliday(day)) {
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-0.5"></span>
+              }
               @if (getAppointmentsForDay(day).length > 0) {
                 <span class="text-[9px] font-bold text-teal-500 mt-0.5">
                   {{ getAppointmentsForDay(day).length }} apt
@@ -374,6 +379,14 @@
             <span class="text-[10px] text-slate-500">{{ l.label }}</span>
           </div>
         }
+        <div class="flex items-center gap-1">
+          <div class="w-2.5 h-2.5 rounded-sm bg-rose-200"></div>
+          <span class="text-[10px] text-slate-500">Festivo</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <div class="w-2.5 h-2.5 rounded-sm bg-slate-200"></div>
+          <span class="text-[10px] text-slate-500">Weekend</span>
+        </div>
         <p class="text-[10px] text-slate-400 ml-auto">Clic su un giorno → prima settimana disponibile</p>
       </div>
 
@@ -393,13 +406,14 @@
             @for (day of week; track day.getTime()) {
               <div
                 (click)="isCurrentMonth(day) ? openMonthDay(day) : null"
+                [title]="holidayName(day)"
                 class="border-b border-slate-100 p-2 min-h-[90px] transition-colors"
-                [class]="isCurrentMonth(day) ? 'cursor-pointer hover:bg-teal-50' : 'bg-slate-50/50 cursor-default opacity-50'">
+                [class]="isCurrentMonth(day) ? (dayTint(day) ? dayTint(day) + ' cursor-pointer hover:brightness-95' : 'cursor-pointer hover:bg-teal-50') : 'bg-slate-50/50 cursor-default opacity-50'">
 
                 <!-- Day number -->
                 <div class="flex items-center justify-between mb-1.5">
                   <span class="text-xs font-bold flex items-center justify-center w-6 h-6 rounded-full"
-                    [class]="isTodayDate(day) ? 'bg-teal-600 text-white' : 'text-slate-600'">
+                    [class]="isTodayDate(day) ? 'bg-teal-600 text-white' : isHoliday(day) ? 'text-rose-600' : 'text-slate-600'">
                     {{ day.getDate() }}
                   </span>
                   @if (isCurrentMonth(day) && dayOccupancyCount(day) > 0) {

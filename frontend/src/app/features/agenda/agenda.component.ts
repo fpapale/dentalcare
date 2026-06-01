@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AppointmentService } from '../../core/services/appointment.service';
 import { UserContextService } from '../../core/services/user-context.service';
+import { HolidayService } from '../../core/services/holiday.service';
 import { Appointment } from '../../core/models/appointment.model';
 
 @Component({
@@ -15,6 +16,7 @@ import { Appointment } from '../../core/models/appointment.model';
 export class AgendaComponent {
   private readonly appointmentService = inject(AppointmentService);
   private readonly userContext = inject(UserContextService);
+  private readonly holidayService = inject(HolidayService);
 
   today = new Date();
   selectedDate = signal<Date>(new Date());
@@ -33,6 +35,10 @@ export class AgendaComponent {
   // Mini calendar picker
   calendarOpen = signal(false);
   calendarMonth = signal<Date>(new Date());
+
+  // Holidays (key 'YYYY-MM-DD' → name)
+  holidays = signal<Map<string, string>>(new Map());
+  private lastHolidayMonth = '';
 
   readonly role = this.userContext.role;
 
@@ -188,6 +194,22 @@ export class AgendaComponent {
       });
     });
 
+    // Holidays: fetch the full monthGrid range; refetch only when month changes
+    effect(() => {
+      const d = this.selectedDate();
+      const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+      if (monthKey === untracked(() => this.lastHolidayMonth)) return;
+      this.lastHolidayMonth = monthKey;
+      const grid = untracked(() => this.monthGrid());
+      const from = grid[0][0];
+      const last = grid[grid.length - 1];
+      const to = last[last.length - 1];
+      this.holidayService.findInRange(this.toIso(from), this.toIso(to)).subscribe({
+        next: list => this.holidays.set(new Map(list.map(h => [h.date, h.name]))),
+        error: () => {}
+      });
+    });
+
     // Reset on provider/role switch
     effect(() => {
       this.userContext.providerId();
@@ -236,6 +258,8 @@ export class AgendaComponent {
     if (selected) return 'bg-teal-600 text-white font-bold';
     if (today) return 'text-teal-600 font-bold ring-1 ring-teal-400 ring-inset';
     if (!sameMonth) return 'text-slate-300';
+    if (this.isHoliday(d)) return 'text-rose-600 bg-rose-50 hover:bg-rose-100';
+    if (this.isWeekend(d)) return 'text-slate-400 bg-slate-100 hover:bg-slate-200';
     return 'text-slate-700 hover:bg-slate-100';
   }
 
@@ -405,6 +429,27 @@ export class AgendaComponent {
     if (candidate > lastDay) candidate = new Date(year, month, 1);
     this.selectedDate.set(new Date(candidate));
     this.viewMode.set('settimana');
+  }
+
+  // ─── Weekend / holiday helpers ────────────────────────────────────────────
+
+  isWeekend(d: Date): boolean {
+    const dow = d.getDay();
+    return dow === 0 || dow === 6;
+  }
+
+  isHoliday(d: Date): boolean {
+    return this.holidays().has(this.toIso(d));
+  }
+
+  holidayName(d: Date): string | null {
+    return this.holidays().get(this.toIso(d)) ?? null;
+  }
+
+  dayTint(d: Date): string {
+    if (this.isHoliday(d)) return 'bg-rose-50 dark:bg-rose-900/20';
+    if (this.isWeekend(d)) return 'bg-slate-100 dark:bg-slate-900/40';
+    return '';
   }
 
   // ─── Common helpers ───────────────────────────────────────────────────────
