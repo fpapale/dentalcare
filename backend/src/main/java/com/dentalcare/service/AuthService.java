@@ -324,6 +324,36 @@ public class AuthService {
     }
 
     @Transactional
+    public boolean setDemoPassword(String email, String newPassword) {
+        if (!demoEnabled) return false;
+        List<Map<String, Object>> tenants = jdbc.queryForList(
+                "SELECT schema_name FROM dentalcare.tenants WHERE active = true");
+        for (Map<String, Object> tenant : tenants) {
+            String schema = (String) tenant.get("schema_name");
+            if (schema == null || !schema.matches(SCHEMA_PATTERN)) continue;
+            try {
+                List<Map<String, Object>> rows = namedJdbc.queryForList(
+                        "SELECT id, clinic_id FROM " + schema +
+                                ".providers WHERE lower(email) = lower(:email) AND active = true LIMIT 1",
+                        new MapSqlParameterSource("email", email));
+                if (!rows.isEmpty()) {
+                    UUID pid = (UUID) rows.get(0).get("id");
+                    UUID cid = (UUID) rows.get(0).get("clinic_id");
+                    namedJdbc.update(
+                            "UPDATE " + schema + ".providers SET password_hash = :hash, password_temporary = false, updated_at = now() WHERE id = :id AND clinic_id = :cid",
+                            new MapSqlParameterSource("hash", passwordEncoder.encode(newPassword))
+                                    .addValue("id", pid).addValue("cid", cid));
+                    log.info("Demo password set for email={}", email);
+                    return true;
+                }
+            } catch (Exception e) {
+                log.warn("setDemoPassword error for schema {}: {}", schema, e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    @Transactional
     public void forgotPassword(String email) {
         List<Map<String, Object>> tenants = jdbc.queryForList(
                 "SELECT schema_name FROM dentalcare.tenants WHERE active = true");

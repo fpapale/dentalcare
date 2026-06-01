@@ -45,16 +45,8 @@ export class App implements OnInit {
 
   readonly navItems = computed(() => {
     const r = this.userContext.authRole();
-    if (r === 'admin' || r === 'tenant_admin') return [];
-    const secretaryItems = [
-      { path: '/agenda',      icon: 'event',               label: 'Agenda' },
-      { path: '/pazienti',    icon: 'folder_shared',       label: 'Pazienti' },
-      { path: '/preventivi',  icon: 'description',         label: 'Preventivi' },
-      { path: '/fatturazione',icon: 'receipt_long',        label: 'Fatturazione' },
-      { path: '/richiami',    icon: 'notifications_active',label: 'Richiami' },
-      { path: '/magazzino',   icon: 'inventory_2',         label: 'Magazzino' },
-    ];
-    const medicalItems = [
+    if (r === 'tenant_admin') return [];
+    const allItems = [
       { path: '/agenda',       icon: 'event',                label: 'Agenda' },
       { path: '/pazienti',     icon: 'folder_shared',        label: 'Pazienti' },
       { path: '/preventivi',   icon: 'description',          label: 'Preventivi' },
@@ -62,7 +54,7 @@ export class App implements OnInit {
       { path: '/richiami',     icon: 'notifications_active', label: 'Richiami' },
       { path: '/magazzino',    icon: 'inventory_2',          label: 'Magazzino' },
     ];
-    return r === 'secretary' ? secretaryItems : medicalItems;
+    return allItems;
   });
 
   private isPublic(url: string): boolean {

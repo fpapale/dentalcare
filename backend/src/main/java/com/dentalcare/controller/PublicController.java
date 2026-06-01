@@ -72,4 +72,11 @@ public class PublicController {
     public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.email());
     }
+
+    /** Dev/demo only — setta password nota per un utente demo. Ignorato se demo mode off. */
+    @PostMapping("/demo/set-password")
+    public ResponseEntity<String> setDemoPassword(@RequestParam String email, @RequestParam String password) {
+        boolean ok = authService.setDemoPassword(email, password);
+        return ok ? ResponseEntity.ok("ok") : ResponseEntity.status(HttpStatus.FORBIDDEN).body("demo mode off or user not found");
+    }
 }

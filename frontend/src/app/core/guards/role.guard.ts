@@ -16,7 +16,7 @@ function categorize(jwtRole: string): RouteRole {
 }
 
 function defaultRoute(jwtRole: string): string {
-  if (jwtRole === 'admin') return '/impostazioni';
+  if (jwtRole === 'admin') return '/agenda';
   if (jwtRole === 'tenant_admin') return '/admin-tenant';
   return '/agenda';
 }
