@@ -39,6 +39,12 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("CONFLICT", ex.getMessage());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalArgument(IllegalArgumentException ex) {
+        return new ErrorResponse("BAD_REQUEST", ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidation(MethodArgumentNotValidException ex) {

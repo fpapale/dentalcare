@@ -53,6 +53,16 @@ export class ImpostazioniComponent implements OnInit {
     firstName: '', lastName: '', role: 'dentist', phone: '', email: ''
   };
 
+  togglingActive = signal(false);
+
+  // ── Riassegnazione pazienti ─────────────────────────────────────────────────
+  showReassign = signal(false);
+  reassignFrom = signal<Provider | null>(null);
+  reassignToId = signal<string>('');
+  reassigning = signal(false);
+  reassignError = signal<string | null>(null);
+  reassignResult = signal<string | null>(null);
+
   // ── Anagrafiche ────────────────────────────────────────────────────────────
   anagraficaSubTab = signal<'centri' | 'anamnesi'>('centri');
 
@@ -108,6 +118,7 @@ export class ImpostazioniComponent implements OnInit {
     { value: 'orthodontist', label: 'Ortodontista' },
     { value: 'surgeon',      label: 'Chirurgo' },
     { value: 'assistant',    label: 'Assistente' },
+    { value: 'secretary',    label: 'Segreteria' },
     { value: 'admin',        label: 'Amministratore' },
     { value: 'other',        label: 'Altro' },
   ];
@@ -280,6 +291,68 @@ export class ImpostazioniComponent implements OnInit {
     });
   }
 
+  toggleProviderActive(p: Provider): void {
+    if (p.active) {
+      const base = 'Disattivare il professionista? Non sara piu selezionabile.';
+      const warn = `Questo medico ha ${p.assignedPatientCount} pazienti assegnati. Conviene riassegnarli prima. Disattivare comunque?`;
+      const msg = p.assignedPatientCount > 0 ? warn : base;
+      if (!confirm(msg)) return;
+    }
+    this.togglingActive.set(true);
+    this.providerService.setActive(p.providerId, !p.active).subscribe({
+      next: () => {
+        this.togglingActive.set(false);
+        const updated = { ...p, active: !p.active };
+        this.providers.update(list => list.map(x => x.providerId === p.providerId ? updated : x));
+        if (this.selectedProvider()?.providerId === p.providerId) {
+          this.selectedProvider.set(updated);
+          this.profileForm = { ...this.profileForm, active: updated.active };
+        }
+      },
+      error: () => this.togglingActive.set(false)
+    });
+  }
+
+  reassignTargets(): Provider[] {
+    const fromId = this.reassignFrom()?.providerId ?? null;
+    return this.providers().filter(p => p.active && p.role !== 'tenant_admin' && p.providerId !== fromId);
+  }
+
+  openReassign(from: Provider | null): void {
+    this.reassignFrom.set(from);
+    this.reassignToId.set('');
+    this.reassignError.set(null);
+    this.reassignResult.set(null);
+    this.showReassign.set(true);
+  }
+
+  closeReassign(): void {
+    this.showReassign.set(false);
+    this.reassignFrom.set(null);
+    this.reassignToId.set('');
+    this.reassignError.set(null);
+    this.reassignResult.set(null);
+  }
+
+  confirmReassign(): void {
+    const toId = this.reassignToId();
+    if (!toId) return;
+    const fromId = this.reassignFrom()?.providerId ?? null;
+    this.reassigning.set(true);
+    this.reassignError.set(null);
+    this.providerService.reassignPatients(fromId, toId).subscribe({
+      next: res => {
+        this.reassigning.set(false);
+        this.reassignResult.set(`${res.reassignedCount} pazienti riassegnati`);
+        this.loadProviders();
+      },
+      error: err => {
+        this.reassigning.set(false);
+        this.reassignError.set(err?.error?.message || 'Riassegnazione non valida. Verifica il professionista di destinazione.');
+      }
+    });
+  }
+
   roleLabel(role: string): string {
     return this.providerRoles.find(r => r.value === role)?.label ?? role;
   }
@@ -291,6 +364,7 @@ export class ImpostazioniComponent implements OnInit {
       case 'orthodontist': return 'bg-purple-100 text-purple-700';
       case 'surgeon':      return 'bg-red-100 text-red-700';
       case 'assistant':    return 'bg-amber-100 text-amber-700';
+      case 'secretary':    return 'bg-pink-100 text-pink-700';
       case 'admin':        return 'bg-slate-100 text-slate-700';
       default:             return 'bg-gray-100 text-gray-600';
     }

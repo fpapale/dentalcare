@@ -2,6 +2,8 @@ package com.dentalcare.controller;
 
 import com.dentalcare.dto.CreateProviderRequest;
 import com.dentalcare.dto.ProviderDto;
+import com.dentalcare.dto.ReassignPatientsRequest;
+import com.dentalcare.dto.ReassignResult;
 import com.dentalcare.dto.UpdatePhotoRequest;
 import com.dentalcare.dto.UpdateProviderBillingRequest;
 import com.dentalcare.dto.UpdateProviderProfileRequest;
@@ -44,6 +46,18 @@ public class ProviderController {
     public void updateProfile(@PathVariable UUID id,
                               @Valid @RequestBody UpdateProviderProfileRequest request) {
         providerService.updateProfile(id, request);
+    }
+
+    @PostMapping("/reassign-patients")
+    public ReassignResult reassignPatients(@Valid @RequestBody ReassignPatientsRequest request) {
+        int count = providerService.reassignPatients(request.fromProviderId(), request.toProviderId());
+        return new ReassignResult(count);
+    }
+
+    @PatchMapping("/{id}/status")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setActive(@PathVariable UUID id, @RequestParam boolean active) {
+        providerService.setActive(id, active);
     }
 
     @DeleteMapping("/{id}")

@@ -125,6 +125,10 @@
             class="w-full flex items-center gap-2 justify-center py-2 bg-teal-600 text-white text-sm font-bold rounded-xl hover:bg-teal-700 transition-colors">
             <span class="material-symbols-outlined text-[18px]">person_add</span> Nuovo Professionista
           </button>
+          <button (click)="openReassign(null)"
+            class="w-full flex items-center gap-2 justify-center py-2 bg-white text-slate-600 border border-slate-200 text-xs font-semibold rounded-xl hover:border-slate-300 transition-colors">
+            <span class="material-symbols-outlined text-[16px]">person_off</span> Pazienti senza medico
+          </button>
           @if (loadingProviders()) {
             <div class="flex items-center justify-center h-24">
               <div class="w-6 h-6 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
@@ -146,6 +150,11 @@
                   <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[11px] font-semibold" [class]="roleColor(p.role)">
                     {{ roleLabel(p.role) }}
                   </span>
+                  @if (p.assignedPatientCount > 0) {
+                    <span class="inline-flex items-center gap-0.5 mt-1 ml-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-500">
+                      <span class="material-symbols-outlined text-[12px]">groups</span>{{ p.assignedPatientCount }} pazienti
+                    </span>
+                  }
                 </button>
               }
             </div>
@@ -181,10 +190,27 @@
                     <p class="text-xs text-slate-400 mt-0.5">Nome, ruolo, contatti, stato</p>
                   </div>
                 </div>
-                <button (click)="deleteProvider(selectedProvider()!)" [disabled]="deletingProvider()"
-                  class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors">
-                  <span class="material-symbols-outlined text-[14px]">delete</span> Elimina
-                </button>
+                <div class="flex items-center gap-2">
+                  <button (click)="openReassign(selectedProvider()!)"
+                    class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                    <span class="material-symbols-outlined text-[14px]">swap_horiz</span> Riassegna pazienti
+                  </button>
+                  @if (selectedProvider()!.active) {
+                    <button (click)="toggleProviderActive(selectedProvider()!)" [disabled]="togglingActive()"
+                      class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-amber-600 border border-amber-200 rounded-lg hover:bg-amber-50 disabled:opacity-50 transition-colors">
+                      <span class="material-symbols-outlined text-[14px]">block</span> Disattiva
+                    </button>
+                  } @else {
+                    <button (click)="toggleProviderActive(selectedProvider()!)" [disabled]="togglingActive()"
+                      class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-green-600 border border-green-200 rounded-lg hover:bg-green-50 disabled:opacity-50 transition-colors">
+                      <span class="material-symbols-outlined text-[14px]">check_circle</span> Riattiva
+                    </button>
+                  }
+                  <button (click)="deleteProvider(selectedProvider()!)" [disabled]="deletingProvider()"
+                    class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors">
+                    <span class="material-symbols-outlined text-[14px]">delete</span> Elimina
+                  </button>
+                </div>
               </div>
               <div class="grid grid-cols-1 gap-4">
                 <div class="grid grid-cols-2 gap-4">
@@ -373,6 +399,57 @@
               </button>
               <button (click)="showNewProvider.set(false)" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
                 Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Modal: Riassegna pazienti -->
+      @if (showReassign()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-bold text-slate-800 text-lg">Riassegna pazienti</h2>
+              <button (click)="closeReassign()" class="text-slate-400 hover:text-slate-600">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="space-y-3">
+              <p class="text-sm text-slate-500">
+                @if (reassignFrom()) {
+                  Sposta i pazienti da <span class="font-semibold text-slate-700">{{ reassignFrom()!.fullName }}</span>
+                  ({{ reassignFrom()!.assignedPatientCount }} pazienti) a un altro professionista.
+                } @else {
+                  Assegna i <span class="font-semibold text-slate-700">pazienti senza medico</span> a un professionista.
+                }
+              </p>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Professionista di destinazione *</label>
+                <select [ngModel]="reassignToId()" (ngModelChange)="reassignToId.set($event)"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                  <option value="" disabled>Seleziona...</option>
+                  @for (p of reassignTargets(); track p.providerId) {
+                    <option [value]="p.providerId">{{ p.fullName }} — {{ roleLabel(p.role) }}</option>
+                  }
+                </select>
+              </div>
+              @if (reassignError()) {
+                <p class="text-sm text-red-600 font-semibold">{{ reassignError() }}</p>
+              }
+              @if (reassignResult()) {
+                <p class="text-sm text-green-600 font-semibold flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[16px]">check_circle</span>{{ reassignResult() }}
+                </p>
+              }
+            </div>
+            <div class="flex gap-3 mt-5">
+              <button (click)="confirmReassign()" [disabled]="reassigning() || !reassignToId()"
+                class="flex-1 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
+                {{ reassigning() ? 'Riassegnazione...' : 'Riassegna' }}
+              </button>
+              <button (click)="closeReassign()" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">
+                {{ reassignResult() ? 'Chiudi' : 'Annulla' }}
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Provider, CreateProviderRequest, UpdateProviderProfileRequest } from '../models/provider.model';
@@ -36,5 +36,15 @@ export class ProviderService {
 
   updatePhoto(id: string, photoDataUrl: string): Observable<void> {
     return this.http.put<void>(`${this.base}/${id}/photo`, { photoDataUrl });
+  }
+
+  setActive(id: string, active: boolean): Observable<void> {
+    return this.http.patch<void>(`${this.base}/${id}/status`, null, {
+      params: new HttpParams().set('active', active)
+    });
+  }
+
+  reassignPatients(fromProviderId: string | null, toProviderId: string): Observable<{ reassignedCount: number }> {
+    return this.http.post<{ reassignedCount: number }>(`${this.base}/reassign-patients`, { fromProviderId, toProviderId });
   }
 }

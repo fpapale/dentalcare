@@ -20,6 +20,7 @@ export interface Provider {
   billingSdiCode: string | null;
   invoicePrefix: string | null;
   photoUrl?: string | null;
+  assignedPatientCount: number;
 }
 
 export interface CreateProviderRequest {

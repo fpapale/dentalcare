@@ -35,8 +35,10 @@ public class ProviderService {
                    role, phone, email, active,
                    vat_number, fiscal_code, professional_register, register_number,
                    billing_address_street, billing_address_zip, billing_address_city, billing_address_province,
-                   billing_pec, billing_iban, billing_sdi_code, invoice_prefix, photo_url
-            FROM %s.providers
+                   billing_pec, billing_iban, billing_sdi_code, invoice_prefix, photo_url,
+                   (SELECT count(*) FROM %1$s.patients pt
+                     WHERE pt.primary_provider_id = providers.id AND pt.clinic_id = :clinicId) AS assigned_patient_count
+            FROM %1$s.providers
             WHERE clinic_id = :clinicId
               AND (:activeOnly = false OR active = true)
               AND role != CAST('tenant_admin' AS dentalcare.provider_role)
@@ -57,8 +59,10 @@ public class ProviderService {
                    role, phone, email, active,
                    vat_number, fiscal_code, professional_register, register_number,
                    billing_address_street, billing_address_zip, billing_address_city, billing_address_province,
-                   billing_pec, billing_iban, billing_sdi_code, invoice_prefix, photo_url
-            FROM %s.providers
+                   billing_pec, billing_iban, billing_sdi_code, invoice_prefix, photo_url,
+                   (SELECT count(*) FROM %1$s.patients pt
+                     WHERE pt.primary_provider_id = providers.id AND pt.clinic_id = :clinicId) AS assigned_patient_count
+            FROM %1$s.providers
             WHERE id = :id AND clinic_id = :clinicId
             """.formatted(s());
         List<ProviderDto> rows = jdbc.query(sql,
@@ -118,6 +122,62 @@ public class ProviderService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("DELETE FROM " + s() + ".providers WHERE id = :id AND clinic_id = :clinicId",
             new MapSqlParameterSource()
+                .addValue("id", providerId)
+                .addValue("clinicId", clinicId));
+    }
+
+    /** Reassign all patients from one provider (or orphans when fromProviderId is null)
+     *  to an active, non-admin provider in the current clinic. */
+    @Transactional
+    public int reassignPatients(UUID fromProviderId, UUID toProviderId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+
+        if (toProviderId == null) {
+            throw new IllegalArgumentException("Target provider is required");
+        }
+        if (toProviderId.equals(fromProviderId)) {
+            throw new IllegalArgumentException("Target provider must differ from source provider");
+        }
+
+        List<Boolean> targetState = jdbc.query(
+                "SELECT active, role = CAST('tenant_admin' AS dentalcare.provider_role) AS is_admin "
+                        + "FROM " + s() + ".providers WHERE id = :id AND clinic_id = :clinicId",
+                new MapSqlParameterSource().addValue("id", toProviderId).addValue("clinicId", clinicId),
+                (rs, n) -> rs.getBoolean("active") && !rs.getBoolean("is_admin"));
+        if (targetState.isEmpty()) {
+            throw new IllegalArgumentException("Target provider not found");
+        }
+        if (!targetState.get(0)) {
+            throw new IllegalArgumentException("Target provider must be active and not a tenant admin");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("toId", toProviderId)
+                .addValue("clinicId", clinicId);
+
+        String sql;
+        if (fromProviderId == null) {
+            sql = "UPDATE " + s() + ".patients SET primary_provider_id = :toId, updated_at = now() "
+                    + "WHERE clinic_id = :clinicId AND primary_provider_id IS NULL";
+        } else {
+            sql = "UPDATE " + s() + ".patients SET primary_provider_id = :toId, updated_at = now() "
+                    + "WHERE clinic_id = :clinicId AND primary_provider_id = :fromId";
+            params.addValue("fromId", fromProviderId);
+        }
+        return jdbc.update(sql, params);
+    }
+
+    /** Soft activate/deactivate a provider in the current clinic. */
+    @Transactional
+    public void setActive(UUID providerId, boolean active) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update("""
+            UPDATE %s.providers
+            SET active = :active, updated_at = now()
+            WHERE id = :id AND clinic_id = :clinicId
+            """.formatted(s()),
+            new MapSqlParameterSource()
+                .addValue("active", active)
                 .addValue("id", providerId)
                 .addValue("clinicId", clinicId));
     }
@@ -182,7 +242,8 @@ public class ProviderService {
                 rs.getString("billing_iban"),
                 rs.getString("billing_sdi_code"),
                 rs.getString("invoice_prefix"),
-                rs.getString("photo_url")
+                rs.getString("photo_url"),
+                rs.getInt("assigned_patient_count")
         );
     }
 
