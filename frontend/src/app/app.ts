@@ -52,17 +52,6 @@ export class App implements OnInit {
       error: () => {}
     });
 
-    // When demo mode is detected after login (async), switch admin persona to secretary.
-    effect(() => {
-      if (this.demoEnabled() && this.userContext.authRole() === 'admin'
-          && this.userContext.role() === 'admin') {
-        untracked(() => {
-          this.selectedKey.set('__secretary__');
-          this.userContext.setRole('secretary');
-        });
-      }
-    }, { allowSignalWrites: true });
-
     // Sync the displayed identity whenever the *logged-in* user changes (new login),
     // independent of the operator filter (which updates userContext but not currentUser).
     effect(() => {
@@ -107,8 +96,7 @@ export class App implements OnInit {
   }
 
   readonly showImpostazioni = computed(() => {
-    const r = this.userContext.authRole();
-    return r === 'admin';
+    return this.userContext.role() === 'admin';
   });
 
   readonly navItems = computed(() => {
