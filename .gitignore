@@ -50,3 +50,6 @@ backend/fakesmtp/
 
 # Claude internal
 .claude/
+
+# Credenziali locali — non committare
+credentials/

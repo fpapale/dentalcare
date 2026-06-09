@@ -1,6 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChatService } from '../../core/services/chat.service';
 
 interface Message {
   role: 'user' | 'ai';
@@ -24,27 +26,13 @@ interface Call {
   styleUrl: './segretaria.component.css'
 })
 export class SegretariaComponent {
+  private readonly chatService = inject(ChatService);
+  private readonly destroyRef = inject(DestroyRef);
+
   inputText = '';
   isTyping = signal(false);
 
-  messages = signal<Message[]>([
-    {
-      role: 'user',
-      text: 'Mostrami gli appuntamenti di oggi del dottor Verdi.',
-      time: '10:42'
-    },
-    {
-      role: 'ai',
-      text: 'Certamente Giulia. Ecco la lista degli appuntamenti previsti per oggi per il Dottor Verdi presso lo studio di Roma. Ci sono 4 visite confermate e 1 in attesa di conferma telefonica.',
-      time: 'Ora',
-      table: [
-        { ora: '09:00', paziente: 'Marco Rossi', prestazione: 'Igiene dentale', stato: 'ARRIVATO' },
-        { ora: '10:30', paziente: 'Simona Verdi', prestazione: 'Controllo ortodonzia', stato: 'IN SALA' },
-        { ora: '11:15', paziente: 'Luca Bianchi', prestazione: 'Estrazione', stato: 'CONFERMATO' },
-        { ora: '12:00', paziente: 'Elena Neri', prestazione: 'Prima visita', stato: 'IN ATTESA' },
-      ]
-    }
-  ]);
+  messages = signal<Message[]>([]);
 
   calls = signal<Call[]>([
     { name: '+39 342 *** 90', snippet: '"Vorrei spostare l\'igiene..."', time: '10:15', handled: false },
@@ -64,22 +52,38 @@ export class SegretariaComponent {
     'Prossimo slot disponibile chirurgia',
   ];
 
+  private currentTime(): string {
+    const now = new Date();
+    return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+  }
+
   sendMessage() {
     const text = this.inputText.trim();
     if (!text) return;
-    const now = new Date();
-    const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
-    this.messages.update(msgs => [...msgs, { role: 'user', text, time }]);
+
+    this.messages.update(msgs => [...msgs, { role: 'user', text, time: this.currentTime() }]);
     this.inputText = '';
     this.isTyping.set(true);
-    setTimeout(() => {
-      this.isTyping.set(false);
-      this.messages.update(msgs => [...msgs, {
-        role: 'ai',
-        text: 'Sto elaborando la tua richiesta. Un momento...',
-        time: 'Ora'
-      }]);
-    }, 1200);
+
+    const history = this.messages().slice(0, -1).map(m => ({
+      role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+      content: m.text
+    }));
+
+    this.chatService.send(text, history).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: response => {
+        this.isTyping.set(false);
+        this.messages.update(msgs => [...msgs, { role: 'ai', text: response.text, time: this.currentTime() }]);
+      },
+      error: () => {
+        this.isTyping.set(false);
+        this.messages.update(msgs => [...msgs, {
+          role: 'ai',
+          text: 'Si è verificato un errore. Riprova più tardi.',
+          time: this.currentTime()
+        }]);
+      }
+    });
   }
 
   usePrompt(p: string) {

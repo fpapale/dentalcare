@@ -381,29 +381,72 @@ Base URL: `http://localhost:8080/api`
 ### SegretarIA (AI Chat)
 | Metodo | Endpoint | Descrizione |
 |---|---|---|
-| POST | `/chat` | Endpoint tool-layer per agente Retell AI |
+| POST | `/chat` | Chat AI con tool calling (appuntamenti, pazienti, preventivi, fatture) |
+| POST | `/public/service-token` | JWT per service account n8n (header `X-N8N-Key`) |
 
 ---
 
 ## Autenticazione e multitenancy
 
-In sviluppo è attivo un **MockJwtAuthenticationFilter** che inietta automaticamente:
-- `clinic_id` dal header `X-Clinic-Id` (o default dalla prima clinica)
-- `provider_id` dal header `X-Provider-Id` (opzionale)
-- `role` dal header `X-Role` (`admin` | `doctor` | `hygienist`)
+Autenticazione JWT in due fasi:
 
-Ogni service accede al tenant corrente via `TenantContext.getCurrentTenant()`.
+1. `POST /api/public/login` → restituisce token pre-auth con `providerId` e `clinicId`
+2. `POST /api/public/login/confirm` → conferma con OTP o secondo fattore → JWT finale
 
-In produzione sostituire il mock con autenticazione JWT reale e derivare `clinic_id` dal token.
+Il JWT contiene: `sub` (userId), `role`, `providerId`, `clinicId`.
+
+Il filtro `JwtAuthenticationFilter` valida il token e popola `TenantContext` con lo schema corretto. Ogni service usa `TenantContext.validatedSchema()` per isolare i dati per tenant.
+
+**Ruoli:** `TENANT_ADMIN` | `DOCTOR` | `HYGIENIST` | `SECRETARY`
+
+### n8n Service Account
+
+n8n si autentica tramite `POST /api/public/service-token` con header `X-N8N-Key`. Il backend verifica la chiave pre-condivisa (`app.n8n.service-key`) e restituisce un JWT admin temporaneo.
 
 ---
 
-## SegretarIA — Agente vocale AI
+## SegretarIA — Agente vocale AI + Chat
 
-Agente Retell AI configurato per:
-- risposta telefonica automatica
-- prenotazione, modifica e cancellazione appuntamenti in linguaggio naturale
-- integrazione con le API REST del backend (`/api/chat`)
+### Chat AI (console web)
+
+La schermata SegretarIA integra una chat AI con accesso diretto al gestionale.
+
+**Endpoint:** `POST /api/chat` (richiede JWT)
+
+```json
+{
+  "message": "Appuntamenti di oggi del Dottor Rossi?",
+  "history": [{ "role": "user", "content": "..." }, { "role": "assistant", "content": "..." }]
+}
+```
+
+**Tool disponibili (Spring AI @Tool, scope tenant-safe):**
+
+| Tool | Descrizione |
+|---|---|
+| `getAppointments` | Agenda per data/range/provider |
+| `searchPatients` | Ricerca pazienti per nome/telefono/email |
+| `getPatientDetail` | Dettaglio paziente per UUID |
+| `getEstimates` | Preventivi per stato/paziente |
+| `getRecalls` | Richiami per stato/priorità/paziente |
+| `getInvoices` | Fatture per stato |
+| `getDashboard` | KPI clinica |
+| `getProviders` | Provider attivi |
+
+Modello configurabile: `app.ai.model=gpt-4o` (supporta qualsiasi modello OpenAI).
+
+### Agente vocale (Retell AI + n8n)
+
+Agente "SegretarIA DentalCare Pro" — voce italiana, gestisce telefonate in entrata:
+
+| Azione | Webhook n8n |
+|---|---|
+| Verifica disponibilità | `/webhook/025d2642-...` |
+| Prenota appuntamento | `/webhook/c5fe63ef-...` |
+| Modifica appuntamento | `/webhook/68afe57d-...` |
+| Cancella appuntamento (doppia conferma) | `/webhook/677109b2-...` |
+
+n8n si autentica verso le REST API tramite `POST /api/public/service-token`.
 
 Configurazioni agente in `Segretaria/` (formato JSON Retell AI).
 
@@ -413,14 +456,15 @@ Configurazioni agente in `Segretaria/` (formato JSON Retell AI).
 
 | Layer | Tecnologia |
 |---|---|
-| Frontend | Angular 21, TypeScript 5.9, Tailwind CSS |
-| Backend | Spring Boot 3.5, Java 25, Spring Security |
-| Persistenza | NamedParameterJdbcTemplate (no ORM attivo) + JPA entities |
-| Database | PostgreSQL 17 |
-| Build frontend | Angular CLI 21, Vite |
+| Frontend | Angular 19, TypeScript, Tailwind CSS |
+| Backend | Spring Boot 3.5, Java 21, Spring Security |
+| Persistenza | Spring Data JPA / Hibernate + NamedParameterJdbcTemplate |
+| Database | PostgreSQL 15+ |
+| Build frontend | Angular CLI, Vite |
 | Build backend | Maven 3 / mvnw |
 | API Docs | SpringDoc OpenAPI (Swagger UI) |
-| AI | Retell AI (agente vocale) |
+| AI Chat | Spring AI 1.0.0, OpenAI (modello configurabile via `app.ai.model`) |
+| Agente vocale | Retell AI + n8n |
 
 ---
 

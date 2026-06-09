@@ -1,50 +1,26 @@
 package com.dentalcare.controller;
 
-import com.dentalcare.service.ToolLayerService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
+import com.dentalcare.dto.ChatRequest;
+import com.dentalcare.dto.ChatResponse;
+import com.dentalcare.service.ChatService;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {
 
-    private final ToolLayerService toolLayerService;
+    private final ChatService chatService;
 
-    public ChatController(ToolLayerService toolLayerService) {
-        this.toolLayerService = toolLayerService;
+    public ChatController(ChatService chatService) {
+        this.chatService = chatService;
     }
 
-    @PostMapping("/message")
-    public ResponseEntity<Map<String, Object>> sendMessage(@RequestBody Map<String, String> request) {
-        String message = request.getOrDefault("message", "").toLowerCase();
-        
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            // Mock AI Orchestrator behavior based on keywords
-            if (message.contains("agenda") || message.contains("appuntamenti")) {
-                Map<String, Object> data = toolLayerService.getTodayAgenda(null, LocalDate.now());
-                response.put("text", "Ecco l'agenda di oggi:");
-                response.put("data", data);
-                response.put("intent", "get_today_agenda");
-            } else if (message.contains("paziente") || message.contains("rossi")) {
-                Map<String, Object> data = toolLayerService.getPatientSummary("Mario Rossi");
-                response.put("text", "Ho trovato il paziente richiesto:");
-                response.put("data", data);
-                response.put("intent", "get_patient_summary");
-            } else {
-                response.put("text", "Non sono sicuro di come aiutarti con questa richiesta. Puoi chiedermi dell'agenda o di un paziente.");
-                response.put("intent", "unknown");
-            }
-        } catch (SecurityException ex) {
-            response.put("text", ex.getMessage());
-            response.put("error", true);
-        }
-
-        return ResponseEntity.ok(response);
+    @PostMapping
+    public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
+        return chatService.chat(request);
     }
 }
