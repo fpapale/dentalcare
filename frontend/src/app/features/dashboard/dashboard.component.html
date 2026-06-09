@@ -131,7 +131,7 @@
 
         <!-- Filtri stato -->
         <div class="flex items-center gap-1.5 shrink-0">
-          @for (f of [['confirmed','Confermato','bg-blue-500'],['presente','Presente','bg-teal-500']]; track f[0]) {
+          @for (f of [['scheduled','Programmato','bg-yellow-500'],['confirmed','Confermato','bg-blue-500'],['presente','Presente','bg-teal-500']]; track f[0]) {
             <button (click)="toggleFilter(f[0])"
               class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border transition-colors"
               [class]="isFilterActive(f[0])

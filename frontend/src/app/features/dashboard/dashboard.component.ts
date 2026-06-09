@@ -28,7 +28,7 @@ export class DashboardComponent {
   error        = signal<string | null>(null);
   hoveredAppt      = signal<Appointment | null>(null);
   apptPage         = signal(0);
-  apptStatusFilter = signal<string[]>(['confirmed', 'presente']);
+  apptStatusFilter = signal<string[]>(['scheduled', 'confirmed', 'presente']);
   readonly pageSize = computed(() => this.appSettings.get().dashboardApptPageSize);
 
   readonly role = this.userContext.role;
