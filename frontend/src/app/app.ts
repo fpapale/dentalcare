@@ -116,13 +116,13 @@ export class App implements OnInit {
     if (this.userContext.authRole() === 'tenant_admin') return [];
     const allItems = [
       { path: '/dashboard',    icon: 'dashboard',            label: 'Dashboard' },
+      ...(r === 'secretary' ? [{ path: '/segretaria', icon: 'smart_toy', label: 'Segreteria AI' }] : []),
       { path: '/agenda',       icon: 'event',                label: 'Agenda' },
       { path: '/pazienti',     icon: 'folder_shared',        label: 'Pazienti' },
       { path: '/preventivi',   icon: 'description',          label: 'Preventivi' },
       { path: '/fatturazione', icon: 'receipt_long',         label: 'Fatturazione' },
       { path: '/richiami',     icon: 'notifications_active', label: 'Richiami' },
       { path: '/magazzino',    icon: 'inventory_2',          label: 'Magazzino' },
-      ...(r === 'secretary' ? [{ path: '/segretaria', icon: 'smart_toy', label: 'Segreteria AI' }] : []),
     ];
     return allItems;
   });
