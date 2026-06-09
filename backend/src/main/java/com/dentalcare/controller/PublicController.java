@@ -8,6 +8,7 @@ import com.dentalcare.dto.LoginPreflightResponse;
 import com.dentalcare.dto.LoginResponse;
 import com.dentalcare.dto.RegistrationRequest;
 import com.dentalcare.dto.RegistrationResponse;
+import com.dentalcare.dto.ServiceTokenResponse;
 import com.dentalcare.dto.TenantProvisioningResult;
 import com.dentalcare.service.AuthService;
 import com.dentalcare.service.TenantProvisioningService;
@@ -65,6 +66,12 @@ public class PublicController {
     @GetMapping("/demo-config")
     public ResponseEntity<DemoConfigResponse> demoConfig() {
         return ResponseEntity.ok(authService.demoConfig());
+    }
+
+    @PostMapping("/service-token")
+    public ResponseEntity<ServiceTokenResponse> serviceToken(
+            @RequestHeader("X-N8N-Key") String apiKey) {
+        return ResponseEntity.ok(authService.serviceToken(apiKey));
     }
 
     @PostMapping("/forgot-password")

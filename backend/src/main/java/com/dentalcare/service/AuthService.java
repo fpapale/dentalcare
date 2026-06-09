@@ -7,6 +7,7 @@ import com.dentalcare.dto.LoginPreflightRequest;
 import com.dentalcare.dto.LoginPreflightResponse;
 import com.dentalcare.dto.LoginRequest;
 import com.dentalcare.dto.LoginResponse;
+import com.dentalcare.dto.ServiceTokenResponse;
 import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.JwtService;
 import com.dentalcare.security.TenantContext;
@@ -54,6 +55,15 @@ public class AuthService {
     @Value("${app.demo.password:}")
     private String demoPassword;
 
+    @Value("${app.n8n.service-key:}")
+    private String n8nServiceKey;
+
+    @Value("${app.n8n.admin-email:${app.demo.email:}}")
+    private String n8nAdminEmail;
+
+    @Value("${app.n8n.admin-password:${app.demo.password:}}")
+    private String n8nAdminPassword;
+
     public AuthService(JdbcTemplate jdbc,
                        NamedParameterJdbcTemplate namedJdbc,
                        JwtService jwtService,
@@ -66,6 +76,15 @@ public class AuthService {
         this.registry = registry;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+    }
+
+    public ServiceTokenResponse serviceToken(String providedKey) {
+        if (n8nServiceKey.isBlank() || !n8nServiceKey.equals(providedKey)) {
+            throw new org.springframework.security.access.AccessDeniedException("Invalid service key");
+        }
+        LoginPreflightRequest req = new LoginPreflightRequest(n8nAdminEmail, n8nAdminPassword);
+        LoginPreflightResponse res = preflight(req);
+        return new ServiceTokenResponse(res.token(), res.role(), res.providerId(), res.clinicId());
     }
 
     public DemoConfigResponse demoConfig() {
