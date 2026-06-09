@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject } from 'rxjs';
-import { distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { UserContextService } from '../../core/services/user-context.service';
 import { AppSettingsService } from '../../core/services/app-settings.service';
@@ -34,15 +34,14 @@ export class DashboardComponent {
   readonly role = this.userContext.role;
 
   constructor() {
-    const trigger$ = new Subject<string | null>();
+    const trigger$ = new Subject<void>();
 
     trigger$.pipe(
       takeUntilDestroyed(this.destroyRef),
-      distinctUntilChanged(),
-      switchMap(providerId => {
+      switchMap(() => {
         this.loading.set(true);
         this.error.set(null);
-        return this.dashboardService.getDashboard(providerId);
+        return this.dashboardService.getDashboard();
       })
     ).subscribe({
       next: data => {
@@ -54,12 +53,12 @@ export class DashboardComponent {
       error: ()  => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
     });
 
-    trigger$.next(this.userContext.providerId());
+    trigger$.next();
 
     effect(() => {
-      const providerId = this.userContext.providerId();
+      this.userContext.providerId();
       this.userContext.role();
-      untracked(() => trigger$.next(providerId));
+      untracked(() => trigger$.next());
     });
 
     effect(() => {

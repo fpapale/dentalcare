@@ -8,6 +8,8 @@ import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
@@ -16,6 +18,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -27,11 +30,26 @@ public class AppointmentService {
         this.jdbc = jdbc;
     }
 
+    private static final Set<String> ADMIN_ROLES = Set.of("ROLE_ADMIN", "ROLE_TENANT_ADMIN", "ROLE_SECRETARY");
+
     private String s() { return TenantContext.validatedSchema(); }
+
+    private UUID callerProviderId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getPrincipal() == null) return null;
+        try { return UUID.fromString(auth.getPrincipal().toString()); } catch (IllegalArgumentException e) { return null; }
+    }
+
+    private boolean callerIsMedical() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().noneMatch(a -> ADMIN_ROLES.contains(a.getAuthority()));
+    }
 
     public List<AppointmentDto> findByDate(LocalDate date, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        String providerFilter = providerId != null ? "AND v.provider_id = :providerId\n" : "";
+        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : providerId;
+        String providerFilter = effectiveProviderId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
             SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
                    v.appointment_status, v.notes,
@@ -62,13 +80,14 @@ public class AppointmentService {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
                 .addValue("date", date);
-        if (providerId != null) params.addValue("providerId", providerId);
+        if (effectiveProviderId != null) params.addValue("providerId", effectiveProviderId);
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
     }
 
     public List<AppointmentDto> findByPatient(UUID patientId, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        String providerFilter = providerId != null ? "AND v.provider_id = :providerId\n" : "";
+        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : providerId;
+        String providerFilter = effectiveProviderId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
             SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
                    v.appointment_status, v.notes,
@@ -100,13 +119,14 @@ public class AppointmentService {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
                 .addValue("patientId", patientId);
-        if (providerId != null) params.addValue("providerId", providerId);
+        if (effectiveProviderId != null) params.addValue("providerId", effectiveProviderId);
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
     }
 
     public List<AppointmentDto> findByDateRange(LocalDate from, LocalDate to, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        String providerFilter = providerId != null ? "AND v.provider_id = :providerId\n" : "";
+        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : providerId;
+        String providerFilter = effectiveProviderId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
             SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
                    v.appointment_status, v.notes,
@@ -138,7 +158,7 @@ public class AppointmentService {
                 .addValue("clinicId", clinicId)
                 .addValue("from", from)
                 .addValue("to", to);
-        if (providerId != null) params.addValue("providerId", providerId);
+        if (effectiveProviderId != null) params.addValue("providerId", effectiveProviderId);
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
     }
 

@@ -5,12 +5,15 @@ import com.dentalcare.dto.DashboardDto;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -24,10 +27,25 @@ public class DashboardService {
         this.appointmentService = appointmentService;
     }
 
+    private static final Set<String> ADMIN_ROLES = Set.of("ROLE_ADMIN", "ROLE_TENANT_ADMIN", "ROLE_SECRETARY");
+
     private String s() { return TenantContext.validatedSchema(); }
 
-    public DashboardDto getDashboard(UUID providerId) {
+    private UUID callerProviderId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getPrincipal() == null) return null;
+        try { return UUID.fromString(auth.getPrincipal().toString()); } catch (IllegalArgumentException e) { return null; }
+    }
+
+    private boolean callerIsMedical() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().noneMatch(a -> ADMIN_ROLES.contains(a.getAuthority()));
+    }
+
+    public DashboardDto getDashboard() {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : null;
 
         String sql = """
             SELECT clinic_name, city,
@@ -39,10 +57,10 @@ public class DashboardService {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("clinicId", clinicId);
         Map<String, Object> row = jdbc.queryForMap(sql, params);
 
-        String estProviderFilter  = providerId != null ? "AND created_by_provider_id = :providerId" : "";
-        String planProviderFilter = providerId != null ? "AND created_by_provider_id = :providerId" : "";
+        String estProviderFilter  = effectiveProviderId != null ? "AND created_by_provider_id = :providerId" : "";
+        String planProviderFilter = effectiveProviderId != null ? "AND created_by_provider_id = :providerId" : "";
         MapSqlParameterSource scopedParams = new MapSqlParameterSource().addValue("clinicId", clinicId);
-        if (providerId != null) scopedParams.addValue("providerId", providerId);
+        if (effectiveProviderId != null) scopedParams.addValue("providerId", effectiveProviderId);
 
         String estSql = """
             SELECT
@@ -64,7 +82,7 @@ public class DashboardService {
             """.formatted(s(), planProviderFilter);
         Map<String, Object> planRow = jdbc.queryForMap(plansSql, scopedParams);
 
-        List<AppointmentDto> todayAppts = appointmentService.findByDate(LocalDate.now(), providerId);
+        List<AppointmentDto> todayAppts = appointmentService.findByDate(LocalDate.now(), effectiveProviderId);
 
         java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
         boolean hasActiveToday = todayAppts.stream().anyMatch(a ->
@@ -75,7 +93,7 @@ public class DashboardService {
         boolean nextDay = false;
         List<AppointmentDto> displayAppts = todayAppts;
         if (!hasActiveToday) {
-            List<AppointmentDto> tomorrowAppts = appointmentService.findByDate(LocalDate.now().plusDays(1), providerId);
+            List<AppointmentDto> tomorrowAppts = appointmentService.findByDate(LocalDate.now().plusDays(1), effectiveProviderId);
             if (!tomorrowAppts.isEmpty()) {
                 displayAppts = tomorrowAppts;
                 nextDay = true;
