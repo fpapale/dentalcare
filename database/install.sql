@@ -1,16 +1,16 @@
 -- =============================================================================
--- DentalCare - Installazione completa parametrica
+-- DentalCare - Installazione completa
 -- =============================================================================
 -- Crea un nuovo database, lo schema globale "dentalcare" (enum, funzioni,
 -- tabelle di riferimento + dati) e il tenant demo "t_9d754153" con tutti i
--- dati di esempio. La tabella dentalcare.tenants contiene SOLO il tenant demo.
+-- dati di esempio.
 --
 -- USO:
 --   psql -U postgres -d postgres -v dbname=NOME_DB -f database/install.sql
 --
 -- Se ometti -v dbname=..., il database si chiama "dentalcare".
 --
--- Generato da pg_dump del DB di riferimento (schemi dentalcare + t_9d754153).
+-- Generato da pg_dump del DB dentalcarepro (schemi dentalcare + t_9d754153).
 -- Rigenerare con lo stesso comando dopo modifiche allo schema/seed.
 -- =============================================================================
 
@@ -29,7 +29,6 @@ CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 --
--- PostgreSQL database dump
 --
 
 
@@ -39,6 +38,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -1977,8 +1977,6 @@ COPY dentalcare.states (id, code, name) FROM stdin;
 
 COPY dentalcare.tenant_clinics (clinic_id, tenant_id, created_at) FROM stdin;
 352464ea-0b3f-47ba-a3dc-3511c6d1af4f	a0000001-0000-0000-0000-000000000001	2026-05-17 13:11:14.678307+00
-4cae454c-1646-4e68-b160-52f1354c23b8	50ab75bb-4da3-4c7e-a8f1-c541b6c11f6d	2026-05-22 21:51:10.578186+00
-cdb4c9de-aaa8-4894-bd57-0c50fef35c5c	8adee5f4-327c-40fa-a7d1-98afbd5eedf1	2026-05-23 10:35:16.961066+00
 9d754153-6579-4b7e-a56b-025f00299cd9	a0000001-0000-0000-0000-000000000001	2026-05-29 13:52:49.31794+00
 \.
 
@@ -1988,8 +1986,6 @@ cdb4c9de-aaa8-4894-bd57-0c50fef35c5c	8adee5f4-327c-40fa-a7d1-98afbd5eedf1	2026-0
 --
 
 COPY dentalcare.tenants (id, name, schema_name, email, phone, plan, active, created_at, updated_at) FROM stdin;
-50ab75bb-4da3-4c7e-a8f1-c541b6c11f6d	studio 1	t_4cae454c	info@popo.com	012346	professionale	t	2026-05-22 21:51:10.578186+00	2026-05-22 21:51:10.578186+00
-8adee5f4-327c-40fa-a7d1-98afbd5eedf1	Studio mio	t_cdb4c9de	info@loca.in	32588	professionale	t	2026-05-23 10:35:16.961066+00	2026-05-23 10:35:16.961066+00
 a0000001-0000-0000-0000-000000000001	Clinica Demo DentalCare	t_9d754153	demo@dentalcare.it	\N	professional	t	2026-05-17 13:11:14.678307+00	2026-05-29 13:52:49.31794+00
 \.
 
@@ -5464,7 +5460,6 @@ ALTER TABLE ONLY t_9d754153.treatment_plans
 
 
 --
--- PostgreSQL database dump complete
 --
 
 

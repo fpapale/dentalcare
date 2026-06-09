@@ -1,4 +1,10 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "chat.tools.terminal.autoApprove": {
+        "/^cd d:\\\\dentalcare\\\\backend; \\$env:JAVA_HOME=\"C:\\\\Users\\\\rtm473\\\\\\.jdk\\\\jdk-21\\.0\\.10\"; & \"\\.\\\\mvnw\\.cmd\" clean test-compile -q 2>&1 \\| tee baseline_compile\\.log$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
 }
