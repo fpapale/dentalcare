@@ -1,4 +1,4 @@
-import { Component, computed, effect, HostListener, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, HostListener, inject, OnInit, signal, untracked } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { filter } from 'rxjs/operators';
@@ -113,7 +113,7 @@ export class App implements OnInit {
 
   readonly navItems = computed(() => {
     const r = this.userContext.role();
-    if (r === 'tenant_admin') return [];
+    if (this.userContext.authRole() === 'tenant_admin') return [];
     const allItems = [
       { path: '/dashboard',    icon: 'dashboard',            label: 'Dashboard' },
       { path: '/agenda',       icon: 'event',                label: 'Agenda' },
