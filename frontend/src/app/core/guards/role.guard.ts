@@ -25,9 +25,11 @@ export const roleGuard = (...allowed: RouteRole[]): CanActivateFn => () => {
     return router.createUrlTree(['/login']);
   }
 
-  // Use effective role (demo-overridden in demo mode, same as JWT in production)
-  const effectiveRole = userContext.role() || userContext.authRole() || auth.getCurrentUser()?.role || '';
-  const category = categorize(effectiveRole);
+  const jwtRole = userContext.authRole() || auth.getCurrentUser()?.role || '';
+  const effectiveRole = userContext.role() || jwtRole;
+  // JWT admin/tenant_admin always grants admin category regardless of demo persona override
+  const resolvedRole = (jwtRole === 'admin' || jwtRole === 'tenant_admin') ? 'admin' : effectiveRole;
+  const category = categorize(resolvedRole);
 
   if (allowed.includes(category)) return true;
 
