@@ -43,9 +43,11 @@ public class DashboardService {
         return auth.getAuthorities().stream().noneMatch(a -> ADMIN_ROLES.contains(a.getAuthority()));
     }
 
-    public DashboardDto getDashboard() {
+    public DashboardDto getDashboard(UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : null;
+        // medical roles: always own UUID from JWT (cannot be overridden by client)
+        // admin/secretary: use client-supplied value (null=all, UUID=filter by doctor, e.g. demo persona)
+        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : providerId;
 
         String sql = """
             SELECT clinic_name, city,

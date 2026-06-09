@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { UserContextService } from '../../core/services/user-context.service';
 import { AppSettingsService } from '../../core/services/app-settings.service';
@@ -34,14 +34,15 @@ export class DashboardComponent {
   readonly role = this.userContext.role;
 
   constructor() {
-    const trigger$ = new Subject<void>();
+    const trigger$ = new Subject<string | null>();
 
     trigger$.pipe(
       takeUntilDestroyed(this.destroyRef),
-      switchMap(() => {
+      distinctUntilChanged(),
+      switchMap(pid => {
         this.loading.set(true);
         this.error.set(null);
-        return this.dashboardService.getDashboard();
+        return this.dashboardService.getDashboard(pid);
       })
     ).subscribe({
       next: data => {
@@ -53,12 +54,16 @@ export class DashboardComponent {
       error: ()  => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
     });
 
-    trigger$.next();
+    const effectivePid = () => {
+      const r = this.userContext.role();
+      return (r === 'secretary' || r === 'admin') ? null : this.userContext.providerId();
+    };
+
+    trigger$.next(effectivePid());
 
     effect(() => {
-      this.userContext.providerId();
-      this.userContext.role();
-      untracked(() => trigger$.next());
+      const pid = effectivePid();
+      untracked(() => trigger$.next(pid));
     });
 
     effect(() => {

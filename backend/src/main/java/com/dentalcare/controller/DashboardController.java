@@ -4,6 +4,8 @@ import com.dentalcare.dto.DashboardDto;
 import com.dentalcare.service.DashboardService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {
@@ -15,7 +17,7 @@ public class DashboardController {
     }
 
     @GetMapping
-    public DashboardDto getDashboard() {
-        return dashboardService.getDashboard();
+    public DashboardDto getDashboard(@RequestParam(required = false) UUID providerId) {
+        return dashboardService.getDashboard(providerId);
     }
 }
