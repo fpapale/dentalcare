@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ChatService } from '../../core/services/chat.service';
+import { MarkdownPipe } from '../../shared/pipes/markdown.pipe';
 
 interface Message {
   role: 'user' | 'ai';
@@ -21,7 +22,7 @@ interface Call {
 @Component({
   selector: 'app-segretaria',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MarkdownPipe],
   templateUrl: './segretaria.component.html',
   styleUrl: './segretaria.component.css'
 })

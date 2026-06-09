@@ -36,7 +36,7 @@
               <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">SegretarIA AI • {{ msg.time }}</span>
             </div>
             <div class="bg-white border border-teal-100 p-5 rounded-3xl rounded-tl-none max-w-[90%] shadow-lg space-y-4">
-              <p class="text-sm text-slate-700 leading-relaxed">{{ msg.text }}</p>
+              <div class="ai-markdown text-sm text-slate-700 leading-relaxed" [innerHTML]="msg.text | markdown"></div>
               @if (msg.table) {
                 <div class="overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
                   <table class="w-full text-left text-xs border-collapse">
