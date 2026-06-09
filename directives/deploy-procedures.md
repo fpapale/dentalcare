@@ -97,22 +97,21 @@ App: `http://192.168.0.72:8181/` — login `admin@demo.dentalcare.it` / `DemoAdm
 Riportare tutto alla configurazione di sviluppo:
 
 1. Backend usa **`application.properties`** (profilo default, NON `prod`).
-2. Datasource punta al DB **`dentalcare`**
-   (`jdbc:postgresql://192.168.0.173:5432/dentalcare`).
+2. Datasource punta al DB **`dentalcarepro`**
+   (`jdbc:postgresql://192.168.0.173:5432/dentalcarepro`).
 3. Impostazioni dev: `server.error.include-message=always`,
    `server.error.include-binding-errors=always`,
    `logging.level.com.dentalcare=DEBUG`, demo mode on.
 4. Avvio locale senza Docker prod: backend `mvnw spring-boot:run` (porta 8080),
    frontend `npm start` (porta 4200). Nessun profilo `prod` attivo.
 5. DB dev creato con:
-   `psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare -f database/install.sql`.
+   `psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcarepro -f database/install.sql`.
 
 ---
 
 ## Note
 
-- DB di riferimento storico in dev era `dentalcarepro`; la regola dev aggiornata
-  punta a `dentalcare` (default dello script `install.sql`).
+- DB dev: `dentalcarepro` (192.168.0.173). DB prod: `dentalcare_prod` (192.168.0.173).
 - Lo schema globale è `dentalcare`; enum e funzioni globali vivono lì (i cast SQL
   usano `dentalcare.<tipo>`, non lo schema tenant).
 - `database/install.sql` è lo script unico parametrico (`-v dbname=...`) che crea
