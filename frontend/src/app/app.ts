@@ -9,7 +9,6 @@ import { LayoutService } from './core/services/layout.service';
 import { AuthService } from './core/auth/auth.service';
 import { ClinicSettingsService } from './core/services/clinic-settings.service';
 
-const DEMO_EMAIL = 'demo@demo.dentalcare.it';
 
 @Component({
   selector: 'app-root',
@@ -44,9 +43,26 @@ export class App implements OnInit {
   /** providerId of the currently authenticated user — used to detect a new login. */
   private lastAuthProviderId: string | null = null;
 
-  readonly isDemoUser = computed(() => this.authService.currentUser()?.email === DEMO_EMAIL);
+  readonly demoEnabled = signal(false);
+  readonly isDemoUser = computed(() => this.demoEnabled() && this.userContext.authRole() === 'admin');
 
   constructor() {
+    this.authService.getDemoConfig().subscribe({
+      next: res => this.demoEnabled.set(res.enabled),
+      error: () => {}
+    });
+
+    // When demo mode is detected after login (async), switch admin persona to secretary.
+    effect(() => {
+      if (this.demoEnabled() && this.userContext.authRole() === 'admin'
+          && this.userContext.role() === 'admin') {
+        untracked(() => {
+          this.selectedKey.set('__secretary__');
+          this.userContext.setRole('secretary');
+        });
+      }
+    }, { allowSignalWrites: true });
+
     // Sync the displayed identity whenever the *logged-in* user changes (new login),
     // independent of the operator filter (which updates userContext but not currentUser).
     effect(() => {
@@ -54,7 +70,12 @@ export class App implements OnInit {
       if (u && u.providerId !== this.lastAuthProviderId) {
         this.lastAuthProviderId = u.providerId;
         this.userContext.initFromAuth(u);
-        this.selectedKey.set(u.providerId);
+        if (this.demoEnabled() && u.role === 'admin') {
+          this.selectedKey.set('__secretary__');
+          this.userContext.setRole('secretary');
+        } else {
+          this.selectedKey.set(u.providerId);
+        }
         this.loadAppData();
       }
     }, { allowSignalWrites: true });
