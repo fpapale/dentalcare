@@ -1,8 +1,9 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ChatService } from '../../core/services/chat.service';
+import { ChatService, ChatSessionDto, ChatMessageDto } from '../../core/services/chat.service';
+import { AppSettingsService } from '../../core/services/app-settings.service';
 import { MarkdownPipe } from '../../shared/pipes/markdown.pipe';
 
 interface Message {
@@ -26,12 +27,18 @@ interface Call {
   templateUrl: './segretaria.component.html',
   styleUrl: './segretaria.component.css'
 })
-export class SegretariaComponent {
+export class SegretariaComponent implements OnInit {
   private readonly chatService = inject(ChatService);
+  private readonly appSettingsSvc = inject(AppSettingsService);
   private readonly destroyRef = inject(DestroyRef);
 
   inputText = '';
   isTyping = signal(false);
+  currentSessionId = signal<string | null>(null);
+  showHistory = signal(false);
+  sessions = signal<ChatSessionDto[]>([]);
+  loadingSessions = signal(false);
+  loadingSession = signal(false);
 
   messages = signal<Message[]>([]);
 
@@ -58,7 +65,62 @@ export class SegretariaComponent {
     return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
   }
 
-  sendMessage() {
+  ngOnInit(): void {
+    this.loadSessions();
+  }
+
+  loadSessions(): void {
+    this.loadingSessions.set(true);
+    const days = this.appSettingsSvc.get().chatHistoryDays ?? 90;
+    this.chatService.listSessions(days)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: list => { this.sessions.set(list); this.loadingSessions.set(false); },
+        error: () => this.loadingSessions.set(false)
+      });
+  }
+
+  openSession(session: ChatSessionDto): void {
+    this.loadingSession.set(true);
+    this.showHistory.set(false);
+    this.chatService.getSessionMessages(session.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (msgs: ChatMessageDto[]) => {
+          this.messages.set(msgs.map(m => ({
+            role: m.role === 'user' ? 'user' as const : 'ai' as const,
+            text: m.content,
+            time: new Date(m.createdAt).toLocaleTimeString('it', { hour: '2-digit', minute: '2-digit' })
+          })));
+          this.currentSessionId.set(session.id);
+          this.loadingSession.set(false);
+        },
+        error: () => this.loadingSession.set(false)
+      });
+  }
+
+  newChat(): void {
+    this.messages.set([]);
+    this.currentSessionId.set(null);
+    this.showHistory.set(false);
+  }
+
+  deleteSession(session: ChatSessionDto, event: Event): void {
+    event.stopPropagation();
+    if (!confirm('Eliminare questa conversazione?')) return;
+    this.chatService.deleteSession(session.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.sessions.update(list => list.filter(s => s.id !== session.id));
+          if (this.currentSessionId() === session.id) {
+            this.newChat();
+          }
+        }
+      });
+  }
+
+  sendMessage(): void {
     const text = this.inputText.trim();
     if (!text) return;
 
@@ -71,33 +133,47 @@ export class SegretariaComponent {
       content: m.text
     }));
 
-    this.chatService.send(text, history).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: response => {
-        this.isTyping.set(false);
-        this.messages.update(msgs => [...msgs, { role: 'ai', text: response.text, time: this.currentTime() }]);
-      },
-      error: () => {
-        this.isTyping.set(false);
-        this.messages.update(msgs => [...msgs, {
-          role: 'ai',
-          text: 'Si è verificato un errore. Riprova più tardi.',
-          time: this.currentTime()
-        }]);
-      }
-    });
+    this.chatService.send(text, history, this.currentSessionId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: response => {
+          this.isTyping.set(false);
+          this.currentSessionId.set(response.sessionId);
+          this.messages.update(msgs => [...msgs, { role: 'ai', text: response.text, time: this.currentTime() }]);
+          this.loadSessions();
+        },
+        error: () => {
+          this.isTyping.set(false);
+          this.messages.update(msgs => [...msgs, {
+            role: 'ai',
+            text: 'Si è verificato un errore. Riprova più tardi.',
+            time: this.currentTime()
+          }]);
+        }
+      });
   }
 
-  usePrompt(p: string) {
+  usePrompt(p: string): void {
     this.inputText = p;
   }
 
   getStatoClass(stato: string): string {
     switch (stato) {
-      case 'ARRIVATO': return 'bg-green-100 text-green-700';
-      case 'IN SALA': return 'bg-teal-100 text-teal-700';
-      case 'CONFERMATO': return 'bg-blue-100 text-blue-700';
+      case 'ARRIVATO':  return 'bg-green-100 text-green-700';
+      case 'IN SALA':   return 'bg-teal-100 text-teal-700';
+      case 'CONFERMATO':return 'bg-blue-100 text-blue-700';
       case 'IN ATTESA': return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-slate-100 text-slate-600';
+      default:           return 'bg-slate-100 text-slate-600';
     }
+  }
+
+  formatSessionDate(iso: string): string {
+    const d = new Date(iso);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Oggi';
+    if (d.toDateString() === yesterday.toDateString()) return 'Ieri';
+    return d.toLocaleDateString('it', { day: '2-digit', month: 'short' });
   }
 }

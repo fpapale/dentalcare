@@ -1,3 +1,3 @@
 package com.dentalcare.dto;
-
-public record ChatResponse(String text) {}
+import java.util.UUID;
+public record ChatResponse(String text, UUID sessionId) {}

@@ -53,7 +53,7 @@ public class ChatService {
                 .call()
                 .content();
 
-        return new ChatResponse(response != null ? response : "");
+        return new ChatResponse(response != null ? response : "", null);
     }
 
     private List<Message> buildHistory(List<ChatTurnDto> history) {

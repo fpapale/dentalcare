@@ -16,6 +16,7 @@ export interface AppSettings {
   recallMessageTemplate: string;
   locale: string;
   dashboardApptPageSize: number;
+  chatHistoryDays: number;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   recallMessageTemplate: 'Gentile {paziente}, la informiamo che è giunto il momento della sua visita di controllo. La invitiamo a contattarci per fissare un appuntamento. Studio {studio}, tel. {telefono}.',
   locale: 'it',
   dashboardApptPageSize: 6,
+  chatHistoryDays: 90,
 };
 
 const LS_KEY = 'dentalcare_app_settings';

@@ -1175,6 +1175,42 @@
           </div>
         </div>
 
+        <!-- Chat history retention -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h2 class="font-bold text-slate-700 mb-1">Cronologia chat SegretarIA</h2>
+          <p class="text-xs text-slate-400 mb-4">Quanti giorni conservare la cronologia delle conversazioni con SegretarIA</p>
+          <div class="flex items-center gap-3 flex-wrap">
+            @for (n of [7, 30, 60, 90, 180, 365]; track n) {
+              <button (click)="appSettings.chatHistoryDays = n"
+                class="px-3 h-10 rounded-lg text-sm font-bold border transition-colors"
+                [class]="appSettings.chatHistoryDays === n
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'">
+                {{ n }}g
+              </button>
+            }
+            <div class="flex items-center gap-2 ml-2">
+              <span class="text-xs text-slate-400">o inserisci:</span>
+              <input type="number" [(ngModel)]="appSettings.chatHistoryDays"
+                min="1" max="3650"
+                class="w-20 px-2 py-1.5 text-sm text-center border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              <span class="text-xs text-slate-400">giorni</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">Predefinito: <strong>90 giorni</strong></p>
+          <div class="mt-4 flex items-center gap-3">
+            <button (click)="saveAppSettings()"
+              class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 transition-colors">
+              Salva
+            </button>
+            @if (appSettingsSaved()) {
+              <span class="text-sm text-green-600 font-semibold flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">check_circle</span>Salvato
+              </span>
+            }
+          </div>
+        </div>
+
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h2 class="font-bold text-slate-700 mb-1">Lingua dell'interfaccia</h2>
           <p class="text-xs text-slate-400 mb-4">La modifica richiede il riavvio dell'applicazione per essere applicata</p>

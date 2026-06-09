@@ -1,7 +1,7 @@
 <div class="flex flex-1 overflow-hidden h-full">
 
   <!-- CHAT AREA -->
-  <main class="flex-1 overflow-hidden flex flex-col">
+  <main class="flex-1 overflow-hidden flex flex-col relative">
 
     <!-- Sub-header -->
     <div class="flex items-center gap-3 px-5 py-2.5 bg-white border-b border-slate-200 shrink-0">
@@ -11,14 +11,92 @@
         </div>
         <span class="text-sm font-bold text-slate-700">SegretarIA</span>
         <span class="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">ONLINE</span>
+        @if (currentSessionId()) {
+          <span class="text-[10px] bg-teal-50 text-teal-600 border border-teal-200 font-semibold px-2 py-0.5 rounded-full">sessione attiva</span>
+        }
       </div>
-      <button class="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors">
-        <span class="material-symbols-outlined text-[14px]">history</span> Cronologia
-      </button>
+      <div class="ml-auto flex items-center gap-2">
+        @if (currentSessionId()) {
+          <button (click)="newChat()"
+            class="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+            <span class="material-symbols-outlined text-[14px]">add</span> Nuova chat
+          </button>
+        }
+        <button (click)="showHistory.set(!showHistory())"
+          class="relative flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-bold transition-colors"
+          [class]="showHistory() ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'">
+          <span class="material-symbols-outlined text-[14px]">history</span> Cronologia
+          @if (sessions().length > 0) {
+            <span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-teal-600 text-white text-[9px] font-bold flex items-center justify-center">
+              {{ sessions().length }}
+            </span>
+          }
+        </button>
+      </div>
     </div>
+
+    <!-- History panel (slide-over) -->
+    @if (showHistory()) {
+      <div class="absolute inset-0 z-20 flex flex-col bg-white">
+        <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200 shrink-0">
+          <h3 class="font-bold text-slate-700 text-sm">Cronologia conversazioni</h3>
+          <button (click)="showHistory.set(false)"
+            class="text-slate-400 hover:text-slate-600 transition-colors">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4">
+          @if (loadingSessions()) {
+            <div class="flex justify-center py-8">
+              <div class="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          } @else if (sessions().length === 0) {
+            <div class="text-center py-12">
+              <span class="material-symbols-outlined text-slate-300 text-5xl">chat_bubble_outline</span>
+              <p class="text-sm text-slate-400 mt-2">Nessuna conversazione salvata</p>
+            </div>
+          } @else {
+            <div class="space-y-2">
+              @for (session of sessions(); track session.id) {
+                <div (click)="openSession(session)"
+                  class="flex items-start justify-between p-3 rounded-xl border cursor-pointer transition-all group"
+                  [class]="currentSessionId() === session.id
+                    ? 'border-teal-300 bg-teal-50'
+                    : 'border-slate-200 bg-white hover:border-teal-200 hover:bg-slate-50'">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-slate-700 truncate">{{ session.title }}</p>
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span class="text-[10px] text-slate-400">{{ formatSessionDate(session.createdAt) }}</span>
+                      <span class="text-[10px] text-slate-300">•</span>
+                      <span class="text-[10px] text-slate-400">{{ session.messageCount }} messaggi</span>
+                    </div>
+                  </div>
+                  <button (click)="deleteSession(session, $event)"
+                    class="ml-2 p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                    <span class="material-symbols-outlined text-[16px]">delete_outline</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+        <div class="px-4 pb-4 pt-2 border-t border-slate-100 shrink-0">
+          <button (click)="newChat()"
+            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-xl hover:bg-teal-700 transition-colors">
+            <span class="material-symbols-outlined text-[18px]">add_circle</span>
+            Nuova conversazione
+          </button>
+        </div>
+      </div>
+    }
 
     <!-- Messages -->
     <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6 bg-slate-50">
+      @if (loadingSession()) {
+        <div class="flex justify-center py-16">
+          <div class="w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
       @for (msg of messages(); track $index) {
         @if (msg.role === 'user') {
           <div class="flex flex-col items-end gap-1">
