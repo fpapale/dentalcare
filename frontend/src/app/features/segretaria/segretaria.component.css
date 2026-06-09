@@ -35,29 +35,43 @@
   margin-bottom: 0.5rem;
 }
 .ai-markdown pre code { background: none; padding: 0; color: #334155; }
-.ai-markdown table {
+/* Table wrapper: scroll orizzontale + bordi arrotondati */
+.ai-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,.06);
+}
+.ai-table-wrap table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8rem;
-  margin-bottom: 0.5rem;
+  font-size: 0.78rem;
+  min-width: 360px;
 }
-.ai-markdown th {
-  background: #f1f5f9;
+.ai-table-wrap thead {
+  background: linear-gradient(135deg, #f0fdfa 0%, #f1f5f9 100%);
+}
+.ai-table-wrap th {
   font-weight: 700;
-  padding: 0.4rem 0.75rem;
+  padding: 0.55rem 0.9rem;
   text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+  color: #0f766e;
   text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 0.05em;
+  font-size: 0.67rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
-.ai-markdown td {
-  padding: 0.4rem 0.75rem;
+.ai-table-wrap td {
+  padding: 0.5rem 0.9rem;
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
+  vertical-align: middle;
 }
-.ai-markdown tr:last-child td { border-bottom: none; }
+.ai-table-wrap tbody tr:last-child td { border-bottom: none; }
+.ai-table-wrap tbody tr:nth-child(even) { background: #f8fafc; }
+.ai-table-wrap tbody tr:hover { background: #f0fdfa; transition: background 0.15s; }
 .ai-markdown hr {
   border: none;
   border-top: 1px solid #e2e8f0;
