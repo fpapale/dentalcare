@@ -5,13 +5,9 @@ import { UserContextService, MEDICAL_JWT_ROLES } from '../services/user-context.
 
 export type RouteRole = 'admin' | 'secretary' | 'medical';
 
-function resolveJwtRole(userContext: UserContextService, auth: AuthService): string {
-  return userContext.authRole() || auth.getCurrentUser()?.role || '';
-}
-
-function categorize(jwtRole: string): RouteRole {
-  if (jwtRole === 'admin') return 'admin';
-  if (jwtRole === 'secretary') return 'secretary';
+function categorize(role: string): RouteRole {
+  if (role === 'admin') return 'admin';
+  if (role === 'secretary') return 'secretary';
   return 'medical';
 }
 
@@ -29,10 +25,12 @@ export const roleGuard = (...allowed: RouteRole[]): CanActivateFn => () => {
     return router.createUrlTree(['/login']);
   }
 
-  const jwtRole = resolveJwtRole(userContext, auth);
-  const category = categorize(jwtRole);
+  // Use effective role (demo-overridden in demo mode, same as JWT in production)
+  const effectiveRole = userContext.role() || userContext.authRole() || auth.getCurrentUser()?.role || '';
+  const category = categorize(effectiveRole);
 
   if (allowed.includes(category)) return true;
 
+  const jwtRole = userContext.authRole() || auth.getCurrentUser()?.role || '';
   return router.createUrlTree([defaultRoute(jwtRole)]);
 };

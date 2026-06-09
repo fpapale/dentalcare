@@ -101,6 +101,7 @@ export class App implements OnInit {
       { path: '/fatturazione', icon: 'receipt_long',         label: 'Fatturazione' },
       { path: '/richiami',     icon: 'notifications_active', label: 'Richiami' },
       { path: '/magazzino',    icon: 'inventory_2',          label: 'Magazzino' },
+      ...(r === 'secretary' ? [{ path: '/segretaria', icon: 'smart_toy', label: 'Segreteria AI' }] : []),
     ];
     return allItems;
   });
