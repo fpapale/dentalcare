@@ -5,9 +5,18 @@
       <div class="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
     </div>
   } @else if (error()) {
-    <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-      <span class="material-symbols-outlined text-red-500">error</span>
-      <p class="text-sm text-red-700">{{ error() }}</p>
+    <div class="flex items-center justify-center h-full">
+      <div class="max-w-md w-full bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-8 text-center">
+        <span class="material-symbols-outlined text-amber-500 text-5xl">cloud_off</span>
+        <h2 class="mt-3 text-lg font-semibold text-slate-800">Dashboard non disponibile</h2>
+        <p class="mt-2 text-sm text-slate-500">{{ error() }}</p>
+        <p class="mt-1 text-xs text-slate-400">Riprova tra poco. Se il problema persiste contatta l'assistenza.</p>
+        <button (click)="reload()"
+                class="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">
+          <span class="material-symbols-outlined text-[18px]">refresh</span>
+          Riprova
+        </button>
+      </div>
     </div>
   } @else if (dashboard(); as d) {
 

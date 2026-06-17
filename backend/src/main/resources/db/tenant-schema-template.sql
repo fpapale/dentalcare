@@ -1013,6 +1013,66 @@ AFTER INSERT ON recall_contacts
 FOR EACH ROW EXECUTE FUNCTION update_recall_on_contact();
 
 -- =============================================================================
+-- DIAGNOSI, PRESCRIZIONI, CHAT (allineamento con migrazioni V13/V14/V22)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_diagnoses (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id       UUID NOT NULL,
+    patient_id      UUID NOT NULL,
+    provider_id     UUID NOT NULL,
+    tooth_number    VARCHAR(10),
+    title           VARCHAR(255) NOT NULL,
+    description     TEXT,
+    icd_code        VARCHAR(20),
+    status          VARCHAR(20) NOT NULL DEFAULT 'active',
+    diagnosed_at    DATE NOT NULL DEFAULT CURRENT_DATE,
+    resolved_at     DATE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_patient_diagnoses_patient ON patient_diagnoses (clinic_id, patient_id);
+CREATE INDEX IF NOT EXISTS idx_patient_diagnoses_status  ON patient_diagnoses (clinic_id, patient_id, status);
+
+CREATE TABLE IF NOT EXISTS patient_prescriptions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id       UUID NOT NULL,
+    patient_id      UUID NOT NULL,
+    provider_id     UUID NOT NULL,
+    drug_name       VARCHAR(255) NOT NULL,
+    dosage          VARCHAR(100),
+    frequency       VARCHAR(100),
+    duration        VARCHAR(100),
+    notes           TEXT,
+    prescribed_at   DATE NOT NULL DEFAULT CURRENT_DATE,
+    expires_at      DATE,
+    active          BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_patient_prescriptions_patient ON patient_prescriptions (clinic_id, patient_id);
+CREATE INDEX IF NOT EXISTS idx_patient_prescriptions_active  ON patient_prescriptions (clinic_id, patient_id, active);
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider_id   UUID        NOT NULL,
+    title         TEXT        NOT NULL,
+    message_count INT         NOT NULL DEFAULT 0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID        NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    role       TEXT        NOT NULL CHECK (role IN ('user', 'assistant')),
+    content    TEXT        NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS chat_messages_session_idx  ON chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS chat_sessions_provider_idx ON chat_sessions(provider_id, created_at DESC);
+
+-- =============================================================================
 -- VISTE
 -- =============================================================================
 

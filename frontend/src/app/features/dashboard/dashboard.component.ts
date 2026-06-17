@@ -33,8 +33,20 @@ export class DashboardComponent {
 
   readonly role = this.userContext.role;
 
+  private readonly trigger$ = new Subject<string | null>();
+
+  private effectivePid(): string | null {
+    const r = this.userContext.role();
+    return (r === 'secretary' || r === 'admin') ? null : this.userContext.providerId();
+  }
+
+  /** Re-fetch the dashboard (used by the error panel retry button). */
+  reload(): void {
+    this.trigger$.next(this.effectivePid());
+  }
+
   constructor() {
-    const trigger$ = new Subject<string | null>();
+    const trigger$ = this.trigger$;
 
     trigger$.pipe(
       takeUntilDestroyed(this.destroyRef),
@@ -54,15 +66,10 @@ export class DashboardComponent {
       error: ()  => { this.error.set('Errore nel caricamento dashboard'); this.loading.set(false); }
     });
 
-    const effectivePid = () => {
-      const r = this.userContext.role();
-      return (r === 'secretary' || r === 'admin') ? null : this.userContext.providerId();
-    };
-
-    trigger$.next(effectivePid());
+    trigger$.next(this.effectivePid());
 
     effect(() => {
-      const pid = effectivePid();
+      const pid = this.effectivePid();
       untracked(() => trigger$.next(pid));
     });
 
