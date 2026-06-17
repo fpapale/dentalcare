@@ -26,6 +26,12 @@ public class TenantAdminService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.demo.enabled:false}")
+    private boolean demoEnabled;
+
+    @org.springframework.beans.factory.annotation.Value("${app.demo.password:}")
+    private String demoPassword;
+
     public TenantAdminService(NamedParameterJdbcTemplate jdbc, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.jdbc = jdbc;
         this.passwordEncoder = passwordEncoder;
@@ -117,13 +123,17 @@ public class TenantAdminService {
     @Transactional
     public TenantUserDto createUser(UUID clinicId, CreateTenantUserRequest request) {
         UUID id = UUID.randomUUID();
-        String tempPassword = TempPasswordGenerator.generate();
-        String hashed = passwordEncoder.encode(tempPassword);
+
+        // Portale demo: password demo nota, nessun cambio forzato né email.
+        // Cambio password al primo accesso solo per utenti reali.
+        boolean temporary = !demoEnabled;
+        String plainPassword = demoEnabled ? demoPassword : TempPasswordGenerator.generate();
+        String hashed = passwordEncoder.encode(plainPassword);
 
         String sql = """
             INSERT INTO %s.providers (id, clinic_id, first_name, last_name, email, password_hash, role, active, password_temporary)
             VALUES (:id, :clinicId, :firstName, :lastName, :email, :passwordHash,
-                    CAST(:role AS dentalcare.provider_role), true, true)
+                    CAST(:role AS dentalcare.provider_role), true, :temporary)
             """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", id)
@@ -132,10 +142,13 @@ public class TenantAdminService {
                 .addValue("lastName", request.lastName())
                 .addValue("email", request.email())
                 .addValue("passwordHash", hashed)
-                .addValue("role", request.role());
+                .addValue("role", request.role())
+                .addValue("temporary", temporary);
         jdbc.update(sql, params);
 
-        emailService.sendTempPassword(request.email(), request.firstName(), tempPassword);
+        if (temporary) {
+            emailService.sendTempPassword(request.email(), request.firstName(), plainPassword);
+        }
 
         return new TenantUserDto(
                 id,

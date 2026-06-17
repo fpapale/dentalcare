@@ -28,6 +28,12 @@ public class ProviderService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.demo.enabled:false}")
+    private boolean demoEnabled;
+
+    @org.springframework.beans.factory.annotation.Value("${app.demo.password:}")
+    private String demoPassword;
+
     public ProviderService(NamedParameterJdbcTemplate jdbc,
                            PasswordEncoder passwordEncoder,
                            EmailService emailService) {
@@ -88,9 +94,12 @@ public class ProviderService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         UUID id = UUID.randomUUID();
 
-        // Password temporanea: l'utente la cambia al primo accesso (password_temporary = true).
-        String tempPassword = TempPasswordGenerator.generate();
-        String passwordHash = passwordEncoder.encode(tempPassword);
+        // Portale demo: nessuna password temporanea / nessun cambio forzato / nessuna email.
+        // Gli utenti demo ricevono la password demo nota e password_temporary = false.
+        // Il flusso "cambio password al primo accesso" vale solo per utenti reali.
+        boolean temporary = !demoEnabled;
+        String plainPassword = demoEnabled ? demoPassword : TempPasswordGenerator.generate();
+        String passwordHash = passwordEncoder.encode(plainPassword);
 
         jdbc.update("""
             INSERT INTO %s.providers
@@ -98,7 +107,7 @@ public class ProviderService {
                  password_hash, password_temporary)
             VALUES
                 (:id, :clinicId, :firstName, :lastName, :role::dentalcare.provider_role, :phone, :email, true,
-                 :passwordHash, true)
+                 :passwordHash, :temporary)
             """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("id", id)
@@ -108,12 +117,13 @@ public class ProviderService {
                 .addValue("role", request.role())
                 .addValue("phone", request.phone())
                 .addValue("email", request.email())
-                .addValue("passwordHash", passwordHash));
+                .addValue("passwordHash", passwordHash)
+                .addValue("temporary", temporary));
 
-        // Invia la password temporanea via email. Senza email l'utente non può accedere.
-        if (request.email() != null && !request.email().isBlank()) {
-            emailService.sendTempPassword(request.email(), request.firstName(), tempPassword);
-        } else {
+        // Email con password temporanea solo per utenti reali (non demo) e con email valorizzata.
+        if (temporary && request.email() != null && !request.email().isBlank()) {
+            emailService.sendTempPassword(request.email(), request.firstName(), plainPassword);
+        } else if (temporary) {
             log.warn("Provider {} creato senza email: nessuna password temporanea inviata", id);
         }
 
