@@ -20,10 +20,9 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard('admin', 'secretary', 'medical')],
     loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },
-  // SegretarIA AI: secretary only
   {
     path: 'segretaria',
-    canActivate: [authGuard, roleGuard('secretary')],
+    canActivate: [authGuard, roleGuard('secretary', 'medical')],
     loadComponent: () => import('./features/segretaria/segretaria.component').then(m => m.SegretariaComponent)
   },
 

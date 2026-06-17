@@ -6,9 +6,9 @@
 # Punta al database dentalcare_prod sulla macchina 192.168.0.173.
 
 # ---- Database (PostgreSQL) ----
-spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/dentalcare_prod
+spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/DentalCare_Prod
 spring.datasource.username=postgres
-spring.datasource.password=ViaGoceano2021
+spring.datasource.password=REPLACE_WITH_DB_PASSWORD
 spring.datasource.driver-class-name=org.postgresql.Driver
 spring.datasource.hikari.maximum-pool-size=10
 spring.datasource.hikari.minimum-idle=2
@@ -20,7 +20,7 @@ app.jwt.expiration-ms=86400000
 
 # ---- Demo mode ----
 app.demo.enabled=true
-app.demo.email=admin@demo.dentalcare.it
+app.demo.email=demo@demo.dentalcare.it
 app.demo.password=DemoAdmin1!
 
 # ---- Mail (SMTP) ----
