@@ -1,10 +1,51 @@
--- DentalCare - Tenant Schema DDL Template
--- Placeholders replaced by TenantProvisioningService before execution:
---   {schema}     -> tenant schema name (e.g. t_9d754153)
---   {tablespace} -> tablespace name    (e.g. ts_t_9d754153 or pg_default)
--- No psql metacommands. No BEGIN/COMMIT (managed by Java TransactionTemplate).
+-- V23: stored function dentalcare.create_tenant
+-- Provisioning atomico di un nuovo tenant: schema + tabelle/viste + tenant + clinic + admin.
+-- Funzione PL/pgSQL: gira nella transazione del chiamante. Qualunque errore -> rollback totale,
+-- nessun orfano (schema/tenant/clinic/admin). Sostituisce tenant-schema-template.sql + logica Java.
 
-SET LOCAL search_path TO {schema}, dentalcare, public;
+SET search_path TO dentalcare, public;
+
+CREATE OR REPLACE FUNCTION dentalcare.create_tenant(
+    p_tenant_id     uuid,
+    p_clinic_id     uuid,
+    p_schema        text,
+    p_studio_name   text,
+    p_email         text,
+    p_phone         text,
+    p_plan          text,
+    p_vat           text,
+    p_address       text,
+    p_city          text,
+    p_province      text,
+    p_admin_first   text,
+    p_admin_last    text,
+    p_admin_email   text,
+    p_admin_pw_hash text
+) RETURNS uuid
+LANGUAGE plpgsql
+AS $provision$
+DECLARE
+    l_admin_id uuid := gen_random_uuid();
+    l_ddl      text;
+BEGIN
+    IF p_schema !~ '^t_[0-9a-f]{8}$' THEN
+        RAISE EXCEPTION 'Invalid schema name: %', p_schema;
+    END IF;
+    IF EXISTS (SELECT 1 FROM dentalcare.tenants WHERE schema_name = p_schema) THEN
+        RAISE EXCEPTION 'Schema already registered: %', p_schema;
+    END IF;
+    IF p_admin_pw_hash IS NULL OR length(p_admin_pw_hash) = 0 THEN
+        RAISE EXCEPTION 'admin password hash required';
+    END IF;
+
+    -- 1) schema
+    EXECUTE format('CREATE SCHEMA %I', p_schema);
+
+    -- 2) tutto il DDL dello schema (tabelle, viste, funzioni, trigger)
+    l_ddl := 'SET LOCAL search_path TO ' || quote_ident(p_schema) || ', dentalcare, public;
+'
+    ||
+$ddl$
 
 -- =============================================================================
 -- FUNZIONE DI SERVIZIO
@@ -45,7 +86,7 @@ CREATE TABLE IF NOT EXISTS clinics (
     created_at       timestamptz NOT NULL DEFAULT now(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT clinics_name_not_empty CHECK (length(trim(name)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_clinics_updated_at ON clinics;
 CREATE TRIGGER trg_clinics_updated_at
@@ -79,16 +120,16 @@ CREATE TABLE IF NOT EXISTS patients (
     CONSTRAINT patients_first_name_not_empty CHECK (length(trim(first_name)) > 0),
     CONSTRAINT patients_last_name_not_empty  CHECK (length(trim(last_name)) > 0),
     CONSTRAINT patients_id_clinic_uq         UNIQUE (id, clinic_id)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_patients_clinic_fiscal_code
     ON patients (clinic_id, fiscal_code)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE fiscal_code IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS ix_patients_clinic_name
     ON patients (clinic_id, last_name, first_name)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_patients_updated_at ON patients;
 CREATE TRIGGER trg_patients_updated_at
@@ -126,11 +167,11 @@ CREATE TABLE IF NOT EXISTS providers (
     CONSTRAINT providers_last_name_not_empty  CHECK (length(trim(last_name)) > 0),
     CONSTRAINT providers_color_hex_format     CHECK (color_hex ~ '^#[0-9A-Fa-f]{6}$'),
     CONSTRAINT providers_id_clinic_uq         UNIQUE (id, clinic_id)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_providers_clinic_role_active
     ON providers (clinic_id, role)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE active = true;
 
 DROP TRIGGER IF EXISTS trg_providers_updated_at ON providers;
@@ -147,7 +188,7 @@ ALTER TABLE patients
 
 CREATE INDEX IF NOT EXISTS ix_patients_primary_provider
     ON patients (clinic_id, primary_provider_id)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE primary_provider_id IS NOT NULL;
 
 -- =============================================================================
@@ -172,11 +213,11 @@ CREATE TABLE IF NOT EXISTS service_catalog (
     CONSTRAINT service_catalog_code_not_empty CHECK (length(trim(code)) > 0),
     CONSTRAINT service_catalog_name_not_empty CHECK (length(trim(name)) > 0),
     UNIQUE (clinic_id, code)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_service_catalog_clinic_active_cat
     ON service_catalog (clinic_id, is_active, category)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_service_catalog_updated_at ON service_catalog;
 CREATE TRIGGER trg_service_catalog_updated_at
@@ -200,11 +241,11 @@ CREATE TABLE IF NOT EXISTS treatment_plans (
     created_at  timestamptz            NOT NULL DEFAULT now(),
     updated_at  timestamptz            NOT NULL DEFAULT now(),
     CONSTRAINT treatment_plans_title_not_empty CHECK (length(trim(title)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_treatment_plans_clinic_patient
     ON treatment_plans (clinic_id, patient_id, status)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_treatment_plans_updated_at ON treatment_plans;
 CREATE TRIGGER trg_treatment_plans_updated_at
@@ -230,15 +271,15 @@ CREATE TABLE IF NOT EXISTS treatment_plan_items (
     created_at          timestamptz           NOT NULL DEFAULT now(),
     updated_at          timestamptz           NOT NULL DEFAULT now(),
     CONSTRAINT treatment_plan_items_description_not_empty CHECK (length(trim(description)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_treatment_plan_items_plan
     ON treatment_plan_items (plan_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_treatment_plan_items_clinic_status
     ON treatment_plan_items (clinic_id, status)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_treatment_plan_items_updated_at ON treatment_plan_items;
 CREATE TRIGGER trg_treatment_plan_items_updated_at
@@ -263,19 +304,19 @@ CREATE TABLE IF NOT EXISTS appointments (
     created_at              timestamptz        NOT NULL DEFAULT now(),
     updated_at              timestamptz        NOT NULL DEFAULT now(),
     CONSTRAINT appointments_dates_valid CHECK (ends_at > starts_at)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_appointments_clinic_starts
     ON appointments (clinic_id, starts_at)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_appointments_clinic_provider_starts
     ON appointments (clinic_id, provider_id, starts_at)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_appointments_clinic_patient
     ON appointments (clinic_id, patient_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_appointments_updated_at ON appointments;
 CREATE TRIGGER trg_appointments_updated_at
@@ -312,23 +353,23 @@ CREATE TABLE IF NOT EXISTS estimates (
     created_at              timestamptz     NOT NULL DEFAULT now(),
     updated_at              timestamptz     NOT NULL DEFAULT now(),
     CONSTRAINT estimates_id_clinic_uq       UNIQUE (id, clinic_id)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_estimates_clinic_patient
     ON estimates (clinic_id, patient_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_estimates_clinic_status
     ON estimates (clinic_id, status)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_estimates_clinic_provider
     ON estimates (clinic_id, created_by_provider_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_estimates_clinic_plan
     ON estimates (clinic_id, treatment_plan_id)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE treatment_plan_id IS NOT NULL;
 
 DROP TRIGGER IF EXISTS trg_estimates_updated_at ON estimates;
@@ -361,15 +402,15 @@ CREATE TABLE IF NOT EXISTS estimate_lines (
     created_at              timestamptz   NOT NULL DEFAULT now(),
     updated_at              timestamptz   NOT NULL DEFAULT now(),
     CONSTRAINT estimate_lines_description_not_empty CHECK (length(trim(description_snapshot)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_estimate_lines_estimate
     ON estimate_lines (estimate_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_estimate_lines_plan_item
     ON estimate_lines (clinic_id, treatment_plan_item_id)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE treatment_plan_item_id IS NOT NULL;
 
 DROP TRIGGER IF EXISTS trg_estimate_lines_updated_at ON estimate_lines;
@@ -420,7 +461,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     CONSTRAINT invoices_pkey PRIMARY KEY (id),
     CONSTRAINT invoices_unique_per_clinic UNIQUE (id, clinic_id),
     CONSTRAINT ux_invoices_number UNIQUE (clinic_id, invoice_number)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 ALTER TABLE invoices
     DROP CONSTRAINT IF EXISTS invoices_clinic_id_fkey;
@@ -450,20 +491,20 @@ ALTER TABLE invoices
 
 CREATE INDEX IF NOT EXISTS ix_invoices_clinic_status
     ON invoices (clinic_id, status, invoice_date DESC)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_invoices_patient
     ON invoices (clinic_id, patient_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_invoices_estimate
     ON invoices (clinic_id, estimate_id)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE estimate_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS ix_invoices_provider
     ON invoices (clinic_id, provider_id)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE provider_id IS NOT NULL;
 
 DROP TRIGGER IF EXISTS trg_invoices_set_updated_at ON invoices;
@@ -494,7 +535,7 @@ CREATE TABLE IF NOT EXISTS invoice_lines (
     updated_at       timestamptz   NOT NULL DEFAULT now(),
     CONSTRAINT invoice_lines_pkey PRIMARY KEY (id),
     CONSTRAINT invoice_lines_description_not_empty CHECK (length(trim(description)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 ALTER TABLE invoice_lines
     DROP CONSTRAINT IF EXISTS fk_invoice_lines_invoice;
@@ -510,11 +551,11 @@ ALTER TABLE invoice_lines
 
 CREATE INDEX IF NOT EXISTS ix_invoice_lines_invoice
     ON invoice_lines (invoice_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_invoice_lines_clinic
     ON invoice_lines (clinic_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_invoice_lines_updated_at ON invoice_lines;
 CREATE TRIGGER trg_invoice_lines_updated_at
@@ -559,16 +600,16 @@ CREATE TABLE IF NOT EXISTS patient_anamnesis (
     is_current               boolean NOT NULL DEFAULT true,
     recorded_at              timestamptz NOT NULL DEFAULT now(),
     created_at               timestamptz NOT NULL DEFAULT now()
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_patient_anamnesis_current
     ON patient_anamnesis (clinic_id, patient_id)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE is_current = true;
 
 CREATE INDEX IF NOT EXISTS ix_patient_anamnesis_patient
     ON patient_anamnesis (clinic_id, patient_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 -- =============================================================================
 -- 13. PATIENT_ANAMNESIS_ITEM_SELECTIONS
@@ -581,11 +622,11 @@ CREATE TABLE IF NOT EXISTS patient_anamnesis_item_selections (
     detail_text       text,
     created_at        timestamptz NOT NULL DEFAULT now(),
     UNIQUE (anamnesis_id, anamnesis_item_id)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_patient_anamnesis_item_selections_anamnesis
     ON patient_anamnesis_item_selections (anamnesis_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 -- =============================================================================
 -- 14. ODONTOGRAM_TEETH
@@ -604,7 +645,7 @@ CREATE TABLE IF NOT EXISTS odontogram_teeth (
     created_at              timestamptz     NOT NULL DEFAULT now(),
     updated_at              timestamptz     NOT NULL DEFAULT now(),
     UNIQUE (clinic_id, patient_id, tooth_fdi)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_odontogram_teeth_updated_at ON odontogram_teeth;
 CREATE TRIGGER trg_odontogram_teeth_updated_at
@@ -627,15 +668,15 @@ CREATE TABLE IF NOT EXISTS tooth_conditions (
     resolved_at  date,
     notes        text,
     created_at   timestamptz     NOT NULL DEFAULT now()
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_tooth_conditions_clinic_patient
     ON tooth_conditions (clinic_id, patient_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_tooth_conditions_clinic_tooth
     ON tooth_conditions (clinic_id, tooth_fdi)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 -- =============================================================================
 -- 16. CLINICAL_HISTORY_ENTRIES
@@ -653,11 +694,11 @@ CREATE TABLE IF NOT EXISTS clinical_history_entries (
     created_at     timestamptz NOT NULL DEFAULT now(),
     updated_at     timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT clinical_history_entries_body_not_empty CHECK (length(trim(body)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_clinical_history_entries_clinic_patient
     ON clinical_history_entries (clinic_id, patient_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_clinical_history_entries_updated_at ON clinical_history_entries;
 CREATE TRIGGER trg_clinical_history_entries_updated_at
@@ -681,11 +722,11 @@ CREATE TABLE IF NOT EXISTS patient_documents (
     notes         text,
     created_at    timestamptz   NOT NULL DEFAULT now(),
     CONSTRAINT patient_documents_title_not_empty CHECK (length(trim(title)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_patient_documents_clinic_patient
     ON patient_documents (clinic_id, patient_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 -- =============================================================================
 -- 18. SUPPLIERS
@@ -705,7 +746,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
     created_at   timestamptz NOT NULL DEFAULT now(),
     updated_at   timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT suppliers_name_not_empty CHECK (length(trim(name)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_suppliers_updated_at ON suppliers;
 CREATE TRIGGER trg_suppliers_updated_at
@@ -724,7 +765,7 @@ CREATE TABLE IF NOT EXISTS product_categories (
     sort_order integer NOT NULL DEFAULT 0,
     created_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (clinic_id, name)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 -- =============================================================================
 -- 20. PRODUCTS
@@ -746,11 +787,11 @@ CREATE TABLE IF NOT EXISTS products (
     created_at         timestamptz NOT NULL DEFAULT now(),
     updated_at         timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT products_name_not_empty CHECK (length(trim(name)) > 0)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_products_clinic_sku
     ON products (clinic_id, sku)
-    TABLESPACE {tablespace}
+    TABLESPACE pg_default
     WHERE sku IS NOT NULL;
 
 DROP TRIGGER IF EXISTS trg_products_updated_at ON products;
@@ -774,15 +815,15 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     moved_at               timestamptz         NOT NULL DEFAULT now(),
     created_by_provider_id uuid                REFERENCES providers(id) ON DELETE SET NULL,
     created_at             timestamptz         NOT NULL DEFAULT now()
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_stock_movements_clinic_product
     ON stock_movements (clinic_id, product_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_stock_movements_clinic_moved_at
     ON stock_movements (clinic_id, moved_at)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 -- =============================================================================
 -- 22. SERVICE_BUNDLE_ITEMS
@@ -797,11 +838,11 @@ CREATE TABLE IF NOT EXISTS service_bundle_items (
     sort_order        integer NOT NULL DEFAULT 0,
     created_at        timestamptz NOT NULL DEFAULT now(),
     UNIQUE (parent_service_id, child_service_id)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_service_bundle_items_bundle
     ON service_bundle_items (clinic_id, parent_service_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 -- =============================================================================
 -- 23. CONDITION_SERVICE_DEFAULTS
@@ -815,11 +856,11 @@ CREATE TABLE IF NOT EXISTS condition_service_defaults (
     sort_order       integer         NOT NULL DEFAULT 0,
     created_at       timestamptz     NOT NULL DEFAULT now(),
     UNIQUE (clinic_id, condition_name, service_id)
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_condition_service_defaults_condition
     ON condition_service_defaults (clinic_id, condition_name)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 -- =============================================================================
 -- 24. PATIENT_RECALLS
@@ -841,19 +882,19 @@ CREATE TABLE IF NOT EXISTS patient_recalls (
     notes                   text,
     created_at              timestamptz     NOT NULL DEFAULT now(),
     updated_at              timestamptz     NOT NULL DEFAULT now()
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_patient_recalls_clinic_status
     ON patient_recalls (clinic_id, status)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_patient_recalls_clinic_patient
     ON patient_recalls (clinic_id, patient_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_patient_recalls_clinic_due_date
     ON patient_recalls (clinic_id, due_date)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_patient_recalls_updated_at ON patient_recalls;
 CREATE TRIGGER trg_patient_recalls_updated_at
@@ -874,11 +915,11 @@ CREATE TABLE IF NOT EXISTS recall_contacts (
     contact_at               timestamptz         NOT NULL DEFAULT now(),
     notes                    text,
     created_at               timestamptz         NOT NULL DEFAULT now()
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_recall_contacts_recall
     ON recall_contacts (recall_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 -- =============================================================================
 -- 26. AI_CONVERSATIONS
@@ -893,11 +934,11 @@ CREATE TABLE IF NOT EXISTS ai_conversations (
     messages    jsonb   NOT NULL DEFAULT '[]',
     created_at  timestamptz NOT NULL DEFAULT now(),
     updated_at  timestamptz NOT NULL DEFAULT now()
-) TABLESPACE {tablespace};
+) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS ix_ai_conversations_clinic
     ON ai_conversations (clinic_id)
-    TABLESPACE {tablespace};
+    TABLESPACE pg_default;
 
 DROP TRIGGER IF EXISTS trg_ai_conversations_updated_at ON ai_conversations;
 CREATE TRIGGER trg_ai_conversations_updated_at
@@ -1277,3 +1318,32 @@ FROM clinics c
 LEFT JOIN patient_agg  pa  ON pa.clinic_id  = c.id
 LEFT JOIN provider_agg pra ON pra.clinic_id = c.id
 LEFT JOIN plan_agg     tpa ON tpa.clinic_id = c.id;
+$ddl$;
+    EXECUTE l_ddl;
+
+    -- 3) record tenant (schema dentalcare condiviso)
+    INSERT INTO dentalcare.tenants (id, name, schema_name, email, phone, plan, active)
+    VALUES (p_tenant_id, p_studio_name, p_schema, p_email, p_phone,
+            COALESCE(NULLIF(p_plan, ''), 'professional'), true);
+
+    -- 4) clinic nello schema del tenant
+    EXECUTE format(
+        'INSERT INTO %I.clinics (id, name, legal_name, vat_number, fiscal_code, phone, email, '
+        || 'address_line1, city, province, country, timezone) '
+        || 'VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,''IT'',''Europe/Rome'')', p_schema)
+    USING p_clinic_id, p_studio_name, p_studio_name, p_vat, p_vat, p_phone, p_email,
+          p_address, p_city, p_province;
+
+    -- 5) mappa clinic <-> tenant
+    INSERT INTO dentalcare.tenant_clinics (clinic_id, tenant_id)
+    VALUES (p_clinic_id, p_tenant_id);
+
+    -- 6) admin provider
+    EXECUTE format(
+        'INSERT INTO %I.providers (id, clinic_id, first_name, last_name, email, role, active, password_hash) '
+        || 'VALUES ($1,$2,$3,$4,$5,''admin''::dentalcare.provider_role,true,$6)', p_schema)
+    USING l_admin_id, p_clinic_id, p_admin_first, p_admin_last, p_admin_email, p_admin_pw_hash;
+
+    RETURN l_admin_id;
+END
+$provision$;
