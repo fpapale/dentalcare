@@ -5,8 +5,12 @@ import com.dentalcare.dto.ProviderDto;
 import com.dentalcare.dto.UpdateProviderBillingRequest;
 import com.dentalcare.dto.UpdateProviderProfileRequest;
 import com.dentalcare.security.TenantContext;
+import com.dentalcare.util.TempPasswordGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +22,18 @@ import java.util.UUID;
 @Service
 public class ProviderService {
 
-    private final NamedParameterJdbcTemplate jdbc;
+    private static final Logger log = LoggerFactory.getLogger(ProviderService.class);
 
-    public ProviderService(NamedParameterJdbcTemplate jdbc) {
+    private final NamedParameterJdbcTemplate jdbc;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    public ProviderService(NamedParameterJdbcTemplate jdbc,
+                           PasswordEncoder passwordEncoder,
+                           EmailService emailService) {
         this.jdbc = jdbc;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     private String s() { return TenantContext.validatedSchema(); }
@@ -75,11 +87,18 @@ public class ProviderService {
     public ProviderDto create(CreateProviderRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         UUID id = UUID.randomUUID();
+
+        // Password temporanea: l'utente la cambia al primo accesso (password_temporary = true).
+        String tempPassword = TempPasswordGenerator.generate();
+        String passwordHash = passwordEncoder.encode(tempPassword);
+
         jdbc.update("""
             INSERT INTO %s.providers
-                (id, clinic_id, first_name, last_name, role, phone, email, active)
+                (id, clinic_id, first_name, last_name, role, phone, email, active,
+                 password_hash, password_temporary)
             VALUES
-                (:id, :clinicId, :firstName, :lastName, :role::dentalcare.provider_role, :phone, :email, true)
+                (:id, :clinicId, :firstName, :lastName, :role::dentalcare.provider_role, :phone, :email, true,
+                 :passwordHash, true)
             """.formatted(s()),
             new MapSqlParameterSource()
                 .addValue("id", id)
@@ -88,7 +107,16 @@ public class ProviderService {
                 .addValue("lastName", request.lastName())
                 .addValue("role", request.role())
                 .addValue("phone", request.phone())
-                .addValue("email", request.email()));
+                .addValue("email", request.email())
+                .addValue("passwordHash", passwordHash));
+
+        // Invia la password temporanea via email. Senza email l'utente non può accedere.
+        if (request.email() != null && !request.email().isBlank()) {
+            emailService.sendTempPassword(request.email(), request.firstName(), tempPassword);
+        } else {
+            log.warn("Provider {} creato senza email: nessuna password temporanea inviata", id);
+        }
+
         return findById(id);
     }
 
