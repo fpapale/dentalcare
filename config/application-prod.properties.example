@@ -25,7 +25,7 @@ app.demo.password=DemoAdmin1!
 
 # ---- Mail (SMTP) ----
 spring.mail.host=192.168.0.68
-spring.mail.port=9143
+spring.mail.port=25
 app.mail.from=noreply@dentalcare.it
 app.mail.send-real-emails=false
 

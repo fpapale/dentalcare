@@ -31,18 +31,24 @@ public class TenantProvisioningService {
     private final TransactionTemplate tx;
     private final TenantSchemaRegistry registry;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Value("${tenant.tablespace.base-path:}")
     private String tablespaceBasePath;
 
+    @Value("${app.frontend.base-url:http://localhost:4200}")
+    private String frontendBaseUrl;
+
     public TenantProvisioningService(JdbcTemplate jdbc,
                                      PlatformTransactionManager txManager,
                                      TenantSchemaRegistry registry,
-                                     PasswordEncoder passwordEncoder) {
+                                     PasswordEncoder passwordEncoder,
+                                     EmailService emailService) {
         this.jdbc = jdbc;
         this.tx = new TransactionTemplate(txManager);
         this.registry = registry;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     public TenantProvisioningResult provision(RegistrationRequest req) {
@@ -82,6 +88,11 @@ public class TenantProvisioningService {
 
         registry.register(clinicId.toString(), schemaName);
         log.info("Tenant provisioned: schema={} clinicId={} tenantId={}", schemaName, clinicId, tenantId);
+
+        // Welcome email after successful commit. send() swallows its own failures.
+        emailService.sendStudioWelcome(
+                req.adminEmail(), req.adminNome(), req.studioName(),
+                frontendBaseUrl.stripTrailing().replaceAll("/+$", "") + "/login");
 
         return new TenantProvisioningResult(tenantId, clinicId, schemaName);
     }

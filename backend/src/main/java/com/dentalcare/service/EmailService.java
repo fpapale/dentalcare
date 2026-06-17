@@ -48,6 +48,23 @@ public class EmailService {
         send(toEmail, subject, text);
     }
 
+    public void sendStudioWelcome(String toEmail, String firstName, String studioName, String loginUrl) {
+        String subject = "DentalCare Pro — Studio attivato";
+        String text = """
+                Gentile %s,
+
+                Lo studio "%s" è stato creato con successo su DentalCare Pro.
+
+                Puoi accedere subito con l'email e la password che hai scelto in fase di registrazione:
+                %s
+
+                Per sicurezza non riportiamo la password in questa email.
+
+                DentalCare Pro
+                """.formatted(firstName, studioName, loginUrl);
+        send(toEmail, subject, text);
+    }
+
     public void sendPasswordResetCode(String toEmail, String firstName, String resetCode) {
         String subject = "DentalCare Pro — Reset password";
         String text = """
