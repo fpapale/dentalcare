@@ -1,34 +1,5 @@
--- =============================================================================
--- DentalCare - Installazione completa
--- =============================================================================
--- Crea un nuovo database, lo schema globale "dentalcare" (enum, funzioni,
--- tabelle di riferimento + dati) e il tenant demo "t_9d754153" con tutti i
--- dati di esempio.
 --
--- USO:
---   psql -U postgres -d postgres -v dbname=NOME_DB -f database/install.sql
---
--- Se ometti -v dbname=..., il database si chiama "dentalcare".
---
--- Generato da pg_dump del DB dentalcarepro (schemi dentalcare + t_9d754153).
--- Rigenerare con lo stesso comando dopo modifiche allo schema/seed.
--- =============================================================================
-
-\set ON_ERROR_STOP on
-
-\if :{?dbname}
-\else
-  \set dbname dentalcare
-\endif
-
-\echo 'Creazione database' :dbname
-CREATE DATABASE :"dbname";
-\connect :"dbname"
-
-CREATE EXTENSION IF NOT EXISTS citext;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
---
+-- PostgreSQL database dump
 --
 
 
@@ -38,6 +9,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -282,6 +254,1338 @@ BEGIN
     END IF;
 END;
 $$;
+
+
+--
+-- Name: create_tenant(uuid, uuid, text, text, text, text, text, text, text, text, text, text, text, text, text); Type: FUNCTION; Schema: dentalcare; Owner: -
+--
+
+CREATE FUNCTION dentalcare.create_tenant(p_tenant_id uuid, p_clinic_id uuid, p_schema text, p_studio_name text, p_email text, p_phone text, p_plan text, p_vat text, p_address text, p_city text, p_province text, p_admin_first text, p_admin_last text, p_admin_email text, p_admin_pw_hash text) RETURNS uuid
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    l_admin_id uuid := gen_random_uuid();
+    l_ddl      text;
+BEGIN
+    IF p_schema !~ '^t_[0-9a-f]{8}$' THEN
+        RAISE EXCEPTION 'Invalid schema name: %', p_schema;
+    END IF;
+    IF EXISTS (SELECT 1 FROM dentalcare.tenants WHERE schema_name = p_schema) THEN
+        RAISE EXCEPTION 'Schema already registered: %', p_schema;
+    END IF;
+    IF p_admin_pw_hash IS NULL OR length(p_admin_pw_hash) = 0 THEN
+        RAISE EXCEPTION 'admin password hash required';
+    END IF;
+
+    -- 1) schema
+    EXECUTE format('CREATE SCHEMA %I', p_schema);
+
+    -- 2) tutto il DDL dello schema (tabelle, viste, funzioni, trigger)
+    l_ddl := 'SET LOCAL search_path TO ' || quote_ident(p_schema) || ', dentalcare, public;
+'
+    ||
+$ddl$
+
+-- =============================================================================
+-- FUNZIONE DI SERVIZIO
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS trigger AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================================================================
+-- 1. CLINICS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS clinics (
+    id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    name             text        NOT NULL,
+    legal_name       text,
+    vat_number       text,
+    fiscal_code      text,
+    phone            text,
+    email            citext,
+    address_line1    text,
+    address_line2    text,
+    city             text,
+    province         text,
+    postal_code      text,
+    country          text        NOT NULL DEFAULT 'IT',
+    timezone         text        NOT NULL DEFAULT 'Europe/Rome',
+    opening_time     time        NOT NULL DEFAULT '08:00',
+    closing_time     time        NOT NULL DEFAULT '20:00',
+    slot_minutes     integer     NOT NULL DEFAULT 30 CHECK (slot_minutes > 0),
+    invoice_prefix   text        NOT NULL DEFAULT 'FC',
+    invoice_counter  integer     NOT NULL DEFAULT 0 CHECK (invoice_counter >= 0),
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    updated_at       timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT clinics_name_not_empty CHECK (length(trim(name)) > 0)
+) TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_clinics_updated_at ON clinics;
+CREATE TRIGGER trg_clinics_updated_at
+BEFORE UPDATE ON clinics
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 2. PATIENTS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patients (
+    id            uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id     uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    first_name    text    NOT NULL,
+    last_name     text    NOT NULL,
+    fiscal_code   text,
+    birth_date    date,
+    gender        char(1) CHECK (gender IN ('M', 'F', 'X')),
+    phone         text,
+    email         citext,
+    address_line1 text,
+    city          text,
+    province      text,
+    postal_code   text,
+    country       text    NOT NULL DEFAULT 'IT',
+    notes         text,
+    primary_provider_id uuid,
+    active        boolean NOT NULL DEFAULT true,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT patients_first_name_not_empty CHECK (length(trim(first_name)) > 0),
+    CONSTRAINT patients_last_name_not_empty  CHECK (length(trim(last_name)) > 0),
+    CONSTRAINT patients_id_clinic_uq         UNIQUE (id, clinic_id)
+) TABLESPACE pg_default;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_patients_clinic_fiscal_code
+    ON patients (clinic_id, fiscal_code)
+    TABLESPACE pg_default
+    WHERE fiscal_code IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS ix_patients_clinic_name
+    ON patients (clinic_id, last_name, first_name)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_patients_updated_at ON patients;
+CREATE TRIGGER trg_patients_updated_at
+BEFORE UPDATE ON patients
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 3. PROVIDERS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS providers (
+    id                   uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id            uuid          NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    first_name           text          NOT NULL,
+    last_name            text          NOT NULL,
+    role                 provider_role NOT NULL,
+    specialization       text,
+    fiscal_code          text,
+    phone                text,
+    email                citext,
+    license_number       text,
+    color_hex            char(7)       NOT NULL DEFAULT '#4F46E5',
+    active               boolean       NOT NULL DEFAULT true,
+    vat_number           text,
+    billing_address      text,
+    billing_city         text,
+    billing_province     text,
+    billing_postal_code  text,
+    billing_country      text          NOT NULL DEFAULT 'IT',
+    password_hash        text,
+    password_temporary   boolean       NOT NULL DEFAULT false,
+    created_at           timestamptz   NOT NULL DEFAULT now(),
+    updated_at           timestamptz   NOT NULL DEFAULT now(),
+    CONSTRAINT providers_first_name_not_empty CHECK (length(trim(first_name)) > 0),
+    CONSTRAINT providers_last_name_not_empty  CHECK (length(trim(last_name)) > 0),
+    CONSTRAINT providers_color_hex_format     CHECK (color_hex ~ '^#[0-9A-Fa-f]{6}$'),
+    CONSTRAINT providers_id_clinic_uq         UNIQUE (id, clinic_id)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_providers_clinic_role_active
+    ON providers (clinic_id, role)
+    TABLESPACE pg_default
+    WHERE active = true;
+
+DROP TRIGGER IF EXISTS trg_providers_updated_at ON providers;
+CREATE TRIGGER trg_providers_updated_at
+BEFORE UPDATE ON providers
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Medico di riferimento del paziente (FK aggiunta qui: providers creata sopra)
+ALTER TABLE patients
+    DROP CONSTRAINT IF EXISTS patients_primary_provider_id_fkey;
+ALTER TABLE patients
+    ADD CONSTRAINT patients_primary_provider_id_fkey
+        FOREIGN KEY (primary_provider_id) REFERENCES providers(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS ix_patients_primary_provider
+    ON patients (clinic_id, primary_provider_id)
+    TABLESPACE pg_default
+    WHERE primary_provider_id IS NOT NULL;
+
+-- =============================================================================
+-- 4. SERVICE_CATALOG
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS service_catalog (
+    id                       uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id                uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    code                     text    NOT NULL,
+    name                     text    NOT NULL,
+    description              text,
+    category                 text,
+    default_price            numeric(12,2) NOT NULL DEFAULT 0 CHECK (default_price >= 0),
+    duration_minutes         integer NOT NULL DEFAULT 30 CHECK (duration_minutes > 0),
+    min_tooth_digit          integer,
+    max_tooth_digit          integer,
+    applicable_to_deciduous  boolean NOT NULL DEFAULT true,
+    is_active                boolean NOT NULL DEFAULT true,
+    created_at               timestamptz NOT NULL DEFAULT now(),
+    updated_at               timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT service_catalog_code_not_empty CHECK (length(trim(code)) > 0),
+    CONSTRAINT service_catalog_name_not_empty CHECK (length(trim(name)) > 0),
+    UNIQUE (clinic_id, code)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_service_catalog_clinic_active_cat
+    ON service_catalog (clinic_id, is_active, category)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_service_catalog_updated_at ON service_catalog;
+CREATE TRIGGER trg_service_catalog_updated_at
+BEFORE UPDATE ON service_catalog
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 5. TREATMENT_PLANS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS treatment_plans (
+    id          uuid                   PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id   uuid                   NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id  uuid                   NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    provider_id uuid                   REFERENCES providers(id) ON DELETE SET NULL,
+    title       text                   NOT NULL DEFAULT 'Piano di cura',
+    description text,
+    status      treatment_plan_status  NOT NULL DEFAULT 'draft',
+    version     integer                NOT NULL DEFAULT 1 CHECK (version > 0),
+    notes       text,
+    created_at  timestamptz            NOT NULL DEFAULT now(),
+    updated_at  timestamptz            NOT NULL DEFAULT now(),
+    CONSTRAINT treatment_plans_title_not_empty CHECK (length(trim(title)) > 0)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_treatment_plans_clinic_patient
+    ON treatment_plans (clinic_id, patient_id, status)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_treatment_plans_updated_at ON treatment_plans;
+CREATE TRIGGER trg_treatment_plans_updated_at
+BEFORE UPDATE ON treatment_plans
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 6. TREATMENT_PLAN_ITEMS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS treatment_plan_items (
+    id                  uuid                  PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id           uuid                  NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    plan_id             uuid                  NOT NULL REFERENCES treatment_plans(id) ON DELETE CASCADE,
+    service_catalog_id  uuid                  REFERENCES service_catalog(id) ON DELETE SET NULL,
+    tooth_fdi           text,
+    surfaces            text[],
+    description         text                  NOT NULL,
+    price               numeric(12,2)         NOT NULL DEFAULT 0 CHECK (price >= 0),
+    status              treatment_item_status NOT NULL DEFAULT 'planned',
+    sort_order          integer               NOT NULL DEFAULT 0,
+    completed_at        timestamptz,
+    created_at          timestamptz           NOT NULL DEFAULT now(),
+    updated_at          timestamptz           NOT NULL DEFAULT now(),
+    CONSTRAINT treatment_plan_items_description_not_empty CHECK (length(trim(description)) > 0)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_treatment_plan_items_plan
+    ON treatment_plan_items (plan_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_treatment_plan_items_clinic_status
+    ON treatment_plan_items (clinic_id, status)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_treatment_plan_items_updated_at ON treatment_plan_items;
+CREATE TRIGGER trg_treatment_plan_items_updated_at
+BEFORE UPDATE ON treatment_plan_items
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 7. APPOINTMENTS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS appointments (
+    id                      uuid               PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id               uuid               NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id              uuid               REFERENCES patients(id) ON DELETE SET NULL,
+    provider_id             uuid               REFERENCES providers(id) ON DELETE SET NULL,
+    treatment_plan_item_id  uuid               REFERENCES treatment_plan_items(id) ON DELETE SET NULL,
+    chair_label             text,
+    starts_at               timestamptz        NOT NULL,
+    ends_at                 timestamptz        NOT NULL,
+    status                  appointment_status NOT NULL DEFAULT 'scheduled',
+    notes                   text,
+    created_at              timestamptz        NOT NULL DEFAULT now(),
+    updated_at              timestamptz        NOT NULL DEFAULT now(),
+    CONSTRAINT appointments_dates_valid CHECK (ends_at > starts_at)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_appointments_clinic_starts
+    ON appointments (clinic_id, starts_at)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_appointments_clinic_provider_starts
+    ON appointments (clinic_id, provider_id, starts_at)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_appointments_clinic_patient
+    ON appointments (clinic_id, patient_id)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_appointments_updated_at ON appointments;
+CREATE TRIGGER trg_appointments_updated_at
+BEFORE UPDATE ON appointments
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 8. ESTIMATES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS estimates (
+    id                      uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id               uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id              uuid            REFERENCES patients(id) ON DELETE SET NULL,
+    provider_id             uuid            REFERENCES providers(id) ON DELETE SET NULL,
+    created_by_provider_id  uuid            REFERENCES providers(id) ON DELETE SET NULL,
+    treatment_plan_id       uuid            REFERENCES treatment_plans(id) ON DELETE SET NULL,
+    estimate_number         text,
+    version                 integer         NOT NULL DEFAULT 1 CHECK (version > 0),
+    status                  estimate_status NOT NULL DEFAULT 'draft',
+    title                   text,
+    notes                   text,
+    currency                text            NOT NULL DEFAULT 'EUR',
+    valid_until             date,
+    subtotal_amount         numeric(12,2)   NOT NULL DEFAULT 0 CHECK (subtotal_amount >= 0),
+    discount_amount         numeric(12,2)   NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+    taxable_amount          numeric(12,2)   NOT NULL DEFAULT 0 CHECK (taxable_amount >= 0),
+    vat_amount              numeric(12,2)   NOT NULL DEFAULT 0 CHECK (vat_amount >= 0),
+    total_amount            numeric(12,2)   NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
+    issued_at               timestamptz,
+    sent_at                 timestamptz,
+    accepted_at             timestamptz,
+    rejected_at             timestamptz,
+    created_at              timestamptz     NOT NULL DEFAULT now(),
+    updated_at              timestamptz     NOT NULL DEFAULT now(),
+    CONSTRAINT estimates_id_clinic_uq       UNIQUE (id, clinic_id)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_estimates_clinic_patient
+    ON estimates (clinic_id, patient_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_estimates_clinic_status
+    ON estimates (clinic_id, status)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_estimates_clinic_provider
+    ON estimates (clinic_id, created_by_provider_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_estimates_clinic_plan
+    ON estimates (clinic_id, treatment_plan_id)
+    TABLESPACE pg_default
+    WHERE treatment_plan_id IS NOT NULL;
+
+DROP TRIGGER IF EXISTS trg_estimates_updated_at ON estimates;
+CREATE TRIGGER trg_estimates_updated_at
+BEFORE UPDATE ON estimates
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 9. ESTIMATE_LINES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS estimate_lines (
+    id                      uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+    estimate_id             uuid          NOT NULL REFERENCES estimates(id) ON DELETE CASCADE,
+    clinic_id               uuid          NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    treatment_plan_item_id  uuid          REFERENCES treatment_plan_items(id) ON DELETE SET NULL,
+    service_id              uuid          REFERENCES service_catalog(id) ON DELETE SET NULL,
+    description_snapshot    text          NOT NULL,
+    tooth_snapshot          text,
+    surfaces                text[],
+    line_position           integer       NOT NULL DEFAULT 10,
+    quantity                integer       NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    unit_price              numeric(12,2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0),
+    discount_amount         numeric(12,2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+    vat_rate                numeric(5,2)  NOT NULL DEFAULT 0,
+    line_subtotal           numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_subtotal >= 0),
+    line_taxable            numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_taxable >= 0),
+    line_vat_amount         numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_vat_amount >= 0),
+    line_total              numeric(12,2) NOT NULL DEFAULT 0 CHECK (line_total >= 0),
+    created_at              timestamptz   NOT NULL DEFAULT now(),
+    updated_at              timestamptz   NOT NULL DEFAULT now(),
+    CONSTRAINT estimate_lines_description_not_empty CHECK (length(trim(description_snapshot)) > 0)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_estimate_lines_estimate
+    ON estimate_lines (estimate_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_estimate_lines_plan_item
+    ON estimate_lines (clinic_id, treatment_plan_item_id)
+    TABLESPACE pg_default
+    WHERE treatment_plan_item_id IS NOT NULL;
+
+DROP TRIGGER IF EXISTS trg_estimate_lines_updated_at ON estimate_lines;
+CREATE TRIGGER trg_estimate_lines_updated_at
+BEFORE UPDATE ON estimate_lines
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 10. INVOICES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS invoices (
+    id                  uuid                          NOT NULL DEFAULT gen_random_uuid(),
+    clinic_id           uuid                          NOT NULL,
+    invoice_number      text,
+    document_type       invoice_document_type         NOT NULL DEFAULT 'fattura',
+    invoice_date        date                          NOT NULL DEFAULT CURRENT_DATE,
+    due_date            date,
+    status              invoice_status                NOT NULL DEFAULT 'draft',
+    issuer_type         invoice_issuer_type           NOT NULL DEFAULT 'clinic',
+    provider_id         uuid,
+    patient_id          uuid                          NOT NULL,
+    estimate_id         uuid,
+    issuer_name         text,
+    issuer_vat_number   text,
+    issuer_fiscal_code  text,
+    issuer_address      text,
+    issuer_email        text,
+    issuer_pec          text,
+    issuer_sdi_code     text,
+    issuer_iban         text,
+    patient_full_name   text,
+    patient_fiscal_code text,
+    patient_address     text,
+    patient_email       text,
+    subtotal_amount     numeric(12,2)                 NOT NULL DEFAULT 0,
+    discount_amount     numeric(12,2)                 NOT NULL DEFAULT 0,
+    taxable_amount      numeric(12,2)                 NOT NULL DEFAULT 0,
+    vat_amount          numeric(12,2)                 NOT NULL DEFAULT 0,
+    total_amount        numeric(12,2)                 NOT NULL DEFAULT 0,
+    currency            char(3)                       NOT NULL DEFAULT 'EUR',
+    notes               text,
+    payment_method      text,
+    paid_at             timestamptz,
+    issued_at           timestamptz,
+    created_at          timestamptz                   NOT NULL DEFAULT now(),
+    updated_at          timestamptz                   NOT NULL DEFAULT now(),
+    CONSTRAINT invoices_pkey PRIMARY KEY (id),
+    CONSTRAINT invoices_unique_per_clinic UNIQUE (id, clinic_id),
+    CONSTRAINT ux_invoices_number UNIQUE (clinic_id, invoice_number)
+) TABLESPACE pg_default;
+
+ALTER TABLE invoices
+    DROP CONSTRAINT IF EXISTS invoices_clinic_id_fkey;
+ALTER TABLE invoices
+    ADD CONSTRAINT invoices_clinic_id_fkey
+        FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE RESTRICT;
+
+ALTER TABLE invoices
+    DROP CONSTRAINT IF EXISTS fk_invoices_patient;
+ALTER TABLE invoices
+    ADD CONSTRAINT fk_invoices_patient
+        FOREIGN KEY (patient_id, clinic_id) REFERENCES patients(id, clinic_id) ON DELETE RESTRICT;
+
+ALTER TABLE invoices
+    DROP CONSTRAINT IF EXISTS fk_invoices_provider;
+ALTER TABLE invoices
+    ADD CONSTRAINT fk_invoices_provider
+        FOREIGN KEY (provider_id, clinic_id) REFERENCES providers(id, clinic_id)
+        ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE invoices
+    DROP CONSTRAINT IF EXISTS fk_invoices_estimate;
+ALTER TABLE invoices
+    ADD CONSTRAINT fk_invoices_estimate
+        FOREIGN KEY (estimate_id, clinic_id) REFERENCES estimates(id, clinic_id)
+        ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+CREATE INDEX IF NOT EXISTS ix_invoices_clinic_status
+    ON invoices (clinic_id, status, invoice_date DESC)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_invoices_patient
+    ON invoices (clinic_id, patient_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_invoices_estimate
+    ON invoices (clinic_id, estimate_id)
+    TABLESPACE pg_default
+    WHERE estimate_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS ix_invoices_provider
+    ON invoices (clinic_id, provider_id)
+    TABLESPACE pg_default
+    WHERE provider_id IS NOT NULL;
+
+DROP TRIGGER IF EXISTS trg_invoices_set_updated_at ON invoices;
+CREATE TRIGGER trg_invoices_set_updated_at
+BEFORE UPDATE ON invoices
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 11. INVOICE_LINES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS invoice_lines (
+    id               uuid          NOT NULL DEFAULT gen_random_uuid(),
+    invoice_id       uuid          NOT NULL,
+    clinic_id        uuid          NOT NULL,
+    line_position    integer       NOT NULL DEFAULT 0,
+    description      text          NOT NULL,
+    tooth_info       text,
+    quantity         numeric(12,4) NOT NULL DEFAULT 1,
+    unit_price       numeric(12,2) NOT NULL DEFAULT 0,
+    discount_amount  numeric(12,2) NOT NULL DEFAULT 0,
+    vat_rate         numeric(5,2)  NOT NULL DEFAULT 22,
+    line_subtotal    numeric(12,2) NOT NULL DEFAULT 0,
+    line_taxable     numeric(12,2) NOT NULL DEFAULT 0,
+    line_vat_amount  numeric(12,2) NOT NULL DEFAULT 0,
+    line_total       numeric(12,2) NOT NULL DEFAULT 0,
+    created_at       timestamptz   NOT NULL DEFAULT now(),
+    updated_at       timestamptz   NOT NULL DEFAULT now(),
+    CONSTRAINT invoice_lines_pkey PRIMARY KEY (id),
+    CONSTRAINT invoice_lines_description_not_empty CHECK (length(trim(description)) > 0)
+) TABLESPACE pg_default;
+
+ALTER TABLE invoice_lines
+    DROP CONSTRAINT IF EXISTS fk_invoice_lines_invoice;
+ALTER TABLE invoice_lines
+    ADD CONSTRAINT fk_invoice_lines_invoice
+        FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE;
+
+ALTER TABLE invoice_lines
+    DROP CONSTRAINT IF EXISTS fk_invoice_lines_clinic;
+ALTER TABLE invoice_lines
+    ADD CONSTRAINT fk_invoice_lines_clinic
+        FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE RESTRICT;
+
+CREATE INDEX IF NOT EXISTS ix_invoice_lines_invoice
+    ON invoice_lines (invoice_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_invoice_lines_clinic
+    ON invoice_lines (clinic_id)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_invoice_lines_updated_at ON invoice_lines;
+CREATE TRIGGER trg_invoice_lines_updated_at
+BEFORE UPDATE ON invoice_lines
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 12. PATIENT_ANAMNESIS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_anamnesis (
+    id                       uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id                uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id               uuid    NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    recorded_by_provider_id  uuid    REFERENCES providers(id) ON DELETE SET NULL,
+    blood_type               text,
+    smoker                   boolean NOT NULL DEFAULT false,
+    cigarettes_per_day       integer,
+    alcohol_use              text,
+    hypertension             boolean NOT NULL DEFAULT false,
+    diabetes                 boolean NOT NULL DEFAULT false,
+    heart_disease            boolean NOT NULL DEFAULT false,
+    coagulopathy             boolean NOT NULL DEFAULT false,
+    taking_anticoagulants    boolean NOT NULL DEFAULT false,
+    taking_bisphosphonates   boolean NOT NULL DEFAULT false,
+    taking_cortisone         boolean NOT NULL DEFAULT false,
+    current_medications      text,
+    allergy_penicillin       boolean NOT NULL DEFAULT false,
+    allergy_latex            boolean NOT NULL DEFAULT false,
+    allergy_anesthetic       boolean NOT NULL DEFAULT false,
+    allergy_aspirin          boolean NOT NULL DEFAULT false,
+    other_allergies          text,
+    pregnancy                boolean NOT NULL DEFAULT false,
+    pacemaker                boolean NOT NULL DEFAULT false,
+    hepatitis                boolean NOT NULL DEFAULT false,
+    hiv_positive             boolean NOT NULL DEFAULT false,
+    osteoporosis             boolean NOT NULL DEFAULT false,
+    asthma                   boolean NOT NULL DEFAULT false,
+    epilepsy                 boolean NOT NULL DEFAULT false,
+    kidney_disease           boolean NOT NULL DEFAULT false,
+    notes                    text,
+    is_current               boolean NOT NULL DEFAULT true,
+    recorded_at              timestamptz NOT NULL DEFAULT now(),
+    created_at               timestamptz NOT NULL DEFAULT now()
+) TABLESPACE pg_default;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_patient_anamnesis_current
+    ON patient_anamnesis (clinic_id, patient_id)
+    TABLESPACE pg_default
+    WHERE is_current = true;
+
+CREATE INDEX IF NOT EXISTS ix_patient_anamnesis_patient
+    ON patient_anamnesis (clinic_id, patient_id)
+    TABLESPACE pg_default;
+
+-- =============================================================================
+-- 13. PATIENT_ANAMNESIS_ITEM_SELECTIONS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_anamnesis_item_selections (
+    id                uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    anamnesis_id      uuid    NOT NULL REFERENCES patient_anamnesis(id) ON DELETE CASCADE,
+    anamnesis_item_id uuid    NOT NULL REFERENCES dentalcare.anamnesis_items(id),
+    detail_text       text,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (anamnesis_id, anamnesis_item_id)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_patient_anamnesis_item_selections_anamnesis
+    ON patient_anamnesis_item_selections (anamnesis_id)
+    TABLESPACE pg_default;
+
+-- =============================================================================
+-- 14. ODONTOGRAM_TEETH
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS odontogram_teeth (
+    id                      uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id               uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id              uuid            NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    tooth_fdi               text            NOT NULL,
+    condition               tooth_condition NOT NULL DEFAULT 'healthy',
+    surfaces                text[],
+    notes                   text,
+    recorded_at             timestamptz     NOT NULL DEFAULT now(),
+    recorded_by_provider_id uuid            REFERENCES providers(id) ON DELETE SET NULL,
+    created_at              timestamptz     NOT NULL DEFAULT now(),
+    updated_at              timestamptz     NOT NULL DEFAULT now(),
+    UNIQUE (clinic_id, patient_id, tooth_fdi)
+) TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_odontogram_teeth_updated_at ON odontogram_teeth;
+CREATE TRIGGER trg_odontogram_teeth_updated_at
+BEFORE UPDATE ON odontogram_teeth
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 15. TOOTH_CONDITIONS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS tooth_conditions (
+    id           uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id    uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id   uuid            NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    provider_id  uuid            REFERENCES providers(id) ON DELETE SET NULL,
+    tooth_fdi    text            NOT NULL,
+    surface      text,
+    condition    tooth_condition NOT NULL,
+    detected_at  date            NOT NULL DEFAULT CURRENT_DATE,
+    resolved_at  date,
+    notes        text,
+    created_at   timestamptz     NOT NULL DEFAULT now()
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_tooth_conditions_clinic_patient
+    ON tooth_conditions (clinic_id, patient_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_tooth_conditions_clinic_tooth
+    ON tooth_conditions (clinic_id, tooth_fdi)
+    TABLESPACE pg_default;
+
+-- =============================================================================
+-- 16. CLINICAL_HISTORY_ENTRIES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS clinical_history_entries (
+    id             uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id      uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id     uuid    NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    provider_id    uuid    REFERENCES providers(id) ON DELETE SET NULL,
+    appointment_id uuid    REFERENCES appointments(id) ON DELETE SET NULL,
+    entry_type     text    NOT NULL DEFAULT 'note',
+    title          text,
+    body           text    NOT NULL,
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    updated_at     timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT clinical_history_entries_body_not_empty CHECK (length(trim(body)) > 0)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_clinical_history_entries_clinic_patient
+    ON clinical_history_entries (clinic_id, patient_id)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_clinical_history_entries_updated_at ON clinical_history_entries;
+CREATE TRIGGER trg_clinical_history_entries_updated_at
+BEFORE UPDATE ON clinical_history_entries
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 17. PATIENT_DOCUMENTS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_documents (
+    id            uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id     uuid          NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id    uuid          NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    provider_id   uuid          REFERENCES providers(id) ON DELETE SET NULL,
+    document_type document_type NOT NULL DEFAULT 'altro',
+    title         text          NOT NULL,
+    file_path     text,
+    mime_type     text,
+    size_bytes    bigint,
+    notes         text,
+    created_at    timestamptz   NOT NULL DEFAULT now(),
+    CONSTRAINT patient_documents_title_not_empty CHECK (length(trim(title)) > 0)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_patient_documents_clinic_patient
+    ON patient_documents (clinic_id, patient_id)
+    TABLESPACE pg_default;
+
+-- =============================================================================
+-- 18. SUPPLIERS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS suppliers (
+    id           uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id    uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    name         text    NOT NULL,
+    contact_name text,
+    phone        text,
+    email        citext,
+    address      text,
+    vat_number   text,
+    notes        text,
+    active       boolean NOT NULL DEFAULT true,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT suppliers_name_not_empty CHECK (length(trim(name)) > 0)
+) TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_suppliers_updated_at ON suppliers;
+CREATE TRIGGER trg_suppliers_updated_at
+BEFORE UPDATE ON suppliers
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 19. PRODUCT_CATEGORIES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS product_categories (
+    id         uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id  uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    name       text    NOT NULL,
+    color_hex  char(7) NOT NULL DEFAULT '#6B7280',
+    sort_order integer NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (clinic_id, name)
+) TABLESPACE pg_default;
+
+-- =============================================================================
+-- 20. PRODUCTS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS products (
+    id                uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id         uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    supplier_id       uuid    REFERENCES suppliers(id) ON DELETE SET NULL,
+    category_id       uuid    REFERENCES product_categories(id) ON DELETE SET NULL,
+    sku               text,
+    name              text    NOT NULL,
+    description       text,
+    unit              text    NOT NULL DEFAULT 'pz',
+    min_stock_quantity numeric(12,2) NOT NULL DEFAULT 0 CHECK (min_stock_quantity >= 0),
+    reorder_quantity   numeric(12,2) NOT NULL DEFAULT 0 CHECK (reorder_quantity >= 0),
+    unit_cost          numeric(12,2) NOT NULL DEFAULT 0 CHECK (unit_cost >= 0),
+    is_active          boolean NOT NULL DEFAULT true,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT products_name_not_empty CHECK (length(trim(name)) > 0)
+) TABLESPACE pg_default;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_products_clinic_sku
+    ON products (clinic_id, sku)
+    TABLESPACE pg_default
+    WHERE sku IS NOT NULL;
+
+DROP TRIGGER IF EXISTS trg_products_updated_at ON products;
+CREATE TRIGGER trg_products_updated_at
+BEFORE UPDATE ON products
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 21. STOCK_MOVEMENTS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS stock_movements (
+    id                     uuid                PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id              uuid                NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    product_id             uuid                NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    movement_type          stock_movement_type NOT NULL,
+    quantity               integer             NOT NULL CHECK (quantity != 0),
+    unit_cost              numeric(12,2)       NOT NULL DEFAULT 0 CHECK (unit_cost >= 0),
+    reference_doc          text,
+    notes                  text,
+    moved_at               timestamptz         NOT NULL DEFAULT now(),
+    created_by_provider_id uuid                REFERENCES providers(id) ON DELETE SET NULL,
+    created_at             timestamptz         NOT NULL DEFAULT now()
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_stock_movements_clinic_product
+    ON stock_movements (clinic_id, product_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_stock_movements_clinic_moved_at
+    ON stock_movements (clinic_id, moved_at)
+    TABLESPACE pg_default;
+
+-- =============================================================================
+-- 22. SERVICE_BUNDLE_ITEMS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS service_bundle_items (
+    id                uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id         uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    parent_service_id uuid    NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
+    child_service_id  uuid    NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
+    quantity          integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    sort_order        integer NOT NULL DEFAULT 0,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (parent_service_id, child_service_id)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_service_bundle_items_bundle
+    ON service_bundle_items (clinic_id, parent_service_id)
+    TABLESPACE pg_default;
+
+-- =============================================================================
+-- 23. CONDITION_SERVICE_DEFAULTS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS condition_service_defaults (
+    id               uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id        uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    condition_name   tooth_condition NOT NULL,
+    service_id       uuid            NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
+    sort_order       integer         NOT NULL DEFAULT 0,
+    created_at       timestamptz     NOT NULL DEFAULT now(),
+    UNIQUE (clinic_id, condition_name, service_id)
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_condition_service_defaults_condition
+    ON condition_service_defaults (clinic_id, condition_name)
+    TABLESPACE pg_default;
+
+-- =============================================================================
+-- 24. PATIENT_RECALLS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_recalls (
+    id                      uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id               uuid            NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id              uuid            NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    provider_id             uuid            REFERENCES providers(id) ON DELETE SET NULL,
+    source_appointment_id   uuid            REFERENCES appointments(id) ON DELETE SET NULL,
+    recall_type             text            NOT NULL DEFAULT 'Controllo periodico',
+    status                  recall_status   NOT NULL DEFAULT 'da_contattare',
+    priority                recall_priority NOT NULL DEFAULT 'media',
+    due_date                date            NOT NULL,
+    contact_count           integer         NOT NULL DEFAULT 0,
+    last_contact_at         date,
+    completed_at            timestamptz,
+    notes                   text,
+    created_at              timestamptz     NOT NULL DEFAULT now(),
+    updated_at              timestamptz     NOT NULL DEFAULT now()
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_patient_recalls_clinic_status
+    ON patient_recalls (clinic_id, status)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_patient_recalls_clinic_patient
+    ON patient_recalls (clinic_id, patient_id)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_patient_recalls_clinic_due_date
+    ON patient_recalls (clinic_id, due_date)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_patient_recalls_updated_at ON patient_recalls;
+CREATE TRIGGER trg_patient_recalls_updated_at
+BEFORE UPDATE ON patient_recalls
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- 25. RECALL_CONTACTS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS recall_contacts (
+    id                       uuid                PRIMARY KEY DEFAULT gen_random_uuid(),
+    recall_id                uuid                NOT NULL REFERENCES patient_recalls(id) ON DELETE CASCADE,
+    clinic_id                uuid                NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    contact_type             recall_contact_type NOT NULL,
+    outcome                  recall_outcome,
+    created_by_provider_id   uuid                REFERENCES providers(id) ON DELETE SET NULL,
+    contact_at               timestamptz         NOT NULL DEFAULT now(),
+    notes                    text,
+    created_at               timestamptz         NOT NULL DEFAULT now()
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_recall_contacts_recall
+    ON recall_contacts (recall_id)
+    TABLESPACE pg_default;
+
+-- =============================================================================
+-- 26. AI_CONVERSATIONS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS ai_conversations (
+    id          uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id   uuid    NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+    patient_id  uuid    REFERENCES patients(id) ON DELETE SET NULL,
+    provider_id uuid    REFERENCES providers(id) ON DELETE SET NULL,
+    title       text,
+    messages    jsonb   NOT NULL DEFAULT '[]',
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now()
+) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS ix_ai_conversations_clinic
+    ON ai_conversations (clinic_id)
+    TABLESPACE pg_default;
+
+DROP TRIGGER IF EXISTS trg_ai_conversations_updated_at ON ai_conversations;
+CREATE TRIGGER trg_ai_conversations_updated_at
+BEFORE UPDATE ON ai_conversations
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================================
+-- FUNZIONI DI CALCOLO AUTOMATICO
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION recalc_estimate_totals()
+RETURNS trigger AS $$
+DECLARE
+    v_estimate_id uuid;
+BEGIN
+    PERFORM set_config('search_path', TG_TABLE_SCHEMA || ', dentalcare, public', true);
+    v_estimate_id := COALESCE(NEW.estimate_id, OLD.estimate_id);
+    UPDATE estimates
+    SET
+        subtotal       = COALESCE((SELECT SUM(unit_price * quantity)                       FROM estimate_lines WHERE estimate_id = v_estimate_id), 0),
+        discount_total = COALESCE((SELECT SUM(unit_price * quantity * discount_pct / 100)  FROM estimate_lines WHERE estimate_id = v_estimate_id), 0),
+        total          = COALESCE((SELECT SUM(line_total)                                  FROM estimate_lines WHERE estimate_id = v_estimate_id), 0),
+        updated_at     = now()
+    WHERE id = v_estimate_id;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_recalc_estimate_totals ON estimate_lines;
+CREATE TRIGGER trg_recalc_estimate_totals
+AFTER INSERT OR UPDATE OR DELETE ON estimate_lines
+FOR EACH ROW EXECUTE FUNCTION recalc_estimate_totals();
+
+CREATE OR REPLACE FUNCTION trg_compute_invoice_line_totals()
+RETURNS trigger AS $$
+BEGIN
+    NEW.line_subtotal   := (COALESCE(NEW.quantity, 1) * COALESCE(NEW.unit_price, 0))
+                           - COALESCE(NEW.discount_amount, 0);
+    NEW.line_taxable    := NEW.line_subtotal;
+    NEW.line_vat_amount := ROUND(NEW.line_taxable * COALESCE(NEW.vat_rate, 0) / 100, 2);
+    NEW.line_total      := NEW.line_taxable + NEW.line_vat_amount;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_invoice_line_compute_totals ON invoice_lines;
+CREATE TRIGGER trg_invoice_line_compute_totals
+BEFORE INSERT OR UPDATE ON invoice_lines
+FOR EACH ROW EXECUTE FUNCTION trg_compute_invoice_line_totals();
+
+CREATE OR REPLACE FUNCTION trg_update_invoice_totals_from_lines()
+RETURNS trigger AS $$
+DECLARE
+    v_invoice_id uuid;
+BEGIN
+    PERFORM set_config('search_path', TG_TABLE_SCHEMA || ', dentalcare, public', true);
+    v_invoice_id := COALESCE(NEW.invoice_id, OLD.invoice_id);
+    UPDATE invoices
+    SET subtotal_amount = COALESCE((SELECT SUM(line_subtotal)   FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        discount_amount = COALESCE((SELECT SUM(discount_amount) FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        taxable_amount  = COALESCE((SELECT SUM(line_taxable)    FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        vat_amount      = COALESCE((SELECT SUM(line_vat_amount) FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        total_amount    = COALESCE((SELECT SUM(line_total)      FROM invoice_lines WHERE invoice_id = v_invoice_id), 0),
+        updated_at      = now()
+    WHERE id = v_invoice_id;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_invoices_recalc_from_lines ON invoice_lines;
+CREATE TRIGGER trg_invoices_recalc_from_lines
+AFTER INSERT OR UPDATE OR DELETE ON invoice_lines
+FOR EACH ROW EXECUTE FUNCTION trg_update_invoice_totals_from_lines();
+
+CREATE OR REPLACE FUNCTION compute_recall_priority(p_due_date date)
+RETURNS recall_priority AS $$
+BEGIN
+    IF p_due_date < CURRENT_DATE THEN
+        RETURN 'urgent';
+    ELSIF p_due_date <= CURRENT_DATE + 7 THEN
+        RETURN 'high';
+    ELSIF p_due_date <= CURRENT_DATE + 30 THEN
+        RETURN 'medium';
+    ELSE
+        RETURN 'low';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_recall_on_contact()
+RETURNS trigger AS $$
+BEGIN
+    PERFORM set_config('search_path', TG_TABLE_SCHEMA || ', dentalcare, public', true);
+    IF NEW.outcome = 'booked' THEN
+        UPDATE patient_recalls
+        SET status     = 'booked'::recall_status,
+            updated_at = now()
+        WHERE id = NEW.recall_id;
+    ELSIF NEW.outcome IN ('refused', 'already_booked', 'scheduled_later') THEN
+        UPDATE patient_recalls
+        SET status       = 'completed'::recall_status,
+            completed_at = now(),
+            updated_at   = now()
+        WHERE id = NEW.recall_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_update_recall_on_contact ON recall_contacts;
+CREATE TRIGGER trg_update_recall_on_contact
+AFTER INSERT ON recall_contacts
+FOR EACH ROW EXECUTE FUNCTION update_recall_on_contact();
+
+-- =============================================================================
+-- DIAGNOSI, PRESCRIZIONI, CHAT (allineamento con migrazioni V13/V14/V22)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_diagnoses (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id       UUID NOT NULL,
+    patient_id      UUID NOT NULL,
+    provider_id     UUID NOT NULL,
+    tooth_number    VARCHAR(10),
+    title           VARCHAR(255) NOT NULL,
+    description     TEXT,
+    icd_code        VARCHAR(20),
+    status          VARCHAR(20) NOT NULL DEFAULT 'active',
+    diagnosed_at    DATE NOT NULL DEFAULT CURRENT_DATE,
+    resolved_at     DATE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_patient_diagnoses_patient ON patient_diagnoses (clinic_id, patient_id);
+CREATE INDEX IF NOT EXISTS idx_patient_diagnoses_status  ON patient_diagnoses (clinic_id, patient_id, status);
+
+CREATE TABLE IF NOT EXISTS patient_prescriptions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id       UUID NOT NULL,
+    patient_id      UUID NOT NULL,
+    provider_id     UUID NOT NULL,
+    drug_name       VARCHAR(255) NOT NULL,
+    dosage          VARCHAR(100),
+    frequency       VARCHAR(100),
+    duration        VARCHAR(100),
+    notes           TEXT,
+    prescribed_at   DATE NOT NULL DEFAULT CURRENT_DATE,
+    expires_at      DATE,
+    active          BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_patient_prescriptions_patient ON patient_prescriptions (clinic_id, patient_id);
+CREATE INDEX IF NOT EXISTS idx_patient_prescriptions_active  ON patient_prescriptions (clinic_id, patient_id, active);
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider_id   UUID        NOT NULL,
+    title         TEXT        NOT NULL,
+    message_count INT         NOT NULL DEFAULT 0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID        NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    role       TEXT        NOT NULL CHECK (role IN ('user', 'assistant')),
+    content    TEXT        NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS chat_messages_session_idx  ON chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS chat_sessions_provider_idx ON chat_sessions(provider_id, created_at DESC);
+
+-- =============================================================================
+-- VISTE
+-- =============================================================================
+
+CREATE OR REPLACE VIEW v_patient_dashboard AS
+SELECT
+    p.id         AS patient_id,
+    p.clinic_id,
+    p.first_name AS patient_first_name,
+    p.last_name  AS patient_last_name,
+    concat_ws(' ', p.last_name, p.first_name) AS patient_full_name,
+    p.fiscal_code,
+    p.birth_date,
+    CASE WHEN p.birth_date IS NULL THEN NULL
+         ELSE date_part('year', age(CURRENT_DATE, p.birth_date))::int END AS age_years,
+    p.phone,
+    p.email,
+    p.city,
+    p.province,
+    p.active,
+    COUNT(DISTINCT tp.id)  FILTER (WHERE tp.status NOT IN ('rejected','archived'))              AS treatment_plans_count,
+    COUNT(DISTINCT tpi.id) FILTER (WHERE tpi.status IN ('planned','accepted','scheduled'))      AS open_treatment_items_count,
+    COALESCE(SUM(e.total_amount)  FILTER (WHERE e.status = 'accepted'), 0.00)                  AS accepted_estimates_amount
+FROM patients p
+LEFT JOIN treatment_plans      tp  ON tp.patient_id  = p.id  AND tp.clinic_id  = p.clinic_id
+LEFT JOIN treatment_plan_items tpi ON tpi.plan_id    = tp.id AND tpi.clinic_id = p.clinic_id
+LEFT JOIN estimates            e   ON e.patient_id   = p.id  AND e.clinic_id   = p.clinic_id
+GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code,
+         p.birth_date, p.phone, p.email, p.city, p.province, p.active;
+
+CREATE OR REPLACE VIEW v_patient_clinical_card AS
+SELECT
+    p.id          AS patient_id,
+    p.clinic_id,
+    p.first_name,
+    p.last_name,
+    concat_ws(' ', p.last_name, p.first_name) AS full_name,
+    p.birth_date,
+    CASE WHEN p.birth_date IS NULL THEN NULL
+         ELSE date_part('year', age(CURRENT_DATE, p.birth_date))::int END AS age_years,
+    p.fiscal_code,
+    p.phone,
+    p.email,
+    p.city,
+    p.province,
+    p.notes AS patient_notes,
+    p.active,
+    pa.blood_type,
+    pa.smoker,
+    pa.hypertension,
+    pa.diabetes,
+    pa.heart_disease,
+    pa.taking_anticoagulants,
+    pa.taking_bisphosphonates,
+    pa.allergy_penicillin,
+    pa.allergy_latex,
+    pa.allergy_anesthetic,
+    pa.current_medications,
+    pa.other_allergies,
+    pa.pacemaker,
+    pa.notes       AS anamnesis_notes,
+    pa.recorded_at AS anamnesis_date,
+    (SELECT COUNT(*) FROM appointments a
+     WHERE a.patient_id = p.id AND a.clinic_id = p.clinic_id) AS total_appointments
+FROM patients p
+LEFT JOIN patient_anamnesis pa
+       ON pa.patient_id = p.id
+      AND pa.clinic_id  = p.clinic_id
+      AND pa.is_current = true;
+
+CREATE OR REPLACE VIEW product_stock_v AS
+SELECT
+    pr.clinic_id,
+    pr.id        AS product_id,
+    pr.name      AS product_name,
+    pr.sku,
+    pr.unit,
+    pr.min_stock_quantity,
+    pc.name      AS category_name,
+    s.name       AS supplier_name,
+    COALESCE(SUM(
+        CASE sm.movement_type
+            WHEN 'carico'    THEN sm.quantity
+            WHEN 'rientro'   THEN sm.quantity
+            WHEN 'scarico'   THEN -sm.quantity
+            WHEN 'rettifica' THEN sm.quantity
+            ELSE 0
+        END
+    ), 0) AS current_stock,
+    pr.min_stock_quantity AS min_stock_threshold,
+    pr.is_active,
+    CASE
+        WHEN COALESCE(SUM(CASE sm.movement_type
+                WHEN 'carico' THEN sm.quantity WHEN 'rientro' THEN sm.quantity
+                WHEN 'scarico' THEN -sm.quantity WHEN 'rettifica' THEN sm.quantity ELSE 0
+             END), 0) = 0                           THEN 'critico'
+        WHEN COALESCE(SUM(CASE sm.movement_type
+                WHEN 'carico' THEN sm.quantity WHEN 'rientro' THEN sm.quantity
+                WHEN 'scarico' THEN -sm.quantity WHEN 'rettifica' THEN sm.quantity ELSE 0
+             END), 0) <= pr.min_stock_quantity       THEN 'basso'
+        ELSE 'ok'
+    END AS stock_status
+FROM products pr
+LEFT JOIN product_categories pc ON pc.id = pr.category_id AND pc.clinic_id = pr.clinic_id
+LEFT JOIN suppliers          s  ON s.id  = pr.supplier_id  AND s.clinic_id  = pr.clinic_id
+LEFT JOIN stock_movements    sm ON sm.product_id = pr.id   AND sm.clinic_id = pr.clinic_id
+GROUP BY pr.clinic_id, pr.id, pr.name, pr.sku, pr.unit, pr.min_stock_quantity,
+         pc.name, s.name, pr.is_active;
+
+DROP VIEW IF EXISTS v_agenda_daily;
+CREATE VIEW v_agenda_daily AS
+SELECT
+    a.id                                      AS appointment_id,
+    a.clinic_id,
+    a.starts_at,
+    a.ends_at,
+    a.chair_label,
+    a.status::text                            AS appointment_status,
+    a.notes                                   AS notes,
+    p.id                                      AS patient_id,
+    concat_ws(' ', p.last_name, p.first_name) AS patient_full_name,
+    p.phone                                   AS patient_phone,
+    p.email                                   AS patient_email,
+    pr.id                                     AS provider_id,
+    concat_ws(' ', pr.first_name, pr.last_name) AS provider_name,
+    pr.role::text                             AS provider_role,
+    pr.color_hex                              AS provider_color,
+    sc.name                                   AS service_name,
+    sc.category                               AS service_category,
+    tpi.tooth_fdi                             AS tooth_number,
+    EXISTS (
+        SELECT 1 FROM patient_anamnesis pa2
+        WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true
+          AND (pa2.allergy_penicillin OR pa2.allergy_latex OR pa2.allergy_anesthetic
+               OR pa2.allergy_aspirin OR pa2.other_allergies IS NOT NULL)
+    ) AS has_allergy_alert,
+    EXISTS (
+        SELECT 1 FROM patient_anamnesis pa2
+        WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true
+          AND (pa2.taking_anticoagulants OR pa2.taking_bisphosphonates
+               OR pa2.heart_disease OR pa2.pacemaker)
+    ) AS has_medication_alert
+FROM appointments a
+LEFT JOIN patients             p   ON p.id   = a.patient_id
+LEFT JOIN providers            pr  ON pr.id  = a.provider_id
+LEFT JOIN treatment_plan_items tpi ON tpi.id = a.treatment_plan_item_id
+LEFT JOIN service_catalog      sc  ON sc.id  = tpi.service_catalog_id;
+
+DROP VIEW IF EXISTS v_patient_estimates_summary;
+CREATE VIEW v_patient_estimates_summary AS
+SELECT
+    e.id                    AS estimate_id,
+    e.clinic_id,
+    e.patient_id,
+    e.created_by_provider_id,
+    e.version,
+    e.status::text          AS estimate_status,
+    e.title                 AS estimate_title,
+    e.estimate_number,
+    e.currency,
+    e.subtotal_amount,
+    e.discount_amount,
+    e.taxable_amount,
+    e.vat_amount,
+    e.total_amount,
+    concat_ws(' ', p.last_name, p.first_name) AS patient_full_name,
+    p.fiscal_code           AS patient_fiscal_code,
+    p.phone                 AS patient_phone,
+    e.issued_at,
+    e.sent_at,
+    e.valid_until,
+    e.accepted_at,
+    e.rejected_at,
+    e.created_at            AS estimate_created_at
+FROM estimates e
+LEFT JOIN patients p ON p.id = e.patient_id AND p.clinic_id = e.clinic_id;
+
+DROP VIEW IF EXISTS v_clinic_dashboard;
+CREATE VIEW v_clinic_dashboard AS
+WITH patient_agg AS (
+    SELECT clinic_id,
+           COUNT(*) FILTER (WHERE active = true) AS patients_count
+    FROM patients GROUP BY clinic_id
+),
+provider_agg AS (
+    SELECT clinic_id,
+           COUNT(*) FILTER (WHERE active = true) AS active_providers_count
+    FROM providers GROUP BY clinic_id
+),
+plan_agg AS (
+    SELECT clinic_id,
+           COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress_treatment_plans_count
+    FROM treatment_plans GROUP BY clinic_id
+)
+SELECT
+    c.id                                                   AS clinic_id,
+    c.name                                                 AS clinic_name,
+    c.city                                                 AS city,
+    COALESCE(pa.patients_count,                       0)   AS patients_count,
+    COALESCE(pra.active_providers_count,              0)   AS active_providers_count,
+    COALESCE(tpa.in_progress_treatment_plans_count,   0)   AS in_progress_treatment_plans_count
+FROM clinics c
+LEFT JOIN patient_agg  pa  ON pa.clinic_id  = c.id
+LEFT JOIN provider_agg pra ON pra.clinic_id = c.id
+LEFT JOIN plan_agg     tpa ON tpa.clinic_id = c.id;
+$ddl$;
+    EXECUTE l_ddl;
+
+    -- 3) record tenant (schema dentalcare condiviso)
+    INSERT INTO dentalcare.tenants (id, name, schema_name, email, phone, plan, active)
+    VALUES (p_tenant_id, p_studio_name, p_schema, p_email, p_phone,
+            COALESCE(NULLIF(p_plan, ''), 'professional'), true);
+
+    -- 4) clinic nello schema del tenant
+    EXECUTE format(
+        'INSERT INTO %I.clinics (id, name, legal_name, vat_number, fiscal_code, phone, email, '
+        || 'address_line1, city, province, country, timezone) '
+        || 'VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,''IT'',''Europe/Rome'')', p_schema)
+    USING p_clinic_id, p_studio_name, p_studio_name, p_vat, p_vat, p_phone, p_email,
+          p_address, p_city, p_province;
+
+    -- 5) mappa clinic <-> tenant
+    INSERT INTO dentalcare.tenant_clinics (clinic_id, tenant_id)
+    VALUES (p_clinic_id, p_tenant_id);
+
+    -- 6) admin provider
+    EXECUTE format(
+        'INSERT INTO %I.providers (id, clinic_id, first_name, last_name, email, role, active, password_hash) '
+        || 'VALUES ($1,$2,$3,$4,$5,''admin''::dentalcare.provider_role,true,$6)', p_schema)
+    USING l_admin_id, p_clinic_id, p_admin_first, p_admin_last, p_admin_email, p_admin_pw_hash;
+
+    RETURN l_admin_id;
+END
+$_$;
 
 
 --
@@ -716,6 +2020,34 @@ CREATE TABLE t_9d754153.appointments (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT appointments_dates_valid CHECK ((ends_at > starts_at))
+);
+
+
+--
+-- Name: chat_messages; Type: TABLE; Schema: t_9d754153; Owner: -
+--
+
+CREATE TABLE t_9d754153.chat_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    session_id uuid NOT NULL,
+    role text NOT NULL,
+    content text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chat_messages_role_check CHECK ((role = ANY (ARRAY['user'::text, 'assistant'::text])))
+);
+
+
+--
+-- Name: chat_sessions; Type: TABLE; Schema: t_9d754153; Owner: -
+--
+
+CREATE TABLE t_9d754153.chat_sessions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    provider_id uuid NOT NULL,
+    title text NOT NULL,
+    message_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1766,6 +3098,8 @@ COPY dentalcare.flyway_schema_history (installed_rank, version, description, typ
 19	19	clinics billing columns	SQL	V19__clinics_billing_columns.sql	-724843636	postgres	2026-05-27 22:47:36.310081	185	t
 20	20	providers role phone	SQL	V20__providers_role_phone.sql	111531480	postgres	2026-05-27 22:47:37.044053	356	t
 21	21	add secretary role	SQL	V21__add_secretary_role.sql	412188291	postgres	2026-06-01 12:36:56.062472	108	t
+22	22	chat history	SQL	V22__chat_history.sql	-462917725	postgres	2026-06-09 18:49:00.281122	214	t
+23	23	create tenant function	SQL	V23__create_tenant_function.sql	-1198410848	postgres	2026-06-17 14:20:17.11953	18	t
 \.
 
 
@@ -1971,25 +3305,6 @@ COPY dentalcare.states (id, code, name) FROM stdin;
 
 
 --
--- Data for Name: tenant_clinics; Type: TABLE DATA; Schema: dentalcare; Owner: -
---
-
-COPY dentalcare.tenant_clinics (clinic_id, tenant_id, created_at) FROM stdin;
-352464ea-0b3f-47ba-a3dc-3511c6d1af4f	a0000001-0000-0000-0000-000000000001	2026-05-17 13:11:14.678307+00
-9d754153-6579-4b7e-a56b-025f00299cd9	a0000001-0000-0000-0000-000000000001	2026-05-29 13:52:49.31794+00
-\.
-
-
---
--- Data for Name: tenants; Type: TABLE DATA; Schema: dentalcare; Owner: -
---
-
-COPY dentalcare.tenants (id, name, schema_name, email, phone, plan, active, created_at, updated_at) FROM stdin;
-a0000001-0000-0000-0000-000000000001	Clinica Demo DentalCare	t_9d754153	demo@dentalcare.it	\N	professional	t	2026-05-17 13:11:14.678307+00	2026-05-29 13:52:49.31794+00
-\.
-
-
---
 -- Data for Name: ai_conversations; Type: TABLE DATA; Schema: t_9d754153; Owner: -
 --
 
@@ -2062,7 +3377,6 @@ de7a9cc4-342f-4d20-8ac7-99d6862fc37f	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 8f6f3a6f-9241-431b-bd7b-c6b6ddab9833	9d754153-6579-4b7e-a56b-025f00299cd9	3ad7ac7c-09ba-4c45-a91f-e7e063c44b0b	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-04 10:00:00+00	2026-06-04 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 019e22b6-bbb1-4912-bd45-67a331ee16d3	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-04 13:00:00+00	2026-06-04 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 9a8c51f6-e8bd-48af-b0ac-28ed05b0c47d	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-04 15:00:00+00	2026-06-04 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-a5ba629d-d19f-419f-93ad-acda0983728e	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-04 07:00:00+00	2026-06-04 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 355122b4-9db6-4824-a548-d437b12da5eb	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-04 12:00:00+00	2026-06-04 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 42825c62-e51d-43b3-aceb-ec73da02d14e	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-04 14:00:00+00	2026-06-04 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 cfa609f4-d1c3-4db3-898a-4c19210500df	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-04 08:00:00+00	2026-06-04 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
@@ -2090,12 +3404,10 @@ ff7ad933-168d-49a3-bc92-1bc27b4fb8d0	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 e8515bb5-5fc5-4dec-a532-a198671e8db9	9d754153-6579-4b7e-a56b-025f00299cd9	3ad7ac7c-09ba-4c45-a91f-e7e063c44b0b	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-05 13:00:00+00	2026-06-05 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 332e071b-f854-4af5-aa95-f7ea08d1b322	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-05 15:00:00+00	2026-06-05 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 53afcabd-5508-42e1-b679-2f72cc289efc	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-05 07:00:00+00	2026-06-05 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-677b63a0-1091-4db7-96d8-d55090a09378	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-05 09:00:00+00	2026-06-05 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 c0de73d2-b6a6-4c3d-97ac-82768a72fc8c	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-05 12:00:00+00	2026-06-05 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 6daad1fd-2ee6-4d65-998d-9295a1812c1f	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-05 14:00:00+00	2026-06-05 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 9aca403e-4b5c-4504-aa79-df733a157c3f	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-08 07:00:00+00	2026-06-08 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 9033572a-8463-4db3-b804-c6facade39a9	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-08 09:00:00+00	2026-06-08 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-5073f282-1c01-4433-98dd-e4258971b938	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-08 12:00:00+00	2026-06-08 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 84d3cc87-0996-4852-adb2-59f177215b1d	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-08 14:00:00+00	2026-06-08 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 a67e2356-3f29-4222-9ca1-e55e31f0c2bb	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000010	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-08 08:00:00+00	2026-06-08 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 20887331-407a-4172-9df8-c48a45e0ad04	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000011	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-08 10:00:00+00	2026-06-08 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
@@ -2106,17 +3418,13 @@ a67e2356-3f29-4222-9ca1-e55e31f0c2bb	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 190546ed-cd7e-4c5c-a0f8-a51114ffbbb1	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000016	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-08 12:00:00+00	2026-06-08 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 cb608df5-85c1-4c77-88ac-b8a801582cbc	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-08 14:00:00+00	2026-06-08 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 4541bd4c-ed70-431a-a48b-6a292d6bbadb	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000018	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-08 08:00:00+00	2026-06-08 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-72f6803d-9102-4150-b840-c03227d835db	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-08 10:00:00+00	2026-06-08 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 92345e78-5b92-436d-a138-c1af7fe41ff1	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000020	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-08 13:00:00+00	2026-06-08 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0b98cc14-3676-4935-8049-6d47c2d273e6	9d754153-6579-4b7e-a56b-025f00299cd9	3ad7ac7c-09ba-4c45-a91f-e7e063c44b0b	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-08 15:00:00+00	2026-06-08 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 dc1e7468-7436-49fa-8bf8-ee89ea2fdd4e	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-09 08:00:00+00	2026-06-09 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 b5339529-4be7-4629-85e9-6419a5f42dda	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-09 10:00:00+00	2026-06-09 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-0837493f-8ef4-4943-b5d2-9bf95986382a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-09 13:00:00+00	2026-06-09 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-3a0c748d-7197-45f7-8e69-b3b8263820ad	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-09 15:00:00+00	2026-06-09 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 88b44805-8784-4b7d-ad19-50914ab2f2aa	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-09 07:00:00+00	2026-06-09 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 80190c9a-62c3-4888-a18a-7577a0676a95	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-09 09:00:00+00	2026-06-09 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 7ad42650-eba0-4ed6-b90b-508b2a6c0661	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-09 12:00:00+00	2026-06-09 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-c2530375-1c07-41e4-8114-22851f9a5274	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-09 14:00:00+00	2026-06-09 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 f47d3e71-7270-4e96-83b1-bfa2c3ba2028	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-09 08:00:00+00	2026-06-09 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0490f450-3d09-4162-8d88-d7a224350cf7	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000010	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-09 10:00:00+00	2026-06-09 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 555c9d69-5553-4633-b8d0-eae2b872e9f7	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000011	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-09 13:00:00+00	2026-06-09 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
@@ -2127,28 +3435,30 @@ a0e4c488-56d8-4e0a-b0c7-d1549bb8fa80	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 598425d7-10ee-4fdb-9d3e-6ea97ee8ae19	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000016	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-09 14:00:00+00	2026-06-09 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0b3690f0-4d46-4d00-b6c4-6d690b759623	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-10 07:00:00+00	2026-06-10 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 ed5795de-9f9f-4998-b85b-1f50a89378e7	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000018	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-10 09:00:00+00	2026-06-10 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-90bd3e74-e553-4c1a-98dc-5e56685b7814	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-10 12:00:00+00	2026-06-10 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 35a39bb8-bf0f-4403-80a7-2a43180d9504	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000020	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-10 14:00:00+00	2026-06-10 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 a5e10e09-09d0-4b37-a20d-32632371cc49	9d754153-6579-4b7e-a56b-025f00299cd9	3ad7ac7c-09ba-4c45-a91f-e7e063c44b0b	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-10 08:00:00+00	2026-06-10 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0a468142-b45e-4a5b-ba87-65b40ec6bcad	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-10 10:00:00+00	2026-06-10 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 cd8edfdd-14ea-478c-be6f-4bf83a1c5037	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-10 13:00:00+00	2026-06-10 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 f6039f76-9ecc-41d8-a058-e2179f427f15	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-10 15:00:00+00	2026-06-10 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-097a7f8b-5258-44d1-af19-0a555584eefc	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-10 07:00:00+00	2026-06-10 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 40f2b4ab-4536-4d58-bf17-7748ef85e673	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-10 09:00:00+00	2026-06-10 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 da05e645-8f39-407a-aa3c-48fd7d3fe35f	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-10 12:00:00+00	2026-06-10 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 d5c79390-ca64-454d-93da-4e25448684f5	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-10 14:00:00+00	2026-06-10 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-092e321c-177a-4be9-a063-41b6a230d57e	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-10 08:00:00+00	2026-06-10 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
+097a7f8b-5258-44d1-af19-0a555584eefc	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-10 07:00:00+00	2026-06-10 08:00:00+00	confirmed	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:05:42.922513+00
+3a0c748d-7197-45f7-8e69-b3b8263820ad	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-09 15:00:00+00	2026-06-09 15:30:00+00	confirmed	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:05:44.284529+00
+092e321c-177a-4be9-a063-41b6a230d57e	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-10 08:00:00+00	2026-06-10 09:00:00+00	confirmed	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-09 16:53:47.349845+00
+5073f282-1c01-4433-98dd-e4258971b938	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-08 12:00:00+00	2026-06-08 13:00:00+00	cancelled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-09 16:53:54.10148+00
+c2530375-1c07-41e4-8114-22851f9a5274	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-09 14:00:00+00	2026-06-09 15:00:00+00	cancelled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-09 16:53:52.65699+00
+90bd3e74-e553-4c1a-98dc-5e56685b7814	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-10 12:00:00+00	2026-06-10 13:00:00+00	cancelled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-17 11:03:18.107677+00
+72f6803d-9102-4150-b840-c03227d835db	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-08 10:00:00+00	2026-06-08 10:30:00+00	cancelled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-17 11:03:19.814977+00
 c04b9cc0-7ba7-4b91-a350-5c187a956b94	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-10 10:00:00+00	2026-06-10 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 3f270e81-ba41-4dd4-84ef-1c92ee4a4283	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000010	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-10 13:00:00+00	2026-06-10 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 99acff7b-8e86-4df0-afad-622bf4b4fa24	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000011	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-10 15:00:00+00	2026-06-10 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 9285ce8f-5217-4fee-9653-0fbc5277a683	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000012	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-11 08:00:00+00	2026-06-11 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-4d98264e-52d4-432b-8cc2-71bdcb6ad1f9	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-11 10:00:00+00	2026-06-11 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 834f51b2-c981-4de7-af62-9a14a2b523cd	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000014	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-11 13:00:00+00	2026-06-11 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 2b0a7be0-8e0d-4ade-ae30-26a74398ae9a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000015	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-11 15:00:00+00	2026-06-11 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 d51e0b08-a1b0-4b25-94ab-9db3e52142bf	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000016	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-11 07:00:00+00	2026-06-11 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 f7120527-7748-4e3b-bb00-310c15eb50ae	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-11 09:00:00+00	2026-06-11 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 aa7ab092-5857-456d-84b6-4a061b19249d	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000018	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-11 12:00:00+00	2026-06-11 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-0f83a4c0-230e-4c8d-91d1-ffb72c852ad2	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-11 14:00:00+00	2026-06-11 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 da39af61-bd51-4ee7-933f-beeecfb13fb8	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000003	\N	Poltrona 4	2026-03-10 16:00:00+00	2026-03-10 17:00:00+00	completed	Ultima seduta della giornata - eseguita regolarmente	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 058300e3-48b2-4118-9ed2-9a9f115bd093	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000002	\N	Poltrona 1	2026-03-11 09:00:00+00	2026-03-11 09:45:00+00	completed	Seduta eseguita regolarmente	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 45d2766c-bfa9-442f-9400-952a7b6f1c12	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000004	\N	Poltrona 2	2026-03-11 10:30:00+00	2026-03-11 11:30:00+00	completed	Trattamento eseguito correttamente	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
@@ -2181,6 +3491,7 @@ e9025cfa-af9e-4204-8fb1-c0be56e4c0fb	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 e334d307-1d35-4952-87f7-72f45e089257	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000002	\N	Poltrona 1	2026-03-20 09:00:00+00	2026-03-20 09:45:00+00	completed	Seduta eseguita regolarmente	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 9d091127-47b5-4626-a931-d44ffce3d8ea	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000020	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-11 08:00:00+00	2026-06-11 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 848ca6d2-7855-4166-bdb0-e78d0e1adddf	9d754153-6579-4b7e-a56b-025f00299cd9	3ad7ac7c-09ba-4c45-a91f-e7e063c44b0b	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-11 10:00:00+00	2026-06-11 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
+0f83a4c0-230e-4c8d-91d1-ffb72c852ad2	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-11 14:00:00+00	2026-06-11 15:00:00+00	cancelled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-17 11:03:16.286942+00
 bfdbd747-bc33-4387-a682-3abfa2377239	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000004	\N	Poltrona 2	2026-03-20 10:30:00+00	2026-03-20 11:30:00+00	completed	Trattamento eseguito correttamente	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 953b4ba7-ecc4-44ff-a22d-f705491a42af	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000001	\N	Poltrona 3	2026-03-20 14:30:00+00	2026-03-20 15:15:00+00	completed	Seduta pomeridiana completata	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 801b7967-6e81-49b7-98c6-86a51551139c	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000003	\N	Poltrona 4	2026-03-20 16:00:00+00	2026-03-20 17:00:00+00	completed	Ultima seduta della giornata - eseguita regolarmente	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
@@ -2390,6 +3701,7 @@ c5f42cc3-7f12-4a21-b652-7324df104420	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 fdaa1fc6-c4a2-4936-b0ca-be263147a5f7	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000002	f1000001-0000-0000-0000-000000000005	Poltrona 2	2026-05-26 10:00:00+00	2026-05-26 10:30:00+00	completed	CBCT eseguita - risultato nella documentazione	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 62a5def2-3633-443e-bf87-0b1a33c1cbef	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000004	\N	Poltrona 3	2026-05-26 14:30:00+00	2026-05-26 15:15:00+00	completed	Prima igiene - molto tartaro	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 80865525-0d96-4446-a425-bb03720b7725	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000001	\N	Poltrona 1	2026-05-26 16:00:00+00	2026-05-26 16:45:00+00	cancelled	Annullato per impegno paziente	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
+4d98264e-52d4-432b-8cc2-71bdcb6ad1f9	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-11 10:00:00+00	2026-06-11 10:30:00+00	confirmed	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:06:09.051364+00
 25ea25f9-5d16-45f8-b00e-e051049692a2	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000001	\N	Poltrona 1	2026-05-28 08:30:00+00	2026-05-28 09:15:00+00	completed	Visita di controllo - programmata igiene	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 766e4a4b-9713-43f0-b221-5aef6531eb70	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000003	f1000001-0000-0000-0000-000000000011	Poltrona 2	2026-05-28 10:00:00+00	2026-05-28 11:00:00+00	completed	Controllo mensile ortodonzia	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 f50ffaef-d09c-4570-9e9f-3a41169b1fbe	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000012	b1000001-0000-0000-0000-000000000004	\N	Poltrona 3	2026-05-28 11:30:00+00	2026-05-28 12:15:00+00	completed	Igiene profonda quadrante sup. sinistro	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
@@ -2425,75 +3737,69 @@ f9f780bd-1061-46e9-89ec-49f187aea52f	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 adcdbded-939b-41d4-bb09-32ae8cc75c0a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-11 13:00:00+00	2026-06-11 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 7993dabb-03fe-45bc-975f-2270e9294d88	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-11 15:00:00+00	2026-06-11 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 2621cfe9-53d3-4642-ae6e-60b1a6f46809	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-11 07:00:00+00	2026-06-11 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-71ec3326-def5-4ec8-9586-12372d46ef64	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-11 09:00:00+00	2026-06-11 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 d48569d0-949f-429c-a44e-22f5cbff7ca6	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-11 12:00:00+00	2026-06-11 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 9b0bb80f-0941-41a6-993c-97275d7af706	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-11 14:00:00+00	2026-06-11 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 66efec8f-cbd2-462d-9d71-e8a7962e5bfe	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-12 07:00:00+00	2026-06-12 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 d45c673b-2a5f-414f-affa-56f1eb30fe5b	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-12 12:00:00+00	2026-06-12 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 f9584141-6a19-4eea-90ac-bc9cac27bfd6	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000011	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-12 08:00:00+00	2026-06-12 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-791282f5-45e1-4cc1-b751-9f444c46a22a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-12 13:00:00+00	2026-06-12 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
+791282f5-45e1-4cc1-b751-9f444c46a22a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-12 13:00:00+00	2026-06-12 14:00:00+00	confirmed	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:06:07.769107+00
 f3f619c2-a990-4b24-891c-1d704194b76b	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000014	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-12 15:00:00+00	2026-06-12 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 c1af7081-09a6-4dfb-bee7-7abd0a5bc54b	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000015	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-12 07:00:00+00	2026-06-12 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 9867125b-581c-4c56-a5d4-1d569e083de5	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000016	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-12 09:00:00+00	2026-06-12 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 a4e0706e-3821-4e5a-9c0b-b7281443e87a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-12 12:00:00+00	2026-06-12 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 1b48b9e5-f6b4-4168-b9f6-72d92219ec08	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000018	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-12 14:00:00+00	2026-06-12 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-17221b5f-c95b-4ddc-930c-cd2b3e7cda54	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-12 08:00:00+00	2026-06-12 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 8f170ac2-9e33-41d1-b13f-1844ea5db352	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000020	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-12 10:00:00+00	2026-06-12 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 5c7574cb-bd20-4d5c-806e-8e0631e70cf5	9d754153-6579-4b7e-a56b-025f00299cd9	3ad7ac7c-09ba-4c45-a91f-e7e063c44b0b	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-12 13:00:00+00	2026-06-12 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 d984556f-bf21-4240-adff-d356216408bc	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-12 15:00:00+00	2026-06-12 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 c14f5325-6da5-46c4-ad36-5d5c98a55e7b	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-15 08:00:00+00	2026-06-15 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 6e342098-7cb9-4ddc-8686-84b0a57aceed	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-15 10:00:00+00	2026-06-15 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-a464cd0c-5280-4c92-a98f-d11c345dd475	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-15 13:00:00+00	2026-06-15 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 532ad7d9-70bb-4f96-9c0f-2ce69c75f472	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-15 15:00:00+00	2026-06-15 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 80cc1ebc-e236-4887-ba4a-49deeb4b3cf9	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-15 07:00:00+00	2026-06-15 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 bd5d1d36-2c8e-4374-9521-a54a2a4c1c5a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-15 09:00:00+00	2026-06-15 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-bf9faeb3-be9c-465e-b40f-8aa8cb2ec4f0	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-15 12:00:00+00	2026-06-15 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 d0d2b981-d0e1-422e-8e0a-b01f4d56c09a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-15 14:00:00+00	2026-06-15 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 d4ae9be2-de96-4f02-83b3-8b4fbe564758	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000010	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-15 08:00:00+00	2026-06-15 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 b08a6ded-bcb8-4828-8676-c3d4985ed51b	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000011	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-15 10:00:00+00	2026-06-15 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 ec890590-e25e-470e-9aaf-4a83bd96f0a2	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000012	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-15 13:00:00+00	2026-06-15 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-12692117-b22d-45b2-8387-94aa8cdc5cfb	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-15 15:00:00+00	2026-06-15 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 4f593a20-8b72-4500-b761-ccb2c6738cbd	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000014	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-15 07:00:00+00	2026-06-15 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 cd36fccd-62ba-4519-ba98-c818c3f9886e	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000015	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-15 09:00:00+00	2026-06-15 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 b22b407f-2512-45d0-8987-14c14d91c2d1	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000016	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-15 12:00:00+00	2026-06-15 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 ad810e25-fbf3-4346-920f-0f348c8ddb84	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-15 14:00:00+00	2026-06-15 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 13bd4f90-c62f-471d-91d7-4691b509ff29	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000018	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-16 07:00:00+00	2026-06-16 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-393a9dfe-c910-4720-9a14-a9b2c06cc160	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-16 09:00:00+00	2026-06-16 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 ac63f0e9-fec5-458d-b873-889d00ab73d5	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000020	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-16 12:00:00+00	2026-06-16 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 eb25c643-1741-4809-abe2-153d61c56ed7	9d754153-6579-4b7e-a56b-025f00299cd9	3ad7ac7c-09ba-4c45-a91f-e7e063c44b0b	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-16 14:00:00+00	2026-06-16 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 8f8c8610-0579-4665-8da1-959af7794318	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-16 08:00:00+00	2026-06-16 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0c365e3a-ba3f-4154-a421-09754fdf3d93	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-16 10:00:00+00	2026-06-16 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 31ee15fe-ff80-4f1a-8341-7381f845550f	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-16 13:00:00+00	2026-06-16 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-7749d7b0-5106-4827-a621-1a67a6e59338	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-16 15:00:00+00	2026-06-16 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 df6400fb-099f-4556-90e4-d51352f7a56a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-16 07:00:00+00	2026-06-16 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 7aef093c-cf91-41b5-b9a3-812b7f1dc5fc	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-16 09:00:00+00	2026-06-16 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 3f6fa2fd-32af-4c29-ba3d-bf98ffd57d8a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-16 12:00:00+00	2026-06-16 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-bf3b43bb-0d70-4c42-8937-2b05efd4adf1	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-16 14:00:00+00	2026-06-16 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 45c1cfdb-c44c-47f3-9f78-903b06f3bae3	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-16 08:00:00+00	2026-06-16 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 4bdcec6f-722a-424d-8831-3a35f25e65dd	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000010	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-16 10:00:00+00	2026-06-16 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 8f7b29e3-8f2d-4c75-b7e9-44e1ea64ec77	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000011	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-16 13:00:00+00	2026-06-16 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 6dd4942a-6094-435c-b6ae-1b8af2bb3599	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000012	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-16 15:00:00+00	2026-06-16 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-2a6a74bb-6694-4d44-8460-55a259c60556	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-17 08:00:00+00	2026-06-17 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 decab9cb-2873-4ef6-8364-c7d5597fbae7	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000014	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-17 10:00:00+00	2026-06-17 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0185d0e0-4a63-41bd-95bf-f5619b4525d0	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000015	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-17 13:00:00+00	2026-06-17 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0a1b0ab4-773e-4af1-b83a-3f256a722df1	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000016	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-17 15:00:00+00	2026-06-17 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0a75b961-83eb-465a-9a3d-b0f7d6db4ed7	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000017	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-17 07:00:00+00	2026-06-17 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 b1304428-c278-4e4d-bbf8-404e1b141798	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000018	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-17 09:00:00+00	2026-06-17 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-9f536f7c-c583-4c6b-baec-0b298bd223aa	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-17 12:00:00+00	2026-06-17 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
+2a6a74bb-6694-4d44-8460-55a259c60556	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-17 08:00:00+00	2026-06-17 09:00:00+00	confirmed	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:06:05.166218+00
+12692117-b22d-45b2-8387-94aa8cdc5cfb	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-15 15:00:00+00	2026-06-15 15:30:00+00	confirmed	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:06:06.733131+00
+bf3b43bb-0d70-4c42-8937-2b05efd4adf1	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-16 14:00:00+00	2026-06-16 15:00:00+00	confirmed	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-09 16:53:44.724413+00
+bf9faeb3-be9c-465e-b40f-8aa8cb2ec4f0	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-15 12:00:00+00	2026-06-15 13:00:00+00	confirmed	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-09 16:53:46.104878+00
+9f536f7c-c583-4c6b-baec-0b298bd223aa	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-17 12:00:00+00	2026-06-17 13:00:00+00	confirmed	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-17 11:02:55.034819+00
+393a9dfe-c910-4720-9a14-a9b2c06cc160	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-16 09:00:00+00	2026-06-16 10:00:00+00	confirmed	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-17 11:03:10.61568+00
+17221b5f-c95b-4ddc-930c-cd2b3e7cda54	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000019	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-12 08:00:00+00	2026-06-12 09:00:00+00	cancelled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-17 11:03:14.911898+00
 ad775b7f-a790-4d64-88e6-04c4de1e92f0	9d754153-6579-4b7e-a56b-025f00299cd9	3ad7ac7c-09ba-4c45-a91f-e7e063c44b0b	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-17 08:00:00+00	2026-06-17 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 1c828882-4ec1-49a6-b194-7959f68bc79c	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-17 10:00:00+00	2026-06-17 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 b88adb81-cf45-4ec8-b3c4-82a6504d9311	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-17 13:00:00+00	2026-06-17 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 5ad084e3-b012-4d09-b319-9f70915cf895	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-17 15:00:00+00	2026-06-17 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-a83635e7-2783-43d9-adbf-0fea7732bc67	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-17 07:00:00+00	2026-06-17 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 61a8e15c-b41d-4c4c-a469-481d11ff8fde	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-17 09:00:00+00	2026-06-17 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 47229fe3-9971-43e2-b3c7-f8fcc286465c	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-17 12:00:00+00	2026-06-17 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 55417823-71d9-477f-a1b6-c5009e258720	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-17 14:00:00+00	2026-06-17 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-d0dbc0d4-1d80-424b-9563-0b8f1eb356d6	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-18 07:00:00+00	2026-06-18 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 69c19ecb-cbb4-418c-bb99-e0520eba0c44	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000009	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-18 09:00:00+00	2026-06-18 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 6c706828-5777-4aad-9f78-1dbac53ce744	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000010	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-18 12:00:00+00	2026-06-18 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 950b517f-8eee-4d13-9342-9ab4df416644	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000011	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-18 14:00:00+00	2026-06-18 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 55131813-f691-4199-b275-02fe97191a16	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000012	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-18 08:00:00+00	2026-06-18 09:00:00+00	scheduled	Igiene e pulizia	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
-1d9bcbb1-d13d-4182-accc-e95b3f97a0ed	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-18 10:00:00+00	2026-06-18 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 a5c1116b-1527-4762-9857-a7dbe2b91a05	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000014	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-18 13:00:00+00	2026-06-18 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 44f9244f-5345-4c32-a497-85f291619445	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000015	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-18 15:00:00+00	2026-06-18 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 fd0f8a05-8a3a-4cc3-a2b2-08a7f301f3d1	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000016	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-18 07:00:00+00	2026-06-18 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
@@ -2528,6 +3834,8 @@ eb3dce2b-c27f-4c21-90ce-a09f1dc1d4e5	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 fcea5a35-e74d-4c15-bc98-f668d0867c64	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-22 10:00:00+00	2026-06-22 10:30:00+00	scheduled	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 cde52d7d-61ef-47ad-a86a-a203c52b7d90	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-22 13:00:00+00	2026-06-22 14:00:00+00	scheduled	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 0c59ff73-a98f-416c-84a0-809260742780	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000005	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-22 15:00:00+00	2026-06-22 15:30:00+00	scheduled	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
+1d9bcbb1-d13d-4182-accc-e95b3f97a0ed	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-18 10:00:00+00	2026-06-18 10:30:00+00	confirmed	Consulto	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:06:02.854601+00
+d0dbc0d4-1d80-424b-9563-0b8f1eb356d6	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-18 07:00:00+00	2026-06-18 08:00:00+00	confirmed	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-09 16:53:42.781858+00
 05de0af0-4b7b-4b1a-b533-36e9962e6b2e	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000006	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-22 07:00:00+00	2026-06-22 08:00:00+00	scheduled	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 1c14f8de-de2a-4799-a97a-26b2bfce7bae	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000007	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-22 09:00:00+00	2026-06-22 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 396d52a9-8427-4c97-958f-2063e9577ae1	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000008	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-22 12:00:00+00	2026-06-22 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
@@ -3000,6 +4308,32 @@ fce62acb-a293-450a-a7f0-c5808d53d34d	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 251de345-6055-46f9-94ff-78ca0b9b1ae8	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000013	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-07-31 09:00:00+00	2026-07-31 10:00:00+00	scheduled	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 b2f83df3-1b60-4855-9a54-249567166b19	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000014	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-07-31 12:00:00+00	2026-07-31 13:00:00+00	scheduled	Trattamento	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
 1478b554-df0b-4fa7-b88f-55d85fe77e2b	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000015	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-07-31 14:00:00+00	2026-07-31 15:00:00+00	scheduled	Visita	\N	2026-06-01 19:19:30.690777+00	2026-06-01 19:19:30.690777+00
+0837493f-8ef4-4943-b5d2-9bf95986382a	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-09 13:00:00+00	2026-06-09 14:00:00+00	confirmed	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:03:07.47837+00
+677b63a0-1091-4db7-96d8-d55090a09378	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-05 09:00:00+00	2026-06-05 10:00:00+00	confirmed	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:03:08.885362+00
+a5ba629d-d19f-419f-93ad-acda0983728e	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	b1000001-0000-0000-0000-000000000003	\N	Studio 3	2026-06-04 07:00:00+00	2026-06-04 08:00:00+00	confirmed	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:03:10.559845+00
+a83635e7-2783-43d9-adbf-0fea7732bc67	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-17 07:00:00+00	2026-06-17 08:00:00+00	confirmed	Visita di controllo	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:05:34.226978+00
+7749d7b0-5106-4827-a621-1a67a6e59338	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000002	\N	Studio 2	2026-06-16 15:00:00+00	2026-06-16 15:30:00+00	confirmed	Consulto rapido	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:05:36.667547+00
+a464cd0c-5280-4c92-a98f-d11c345dd475	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000001	\N	Studio 1	2026-06-15 13:00:00+00	2026-06-15 14:00:00+00	confirmed	Controllo periodico	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:05:38.465049+00
+71ec3326-def5-4ec8-9586-12372d46ef64	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000004	b1000001-0000-0000-0000-000000000004	\N	Studio 4	2026-06-11 09:00:00+00	2026-06-11 10:00:00+00	confirmed	Trattamento conservativo	\N	2026-06-01 19:19:30.690777+00	2026-06-09 11:05:40.370415+00
+\.
+
+
+--
+-- Data for Name: chat_messages; Type: TABLE DATA; Schema: t_9d754153; Owner: -
+--
+
+COPY t_9d754153.chat_messages (id, session_id, role, content, created_at) FROM stdin;
+06256ab9-78ff-40d5-a587-1e7221b1536f	0e311fd2-12f9-40ef-b2cb-e6e751e59926	user	Stato preventivo Sig. Rossi	2026-06-17 09:32:40.485472+00
+5bb1034a-fd22-4d00-9a0d-d596109ef7c2	0e311fd2-12f9-40ef-b2cb-e6e751e59926	assistant	Il Sig. Rossi Marco ha il seguente preventivo:\n\n- **Numero Preventivo:** PRE-2024-0001\n- **Titolo:** Preventivo piano carie - Rossi Marco\n- **Stato:** Accettato\n- **Importo Totale:** 292,50 EUR (dopo uno sconto di 32,50 EUR)\n- **Valido Fino al:** 28 Giugno 2026\n\nSe hai bisogno di ulteriori dettagli, fammi sapere!	2026-06-17 09:32:47.508826+00
+\.
+
+
+--
+-- Data for Name: chat_sessions; Type: TABLE DATA; Schema: t_9d754153; Owner: -
+--
+
+COPY t_9d754153.chat_sessions (id, provider_id, title, message_count, created_at, updated_at) FROM stdin;
+0e311fd2-12f9-40ef-b2cb-e6e751e59926	5cac268e-1fdd-4d13-966c-65e367dca1c8	Stato preventivo Sig. Rossi	2	2026-06-17 09:32:40.471516+00	2026-06-17 09:32:47.508826+00
 \.
 
 
@@ -3847,6 +5181,22 @@ ALTER TABLE ONLY t_9d754153.appointments
 
 
 --
+-- Name: chat_messages chat_messages_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.chat_messages
+    ADD CONSTRAINT chat_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: chat_sessions chat_sessions_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.chat_sessions
+    ADD CONSTRAINT chat_sessions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: clinical_history_entries clinical_history_entries_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
 --
 
@@ -4330,6 +5680,20 @@ CREATE INDEX ix_regions_state ON dentalcare.regions USING btree (state_id);
 --
 
 CREATE INDEX ix_tenant_clinics_tenant_id ON dentalcare.tenant_clinics USING btree (tenant_id);
+
+
+--
+-- Name: chat_messages_session_idx; Type: INDEX; Schema: t_9d754153; Owner: -
+--
+
+CREATE INDEX chat_messages_session_idx ON t_9d754153.chat_messages USING btree (session_id);
+
+
+--
+-- Name: chat_sessions_provider_idx; Type: INDEX; Schema: t_9d754153; Owner: -
+--
+
+CREATE INDEX chat_sessions_provider_idx ON t_9d754153.chat_sessions USING btree (provider_id, created_at DESC);
 
 
 --
@@ -4923,6 +6287,14 @@ ALTER TABLE ONLY t_9d754153.appointments
 
 
 --
+-- Name: chat_messages chat_messages_session_id_fkey; Type: FK CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.chat_messages
+    ADD CONSTRAINT chat_messages_session_id_fkey FOREIGN KEY (session_id) REFERENCES t_9d754153.chat_sessions(id) ON DELETE CASCADE;
+
+
+--
 -- Name: clinical_history_entries clinical_history_entries_clinic_id_fkey; Type: FK CONSTRAINT; Schema: t_9d754153; Owner: -
 --
 
@@ -5459,6 +6831,12 @@ ALTER TABLE ONLY t_9d754153.treatment_plans
 
 
 --
+-- PostgreSQL database dump complete
 --
 
-
+--
+-- Registry tenant: SOLO portale demo
+--
+INSERT INTO dentalcare.tenants (id, name, schema_name, email, phone, plan, active, created_at, updated_at) VALUES ('a0000001-0000-0000-0000-000000000001', 'Clinica Demo DentalCare', 't_9d754153', 'demo@dentalcare.it', NULL, 'professional', true, '2026-05-17T13:11:14.678307+00:00', '2026-05-29T13:52:49.317940+00:00');
+INSERT INTO dentalcare.tenant_clinics (clinic_id, tenant_id, created_at) VALUES ('352464ea-0b3f-47ba-a3dc-3511c6d1af4f', 'a0000001-0000-0000-0000-000000000001', '2026-05-17T13:11:14.678307+00:00');
+INSERT INTO dentalcare.tenant_clinics (clinic_id, tenant_id, created_at) VALUES ('9d754153-6579-4b7e-a56b-025f00299cd9', 'a0000001-0000-0000-0000-000000000001', '2026-05-29T13:52:49.317940+00:00');
