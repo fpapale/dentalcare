@@ -16,7 +16,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -356,6 +360,104 @@ public class AppointmentService {
                         .addValue("startsAt",   request.startsAt())
                         .addValue("endsAt",     request.endsAt())
                         .addValue("chairLabel", request.chairLabel()));
+    }
+
+    /** Annulla un appuntamento (idempotente). Ritorna true se ha modificato una riga. */
+    public boolean cancel(UUID appointmentId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        int rows = jdbc.update("""
+                UPDATE %s.appointments
+                SET status = 'cancelled'::dentalcare.appointment_status
+                WHERE id = :id AND clinic_id = :clinicId
+                  AND status::text <> 'cancelled'
+                """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("id", appointmentId)
+                        .addValue("clinicId", clinicId));
+        return rows > 0;
+    }
+
+    /** True se il giorno è lavorativo per la clinica (no weekend, no festivo nazionale). */
+    public boolean isWorkingDay(UUID clinicId, LocalDate date) {
+        DayOfWeek dow = date.getDayOfWeek();
+        if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) return false;
+
+        String stateQuery = """
+            SELECT s.id
+            FROM %s.clinics cl
+            JOIN dentalcare.cities  ci ON ci.id = cl.city_id
+            JOIN dentalcare.regions r  ON r.id  = ci.region_id
+            JOIN dentalcare.states  s  ON s.id  = r.state_id
+            WHERE cl.id = :clinicId
+            """.formatted(s());
+        List<UUID> stateIds = jdbc.queryForList(stateQuery,
+                new MapSqlParameterSource("clinicId", clinicId), UUID.class);
+        if (stateIds.isEmpty()) return true;
+
+        List<String> names = jdbc.queryForList("""
+            SELECT name FROM dentalcare.national_holidays
+            WHERE state_id = :stateId
+              AND ((is_recurring = TRUE  AND month = :month AND day = :day)
+                OR (is_recurring = FALSE AND holiday_date = :date))
+            LIMIT 1
+            """,
+                new MapSqlParameterSource()
+                        .addValue("stateId", stateIds.get(0))
+                        .addValue("month", date.getMonthValue())
+                        .addValue("day",   date.getDayOfMonth())
+                        .addValue("date",  date),
+                String.class);
+        return names.isEmpty();
+    }
+
+    /**
+     * Slot liberi del professionista per una data, su finestra Lun-Ven 09:00-13:00 / 14:00-19:00
+     * (fuso Europe/Rome), passo 15 min. Esclude appuntamenti esistenti e slot già passati.
+     * Ritorna gli orari di inizio (max 30).
+     */
+    public List<OffsetDateTime> findFreeSlots(UUID providerId, LocalDate date, int durationMinutes) {
+        if (providerId == null) return List.of();
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        if (!isWorkingDay(clinicId, date)) return List.of();
+
+        int dur = durationMinutes > 0 ? durationMinutes : 30;
+        ZoneId rome = ZoneId.of("Europe/Rome");
+
+        List<OffsetDateTime[]> busy = jdbc.query("""
+                SELECT starts_at, ends_at FROM %s.appointments
+                WHERE clinic_id = :clinicId AND provider_id = :providerId
+                  AND status::text <> 'cancelled'
+                  AND starts_at::date = :date
+                """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("clinicId", clinicId)
+                        .addValue("providerId", providerId)
+                        .addValue("date", date),
+                (rs, n) -> new OffsetDateTime[]{
+                        rs.getTimestamp("starts_at").toInstant().atOffset(ZoneOffset.UTC),
+                        rs.getTimestamp("ends_at").toInstant().atOffset(ZoneOffset.UTC)
+                });
+
+        int[][] windows = {{9 * 60, 13 * 60}, {14 * 60, 19 * 60}};
+        int step = 15;
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        List<OffsetDateTime> free = new ArrayList<>();
+
+        for (int[] w : windows) {
+            for (int m = w[0]; m + dur <= w[1]; m += step) {
+                OffsetDateTime start = date.atTime(LocalTime.of(m / 60, m % 60))
+                        .atZone(rome).toInstant().atOffset(ZoneOffset.UTC);
+                OffsetDateTime end = start.plusMinutes(dur);
+                if (start.isBefore(now)) continue;
+                boolean overlap = false;
+                for (OffsetDateTime[] b : busy) {
+                    if (start.isBefore(b[1]) && end.isAfter(b[0])) { overlap = true; break; }
+                }
+                if (!overlap) free.add(start);
+                if (free.size() >= 30) return free;
+            }
+        }
+        return free;
     }
 
     public List<String> findChairLabels() {

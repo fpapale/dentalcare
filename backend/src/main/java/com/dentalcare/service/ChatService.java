@@ -10,23 +10,45 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
-import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class ChatService {
 
     private static final String SYSTEM_PROMPT = """
             Sei SegretarIA, l'assistente AI dello Studio Dentistico DentalCare.
-            Aiuti la segreteria a interrogare il gestionale dello studio in modo rapido e naturale.
-            Hai accesso agli appuntamenti, ai pazienti, ai preventivi, ai richiami, alle fatture e ai provider della clinica.
+            Aiuti la segreteria a gestire il gestionale dello studio in modo rapido e naturale.
+            Hai accesso ad appuntamenti, pazienti, preventivi, richiami, fatture e provider della clinica,
+            e puoi creare, spostare e annullare appuntamenti e cercare slot liberi.
             Rispondi sempre in italiano.
             Quando hai dati, presentali in modo chiaro e strutturato (elenchi, tabelle testuali).
             Non inventare mai dati: usa solo le informazioni restituite dagli strumenti a disposizione.
-            Data odierna: %s
+
+            Contesto temporale (fuso Europe/Rome):
+            - Adesso: %s, ore %s
+            - Oggi: %s
+            Interpreta espressioni come "domani", "lunedì prossimo", "tra due settimane" rispetto a questo contesto.
+
+            Orari studio: Lun-Ven 09:00-13:00 e 14:00-19:00. No weekend, no festivi.
+            Prima di proporre o creare un appuntamento, usa lo strumento per gli slot liberi.
+
+            REGOLA OBBLIGATORIA per le azioni di scrittura (creazione/spostamento/annullamento appuntamenti):
+            1. chiama lo strumento con confirmed=false per ottenere un'anteprima;
+            2. mostra l'anteprima all'utente e chiedi conferma esplicita;
+            3. esegui (confirmed=true) SOLO dopo che l'utente ha confermato.
+            Non eseguire mai un'azione di scrittura senza conferma esplicita.
             """;
+
+    private static final DateTimeFormatter DAY_FMT =
+            DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ITALIAN);
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final ChatClient chatClient;
     private final DentalCareAiTools tools;
@@ -40,20 +62,38 @@ public class ChatService {
     }
 
     public ChatResponse chat(ChatRequest request) {
-        List<Message> history = buildHistory(request.history());
-
-        String systemPrompt = String.format(SYSTEM_PROMPT, LocalDate.now());
-
         String response = chatClient.prompt()
                 .options(OpenAiChatOptions.builder().model(model).build())
-                .system(systemPrompt)
-                .messages(history)
+                .system(buildSystemPrompt())
+                .messages(buildHistory(request.history()))
                 .user(request.message())
                 .tools(tools)
                 .call()
                 .content();
 
         return new ChatResponse(response != null ? response : "", null);
+    }
+
+    /**
+     * Variante streaming: emette i token man mano. {@code contextCapture()} cattura i ThreadLocal
+     * (tenant + security) al momento della sottoscrizione, così i tool eseguiti su thread reactor
+     * mantengono l'isolamento per tenant (vedi ContextPropagationConfig).
+     */
+    public Flux<String> stream(ChatRequest request) {
+        return chatClient.prompt()
+                .options(OpenAiChatOptions.builder().model(model).build())
+                .system(buildSystemPrompt())
+                .messages(buildHistory(request.history()))
+                .user(request.message())
+                .tools(tools)
+                .stream()
+                .content();
+    }
+
+    private String buildSystemPrompt() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Europe/Rome"));
+        String day = now.format(DAY_FMT);
+        return String.format(SYSTEM_PROMPT, day, now.format(TIME_FMT), day);
     }
 
     private List<Message> buildHistory(List<ChatTurnDto> history) {

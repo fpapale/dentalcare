@@ -133,22 +133,41 @@ export class SegretariaComponent implements OnInit {
       content: m.text
     }));
 
-    this.chatService.send(text, history, this.currentSessionId())
+    // Messaggio AI vuoto da riempire token per token
+    const aiIndex = this.messages().length;
+    this.messages.update(msgs => [...msgs, { role: 'ai', text: '', time: this.currentTime() }]);
+    let acc = '';
+
+    this.chatService.sendStream(text, history, this.currentSessionId())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: response => {
-          this.isTyping.set(false);
-          this.currentSessionId.set(response.sessionId);
-          this.messages.update(msgs => [...msgs, { role: 'ai', text: response.text, time: this.currentTime() }]);
-          this.loadSessions();
+        next: ev => {
+          if (ev.event === 'meta') {
+            this.currentSessionId.set(ev.data);
+          } else if (ev.event === 'token') {
+            this.isTyping.set(false);
+            acc += ev.data;
+            this.messages.update(msgs => {
+              const copy = [...msgs];
+              copy[aiIndex] = { ...copy[aiIndex], text: acc };
+              return copy;
+            });
+          }
         },
         error: () => {
           this.isTyping.set(false);
-          this.messages.update(msgs => [...msgs, {
-            role: 'ai',
-            text: 'Si è verificato un errore. Riprova più tardi.',
-            time: this.currentTime()
-          }]);
+          this.messages.update(msgs => {
+            const copy = [...msgs];
+            copy[aiIndex] = {
+              ...copy[aiIndex],
+              text: acc || 'Si è verificato un errore. Riprova più tardi.'
+            };
+            return copy;
+          });
+        },
+        complete: () => {
+          this.isTyping.set(false);
+          this.loadSessions();
         }
       });
   }

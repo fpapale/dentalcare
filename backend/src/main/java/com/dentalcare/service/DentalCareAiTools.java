@@ -1,12 +1,19 @@
 package com.dentalcare.service;
 
 import com.dentalcare.dto.*;
+import com.dentalcare.exception.AppointmentConflictException;
+import com.dentalcare.exception.ResourceNotFoundException;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -147,7 +154,162 @@ public class DentalCareAiTools {
         return providerService.findAll(true);
     }
 
+    // --- agenda: slot liberi + scrittura (con conferma) ---
+
+    private static final ZoneId ROME = ZoneId.of("Europe/Rome");
+    private static final DateTimeFormatter HHMM = DateTimeFormatter.ofPattern("HH:mm");
+
+    @Tool(description = "Find free appointment slots for a provider on a given date. Returns available start times (HH:mm, Europe/Rome). Use this BEFORE proposing or creating an appointment.")
+    public List<String> findFreeSlots(
+            @ToolParam(description = "Provider full or partial name. Ignored for medical staff (uses the caller).") String providerName,
+            @ToolParam(description = "Date in YYYY-MM-DD format.") String date,
+            @ToolParam(description = "Appointment duration in minutes (default 30).") Integer durationMinutes) {
+        UUID providerId = isMedical() ? currentProviderId() : resolveProviderByName(providerName);
+        if (providerId == null) return List.of();
+        int dur = (durationMinutes != null && durationMinutes > 0) ? durationMinutes : 30;
+        LocalDate d;
+        try { d = LocalDate.parse(date); } catch (Exception e) { return List.of(); }
+        return appointmentService.findFreeSlots(providerId, d, dur).stream()
+                .map(s -> s.atZoneSameInstant(ROME).format(HHMM))
+                .toList();
+    }
+
+    @Tool(description = "Create a new appointment. ALWAYS call first with confirmed=false to obtain a preview, show it to the user, then call again with confirmed=true ONLY after explicit user confirmation.")
+    public String createAppointment(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Provider full or partial name. Ignored for medical staff (uses the caller).") String providerName,
+            @ToolParam(description = "Date in YYYY-MM-DD format.") String date,
+            @ToolParam(description = "Start time HH:mm (24h, Europe/Rome).") String time,
+            @ToolParam(description = "Duration in minutes (default 30).") Integer durationMinutes,
+            @ToolParam(description = "Chair/room label, e.g. 'Studio 1'. Default 'Studio 1'.") String chairLabel,
+            @ToolParam(description = "Optional notes.") String notes,
+            @ToolParam(description = "false = preview only (no changes); true = execute. Always preview first.") Boolean confirmed) {
+
+        UUID providerId = isMedical() ? currentProviderId() : resolveProviderByName(providerName);
+        if (providerId == null) return "Errore: professionista non riconosciuto. Specifica il nome del medico.";
+
+        int dur = (durationMinutes != null && durationMinutes > 0) ? durationMinutes : 30;
+        OffsetDateTime start, end;
+        try {
+            ZonedDateTime z = LocalDate.parse(date).atTime(LocalTime.parse(time)).atZone(ROME);
+            start = z.toOffsetDateTime();
+            end = z.plusMinutes(dur).toOffsetDateTime();
+        } catch (Exception e) {
+            return "Errore: data/ora non valide. Usa data YYYY-MM-DD e ora HH:mm.";
+        }
+        String chair = (chairLabel == null || chairLabel.isBlank()) ? "Studio 1" : chairLabel;
+        String patientName = patientName(patientId);
+
+        if (!Boolean.TRUE.equals(confirmed)) {
+            return "ANTEPRIMA — nessuna modifica salvata.\n"
+                    + "Nuovo appuntamento:\n"
+                    + "- Paziente: " + patientName + "\n"
+                    + "- Data: " + date + " ore " + time + "\n"
+                    + "- Durata: " + dur + " min\n"
+                    + "- Studio: " + chair + "\n"
+                    + "Confermi la creazione?";
+        }
+        try {
+            UUID id = appointmentService.create(new CreateAppointmentRequest(
+                    UUID.fromString(patientId), providerId, chair, start, end, notes));
+            return "Appuntamento creato (id " + id + ") per " + patientName + " il " + date + " alle " + time + ".";
+        } catch (AppointmentConflictException ce) {
+            return "Impossibile creare: " + ce.getMessage();
+        } catch (Exception e) {
+            return "Errore nella creazione: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = "Reschedule (move) an existing appointment. ALWAYS call first with confirmed=false for a preview, then confirmed=true only after explicit user confirmation.")
+    public String rescheduleAppointment(
+            @ToolParam(description = "Appointment UUID from getAppointments.") String appointmentId,
+            @ToolParam(description = "New date in YYYY-MM-DD format.") String date,
+            @ToolParam(description = "New start time HH:mm (24h, Europe/Rome).") String time,
+            @ToolParam(description = "Duration in minutes (default 30).") Integer durationMinutes,
+            @ToolParam(description = "Chair/room label. Default 'Studio 1'.") String chairLabel,
+            @ToolParam(description = "false = preview only; true = execute. Always preview first.") Boolean confirmed) {
+
+        int dur = (durationMinutes != null && durationMinutes > 0) ? durationMinutes : 30;
+        OffsetDateTime start, end;
+        try {
+            ZonedDateTime z = LocalDate.parse(date).atTime(LocalTime.parse(time)).atZone(ROME);
+            start = z.toOffsetDateTime();
+            end = z.plusMinutes(dur).toOffsetDateTime();
+        } catch (Exception e) {
+            return "Errore: data/ora non valide. Usa data YYYY-MM-DD e ora HH:mm.";
+        }
+        String chair = (chairLabel == null || chairLabel.isBlank()) ? "Studio 1" : chairLabel;
+
+        if (!Boolean.TRUE.equals(confirmed)) {
+            return "ANTEPRIMA — nessuna modifica salvata.\n"
+                    + "Spostamento appuntamento " + appointmentId + " a:\n"
+                    + "- Data: " + date + " ore " + time + "\n"
+                    + "- Durata: " + dur + " min\n"
+                    + "- Studio: " + chair + "\n"
+                    + "Confermi lo spostamento?";
+        }
+        try {
+            appointmentService.reschedule(UUID.fromString(appointmentId),
+                    new RescheduleAppointmentRequest(start, end, chair));
+            return "Appuntamento spostato al " + date + " alle " + time + ".";
+        } catch (ResourceNotFoundException nf) {
+            return "Appuntamento non trovato.";
+        } catch (AppointmentConflictException ce) {
+            return "Impossibile spostare: " + ce.getMessage();
+        } catch (Exception e) {
+            return "Errore nello spostamento: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = "Cancel an appointment. ALWAYS call first with confirmed=false for a preview, then confirmed=true only after explicit user confirmation.")
+    public String cancelAppointment(
+            @ToolParam(description = "Appointment UUID from getAppointments.") String appointmentId,
+            @ToolParam(description = "false = preview only; true = execute. Always preview first.") Boolean confirmed) {
+        if (!Boolean.TRUE.equals(confirmed)) {
+            return "ANTEPRIMA — nessuna modifica salvata.\n"
+                    + "L'appuntamento " + appointmentId + " verrà annullato. Confermi l'annullamento?";
+        }
+        try {
+            boolean ok = appointmentService.cancel(UUID.fromString(appointmentId));
+            return ok ? "Appuntamento annullato." : "Appuntamento non trovato o già annullato.";
+        } catch (Exception e) {
+            return "Errore nell'annullamento: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = "Get today's operational briefing: appointment counts by status plus overdue recalls, overdue invoices and pending estimates.")
+    public DailyBriefingDto getDailyBriefing() {
+        UUID providerId = isMedical() ? currentProviderId() : null;
+        LocalDate today = LocalDate.now();
+
+        List<AppointmentDto> appts = appointmentService.findByDate(today, providerId);
+        long total = appts.size();
+        long confirmed = appts.stream().filter(a ->
+                "confirmed".equals(a.appointmentStatus()) || "scheduled".equals(a.appointmentStatus())).count();
+        long completed = appts.stream().filter(a -> "completed".equals(a.appointmentStatus())).count();
+        long cancelled = appts.stream().filter(a ->
+                "cancelled".equals(a.appointmentStatus()) || "no_show".equals(a.appointmentStatus())).count();
+
+        long overdueRecalls = recallService.findAll("pending", null, null).stream()
+                .filter(r -> r.dueDate() != null && r.dueDate().isBefore(today)).count();
+        long overdueInvoices = invoiceService.findAll("overdue", providerId).size();
+        long pendingEstimates = estimateService.findAll("sent", providerId).size();
+
+        return new DailyBriefingDto(today, total, confirmed, completed, cancelled,
+                overdueRecalls, overdueInvoices, pendingEstimates);
+    }
+
     // --- private helpers ---
+
+    private String patientName(String patientId) {
+        try {
+            return patientService.findById(UUID.fromString(patientId), null)
+                    .map(PatientDetailDto::fullName)
+                    .orElse(patientId);
+        } catch (Exception e) {
+            return patientId;
+        }
+    }
 
     private UUID resolveProviderByName(String name) {
         if (name == null || name.isBlank()) return null;
