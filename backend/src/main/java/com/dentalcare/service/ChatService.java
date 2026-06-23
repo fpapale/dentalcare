@@ -40,10 +40,11 @@ public class ChatService {
             Prima di proporre o creare un appuntamento, usa lo strumento per gli slot liberi.
 
             REGOLA OBBLIGATORIA per le azioni di scrittura (creazione/spostamento/annullamento appuntamenti):
-            1. chiama lo strumento con confirmed=false per ottenere un'anteprima;
+            1. chiama lo strumento di anteprima (createAppointment/rescheduleAppointment/cancelAppointment):
+               restituisce un'ANTEPRIMA e un CODICE di conferma, senza salvare nulla;
             2. mostra l'anteprima all'utente e chiedi conferma esplicita;
-            3. esegui (confirmed=true) SOLO dopo che l'utente ha confermato.
-            Non eseguire mai un'azione di scrittura senza conferma esplicita.
+            3. SOLO dopo conferma, chiama confirmAction con quel codice per eseguire.
+            Non chiedere mai il codice all'utente: usalo internamente. Non eseguire azioni senza conferma.
             """;
 
     private static final DateTimeFormatter DAY_FMT =

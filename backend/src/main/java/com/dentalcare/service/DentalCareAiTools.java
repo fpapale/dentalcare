@@ -27,6 +27,7 @@ public class DentalCareAiTools {
     private final InvoiceService invoiceService;
     private final DashboardService dashboardService;
     private final ProviderService providerService;
+    private final PendingActionService pendingActions;
 
     public DentalCareAiTools(
             AppointmentService appointmentService,
@@ -35,7 +36,8 @@ public class DentalCareAiTools {
             RecallService recallService,
             InvoiceService invoiceService,
             DashboardService dashboardService,
-            ProviderService providerService) {
+            ProviderService providerService,
+            PendingActionService pendingActions) {
         this.appointmentService = appointmentService;
         this.patientService = patientService;
         this.estimateService = estimateService;
@@ -43,6 +45,7 @@ public class DentalCareAiTools {
         this.invoiceService = invoiceService;
         this.dashboardService = dashboardService;
         this.providerService = providerService;
+        this.pendingActions = pendingActions;
     }
 
     // --- role helpers ---
@@ -174,7 +177,7 @@ public class DentalCareAiTools {
                 .toList();
     }
 
-    @Tool(description = "Create a new appointment. ALWAYS call first with confirmed=false to obtain a preview, show it to the user, then call again with confirmed=true ONLY after explicit user confirmation.")
+    @Tool(description = "Prepare creation of a new appointment and return a PREVIEW plus a short confirmation code. This does NOT save anything. Show the preview to the user; when the user confirms, call confirmAction with the returned code.")
     public String createAppointment(
             @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
             @ToolParam(description = "Provider full or partial name. Ignored for medical staff (uses the caller).") String providerName,
@@ -182,8 +185,7 @@ public class DentalCareAiTools {
             @ToolParam(description = "Start time HH:mm (24h, Europe/Rome).") String time,
             @ToolParam(description = "Duration in minutes (default 30).") Integer durationMinutes,
             @ToolParam(description = "Chair/room label, e.g. 'Studio 1'. Default 'Studio 1'.") String chairLabel,
-            @ToolParam(description = "Optional notes.") String notes,
-            @ToolParam(description = "false = preview only (no changes); true = execute. Always preview first.") Boolean confirmed) {
+            @ToolParam(description = "Optional notes.") String notes) {
 
         UUID providerId = isMedical() ? currentProviderId() : resolveProviderByName(providerName);
         if (providerId == null) return "Errore: professionista non riconosciuto. Specifica il nome del medico.";
@@ -200,34 +202,29 @@ public class DentalCareAiTools {
         String chair = (chairLabel == null || chairLabel.isBlank()) ? "Studio 1" : chairLabel;
         String patientName = patientName(patientId);
 
-        if (!Boolean.TRUE.equals(confirmed)) {
-            return "ANTEPRIMA — nessuna modifica salvata.\n"
-                    + "Nuovo appuntamento:\n"
-                    + "- Paziente: " + patientName + "\n"
-                    + "- Data: " + date + " ore " + time + "\n"
-                    + "- Durata: " + dur + " min\n"
-                    + "- Studio: " + chair + "\n"
-                    + "Confermi la creazione?";
-        }
-        try {
-            UUID id = appointmentService.create(new CreateAppointmentRequest(
-                    UUID.fromString(patientId), providerId, chair, start, end, notes));
-            return "Appuntamento creato (id " + id + ") per " + patientName + " il " + date + " alle " + time + ".";
-        } catch (AppointmentConflictException ce) {
-            return "Impossibile creare: " + ce.getMessage();
-        } catch (Exception e) {
-            return "Errore nella creazione: " + e.getMessage();
-        }
+        String summary = "Nuovo appuntamento per " + patientName + " il " + date + " alle " + time
+                + " (" + dur + " min, " + chair + ")";
+        CreateAppointmentRequest req = new CreateAppointmentRequest(
+                UUID.fromString(patientId), providerId, chair, start, end, notes);
+        String code = pendingActions.register(PendingActionService.Type.CREATE,
+                currentProviderId(), req, null, null, summary);
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n"
+                + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
     }
 
-    @Tool(description = "Reschedule (move) an existing appointment. ALWAYS call first with confirmed=false for a preview, then confirmed=true only after explicit user confirmation.")
+    @Tool(description = "Prepare rescheduling (move) of an existing appointment and return a PREVIEW plus a short confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
     public String rescheduleAppointment(
             @ToolParam(description = "Appointment UUID from getAppointments.") String appointmentId,
             @ToolParam(description = "New date in YYYY-MM-DD format.") String date,
             @ToolParam(description = "New start time HH:mm (24h, Europe/Rome).") String time,
             @ToolParam(description = "Duration in minutes (default 30).") Integer durationMinutes,
-            @ToolParam(description = "Chair/room label. Default 'Studio 1'.") String chairLabel,
-            @ToolParam(description = "false = preview only; true = execute. Always preview first.") Boolean confirmed) {
+            @ToolParam(description = "Chair/room label. Default 'Studio 1'.") String chairLabel) {
+
+        UUID apptId;
+        try { apptId = UUID.fromString(appointmentId); }
+        catch (Exception e) { return "Errore: id appuntamento non valido."; }
 
         int dur = (durationMinutes != null && durationMinutes > 0) ? durationMinutes : 30;
         OffsetDateTime start, end;
@@ -240,40 +237,63 @@ public class DentalCareAiTools {
         }
         String chair = (chairLabel == null || chairLabel.isBlank()) ? "Studio 1" : chairLabel;
 
-        if (!Boolean.TRUE.equals(confirmed)) {
-            return "ANTEPRIMA — nessuna modifica salvata.\n"
-                    + "Spostamento appuntamento " + appointmentId + " a:\n"
-                    + "- Data: " + date + " ore " + time + "\n"
-                    + "- Durata: " + dur + " min\n"
-                    + "- Studio: " + chair + "\n"
-                    + "Confermi lo spostamento?";
+        String summary = "Spostamento appuntamento al " + date + " alle " + time
+                + " (" + dur + " min, " + chair + ")";
+        RescheduleAppointmentRequest req = new RescheduleAppointmentRequest(start, end, chair);
+        String code = pendingActions.register(PendingActionService.Type.RESCHEDULE,
+                currentProviderId(), null, apptId, req, summary);
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n"
+                + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare cancellation of an appointment and return a PREVIEW plus a short confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String cancelAppointment(
+            @ToolParam(description = "Appointment UUID from getAppointments.") String appointmentId) {
+        UUID apptId;
+        try { apptId = UUID.fromString(appointmentId); }
+        catch (Exception e) { return "Errore: id appuntamento non valido."; }
+
+        String summary = "Annullamento dell'appuntamento selezionato";
+        String code = pendingActions.register(PendingActionService.Type.CANCEL,
+                currentProviderId(), null, apptId, null, summary);
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n"
+                + summary + ".\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Execute a previously previewed write action (create/reschedule/cancel appointment) using the confirmation code returned by the preview. Call this only after the user has explicitly confirmed.")
+    public String confirmAction(
+            @ToolParam(description = "The confirmation code returned by the preview tool.") String code) {
+        PendingActionService.Pending p = pendingActions.consume(code);
+        if (p == null) return "Codice di conferma non valido o scaduto. Riprova l'operazione.";
+        if (!java.util.Objects.equals(p.providerScope(), currentProviderId())) {
+            return "Codice di conferma non valido per questo utente.";
         }
         try {
-            appointmentService.reschedule(UUID.fromString(appointmentId),
-                    new RescheduleAppointmentRequest(start, end, chair));
-            return "Appuntamento spostato al " + date + " alle " + time + ".";
+            switch (p.type()) {
+                case CREATE -> {
+                    UUID id = appointmentService.create(p.create());
+                    return "Appuntamento creato (id " + id + "). " + p.summary();
+                }
+                case RESCHEDULE -> {
+                    appointmentService.reschedule(p.appointmentId(), p.reschedule());
+                    return "Fatto. " + p.summary();
+                }
+                case CANCEL -> {
+                    boolean ok = appointmentService.cancel(p.appointmentId());
+                    return ok ? "Appuntamento annullato." : "Appuntamento non trovato o già annullato.";
+                }
+                default -> { return "Azione non riconosciuta."; }
+            }
         } catch (ResourceNotFoundException nf) {
             return "Appuntamento non trovato.";
         } catch (AppointmentConflictException ce) {
-            return "Impossibile spostare: " + ce.getMessage();
+            return "Operazione non possibile: " + ce.getMessage();
         } catch (Exception e) {
-            return "Errore nello spostamento: " + e.getMessage();
-        }
-    }
-
-    @Tool(description = "Cancel an appointment. ALWAYS call first with confirmed=false for a preview, then confirmed=true only after explicit user confirmation.")
-    public String cancelAppointment(
-            @ToolParam(description = "Appointment UUID from getAppointments.") String appointmentId,
-            @ToolParam(description = "false = preview only; true = execute. Always preview first.") Boolean confirmed) {
-        if (!Boolean.TRUE.equals(confirmed)) {
-            return "ANTEPRIMA — nessuna modifica salvata.\n"
-                    + "L'appuntamento " + appointmentId + " verrà annullato. Confermi l'annullamento?";
-        }
-        try {
-            boolean ok = appointmentService.cancel(UUID.fromString(appointmentId));
-            return ok ? "Appuntamento annullato." : "Appuntamento non trovato o già annullato.";
-        } catch (Exception e) {
-            return "Errore nell'annullamento: " + e.getMessage();
+            return "Errore nell'esecuzione: " + e.getMessage();
         }
     }
 
