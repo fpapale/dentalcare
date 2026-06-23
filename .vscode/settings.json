@@ -5,6 +5,10 @@
         "/^cd d:\\\\dentalcare\\\\backend; \\$env:JAVA_HOME=\"C:\\\\Users\\\\rtm473\\\\\\.jdk\\\\jdk-21\\.0\\.10\"; & \"\\.\\\\mvnw\\.cmd\" clean test-compile -q 2>&1 \\| tee baseline_compile\\.log$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^cd d:\\\\dentalcare\\\\backend ; cmd /c mvnw\\.cmd clean test-compile -q 2>&1 \\| head -50$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }
