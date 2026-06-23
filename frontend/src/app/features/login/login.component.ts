@@ -32,6 +32,7 @@ export class LoginComponent implements OnInit {
   readonly changePwdSaving = signal(false);
   readonly newPassword = signal('');
   readonly confirmNewPassword = signal('');
+  readonly infoMessage = signal<string | null>(null);
 
   readonly forgotEmail = signal('');
   readonly forgotSaving = signal(false);
@@ -69,6 +70,7 @@ export class LoginComponent implements OnInit {
       return;
     }
     this.error.set(null);
+    this.infoMessage.set(null);
     this.loading.set(true);
 
     const { email, password } = this.form.getRawValue();
@@ -160,11 +162,14 @@ export class LoginComponent implements OnInit {
     this.auth.changePassword(this.pendingPassword(), this.newPassword()).subscribe({
       next: () => {
         this.changePwdSaving.set(false);
-        const u = this.auth.getCurrentUser();
-        const role = u?.role ?? '';
-        const dest = role === 'tenant_admin' ? '/admin-tenant'
-          : '/dashboard';
-        this.router.navigate([dest]);
+        // Cambio forzato completato: torna alla maschera di login per riautenticarsi.
+        this.auth.clearSession();
+        this.newPassword.set('');
+        this.confirmNewPassword.set('');
+        this.pendingPassword.set('');
+        this.form.reset();
+        this.step.set('form');
+        this.infoMessage.set('Password aggiornata. Accedi con la nuova password.');
       },
       error: (err) => {
         this.changePwdSaving.set(false);

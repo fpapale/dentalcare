@@ -49,7 +49,7 @@ public class PublicController {
         return new RegistrationResponse(
                 result.clinicId().toString(),
                 request.studioName(),
-                "Studio configurato con successo! Accedi con l'email e la password scelte in registrazione. Ti abbiamo inviato un'email di conferma."
+                "Studio configurato con successo! Ti abbiamo inviato un'email con una password temporanea: accedi e scegli una nuova password."
         );
     }
 

@@ -2,9 +2,10 @@
 -- PostgreSQL database dump
 --
 
+\restrict lNAdE5IhYi17M1sN2xgfhCuIzN8zuHt8fQas73pWLY45tqDAQ4azNGnYO7YJ260
 
 -- Dumped from database version 15.18 (Debian 15.18-0+deb12u1)
--- Dumped by pg_dump version 17.9
+-- Dumped by pg_dump version 17.10
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -1580,7 +1581,7 @@ $ddl$;
     -- 6) admin provider
     EXECUTE format(
         'INSERT INTO %I.providers (id, clinic_id, first_name, last_name, email, role, active, password_hash) '
-        || 'VALUES ($1,$2,$3,$4,$5,''admin''::dentalcare.provider_role,true,$6)', p_schema)
+        || 'VALUES ($1,$2,$3,$4,$5,''tenant_admin''::dentalcare.provider_role,true,$6)', p_schema)
     USING l_admin_id, p_clinic_id, p_admin_first, p_admin_last, p_admin_email, p_admin_pw_hash;
 
     RETURN l_admin_id;
@@ -2311,7 +2312,7 @@ CREATE TABLE t_9d754153.patient_anamnesis (
     mouth_breathing boolean DEFAULT false NOT NULL,
     nail_biting boolean DEFAULT false NOT NULL,
     pacifier_use boolean,
-    general_notes text,
+    notes text,
     signed_at timestamp with time zone,
     signature_notes text,
     is_current boolean DEFAULT true NOT NULL,
@@ -2695,10 +2696,10 @@ CREATE TABLE t_9d754153.tooth_conditions (
 CREATE TABLE t_9d754153.treatment_plan_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     clinic_id uuid NOT NULL,
-    treatment_plan_id uuid NOT NULL,
-    service_id uuid NOT NULL,
+    plan_id uuid NOT NULL,
+    service_catalog_id uuid NOT NULL,
     provider_id uuid,
-    tooth_number text,
+    tooth_fdi text,
     quadrant smallint,
     surfaces text[],
     quantity numeric(10,2) DEFAULT 1 NOT NULL,
@@ -2761,7 +2762,7 @@ CREATE VIEW t_9d754153.v_agenda_daily AS
     (pr.role)::text AS provider_role,
     sc.name AS service_name,
     sc.category AS service_category,
-    tpi.tooth_number,
+    tpi.tooth_fdi AS tooth_number,
     (EXISTS ( SELECT 1
            FROM t_9d754153.patient_anamnesis pa2
           WHERE ((pa2.patient_id = p.id) AND (pa2.clinic_id = a.clinic_id) AND (pa2.is_current = true) AND (pa2.allergy_penicillin OR pa2.allergy_latex OR pa2.allergy_anesthetic OR pa2.allergy_aspirin OR (pa2.other_allergies IS NOT NULL))))) AS has_allergy_alert,
@@ -2772,7 +2773,7 @@ CREATE VIEW t_9d754153.v_agenda_daily AS
      LEFT JOIN t_9d754153.patients p ON ((p.id = a.patient_id)))
      LEFT JOIN t_9d754153.providers pr ON ((pr.id = a.provider_id)))
      LEFT JOIN t_9d754153.treatment_plan_items tpi ON ((tpi.id = a.treatment_plan_item_id)))
-     LEFT JOIN t_9d754153.service_catalog sc ON ((sc.id = tpi.service_id)));
+     LEFT JOIN t_9d754153.service_catalog sc ON ((sc.id = tpi.service_catalog_id)));
 
 
 --
@@ -2842,7 +2843,7 @@ CREATE VIEW t_9d754153.v_patient_clinical_card AS
     pa.allergy_anesthetic,
     pa.current_medications,
     pa.other_allergies,
-    pa.general_notes AS anamnesis_notes,
+    pa.notes AS anamnesis_notes,
     pa.recorded_at AS anamnesis_date,
     ( SELECT count(*) AS count
            FROM t_9d754153.appointments a
@@ -2877,7 +2878,7 @@ CREATE VIEW t_9d754153.v_patient_dashboard AS
     COALESCE(sum(e.total_amount) FILTER (WHERE (e.status = 'accepted'::dentalcare.estimate_status)), 0.00) AS accepted_estimates_amount
    FROM (((t_9d754153.patients p
      LEFT JOIN t_9d754153.treatment_plans tp ON (((tp.patient_id = p.id) AND (tp.clinic_id = p.clinic_id))))
-     LEFT JOIN t_9d754153.treatment_plan_items tpi ON (((tpi.treatment_plan_id = tp.id) AND (tpi.clinic_id = p.clinic_id))))
+     LEFT JOIN t_9d754153.treatment_plan_items tpi ON (((tpi.plan_id = tp.id) AND (tpi.clinic_id = p.clinic_id))))
      LEFT JOIN t_9d754153.estimates e ON (((e.patient_id = p.id) AND (e.clinic_id = p.clinic_id))))
   GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code, p.birth_date, p.phone, p.email, p.city, p.province, p.active;
 
@@ -3100,6 +3101,7 @@ COPY dentalcare.flyway_schema_history (installed_rank, version, description, typ
 21	21	add secretary role	SQL	V21__add_secretary_role.sql	412188291	postgres	2026-06-01 12:36:56.062472	108	t
 22	22	chat history	SQL	V22__chat_history.sql	-462917725	postgres	2026-06-09 18:49:00.281122	214	t
 23	23	create tenant function	SQL	V23__create_tenant_function.sql	-1198410848	postgres	2026-06-17 14:20:17.11953	18	t
+24	24	tenant admin provisioning	SQL	V24__tenant_admin_provisioning.sql	642976385	postgres	2026-06-17 17:09:33.355319	20	t
 \.
 
 
@@ -4557,7 +4559,7 @@ c833b437-c948-4db7-907a-d1d03c012414	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 -- Data for Name: patient_anamnesis; Type: TABLE DATA; Schema: t_9d754153; Owner: -
 --
 
-COPY t_9d754153.patient_anamnesis (id, clinic_id, patient_id, recorded_at, recorded_by_provider_id, blood_type, smoker, cigarettes_per_day, alcohol_use, drug_use, hypertension, diabetes, diabetes_type, heart_disease, coagulopathy, immunodeficiency, osteoporosis, thyroid_disease, epilepsy, hepatitis, hiv_positive, tumor_history, autoimmune_disease, other_diseases, taking_anticoagulants, taking_bisphosphonates, taking_cortisone, current_medications, allergy_penicillin, allergy_latex, allergy_anesthetic, allergy_aspirin, other_allergies, bruxism, mouth_breathing, nail_biting, pacifier_use, general_notes, signed_at, signature_notes, is_current, created_at, updated_at) FROM stdin;
+COPY t_9d754153.patient_anamnesis (id, clinic_id, patient_id, recorded_at, recorded_by_provider_id, blood_type, smoker, cigarettes_per_day, alcohol_use, drug_use, hypertension, diabetes, diabetes_type, heart_disease, coagulopathy, immunodeficiency, osteoporosis, thyroid_disease, epilepsy, hepatitis, hiv_positive, tumor_history, autoimmune_disease, other_diseases, taking_anticoagulants, taking_bisphosphonates, taking_cortisone, current_medications, allergy_penicillin, allergy_latex, allergy_anesthetic, allergy_aspirin, other_allergies, bruxism, mouth_breathing, nail_biting, pacifier_use, notes, signed_at, signature_notes, is_current, created_at, updated_at) FROM stdin;
 ae843917-b419-4be2-abf4-58a6c2b5e218	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000001	2025-05-29 00:00:00+00	b1000001-0000-0000-0000-000000000001	A+	f	\N	\N	\N	f	f	\N	f	f	f	f	f	f	f	f	f	f	\N	f	f	f	\N	f	f	f	f	\N	f	f	f	\N	\N	\N	\N	t	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 eb8aa0f0-33bb-4547-82dd-8f1850ef46c3	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000002	2025-11-30 00:00:00+00	b1000001-0000-0000-0000-000000000001	B+	f	\N	\N	\N	f	f	\N	f	f	f	f	f	f	f	f	f	f	\N	f	f	f	\N	t	f	f	f	\N	f	f	f	\N	\N	\N	\N	t	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 4aeaf8af-651b-4a39-b8e4-dc08a872cd66	9d754153-6579-4b7e-a56b-025f00299cd9	c1000001-0000-0000-0000-000000000003	2026-02-28 00:00:00+00	b1000001-0000-0000-0000-000000000002	0+	f	\N	\N	\N	t	f	\N	f	f	f	f	f	f	f	f	f	f	\N	t	f	f	\N	f	f	f	f	\N	f	f	f	\N	\N	\N	\N	t	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
@@ -4959,7 +4961,7 @@ b6ba69f2-80d8-4590-8669-5a807946af78	9d754153-6579-4b7e-a56b-025f00299cd9	c10000
 -- Data for Name: treatment_plan_items; Type: TABLE DATA; Schema: t_9d754153; Owner: -
 --
 
-COPY t_9d754153.treatment_plan_items (id, clinic_id, treatment_plan_id, service_id, provider_id, tooth_number, quadrant, surfaces, quantity, planned_price, planned_vat_rate, clinical_notes, status, priority, planned_date, completed_at, created_at, updated_at) FROM stdin;
+COPY t_9d754153.treatment_plan_items (id, clinic_id, plan_id, service_catalog_id, provider_id, tooth_fdi, quadrant, surfaces, quantity, planned_price, planned_vat_rate, clinical_notes, status, priority, planned_date, completed_at, created_at, updated_at) FROM stdin;
 f1000001-0000-0000-0000-000000000001	9d754153-6579-4b7e-a56b-025f00299cd9	e1000001-0000-0000-0000-000000000001	d1000001-0000-0000-0000-000000000004	\N	16	\N	\N	1.00	25.00	0.00	\N	completed	10	\N	2026-05-19 10:00:00+00	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 f1000001-0000-0000-0000-000000000002	9d754153-6579-4b7e-a56b-025f00299cd9	e1000001-0000-0000-0000-000000000001	d1000001-0000-0000-0000-000000000008	\N	16	\N	{O,D}	1.00	130.00	0.00	\N	completed	20	\N	2026-05-19 10:30:00+00	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
 f1000001-0000-0000-0000-000000000003	9d754153-6579-4b7e-a56b-025f00299cd9	e1000001-0000-0000-0000-000000000001	d1000001-0000-0000-0000-000000000007	\N	14	\N	{O}	1.00	90.00	0.00	\N	scheduled	30	\N	\N	2026-05-29 13:52:49.31794+00	2026-05-29 13:52:49.31794+00
@@ -6001,7 +6003,7 @@ CREATE INDEX ix_tooth_conditions_patient_fdi_surface ON t_9d754153.tooth_conditi
 -- Name: ix_treatment_plan_items_plan_status; Type: INDEX; Schema: t_9d754153; Owner: -
 --
 
-CREATE INDEX ix_treatment_plan_items_plan_status ON t_9d754153.treatment_plan_items USING btree (clinic_id, treatment_plan_id, status, priority);
+CREATE INDEX ix_treatment_plan_items_plan_status ON t_9d754153.treatment_plan_items USING btree (clinic_id, plan_id, status, priority);
 
 
 --
@@ -6015,7 +6017,7 @@ CREATE INDEX ix_treatment_plan_items_provider ON t_9d754153.treatment_plan_items
 -- Name: ix_treatment_plan_items_service; Type: INDEX; Schema: t_9d754153; Owner: -
 --
 
-CREATE INDEX ix_treatment_plan_items_service ON t_9d754153.treatment_plan_items USING btree (clinic_id, service_id);
+CREATE INDEX ix_treatment_plan_items_service ON t_9d754153.treatment_plan_items USING btree (clinic_id, service_catalog_id);
 
 
 --
@@ -6643,7 +6645,7 @@ ALTER TABLE ONLY t_9d754153.stock_movements
 --
 
 ALTER TABLE ONLY t_9d754153.treatment_plan_items
-    ADD CONSTRAINT fk_treatment_plan_items_plan FOREIGN KEY (treatment_plan_id, clinic_id) REFERENCES t_9d754153.treatment_plans(id, clinic_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_treatment_plan_items_plan FOREIGN KEY (plan_id, clinic_id) REFERENCES t_9d754153.treatment_plans(id, clinic_id) ON DELETE CASCADE;
 
 
 --
@@ -6659,7 +6661,7 @@ ALTER TABLE ONLY t_9d754153.treatment_plan_items
 --
 
 ALTER TABLE ONLY t_9d754153.treatment_plan_items
-    ADD CONSTRAINT fk_treatment_plan_items_service FOREIGN KEY (service_id, clinic_id) REFERENCES t_9d754153.service_catalog(id, clinic_id) ON DELETE RESTRICT;
+    ADD CONSTRAINT fk_treatment_plan_items_service FOREIGN KEY (service_catalog_id, clinic_id) REFERENCES t_9d754153.service_catalog(id, clinic_id) ON DELETE RESTRICT;
 
 
 --
@@ -6834,9 +6836,11 @@ ALTER TABLE ONLY t_9d754153.treatment_plans
 -- PostgreSQL database dump complete
 --
 
+\unrestrict lNAdE5IhYi17M1sN2xgfhCuIzN8zuHt8fQas73pWLY45tqDAQ4azNGnYO7YJ260
+
+
 --
--- Registry tenant: SOLO portale demo
+-- Registry demo-only: tenant + mappatura clinica demo
 --
 INSERT INTO dentalcare.tenants (id, name, schema_name, email, phone, plan, active, created_at, updated_at) VALUES ('a0000001-0000-0000-0000-000000000001', 'Clinica Demo DentalCare', 't_9d754153', 'demo@dentalcare.it', NULL, 'professional', true, '2026-05-17T13:11:14.678307+00:00', '2026-05-29T13:52:49.317940+00:00');
-INSERT INTO dentalcare.tenant_clinics (clinic_id, tenant_id, created_at) VALUES ('352464ea-0b3f-47ba-a3dc-3511c6d1af4f', 'a0000001-0000-0000-0000-000000000001', '2026-05-17T13:11:14.678307+00:00');
 INSERT INTO dentalcare.tenant_clinics (clinic_id, tenant_id, created_at) VALUES ('9d754153-6579-4b7e-a56b-025f00299cd9', 'a0000001-0000-0000-0000-000000000001', '2026-05-29T13:52:49.317940+00:00');

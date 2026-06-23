@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { LoginResponse } from '../../core/auth/auth.model';
 import {
   CreateTenantClinicRequest,
   CreateTenantUserRequest,
@@ -22,8 +23,16 @@ export class AdminTenantService {
     return this.http.post<TenantClinicDto>(`${this.base}/clinics`, req);
   }
 
+  updateClinic(clinicId: string, req: CreateTenantClinicRequest): Observable<TenantClinicDto> {
+    return this.http.put<TenantClinicDto>(`${this.base}/clinics/${clinicId}`, req);
+  }
+
   deleteClinic(clinicId: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/clinics/${clinicId}`);
+  }
+
+  deleteTenant(): Observable<void> {
+    return this.http.delete<void>(`${this.base}/tenant`);
   }
 
   getUsers(clinicId: string): Observable<TenantUserDto[]> {
@@ -44,5 +53,9 @@ export class AdminTenantService {
 
   removeSelfAsAdmin(clinicId: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/clinics/${clinicId}/self-admin`);
+  }
+
+  enterClinic(clinicId: string): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.base}/clinics/${clinicId}/enter`, {});
   }
 }

@@ -64,6 +64,11 @@ export class AuthService {
     this._currentUser.set(user);
   }
 
+  /** Switch session to a new token (es. "Entra in questo studio") senza logout. */
+  storeLoginResponse(res: LoginResponse): void {
+    this.storeSession(res);
+  }
+
   storeDirectLogin(res: LoginPreflightResponse): void {
     if (!res.token || !res.providerId || !res.clinicId || !res.role
         || !res.firstName || !res.lastName || !res.schemaName || !res.tenantName) {
@@ -143,6 +148,13 @@ export class AuthService {
       document.cookie = `${name}=; expires=${expire}; path=/`;
       document.cookie = `${name}=; expires=${expire}; path=/; domain=${location.hostname}`;
     }
+  }
+
+  /** Pulisce la sessione senza navigare (es. dopo cambio password forzato → re-login). */
+  clearSession(): void {
+    this.clearAuthStorage();
+    this._currentUser.set(null);
+    this._pendingChoose = null;
   }
 
   isAuthenticated(): boolean {

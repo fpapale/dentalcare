@@ -3,6 +3,7 @@ package com.dentalcare.service;
 import com.dentalcare.dto.RegistrationRequest;
 import com.dentalcare.dto.TenantProvisioningResult;
 import com.dentalcare.security.TenantSchemaRegistry;
+import com.dentalcare.util.TempPasswordGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,10 +44,6 @@ public class TenantProvisioningService {
     }
 
     public TenantProvisioningResult provision(RegistrationRequest req) {
-        if (req.adminPassword() == null || req.adminPassword().isBlank()) {
-            throw new IllegalArgumentException("adminPassword is required for tenant provisioning");
-        }
-
         UUID tenantId = UUID.randomUUID();
         UUID clinicId = UUID.randomUUID();
         String schemaName = "t_" + clinicId.toString().replace("-", "").substring(0, 8);
@@ -55,7 +52,10 @@ public class TenantProvisioningService {
         }
 
         String plan = (req.plan() != null && !req.plan().isBlank()) ? req.plan() : "professional";
-        String passwordHash = passwordEncoder.encode(req.adminPassword());
+
+        // Password temporanea generata: inviata via email, cambio forzato al primo accesso.
+        String tempPassword = TempPasswordGenerator.generate();
+        String passwordHash = passwordEncoder.encode(tempPassword);
 
         // Chiamata atomica: schema + DDL + tenant + clinic + admin in una sola transazione.
         UUID adminId = jdbc.queryForObject(
@@ -66,13 +66,16 @@ public class TenantProvisioningService {
                 req.indirizzo(), req.citta(), req.provincia(),
                 req.adminNome(), req.adminCognome(), req.adminEmail(), passwordHash);
 
+        // Marca la password come temporanea: cambio obbligatorio al primo login.
+        jdbc.update("UPDATE " + schemaName + ".providers SET password_temporary = true WHERE id = ?", adminId);
+
         registry.register(clinicId.toString(), schemaName);
         log.info("Tenant provisioned: schema={} clinicId={} tenantId={} adminId={}",
                 schemaName, clinicId, tenantId, adminId);
 
-        // Email di benvenuto dopo il commit. send() gestisce internamente i propri errori.
-        emailService.sendStudioWelcome(
-                req.adminEmail(), req.adminNome(), req.studioName(),
+        // Email con password temporanea dopo il commit. send() gestisce i propri errori.
+        emailService.sendStudioWelcomeTempPassword(
+                req.adminEmail(), req.adminNome(), req.studioName(), tempPassword,
                 frontendBaseUrl.stripTrailing().replaceAll("/+$", "") + "/login");
 
         return new TenantProvisioningResult(tenantId, clinicId, schemaName);

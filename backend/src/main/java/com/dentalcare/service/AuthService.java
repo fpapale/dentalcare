@@ -306,7 +306,9 @@ public class AuthService {
         String lastName = (String) row.get("last_name");
         boolean mustChangePassword = Boolean.TRUE.equals(row.get("password_temporary"));
 
-        String storedEmail = (String) row.get("email");
+        // email è citext -> PGobject: usare toString()
+        Object storedEmailObj = row.get("email");
+        String storedEmail = storedEmailObj == null ? null : storedEmailObj.toString();
         String resolvedEmail = storedEmail != null ? storedEmail : email.toLowerCase();
 
         String tenantName = fetchTenantName(schemaName);

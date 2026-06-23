@@ -46,12 +46,20 @@
             Hub di amministrazione per la gestione degli studi associati alla tua clinica.
           </p>
         </div>
-        <button type="button"
-                (click)="downloadExport()"
-                class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium shadow-sm transition-colors">
-          <span class="material-symbols-outlined text-[18px]">download</span>
-          Esporta dati clinica
-        </button>
+        <div class="shrink-0 flex items-center gap-2">
+          <button type="button"
+                  (click)="downloadExport()"
+                  class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium shadow-sm transition-colors">
+            <span class="material-symbols-outlined text-[18px]">download</span>
+            Esporta dati clinica
+          </button>
+          <button type="button"
+                  (click)="askDeleteTenant()"
+                  class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-sm font-medium transition-colors">
+            <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+            Elimina clinica
+          </button>
+        </div>
       </div>
     </div>
 
@@ -183,6 +191,17 @@
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                   <button type="button"
+                          (click)="enterClinic(clinic.id)"
+                          [disabled]="enteringClinicId() === clinic.id"
+                          class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                    @if (enteringClinicId() === clinic.id) {
+                      <span class="inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                    } @else {
+                      <span class="material-symbols-outlined text-[16px]">login</span>
+                    }
+                    Entra
+                  </button>
+                  <button type="button"
                           (click)="toggleClinicUsers(clinic.id)"
                           class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-teal-50 hover:bg-teal-100 dark:bg-teal-900/30 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 transition-colors flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px]">{{ expandedClinicId() === clinic.id ? 'expand_less' : 'group' }}</span>
@@ -204,6 +223,12 @@
                     {{ isSelfAdmin(clinic.id) ? 'Rimuoviti come admin' : 'Aggiungiti come admin' }}
                   </button>
                   <button type="button"
+                          (click)="startEditClinic(clinic)"
+                          class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                    Modifica
+                  </button>
+                  <button type="button"
                           (click)="askDeleteClinic(clinic)"
                           class="text-xs font-medium px-2.5 py-1.5 rounded-md bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 transition-colors flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px]">delete</span>
@@ -211,6 +236,66 @@
                   </button>
                 </div>
               </div>
+
+              <!-- Form modifica anagrafica sede -->
+              @if (editTargetClinicId() === clinic.id) {
+                <div class="mt-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700">
+                  <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Modifica dati studio</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Nome *</label>
+                      <input type="text" [ngModel]="editForm().name" (ngModelChange)="updateEditField('name', $event)" name="editName"
+                             class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Ragione sociale</label>
+                      <input type="text" [ngModel]="editForm().legalName" (ngModelChange)="updateEditField('legalName', $event)" name="editLegal"
+                             class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Telefono</label>
+                      <input type="text" [ngModel]="editForm().phone" (ngModelChange)="updateEditField('phone', $event)" name="editPhone"
+                             class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Email</label>
+                      <input type="email" [ngModel]="editForm().email" (ngModelChange)="updateEditField('email', $event)" name="editEmail"
+                             class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Indirizzo</label>
+                      <input type="text" [ngModel]="editForm().addressLine1" (ngModelChange)="updateEditField('addressLine1', $event)" name="editAddr"
+                             class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">CAP</label>
+                      <input type="text" [ngModel]="editForm().postalCode" (ngModelChange)="updateEditField('postalCode', $event)" name="editCap"
+                             class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Città</label>
+                      <input type="text" [ngModel]="editForm().city" (ngModelChange)="updateEditField('city', $event)" name="editCity"
+                             class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Provincia</label>
+                      <input type="text" [ngModel]="editForm().province" (ngModelChange)="updateEditField('province', $event)" name="editProv"
+                             class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button type="button" (click)="submitEditClinic()" [disabled]="savingEdit()"
+                            class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <span class="material-symbols-outlined text-[18px]">{{ savingEdit() ? 'progress_activity' : 'check' }}</span>
+                      {{ savingEdit() ? 'Salvataggio...' : 'Salva' }}
+                    </button>
+                    <button type="button" (click)="cancelEditClinic()" [disabled]="savingEdit()"
+                            class="text-sm font-medium px-3 py-1.5 rounded-md bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors">
+                      Annulla
+                    </button>
+                  </div>
+                </div>
+              }
 
               <!-- Sezione utenti espansa -->
               @if (expandedClinicId() === clinic.id) {
@@ -356,16 +441,16 @@
         <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[20px] shrink-0 mt-0.5">info</span>
         <p class="text-sm text-amber-800 dark:text-amber-200">
           L'eliminazione è <strong>irreversibile</strong>. Tutti i dati dello studio (pazienti, appuntamenti, documenti clinici) verranno cancellati definitivamente.
-          Ti consigliamo di scaricare i dati prima di procedere.
+          <strong>Devi scaricare i dati prima di procedere.</strong>
         </p>
       </div>
 
-      <!-- Pulsante download -->
+      <!-- Pulsante download (obbligatorio prima dell'eliminazione) -->
       <button type="button"
               (click)="downloadClinicExport(clinic.id)"
               class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 font-medium text-sm transition-colors">
-        <span class="material-symbols-outlined text-[20px]">download</span>
-        Scarica tutti i dati dello studio
+        <span class="material-symbols-outlined text-[20px]">{{ exportedForDelete() ? 'check_circle' : 'download' }}</span>
+        {{ exportedForDelete() ? 'Dati scaricati' : 'Scarica tutti i dati dello studio' }}
       </button>
 
       <!-- Azioni -->
@@ -378,9 +463,64 @@
         </button>
         <button type="button"
                 (click)="confirmDeleteClinic()"
-                [disabled]="!!deletingClinicId()"
+                [disabled]="!!deletingClinicId() || !exportedForDelete()"
                 class="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed">
           @if (deletingClinicId()) {
+            <span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+            Eliminazione...
+          } @else {
+            <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+            Elimina definitivamente
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal conferma eliminazione TENANT (intera clinica) -->
+@if (showDeleteTenant()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="cancelDeleteTenant()"></div>
+
+    <div class="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-5">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-[26px]">domain_disabled</span>
+        </div>
+        <div>
+          <h3 class="font-bold text-slate-800 dark:text-slate-100 text-lg leading-tight">Elimina clinica</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{{ tenantName() }}</p>
+        </div>
+      </div>
+
+      <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 flex items-start gap-2">
+        <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-[20px] shrink-0 mt-0.5">warning</span>
+        <p class="text-sm text-red-800 dark:text-red-200">
+          Elimina <strong>l'intera clinica e tutti gli studi associati</strong>: pazienti, appuntamenti, fatture, documenti.
+          Operazione <strong>irreversibile</strong>. <strong>Devi esportare tutti i dati prima di procedere.</strong>
+        </p>
+      </div>
+
+      <button type="button"
+              (click)="downloadTenantExport()"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 font-medium text-sm transition-colors">
+        <span class="material-symbols-outlined text-[20px]">{{ exportedForTenant() ? 'check_circle' : 'download' }}</span>
+        {{ exportedForTenant() ? 'Dati esportati' : 'Esporta tutti i dati della clinica' }}
+      </button>
+
+      <div class="flex items-center gap-3 pt-1">
+        <button type="button"
+                (click)="cancelDeleteTenant()"
+                [disabled]="deletingTenant()"
+                class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          Annulla
+        </button>
+        <button type="button"
+                (click)="confirmDeleteTenant()"
+                [disabled]="deletingTenant() || !exportedForTenant()"
+                class="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed">
+          @if (deletingTenant()) {
             <span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
             Eliminazione...
           } @else {

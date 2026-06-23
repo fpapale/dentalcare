@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { UserContextService } from '../../core/services/user-context.service';
@@ -31,6 +31,7 @@ export class AdminTenantComponent implements OnInit {
   private readonly userContext = inject(UserContextService);
   private readonly auth = inject(AuthService);
   private readonly api = inject(AdminTenantService);
+  private readonly router = inject(Router);
 
   readonly tenantName = this.userContext.tenantName;
   readonly userName = this.userContext.userName;
@@ -59,6 +60,16 @@ export class AdminTenantComponent implements OnInit {
   readonly deletingClinicId = signal<string | null>(null);
   readonly addingSelfToClinicId = signal<string | null>(null);
   readonly selfAdminClinicIds = signal<Set<string>>(new Set());
+  readonly enteringClinicId = signal<string | null>(null);
+  readonly exportedForDelete = signal(false);
+
+  readonly editTargetClinicId = signal<string | null>(null);
+  readonly editForm = signal<CreateTenantClinicRequest>(emptyClinicForm());
+  readonly savingEdit = signal(false);
+
+  readonly showDeleteTenant = signal(false);
+  readonly exportedForTenant = signal(false);
+  readonly deletingTenant = signal(false);
 
   ngOnInit(): void {
     this.loadClinics();
@@ -120,6 +131,8 @@ export class AdminTenantComponent implements OnInit {
     this.api.createClinic(payload).subscribe({
       next: (created) => {
         this.clinics.update(list => [...list, created].sort((a, b) => a.name.localeCompare(b.name)));
+        // Il backend associa automaticamente il chiamante come admin della nuova sede.
+        this.selfAdminClinicIds.update(s => new Set([...s, created.id]));
         this.showCreateClinic.set(false);
         this.clinicForm.set(emptyClinicForm());
         this.creatingClinic.set(false);
@@ -213,20 +226,24 @@ export class AdminTenantComponent implements OnInit {
 
   askDeleteClinic(clinic: TenantClinicDto): void {
     this.deleteTargetClinic.set(clinic);
+    this.exportedForDelete.set(false);
   }
 
   cancelDeleteClinic(): void {
     this.deleteTargetClinic.set(null);
+    this.exportedForDelete.set(false);
   }
 
   downloadClinicExport(clinicId: string): void {
     const token = this.auth.getToken();
     window.location.href = `${this.apiBase}/tenant-admin/clinics/${clinicId}/export?token=${token}`;
+    this.exportedForDelete.set(true);
   }
 
   confirmDeleteClinic(): void {
     const clinic = this.deleteTargetClinic();
     if (!clinic) return;
+    if (!this.exportedForDelete()) return;
     this.deletingClinicId.set(clinic.id);
     this.error.set(null);
     this.api.deleteClinic(clinic.id).subscribe({
@@ -304,6 +321,102 @@ export class AdminTenantComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.error.set(this.extractError(err, 'Errore durante la rimozione come amministratore.'));
         this.addingSelfToClinicId.set(null);
+      }
+    });
+  }
+
+  enterClinic(clinicId: string): void {
+    this.enteringClinicId.set(clinicId);
+    this.error.set(null);
+    this.api.enterClinic(clinicId).subscribe({
+      next: (res) => {
+        this.auth.storeLoginResponse(res);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.extractError(err, 'Impossibile entrare nello studio.'));
+        this.enteringClinicId.set(null);
+      }
+    });
+  }
+
+  // --- Modifica anagrafica sede ---
+  startEditClinic(clinic: TenantClinicDto): void {
+    this.editTargetClinicId.set(clinic.id);
+    this.editForm.set({
+      name: clinic.name,
+      legalName: clinic.legalName ?? undefined,
+      city: clinic.city ?? undefined,
+      province: clinic.province ?? undefined,
+      addressLine1: clinic.addressLine1 ?? undefined,
+      postalCode: clinic.postalCode ?? undefined,
+      phone: clinic.phone ?? undefined,
+      email: clinic.email ?? undefined
+    });
+    this.error.set(null);
+  }
+
+  cancelEditClinic(): void {
+    this.editTargetClinicId.set(null);
+  }
+
+  updateEditField<K extends keyof CreateTenantClinicRequest>(key: K, value: CreateTenantClinicRequest[K]): void {
+    this.editForm.update(f => ({ ...f, [key]: value }));
+  }
+
+  submitEditClinic(): void {
+    const clinicId = this.editTargetClinicId();
+    if (!clinicId) return;
+    const form = this.editForm();
+    if (!form.name?.trim()) {
+      this.error.set('Il nome dello studio è obbligatorio.');
+      return;
+    }
+    this.savingEdit.set(true);
+    this.error.set(null);
+    this.api.updateClinic(clinicId, form).subscribe({
+      next: (updated) => {
+        this.clinics.update(list => list.map(c => c.id === clinicId ? updated : c)
+          .sort((a, b) => a.name.localeCompare(b.name)));
+        this.editTargetClinicId.set(null);
+        this.savingEdit.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.extractError(err, 'Errore nel salvataggio della sede.'));
+        this.savingEdit.set(false);
+      }
+    });
+  }
+
+  // --- Eliminazione tenant ---
+  askDeleteTenant(): void {
+    this.showDeleteTenant.set(true);
+    this.exportedForTenant.set(false);
+  }
+
+  cancelDeleteTenant(): void {
+    this.showDeleteTenant.set(false);
+    this.exportedForTenant.set(false);
+  }
+
+  downloadTenantExport(): void {
+    const token = this.auth.getToken();
+    window.location.href = `${this.apiBase}/tenant-admin/export?token=${token}`;
+    this.exportedForTenant.set(true);
+  }
+
+  confirmDeleteTenant(): void {
+    if (!this.exportedForTenant()) return;
+    this.deletingTenant.set(true);
+    this.error.set(null);
+    this.api.deleteTenant().subscribe({
+      next: () => {
+        this.deletingTenant.set(false);
+        this.auth.logout();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.extractError(err, 'Impossibile eliminare la clinica.'));
+        this.deletingTenant.set(false);
       }
     });
   }
