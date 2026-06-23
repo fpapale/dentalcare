@@ -117,6 +117,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
                 jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS role dentalcare.provider_role NOT NULL DEFAULT 'dentist'");
             });
             runStep(schema, "estimates+lines",  () -> patchEstimatesAndLinesSchema(schema));
+            runStep(schema, "treatment/anamnesis cols", () -> patchTreatmentAndAnamnesisColumns(schema));
             runStep(schema, "recalls",          () -> patchRecallsSchema(schema));
             runStep(schema, "products",         () -> patchProductsSchema(schema));
             runStep(schema, "v_clinic_dashboard",           () -> rebuildDashboardView(schema));
@@ -174,6 +175,36 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         // condition_service_defaults: rename legacy column names
         renameColIfExists(schema, "condition_service_defaults", "condition",         "condition_name");
         renameColIfExists(schema, "condition_service_defaults", "service_catalog_id", "service_id");
+    }
+
+    /**
+     * Allinea i nomi colonna legacy (schema demo seed) a quelli canonici di create_tenant (V23):
+     * treatment_plan_items: service_id→service_catalog_id, treatment_plan_id→plan_id, tooth_number→tooth_fdi;
+     * patient_anamnesis: general_notes→notes. Idempotente: rinomina solo se la vecchia esiste e la nuova no.
+     */
+    private void patchTreatmentAndAnamnesisColumns(String schema) {
+        // Le viste dipendenti vanno droppate prima del rename; verranno ricreate dagli step successivi.
+        jdbc.execute("DROP VIEW IF EXISTS " + schema + ".v_agenda_daily");
+        jdbc.execute("DROP VIEW IF EXISTS " + schema + ".v_patient_dashboard");
+        jdbc.execute("DROP VIEW IF EXISTS " + schema + ".v_patient_clinical_card");
+
+        renameColIfMissing(schema, "treatment_plan_items", "service_id",        "service_catalog_id");
+        renameColIfMissing(schema, "treatment_plan_items", "treatment_plan_id", "plan_id");
+        renameColIfMissing(schema, "treatment_plan_items", "tooth_number",      "tooth_fdi");
+        renameColIfMissing(schema, "patient_anamnesis",    "general_notes",     "notes");
+    }
+
+    /** Rinomina oldCol→newCol solo se oldCol esiste E newCol non esiste (evita conflitti). */
+    private void renameColIfMissing(String schema, String table, String oldCol, String newCol) {
+        Integer oldExists = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?",
+                Integer.class, schema, table, oldCol);
+        Integer newExists = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?",
+                Integer.class, schema, table, newCol);
+        if (oldExists != null && oldExists > 0 && (newExists == null || newExists == 0)) {
+            jdbc.execute("ALTER TABLE " + schema + "." + table + " RENAME COLUMN " + oldCol + " TO " + newCol);
+        }
     }
 
     private void patchProductsSchema(String schema) {
@@ -272,13 +303,13 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  pr.role::text AS provider_role," +
             "  sc.name AS service_name," +
             "  sc.category AS service_category," +
-            "  tpi.tooth_number AS tooth_number," +
+            "  tpi.tooth_fdi AS tooth_number," +
             alertCols +
             " FROM " + schema + ".appointments a" +
             " LEFT JOIN " + schema + ".patients             p   ON p.id   = a.patient_id" +
             " LEFT JOIN " + schema + ".providers            pr  ON pr.id  = a.provider_id" +
             " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.id = a.treatment_plan_item_id" +
-            " LEFT JOIN " + schema + ".service_catalog      sc  ON sc.id  = tpi.service_id"
+            " LEFT JOIN " + schema + ".service_catalog      sc  ON sc.id  = tpi.service_catalog_id"
         );
     }
 
@@ -314,7 +345,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  COALESCE(SUM(e.total_amount) FILTER (WHERE e.status = 'accepted'), 0.00) AS accepted_estimates_amount" +
             " FROM " + schema + ".patients p" +
             " LEFT JOIN " + schema + ".treatment_plans tp ON tp.patient_id = p.id AND tp.clinic_id = p.clinic_id" +
-            " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.treatment_plan_id = tp.id AND tpi.clinic_id = p.clinic_id" +
+            " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.plan_id = tp.id AND tpi.clinic_id = p.clinic_id" +
             " LEFT JOIN " + schema + ".estimates e ON e.patient_id = p.id AND e.clinic_id = p.clinic_id" +
             " GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code," +
             "          p.birth_date, p.phone, p.email, p.city, p.province, p.active"
@@ -337,7 +368,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  pa.taking_anticoagulants, pa.taking_bisphosphonates," +
             "  pa.allergy_penicillin, pa.allergy_latex, pa.allergy_anesthetic," +
             "  pa.current_medications, pa.other_allergies," +
-            "  pa.general_notes AS anamnesis_notes," +
+            "  pa.notes AS anamnesis_notes," +
             "  pa.recorded_at AS anamnesis_date," +
             "  (SELECT COUNT(*) FROM " + schema + ".appointments a" +
             "   WHERE a.patient_id = p.id AND a.clinic_id = p.clinic_id) AS total_appointments" +

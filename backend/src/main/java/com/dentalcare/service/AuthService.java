@@ -55,6 +55,9 @@ public class AuthService {
     @Value("${app.demo.password:}")
     private String demoPassword;
 
+    @Value("${app.demo.schema:t_9d754153}")
+    private String demoSchema;
+
     @Value("${app.n8n.service-key:}")
     private String n8nServiceKey;
 
@@ -88,10 +91,12 @@ public class AuthService {
     }
 
     public DemoConfigResponse demoConfig() {
+        // schema demo sempre esposto: identifica la sessione demo (combo impersonazione)
+        // indipendentemente dal prefill (enabled).
         if (!demoEnabled) {
-            return new DemoConfigResponse(false, null, null);
+            return new DemoConfigResponse(false, null, null, demoSchema);
         }
-        return new DemoConfigResponse(true, demoEmail, demoPassword);
+        return new DemoConfigResponse(true, demoEmail, demoPassword, demoSchema);
     }
 
     private String fetchTenantName(String schemaName) {

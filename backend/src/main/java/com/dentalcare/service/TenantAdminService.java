@@ -26,11 +26,13 @@ public class TenantAdminService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
-    @org.springframework.beans.factory.annotation.Value("${app.demo.enabled:false}")
-    private boolean demoEnabled;
-
     @org.springframework.beans.factory.annotation.Value("${app.demo.password:}")
     private String demoPassword;
+
+    @org.springframework.beans.factory.annotation.Value("${app.demo.schema:t_9d754153}")
+    private String demoSchema;
+
+    private boolean isDemoSchema() { return demoSchema.equals(s()); }
 
     public TenantAdminService(NamedParameterJdbcTemplate jdbc, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.jdbc = jdbc;
@@ -126,8 +128,9 @@ public class TenantAdminService {
 
         // Portale demo: password demo nota, nessun cambio forzato né email.
         // Cambio password al primo accesso solo per utenti reali.
-        boolean temporary = !demoEnabled;
-        String plainPassword = demoEnabled ? demoPassword : TempPasswordGenerator.generate();
+        boolean demo = isDemoSchema();
+        boolean temporary = !demo;
+        String plainPassword = demo ? demoPassword : TempPasswordGenerator.generate();
         String hashed = passwordEncoder.encode(plainPassword);
 
         String sql = """

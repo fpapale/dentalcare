@@ -66,4 +66,5 @@ export interface DemoConfigResponse {
   enabled: boolean;
   email?: string;
   password?: string;
+  schema?: string;
 }
