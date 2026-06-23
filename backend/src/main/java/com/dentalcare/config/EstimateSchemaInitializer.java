@@ -118,6 +118,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             });
             runStep(schema, "estimates+lines",  () -> patchEstimatesAndLinesSchema(schema));
             runStep(schema, "treatment_plan_items app-names", () -> patchTreatmentItemColumns(schema));
+            runStep(schema, "app columns",      () -> patchAppColumns(schema));
             runStep(schema, "recalls",          () -> patchRecallsSchema(schema));
             runStep(schema, "products",         () -> patchProductsSchema(schema));
             runStep(schema, "v_clinic_dashboard",           () -> rebuildDashboardView(schema));
@@ -193,6 +194,78 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         renameColToTarget(schema, "treatment_plan_items", "service_catalog_id", "service_id");
         renameColToTarget(schema, "treatment_plan_items", "tooth_fdi",          "tooth_number");
         renameColToTarget(schema, "patient_anamnesis",    "notes",              "general_notes");
+    }
+
+    /**
+     * Aggiunge le colonne ricche usate dall'app ma assenti nel template create_tenant (V23).
+     * Additivo/idempotente: ADD COLUMN IF NOT EXISTS. Converge i tenant nuovi allo schema canonico (demo).
+     */
+    private void patchAppColumns(String schema) {
+        jdbc.execute("ALTER TABLE " + schema + ".appointments ADD COLUMN IF NOT EXISTS cancellation_reason text");
+        jdbc.execute("ALTER TABLE " + schema + ".clinical_history_entries ADD COLUMN IF NOT EXISTS entry_date date DEFAULT CURRENT_DATE NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".clinical_history_entries ADD COLUMN IF NOT EXISTS tooth_number text");
+        jdbc.execute("ALTER TABLE " + schema + ".clinical_history_entries ADD COLUMN IF NOT EXISTS service_code text");
+        jdbc.execute("ALTER TABLE " + schema + ".clinical_history_entries ADD COLUMN IF NOT EXISTS service_name text");
+        jdbc.execute("ALTER TABLE " + schema + ".clinical_history_entries ADD COLUMN IF NOT EXISTS clinical_notes text");
+        jdbc.execute("ALTER TABLE " + schema + ".clinical_history_entries ADD COLUMN IF NOT EXISTS materials_used text");
+        jdbc.execute("ALTER TABLE " + schema + ".clinical_history_entries ADD COLUMN IF NOT EXISTS next_visit_notes text");
+        jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS city_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".odontogram_teeth ADD COLUMN IF NOT EXISTS tooth_number text");
+        jdbc.execute("ALTER TABLE " + schema + ".odontogram_teeth ADD COLUMN IF NOT EXISTS quadrant smallint");
+        jdbc.execute("ALTER TABLE " + schema + ".odontogram_teeth ADD COLUMN IF NOT EXISTS is_deciduous boolean DEFAULT false NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".odontogram_teeth ADD COLUMN IF NOT EXISTS bridge_group_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".odontogram_teeth ADD COLUMN IF NOT EXISTS implant_ref text");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS drug_use boolean");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS diabetes_type text");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS immunodeficiency boolean DEFAULT false NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS thyroid_disease boolean DEFAULT false NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS tumor_history boolean DEFAULT false NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS autoimmune_disease boolean DEFAULT false NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS other_diseases text");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS bruxism boolean DEFAULT false NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS mouth_breathing boolean DEFAULT false NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS nail_biting boolean DEFAULT false NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS pacifier_use boolean");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS signed_at timestamptz");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS signature_notes text");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now() NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_documents ADD COLUMN IF NOT EXISTS appointment_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_documents ADD COLUMN IF NOT EXISTS uploaded_by_provider_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_documents ADD COLUMN IF NOT EXISTS description text");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_documents ADD COLUMN IF NOT EXISTS file_name text");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_documents ADD COLUMN IF NOT EXISTS file_size_bytes bigint");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_documents ADD COLUMN IF NOT EXISTS tooth_number text");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_documents ADD COLUMN IF NOT EXISTS taken_at date");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_documents ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now() NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_recalls ADD COLUMN IF NOT EXISTS booked_appointment_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS address_line2 text");
+        jdbc.execute("ALTER TABLE " + schema + ".service_catalog ADD COLUMN IF NOT EXISTS default_vat_rate numeric(5,2) DEFAULT 0 NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".suppliers ADD COLUMN IF NOT EXISTS contact_person text");
+        jdbc.execute("ALTER TABLE " + schema + ".suppliers ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".tooth_conditions ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now() NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plan_items ADD COLUMN IF NOT EXISTS provider_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plan_items ADD COLUMN IF NOT EXISTS quadrant smallint");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plan_items ADD COLUMN IF NOT EXISTS quantity numeric(10,2) DEFAULT 1 NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plan_items ADD COLUMN IF NOT EXISTS planned_price numeric(12,2) DEFAULT 0 NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plan_items ADD COLUMN IF NOT EXISTS planned_vat_rate numeric(5,2) DEFAULT 0 NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plan_items ADD COLUMN IF NOT EXISTS clinical_notes text");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plan_items ADD COLUMN IF NOT EXISTS priority integer DEFAULT 100 NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plan_items ADD COLUMN IF NOT EXISTS planned_date date");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plans ADD COLUMN IF NOT EXISTS name text DEFAULT 'Piano di cura'::text NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plans ADD COLUMN IF NOT EXISTS created_by_provider_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plans ADD COLUMN IF NOT EXISTS proposed_at timestamptz");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plans ADD COLUMN IF NOT EXISTS accepted_at timestamptz");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plans ADD COLUMN IF NOT EXISTS completed_at timestamptz");
+        jdbc.execute("ALTER TABLE " + schema + ".treatment_plans ADD COLUMN IF NOT EXISTS rejected_at timestamptz");
+        // patient_anamnesis_item_selections: template V23 ha un design diverso (anamnesis_id/anamnesis_item_id/detail_text);
+        // l'app (AnamnesisService) usa clinic_id/patient_id/item_id. Aggiungo le colonne dell'app.
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS clinic_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS patient_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS item_id uuid");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS notes text");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS recorded_at timestamptz DEFAULT now() NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now() NOT NULL");
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS recorded_by_provider_id uuid");
     }
 
     /** Rinomina oldCol→newCol solo se oldCol esiste E newCol non esiste. */
