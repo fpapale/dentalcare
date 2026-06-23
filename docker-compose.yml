@@ -15,7 +15,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        JDK_VERSION: "21"
+        JDK_VERSION: "25"
     image: dentalcarepro-backend:${VERSION:-latest}
     container_name: dentalcarepro-backend
     restart: unless-stopped
