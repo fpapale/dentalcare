@@ -252,6 +252,11 @@ public class DentalCareAiTools {
         } else if (providerName != null && !providerName.isBlank()) {
             newProviderId = resolveProviderByName(providerName);
             if (newProviderId == null) return "Errore: medico '" + providerName + "' non riconosciuto.";
+            // Cambio medico vietato se l'appuntamento è legato a piano di cura/preventivo.
+            if (appointmentService.isBoundToClinicalPlan(apptId)) {
+                return "Non è possibile cambiare medico: l'appuntamento è legato a un piano di cura o "
+                        + "preventivo. Posso spostarlo mantenendo lo stesso medico. Procedo così?";
+            }
             providerNote = ", medico: " + providerName;
         }
 

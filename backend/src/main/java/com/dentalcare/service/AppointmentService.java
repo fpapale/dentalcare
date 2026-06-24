@@ -304,13 +304,21 @@ public class AppointmentService {
     public void reschedule(UUID appointmentId, RescheduleAppointmentRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
-        List<UUID> providers = jdbc.queryForList(
-                "SELECT provider_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
-                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
-                UUID.class);
-        if (providers.isEmpty()) throw new ResourceNotFoundException("Appointment not found: " + appointmentId);
-        // medico effettivo: nuovo se richiesto, altrimenti quello corrente
-        UUID providerId = request.providerId() != null ? request.providerId() : providers.get(0);
+        List<java.util.Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT provider_id, treatment_plan_item_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId));
+        if (rows.isEmpty()) throw new ResourceNotFoundException("Appointment not found: " + appointmentId);
+        UUID currentProvider = (UUID) rows.get(0).get("provider_id");
+        boolean boundToPlan = rows.get(0).get("treatment_plan_item_id") != null;
+
+        // Cambio medico vietato se l'appuntamento è legato a un piano di cura/preventivo.
+        if (request.providerId() != null && !request.providerId().equals(currentProvider) && boundToPlan) {
+            throw new AppointmentConflictException("PROVIDER_LOCKED",
+                    "Non è possibile cambiare medico: l'appuntamento è legato a un piano di cura o preventivo. "
+                    + "Lo spostamento deve mantenere lo stesso medico.");
+        }
+        // medico effettivo: nuovo se richiesto e consentito, altrimenti quello corrente
+        UUID providerId = request.providerId() != null ? request.providerId() : currentProvider;
 
         String chairSql = """
                 SELECT COUNT(*) FROM %s.appointments
@@ -363,6 +371,16 @@ public class AppointmentService {
                         .addValue("endsAt",     request.endsAt())
                         .addValue("chairLabel", request.chairLabel())
                         .addValue("providerId", providerId));
+    }
+
+    /** True se l'appuntamento è legato a un item di piano di cura (quindi a piano/preventivo). */
+    public boolean isBoundToClinicalPlan(UUID appointmentId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<UUID> items = jdbc.queryForList(
+                "SELECT treatment_plan_item_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId AND treatment_plan_item_id IS NOT NULL".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
+                UUID.class);
+        return !items.isEmpty();
     }
 
     /** Poltrona/studio corrente dell'appuntamento, o null se non trovato. */
