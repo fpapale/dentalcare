@@ -214,13 +214,14 @@ public class DentalCareAiTools {
                 + "Per confermare chiama confirmAction con il codice " + code + ".";
     }
 
-    @Tool(description = "Prepare rescheduling (move) of an existing appointment and return a PREVIEW plus a short confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    @Tool(description = "Prepare rescheduling (move) of an existing appointment and return a PREVIEW plus a short confirmation code. Can also reassign it to another provider. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
     public String rescheduleAppointment(
             @ToolParam(description = "Appointment UUID from getAppointments.") String appointmentId,
             @ToolParam(description = "New date in YYYY-MM-DD format.") String date,
             @ToolParam(description = "New start time HH:mm (24h, Europe/Rome).") String time,
             @ToolParam(description = "Duration in minutes (default 30).") Integer durationMinutes,
-            @ToolParam(description = "Chair/room label. Default 'Studio 1'.") String chairLabel) {
+            @ToolParam(description = "Chair/room label. Leave blank to keep the appointment's current chair.") String chairLabel,
+            @ToolParam(description = "Optional: full or partial name of a different provider to reassign the appointment to. Leave blank to keep the current provider.") String providerName) {
 
         UUID apptId;
         try { apptId = UUID.fromString(appointmentId); }
@@ -235,11 +236,28 @@ public class DentalCareAiTools {
         } catch (Exception e) {
             return "Errore: data/ora non valide. Usa data YYYY-MM-DD e ora HH:mm.";
         }
-        String chair = (chairLabel == null || chairLabel.isBlank()) ? "Studio 1" : chairLabel;
+
+        // Poltrona: se non indicata, mantieni quella corrente dell'appuntamento.
+        String chair = (chairLabel != null && !chairLabel.isBlank())
+                ? chairLabel
+                : appointmentService.findChairLabel(apptId);
+        if (chair == null) return "Appuntamento non trovato.";
+
+        // Medico: medical riassegna solo a se stesso; altrimenti per nome (se indicato).
+        UUID newProviderId = null;
+        String providerNote = "";
+        if (isMedical()) {
+            // un medico non riassegna ad altri
+            providerNote = "";
+        } else if (providerName != null && !providerName.isBlank()) {
+            newProviderId = resolveProviderByName(providerName);
+            if (newProviderId == null) return "Errore: medico '" + providerName + "' non riconosciuto.";
+            providerNote = ", medico: " + providerName;
+        }
 
         String summary = "Spostamento appuntamento al " + date + " alle " + time
-                + " (" + dur + " min, " + chair + ")";
-        RescheduleAppointmentRequest req = new RescheduleAppointmentRequest(start, end, chair);
+                + " (" + dur + " min, " + chair + providerNote + ")";
+        RescheduleAppointmentRequest req = new RescheduleAppointmentRequest(start, end, chair, newProviderId);
         String code = pendingActions.register(PendingActionService.Type.RESCHEDULE,
                 currentProviderId(), null, apptId, req, summary);
 

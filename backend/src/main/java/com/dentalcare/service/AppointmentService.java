@@ -309,7 +309,8 @@ public class AppointmentService {
                 new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
                 UUID.class);
         if (providers.isEmpty()) throw new ResourceNotFoundException("Appointment not found: " + appointmentId);
-        UUID providerId = providers.get(0);
+        // medico effettivo: nuovo se richiesto, altrimenti quello corrente
+        UUID providerId = request.providerId() != null ? request.providerId() : providers.get(0);
 
         String chairSql = """
                 SELECT COUNT(*) FROM %s.appointments
@@ -351,7 +352,8 @@ public class AppointmentService {
 
         jdbc.update("""
                 UPDATE %s.appointments
-                SET starts_at = :startsAt, ends_at = :endsAt, chair_label = :chairLabel
+                SET starts_at = :startsAt, ends_at = :endsAt, chair_label = :chairLabel,
+                    provider_id = :providerId
                 WHERE id = :id AND clinic_id = :clinicId
                 """.formatted(s()),
                 new MapSqlParameterSource()
@@ -359,7 +361,18 @@ public class AppointmentService {
                         .addValue("clinicId",   clinicId)
                         .addValue("startsAt",   request.startsAt())
                         .addValue("endsAt",     request.endsAt())
-                        .addValue("chairLabel", request.chairLabel()));
+                        .addValue("chairLabel", request.chairLabel())
+                        .addValue("providerId", providerId));
+    }
+
+    /** Poltrona/studio corrente dell'appuntamento, o null se non trovato. */
+    public String findChairLabel(UUID appointmentId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<String> chairs = jdbc.queryForList(
+                "SELECT chair_label FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
+                String.class);
+        return chairs.isEmpty() ? null : chairs.get(0);
     }
 
     /** Annulla un appuntamento (idempotente). Ritorna true se ha modificato una riga. */
