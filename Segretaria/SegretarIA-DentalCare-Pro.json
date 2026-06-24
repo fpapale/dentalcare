@@ -151,7 +151,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "c2167a66-8fcd-4b4f-be13-eab85078678f",
       "name": "Controlla appuntamenti DentalCare",
@@ -321,7 +322,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "667c0c24-5b39-4bf8-ae5a-96fffa4e3281",
       "name": "Cerca paziente DentalCare",
@@ -366,7 +368,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "d46f4232-9998-4374-840e-5b370b3b83d8",
       "name": "Crea paziente DentalCare",
@@ -398,7 +401,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "0bf08433-4cd1-4739-b348-06fc25a91823",
       "name": "Lista medici DentalCare",
@@ -421,7 +425,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "04361154-bf8b-44d9-8424-91e03651c341",
       "name": "Lista poltrone DentalCare",
@@ -474,7 +479,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "3004ffa3-8ec7-499e-8f23-da60937b3cd7",
       "name": "Prenota appuntamento DentalCare",
@@ -672,7 +678,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "9ab95297-aed1-465b-845f-c993e0a5e039",
       "name": "Cerca appuntamento da spostare",
@@ -713,7 +720,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "8c9ec6bc-79d7-41bb-8475-f2d3a3b9ad25",
       "name": "Sposta appuntamento DentalCare",
@@ -911,7 +919,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "cea8c56b-3608-45c6-9451-08d1589896cf",
       "name": "Cerca appuntamento da cancellare",
@@ -935,7 +944,8 @@
             }
           ]
         },
-        "options": {}
+        "options": {},
+        "descriptionType": "auto"
       },
       "id": "534d77e0-7c56-47f2-81d0-a3c4d7c74f0a",
       "name": "Cancella appuntamento DentalCare",
