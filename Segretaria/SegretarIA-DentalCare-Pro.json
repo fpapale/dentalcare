@@ -110,7 +110,7 @@
     },
     {
       "parameters": {
-        "toolDescription": "Recupera gli appuntamenti del gestionale DentalCare in una finestra temporale. Parametri: from = inizio intervallo ISO 8601, to = fine intervallo ISO 8601.",
+        "toolDescription": "Recupera gli appuntamenti del gestionale DentalCare in una finestra temporale. Parametri: from = data inizio formato yyyy-MM-dd (es. 2026-06-25), to = data fine formato yyyy-MM-dd. Solo data, MAI datetime con orario.",
         "url": "={{ $('Service Key').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "specifyQuery": "keypair",
@@ -539,7 +539,7 @@
     },
     {
       "parameters": {
-        "toolDescription": "Recupera gli appuntamenti del gestionale DentalCare in una finestra temporale. Parametri: from = inizio intervallo ISO 8601, to = fine intervallo ISO 8601.",
+        "toolDescription": "Recupera gli appuntamenti del gestionale DentalCare in una finestra temporale per trovare l'appuntamento da spostare. Parametri: from = data inizio formato yyyy-MM-dd (es. 2026-06-25), to = data fine formato yyyy-MM-dd. Solo data, MAI datetime con orario.",
         "url": "={{ $('Service Key 2').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "specifyQuery": "keypair",
@@ -746,7 +746,7 @@
     },
     {
       "parameters": {
-        "toolDescription": "Recupera gli appuntamenti del gestionale DentalCare in una finestra temporale. Parametri: from = inizio intervallo ISO 8601, to = fine intervallo ISO 8601.",
+        "toolDescription": "Recupera gli appuntamenti del gestionale DentalCare in una finestra temporale per trovare l'appuntamento da cancellare. Parametri: from = data inizio formato yyyy-MM-dd (es. 2026-06-25), to = data fine formato yyyy-MM-dd. Solo data, MAI datetime con orario.",
         "url": "={{ $('Service Key 3').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "specifyQuery": "keypair",
