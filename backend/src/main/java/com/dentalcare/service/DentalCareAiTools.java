@@ -20,6 +20,8 @@ import java.util.UUID;
 @Component
 public class DentalCareAiTools {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DentalCareAiTools.class);
+
     private final AppointmentService appointmentService;
     private final PatientService patientService;
     private final EstimateService estimateService;
@@ -223,9 +225,14 @@ public class DentalCareAiTools {
             @ToolParam(description = "Chair/room label. Leave blank to keep the appointment's current chair.") String chairLabel,
             @ToolParam(description = "Optional: full or partial name of a different provider to reassign the appointment to. Leave blank to keep the current provider.") String providerName) {
 
+        log.info("rescheduleAppointment in: id='{}' date='{}' time='{}' dur={} chair='{}' provider='{}'",
+                appointmentId, date, time, durationMinutes, chairLabel, providerName);
         UUID apptId;
         try { apptId = UUID.fromString(appointmentId); }
-        catch (Exception e) { return "Errore: id appuntamento non valido."; }
+        catch (Exception e) {
+            log.warn("rescheduleAppointment: id non parsabile '{}'", appointmentId);
+            return "Errore: id appuntamento non valido.";
+        }
 
         int dur = (durationMinutes != null && durationMinutes > 0) ? durationMinutes : 30;
         OffsetDateTime start, end;
@@ -265,6 +272,8 @@ public class DentalCareAiTools {
         RescheduleAppointmentRequest req = new RescheduleAppointmentRequest(start, end, chair, newProviderId);
         String code = pendingActions.register(PendingActionService.Type.RESCHEDULE,
                 currentProviderId(), null, apptId, req, summary);
+        log.info("rescheduleAppointment preview ok: apptId={} chair='{}' newProvider={} code={}",
+                apptId, chair, newProviderId, code);
 
         return "ANTEPRIMA — nessuna modifica salvata.\n"
                 + summary + "\n"
@@ -305,8 +314,11 @@ public class DentalCareAiTools {
 
     private String executeOne(String code) {
         PendingActionService.Pending p = pendingActions.consume(code);
+        log.info("confirmAction executeOne: code={} found={}", code, p != null);
         if (p == null) return "Codice " + code + ": non valido o scaduto.";
         if (!java.util.Objects.equals(p.providerScope(), currentProviderId())) {
+            log.warn("confirmAction: scope mismatch code={} scope={} caller={}",
+                    code, p.providerScope(), currentProviderId());
             return "Codice " + code + ": non valido per questo utente.";
         }
         try {
@@ -316,6 +328,7 @@ public class DentalCareAiTools {
                     return "Appuntamento creato (id " + id + "). " + p.summary();
                 }
                 case RESCHEDULE -> {
+                    log.info("confirmAction RESCHEDULE: apptId={} req={}", p.appointmentId(), p.reschedule());
                     appointmentService.reschedule(p.appointmentId(), p.reschedule());
                     return "Fatto. " + p.summary();
                 }
@@ -326,10 +339,13 @@ public class DentalCareAiTools {
                 default -> { return "Azione non riconosciuta."; }
             }
         } catch (ResourceNotFoundException nf) {
+            log.warn("confirmAction RESCHEDULE not found: {}", nf.getMessage());
             return "Appuntamento non trovato.";
         } catch (AppointmentConflictException ce) {
+            log.warn("confirmAction conflict: {}", ce.getMessage());
             return "Operazione non possibile: " + ce.getMessage();
         } catch (Exception e) {
+            log.error("confirmAction error", e);
             return "Errore nell'esecuzione: " + e.getMessage();
         }
     }
