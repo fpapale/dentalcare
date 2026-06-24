@@ -496,7 +496,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=## Ruolo\n\nSei un agente AI per la modifica appuntamenti dello Studio Dentistico DentalCare.\n\n**Data e ora attuali:** {{ $now }}\n**Paziente:** {{ $('Webhook2').item.json.body.args.name }}\n**Email:** {{ $('Webhook2').item.json.body.args.email }}\n**Telefono:** {{ $('Webhook2').item.json.body.args.phone }}\n**Appuntamento attuale:** {{ $('Webhook2').item.json.body.args.current_time }}\n**Nuovo orario:** {{ $('Webhook2').item.json.body.args.new_time }}\n\n## Processo\n1. Cerca appuntamento con finestra ±2h intorno a current_time.\n2. Filtra per paziente e orario. Match unico e certo.\n3. Prendi appointmentId e chairLabel originale.\n4. Sposta: startsAt=new_time, endsAt=new_time+1h, chairLabel originale.\n5. Se ok, invia conferma Gmail.\n\nSe ambiguita': non spostare, chiedi verifica manuale. Rispondi in italiano.",
+        "text": "=## Ruolo\n\nSei un agente AI per la modifica appuntamenti dello Studio Dentistico DentalCare.\n\n**Data e ora attuali:** {{ $now }}\n**Paziente:** {{ $('Webhook2').item.json.body.args.name }}\n**Email:** {{ $('Webhook2').item.json.body.args.email }}\n**Telefono:** {{ $('Webhook2').item.json.body.args.phone }}\n**Appuntamento attuale:** {{ $('Webhook2').item.json.body.args.current_time }}\n**Nuovo orario:** {{ $('Webhook2').item.json.body.args.new_time }}\n\n## Processo\n1. Cerca appuntamento: from = data di current_time in yyyy-MM-dd, to = stessa data.\n2. Filtra per paziente (patientFullName) e orario (startsAt ~= current_time). Match unico e certo.\n3. Estrai dal risultato: campo 'appointmentId' (UUID) e campo 'chairLabel' (stringa poltrona).\n4. Calcola startsAt = new_time in formato ISO 8601 con timezone es. 2026-06-25T15:00:00+02:00. Calcola endsAt = startsAt + 1 ora.\n5. Chiama Sposta con: appointment_id=appointmentId trovato, startsAt, endsAt, chairLabel originale.\n6. Se ok, invia conferma Gmail.\n\nSe ambiguita' o match non trovato: non spostare, rispondi con errore chiaro. Rispondi in italiano.",
         "options": {}
       },
       "id": "2ddd5490-e869-4f28-9785-b6ce7b63dddb",
@@ -528,7 +528,7 @@
     },
     {
       "parameters": {
-        "toolDescription": "Recupera gli appuntamenti del gestionale DentalCare in una finestra temporale per trovare l'appuntamento da spostare. Parametri: from = data inizio formato yyyy-MM-dd (es. 2026-06-25), to = data fine formato yyyy-MM-dd. Solo data, MAI datetime con orario.",
+        "toolDescription": "Recupera gli appuntamenti del gestionale DentalCare in una finestra temporale. Parametri: from = data inizio yyyy-MM-dd, to = data fine yyyy-MM-dd (solo data, MAI orario). La risposta contiene oggetti con i campi: appointmentId (UUID da usare come appointment_id per spostare), startsAt (OffsetDateTime attuale), endsAt, chairLabel (poltrona da mantenere), patientFullName, providerName.",
         "url": "={{ $('Service Key 2').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "parametersQuery": {
@@ -556,7 +556,7 @@
     },
     {
       "parameters": {
-        "toolDescription": "Sposta un appuntamento nel gestionale DentalCare. Usa {appointment_id} nell'URL. Campi body: startsAt (ISO 8601), endsAt (ISO 8601), chairLabel (poltrona originale).",
+        "toolDescription": "Sposta un appuntamento nel gestionale DentalCare. Sostituisci {appointment_id} con il valore del campo 'appointmentId' trovato nella ricerca. Campi body obbligatori: startsAt = nuovo orario inizio in formato ISO 8601 con timezone (es. 2026-06-25T15:00:00+02:00), endsAt = startsAt + 1 ora stesso formato, chairLabel = valore esatto del campo 'chairLabel' trovato nella ricerca. Devi sempre fornire tutti e 4 i valori.",
         "method": "PATCH",
         "url": "={{ $('Service Key 2').first().json.serverUrl }}/api/appointments/{appointment_id}/reschedule",
         "sendHeaders": true,
