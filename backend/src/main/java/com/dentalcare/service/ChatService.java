@@ -10,7 +10,6 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -75,22 +74,6 @@ public class ChatService {
                 .content();
 
         return new ChatResponse(response != null ? response : "", null);
-    }
-
-    /**
-     * Variante streaming: emette i token man mano. {@code contextCapture()} cattura i ThreadLocal
-     * (tenant + security) al momento della sottoscrizione, così i tool eseguiti su thread reactor
-     * mantengono l'isolamento per tenant (vedi ContextPropagationConfig).
-     */
-    public Flux<String> stream(ChatRequest request) {
-        return chatClient.prompt()
-                .options(OpenAiChatOptions.builder().model(model).build())
-                .system(buildSystemPrompt())
-                .messages(buildHistory(request.history()))
-                .user(request.message())
-                .tools(tools)
-                .stream()
-                .content();
     }
 
     private String buildSystemPrompt() {

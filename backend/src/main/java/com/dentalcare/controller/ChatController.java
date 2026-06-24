@@ -4,18 +4,22 @@ import com.dentalcare.dto.ChatMessageDto;
 import com.dentalcare.dto.ChatRequest;
 import com.dentalcare.dto.ChatResponse;
 import com.dentalcare.dto.ChatSessionDto;
+import com.dentalcare.security.TenantContext;
 import com.dentalcare.service.ChatHistoryService;
 import com.dentalcare.service.ChatService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -23,6 +27,7 @@ public class ChatController {
 
     private final ChatService chatService;
     private final ChatHistoryService chatHistoryService;
+    private final ExecutorService streamExecutor = Executors.newFixedThreadPool(8);
 
     public ChatController(ChatService chatService, ChatHistoryService chatHistoryService) {
         this.chatService = chatService;
@@ -42,31 +47,60 @@ public class ChatController {
         return new ChatResponse(aiResponse.text(), sessionId);
     }
 
+    /**
+     * Streaming via SseEmitter. La generazione (con tool) gira in modo bloccante su un worker
+     * dove copiamo tenant + security context: niente thread-hop reattivi, quindi nessun problema
+     * di isolamento o di "response already committed" col security filter. Il testo completo viene
+     * inviato a blocchi per dare un rendering progressivo lato client.
+     */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> stream(@Valid @RequestBody ChatRequest request) {
+    public SseEmitter stream(@Valid @RequestBody ChatRequest request) {
         UUID sessionId = request.sessionId() != null
             ? request.sessionId()
             : chatHistoryService.createSession(request.message());
-
         chatHistoryService.appendMessage(sessionId, "user", request.message());
 
-        StringBuilder acc = new StringBuilder();
+        // Cattura il contesto del thread di richiesta per ripristinarlo sul worker.
+        String schema = TenantContext.getCurrentSchema();
+        String clinicId = TenantContext.getCurrentClinicId();
+        SecurityContext security = SecurityContextHolder.getContext();
 
-        Flux<ServerSentEvent<String>> meta = Flux.just(
-            ServerSentEvent.<String>builder().event("meta").data(sessionId.toString()).build());
+        SseEmitter emitter = new SseEmitter(120_000L);
+        streamExecutor.execute(() -> {
+            try {
+                TenantContext.setCurrentSchema(schema);
+                TenantContext.setCurrentClinicId(clinicId);
+                SecurityContextHolder.setContext(security);
 
-        Flux<ServerSentEvent<String>> tokens = chatService.stream(request)
-            .doOnNext(acc::append)
-            .map(tok -> ServerSentEvent.<String>builder().event("token").data(tok).build());
+                emitter.send(SseEmitter.event().name("meta").data(sessionId.toString()));
 
-        Flux<ServerSentEvent<String>> done = Flux.defer(() -> {
-            chatHistoryService.appendMessage(sessionId, "assistant", acc.toString());
-            return Flux.just(ServerSentEvent.<String>builder().event("done").data("").build());
+                ChatResponse aiResponse = chatService.chat(request);
+                String text = aiResponse.text() != null ? aiResponse.text() : "";
+                chatHistoryService.appendMessage(sessionId, "assistant", text);
+
+                for (int i = 0; i < text.length(); i += 24) {
+                    emitter.send(SseEmitter.event().name("token")
+                            .data(text.substring(i, Math.min(i + 24, text.length()))));
+                }
+                emitter.send(SseEmitter.event().name("done").data(""));
+                emitter.complete();
+            } catch (IOException io) {
+                emitter.completeWithError(io);
+            } catch (Exception e) {
+                try {
+                    emitter.send(SseEmitter.event().name("token")
+                            .data("Si è verificato un errore. Riprova più tardi."));
+                    emitter.send(SseEmitter.event().name("done").data(""));
+                    emitter.complete();
+                } catch (IOException ignored) {
+                    emitter.completeWithError(e);
+                }
+            } finally {
+                TenantContext.clear();
+                SecurityContextHolder.clearContext();
+            }
         });
-
-        // contextCapture: i ThreadLocal (tenant + security) presenti sul thread di richiesta
-        // vengono propagati ai thread reactor che eseguono i tool e la persistenza finale.
-        return Flux.concat(meta, tokens, done).contextCapture();
+        return emitter;
     }
 
     @GetMapping("/sessions")
