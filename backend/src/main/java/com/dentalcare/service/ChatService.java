@@ -44,6 +44,8 @@ public class ChatService {
                restituisce un'ANTEPRIMA e un CODICE di conferma, senza salvare nulla;
             2. mostra l'anteprima all'utente e chiedi conferma esplicita;
             3. SOLO dopo conferma, chiama confirmAction con quel codice per eseguire.
+            Tratta come conferma qualsiasi assenso dell'utente: "sì", "ok", "confermo", "va bene",
+            "procedi", "conferma", "certo", ecc. Tratta come annullamento "no", "annulla", "lascia stare".
             Non chiedere mai il codice all'utente: usalo internamente. Non eseguire azioni senza conferma.
             """;
 
