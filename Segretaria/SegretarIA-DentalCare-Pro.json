@@ -12,7 +12,10 @@
       "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [0, 176]
+      "position": [
+        0,
+        176
+      ]
     },
     {
       "parameters": {
@@ -23,7 +26,10 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [112, 304],
+      "position": [
+        112,
+        304
+      ],
       "id": "c01a3353-3e88-4af1-ad7e-a267569e0fd5",
       "name": "Webhook",
       "webhookId": "025d2642-7174-4d34-8ea6-a1c740c60faf"
@@ -32,8 +38,18 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "9274ce2c-2b03-4471-a7d7-7e2eb33312bb", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" },
-            { "id": "8f4d01eb-8f96-4904-ae5c-3a451dbfc330", "name": "serverUrl", "value": "192.168.100.111:8080", "type": "string" }
+            {
+              "id": "9274ce2c-2b03-4471-a7d7-7e2eb33312bb",
+              "name": "serviceKey",
+              "value": "<SERVICE_KEY>",
+              "type": "string"
+            },
+            {
+              "id": "8f4d01eb-8f96-4904-ae5c-3a451dbfc330",
+              "name": "serverUrl",
+              "value": "https://papalef.duckdns.org:8181",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -42,16 +58,22 @@
       "name": "Service Key",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [288, 304]
+      "position": [
+        288,
+        304
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://{{ $('Service Key').first().json.serverUrl }}/api/public/service-token",
+        "url": "={{ $('Service Key').first().json.serverUrl }}/api/public/service-token",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-N8N-Key", "value": "={{ $('Service Key').first().json.serviceKey }}" }
+            {
+              "name": "X-N8N-Key",
+              "value": "={{ $('Service Key').first().json.serviceKey }}"
+            }
           ]
         },
         "options": {}
@@ -60,7 +82,10 @@
       "name": "Login DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [464, 304]
+      "position": [
+        464,
+        304
+      ]
     },
     {
       "parameters": {
@@ -72,34 +97,58 @@
       "name": "AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [752, 304]
+      "position": [
+        752,
+        304
+      ]
     },
     {
       "parameters": {
-        "model": { "__rl": true, "mode": "list", "value": "gpt-4.1-mini" },
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [592, 576],
+      "position": [
+        592,
+        576
+      ],
       "id": "29019675-d82b-4aca-8842-ae14b436a316",
       "name": "OpenAI Chat Model",
-      "credentials": { "openAiApi": { "id": "PFFN15WYjjdTA4aM", "name": "OpenAi account" } }
+      "credentials": {
+        "openAiApi": {
+          "id": "PFFN15WYjjdTA4aM",
+          "name": "OpenAi account"
+        }
+      }
     },
     {
       "parameters": {
-        "url": "=http://{{ $('Service Key').first().json.serverUrl }}/api/appointments",
+        "url": "={{ $('Service Key').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "from", "value": "={{ $fromAI('Start_Time', 'Inizio intervallo ISO 8601 con fuso orario', 'string') }}" },
-            { "name": "to", "value": "={{ $fromAI('End_Time',   'Fine intervallo ISO 8601 con fuso orario',   'string') }}" }
+            {
+              "name": "from",
+              "value": "={{ $fromAI('Start_Time', 'Inizio intervallo ISO 8601 con fuso orario', 'string') }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $fromAI('End_Time',   'Fine intervallo ISO 8601 con fuso orario',   'string') }}"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare').first().json.token }}"
+            }
           ]
         },
         "options": {}
@@ -108,13 +157,21 @@
       "name": "Controlla appuntamenti DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1024, 512]
+      "position": [
+        1024,
+        512
+      ]
     },
     {
-      "parameters": { "options": {} },
+      "parameters": {
+        "options": {}
+      },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [1104, 304],
+      "position": [
+        1104,
+        304
+      ],
       "id": "49325a1d-698f-4097-a5ff-ab8eb395f24d",
       "name": "Respond to Webhook"
     },
@@ -129,7 +186,10 @@
       "name": "Sticky Note1",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [0, 864]
+      "position": [
+        0,
+        864
+      ]
     },
     {
       "parameters": {
@@ -140,7 +200,10 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [112, 1008],
+      "position": [
+        112,
+        1008
+      ],
       "id": "0219b45a-4f86-45ea-aeac-c7566ced5590",
       "name": "Webhook1",
       "webhookId": "c5fe63ef-9396-4514-8dc2-e28811b8725a"
@@ -149,8 +212,18 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "9a570376-fb29-407c-ac0e-d7a0941d4a31", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" },
-            { "id": "ea6b8b43-8668-44a5-9a1d-f2f79abd4117", "name": "serverUrl", "value": "192.168.100.111:8080", "type": "string" }
+            {
+              "id": "9a570376-fb29-407c-ac0e-d7a0941d4a31",
+              "name": "serviceKey",
+              "value": "<SERVICE_KEY>",
+              "type": "string"
+            },
+            {
+              "id": "ea6b8b43-8668-44a5-9a1d-f2f79abd4117",
+              "name": "serverUrl",
+              "value": "https://papalef.duckdns.org:8181",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -159,16 +232,22 @@
       "name": "Service Key 1",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [288, 1008]
+      "position": [
+        288,
+        1008
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/public/service-token",
+        "url": "={{ $('Service Key 1').first().json.serverUrl }}/api/public/service-token",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-N8N-Key", "value": "={{ $('Service Key 1').first().json.serviceKey }}" }
+            {
+              "name": "X-N8N-Key",
+              "value": "={{ $('Service Key 1').first().json.serviceKey }}"
+            }
           ]
         },
         "options": {}
@@ -177,7 +256,10 @@
       "name": "Login DentalCare 1",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [464, 1008]
+      "position": [
+        464,
+        1008
+      ]
     },
     {
       "parameters": {
@@ -189,33 +271,54 @@
       "name": "AI Agent1",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [752, 1008]
+      "position": [
+        752,
+        1008
+      ]
     },
     {
       "parameters": {
-        "model": { "__rl": true, "mode": "list", "value": "gpt-4.1-mini" },
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [352, 1440],
+      "position": [
+        352,
+        1440
+      ],
       "id": "2d77cc14-cb18-426a-bdea-39f6d8af1d3e",
       "name": "OpenAI Chat Model1",
-      "credentials": { "openAiApi": { "id": "PFFN15WYjjdTA4aM", "name": "OpenAi account" } }
+      "credentials": {
+        "openAiApi": {
+          "id": "PFFN15WYjjdTA4aM",
+          "name": "OpenAi account"
+        }
+      }
     },
     {
       "parameters": {
-        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/patients",
+        "url": "={{ $('Service Key 1').first().json.serverUrl }}/api/patients",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "search", "value": "={{ $fromAI('patient_search', 'Telefono o email del paziente da cercare', 'string') }}" }
+            {
+              "name": "search",
+              "value": "={{ $fromAI('patient_search', 'Telefono o email del paziente da cercare', 'string') }}"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}"
+            }
           ]
         },
         "options": {}
@@ -224,25 +327,43 @@
       "name": "Cerca paziente DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [592, 1408]
+      "position": [
+        592,
+        1408
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/patients",
+        "url": "={{ $('Service Key 1').first().json.serverUrl }}/api/patients",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}"
+            }
           ]
         },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "firstName", "value": "={{ $fromAI('firstName', 'Nome del paziente', 'string') }}" },
-            { "name": "lastName", "value": "={{ $fromAI('lastName',  'Cognome del paziente', 'string') }}" },
-            { "name": "phone", "value": "={{ $fromAI('phone',     'Numero di telefono', 'string') }}" },
-            { "name": "email", "value": "={{ $fromAI('email',     'Indirizzo email', 'string') }}" }
+            {
+              "name": "firstName",
+              "value": "={{ $fromAI('firstName', 'Nome del paziente', 'string') }}"
+            },
+            {
+              "name": "lastName",
+              "value": "={{ $fromAI('lastName',  'Cognome del paziente', 'string') }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $fromAI('phone',     'Numero di telefono', 'string') }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $fromAI('email',     'Indirizzo email', 'string') }}"
+            }
           ]
         },
         "options": {}
@@ -251,19 +372,30 @@
       "name": "Crea paziente DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [816, 1408]
+      "position": [
+        816,
+        1408
+      ]
     },
     {
       "parameters": {
-        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/providers",
+        "url": "={{ $('Service Key 1').first().json.serverUrl }}/api/providers",
         "sendQuery": true,
         "queryParameters": {
-          "parameters": [ { "name": "activeOnly", "value": "true" } ]
+          "parameters": [
+            {
+              "name": "activeOnly",
+              "value": "true"
+            }
+          ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}"
+            }
           ]
         },
         "options": {}
@@ -272,15 +404,21 @@
       "name": "Lista medici DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1040, 1408]
+      "position": [
+        1040,
+        1408
+      ]
     },
     {
       "parameters": {
-        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/appointments/chairs",
+        "url": "={{ $('Service Key 1').first().json.serverUrl }}/api/appointments/chairs",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}"
+            }
           ]
         },
         "options": {}
@@ -289,27 +427,51 @@
       "name": "Lista poltrone DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1264, 1408]
+      "position": [
+        1264,
+        1408
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/appointments",
+        "url": "={{ $('Service Key 1').first().json.serverUrl }}/api/appointments",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 1').first().json.token }}"
+            }
           ]
         },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "patientId", "value": "={{ $fromAI('patientId',  'UUID del paziente',              'string') }}" },
-            { "name": "providerId", "value": "={{ $fromAI('providerId', 'UUID del medico',                'string') }}" },
-            { "name": "chairLabel", "value": "={{ $fromAI('chairLabel', 'Etichetta poltrona o sala',       'string') }}" },
-            { "name": "startsAt", "value": "={{ $fromAI('startsAt',   'Orario inizio ISO 8601',          'string') }}" },
-            { "name": "endsAt", "value": "={{ $fromAI('endsAt',     'Orario fine ISO 8601',            'string') }}" },
-            { "name": "notes", "value": "={{ $fromAI('notes',      'Note o tipo di servizio',         'string') }}" }
+            {
+              "name": "patientId",
+              "value": "={{ $fromAI('patientId',  'UUID del paziente',              'string') }}"
+            },
+            {
+              "name": "providerId",
+              "value": "={{ $fromAI('providerId', 'UUID del medico',                'string') }}"
+            },
+            {
+              "name": "chairLabel",
+              "value": "={{ $fromAI('chairLabel', 'Etichetta poltrona o sala',       'string') }}"
+            },
+            {
+              "name": "startsAt",
+              "value": "={{ $fromAI('startsAt',   'Orario inizio ISO 8601',          'string') }}"
+            },
+            {
+              "name": "endsAt",
+              "value": "={{ $fromAI('endsAt',     'Orario fine ISO 8601',            'string') }}"
+            },
+            {
+              "name": "notes",
+              "value": "={{ $fromAI('notes',      'Note o tipo di servizio',         'string') }}"
+            }
           ]
         },
         "options": {}
@@ -318,7 +480,10 @@
       "name": "Prenota appuntamento DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1488, 1408]
+      "position": [
+        1488,
+        1408
+      ]
     },
     {
       "parameters": {
@@ -330,17 +495,30 @@
       },
       "type": "n8n-nodes-base.gmailTool",
       "typeVersion": 2.1,
-      "position": [1120, 1168],
+      "position": [
+        1120,
+        1168
+      ],
       "id": "f4a90fc2-6eba-4e86-aeb7-05b47818d39a",
       "name": "Send a message in Gmail",
       "webhookId": "77008693-0e80-4af0-967f-e1941a18a41a",
-      "credentials": { "gmailOAuth2": { "id": "osgkvG7Vg8X6zvTp", "name": "Gmail account" } }
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "osgkvG7Vg8X6zvTp",
+          "name": "Gmail account"
+        }
+      }
     },
     {
-      "parameters": { "options": {} },
+      "parameters": {
+        "options": {}
+      },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [1408, 1008],
+      "position": [
+        1408,
+        1008
+      ],
       "id": "19b1f706-d060-45d3-9e58-319d2f2797ac",
       "name": "Respond to Webhook1"
     },
@@ -355,7 +533,10 @@
       "name": "Sticky Note2",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [0, 1728]
+      "position": [
+        0,
+        1728
+      ]
     },
     {
       "parameters": {
@@ -366,7 +547,10 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [112, 1808],
+      "position": [
+        112,
+        1808
+      ],
       "id": "ba9d388a-5154-4823-8c13-bcb2b9b4a1e6",
       "name": "Webhook2",
       "webhookId": "68afe57d-a588-4409-9849-b89d87f76f6b"
@@ -375,8 +559,18 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "977ff9fa-5427-4556-8984-0093a2fe913d", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" },
-            { "id": "0e4db52b-d8f7-4d21-911d-56ca5f70269d", "name": "serverUrl", "value": "192.168.100.111:8080", "type": "string" }
+            {
+              "id": "977ff9fa-5427-4556-8984-0093a2fe913d",
+              "name": "serviceKey",
+              "value": "<SERVICE_KEY>",
+              "type": "string"
+            },
+            {
+              "id": "0e4db52b-d8f7-4d21-911d-56ca5f70269d",
+              "name": "serverUrl",
+              "value": "https://papalef.duckdns.org:8181",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -385,16 +579,22 @@
       "name": "Service Key 2",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [288, 1808]
+      "position": [
+        288,
+        1808
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://{{ $('Service Key 2').first().json.serverUrl }}/api/public/service-token",
+        "url": "={{ $('Service Key 2').first().json.serverUrl }}/api/public/service-token",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-N8N-Key", "value": "={{ $('Service Key 2').first().json.serviceKey }}" }
+            {
+              "name": "X-N8N-Key",
+              "value": "={{ $('Service Key 2').first().json.serviceKey }}"
+            }
           ]
         },
         "options": {}
@@ -403,7 +603,10 @@
       "name": "Login DentalCare 2",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [464, 1808]
+      "position": [
+        464,
+        1808
+      ]
     },
     {
       "parameters": {
@@ -415,34 +618,58 @@
       "name": "AI Agent2",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [752, 1808]
+      "position": [
+        752,
+        1808
+      ]
     },
     {
       "parameters": {
-        "model": { "__rl": true, "mode": "list", "value": "gpt-4.1-mini" },
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [560, 2096],
+      "position": [
+        560,
+        2096
+      ],
       "id": "3eb90a5c-8cc3-429c-a1a0-274813844066",
       "name": "OpenAI Chat Model2",
-      "credentials": { "openAiApi": { "id": "PFFN15WYjjdTA4aM", "name": "OpenAi account" } }
+      "credentials": {
+        "openAiApi": {
+          "id": "PFFN15WYjjdTA4aM",
+          "name": "OpenAi account"
+        }
+      }
     },
     {
       "parameters": {
-        "url": "=http://{{ $('Service Key 2').first().json.serverUrl }}/api/appointments",
+        "url": "={{ $('Service Key 2').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "from", "value": "={{ $fromAI('Search_After',  'Inizio finestra di ricerca ISO 8601', 'string') }}" },
-            { "name": "to", "value": "={{ $fromAI('Search_Before', 'Fine finestra di ricerca ISO 8601',   'string') }}" }
+            {
+              "name": "from",
+              "value": "={{ $fromAI('Search_After',  'Inizio finestra di ricerca ISO 8601', 'string') }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $fromAI('Search_Before', 'Fine finestra di ricerca ISO 8601',   'string') }}"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 2').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 2').first().json.token }}"
+            }
           ]
         },
         "options": {}
@@ -451,24 +678,39 @@
       "name": "Cerca appuntamento da spostare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [976, 2080]
+      "position": [
+        976,
+        2080
+      ]
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=http://{{ $('Service Key 2').first().json.serverUrl }}/api/appointments/{{ $fromAI('Appointment_ID', 'UUID appuntamento da spostare', 'string') }}/reschedule",
+        "url": "={{ $('Service Key 2').first().json.serverUrl }}/api/appointments/{{ $fromAI('Appointment_ID', 'UUID appuntamento da spostare', 'string') }}/reschedule",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 2').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 2').first().json.token }}"
+            }
           ]
         },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "startsAt", "value": "={{ $fromAI('New_Start',   'Nuovo orario inizio ISO 8601',   'string') }}" },
-            { "name": "endsAt", "value": "={{ $fromAI('New_End',     'Nuovo orario fine ISO 8601',     'string') }}" },
-            { "name": "chairLabel", "value": "={{ $fromAI('Chair_Label', 'Etichetta poltrona originale',   'string') }}" }
+            {
+              "name": "startsAt",
+              "value": "={{ $fromAI('New_Start',   'Nuovo orario inizio ISO 8601',   'string') }}"
+            },
+            {
+              "name": "endsAt",
+              "value": "={{ $fromAI('New_End',     'Nuovo orario fine ISO 8601',     'string') }}"
+            },
+            {
+              "name": "chairLabel",
+              "value": "={{ $fromAI('Chair_Label', 'Etichetta poltrona originale',   'string') }}"
+            }
           ]
         },
         "options": {}
@@ -477,7 +719,10 @@
       "name": "Sposta appuntamento DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1184, 2080]
+      "position": [
+        1184,
+        2080
+      ]
     },
     {
       "parameters": {
@@ -489,17 +734,30 @@
       },
       "type": "n8n-nodes-base.gmailTool",
       "typeVersion": 2.1,
-      "position": [768, 2096],
+      "position": [
+        768,
+        2096
+      ],
       "id": "5a0301f8-c6fc-4f8f-9fd7-2185d0787faa",
       "name": "Send an updated confirmation in Gmail",
       "webhookId": "808126c3-0386-4065-9f93-d046a2307268",
-      "credentials": { "gmailOAuth2": { "id": "osgkvG7Vg8X6zvTp", "name": "Gmail account" } }
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "osgkvG7Vg8X6zvTp",
+          "name": "Gmail account"
+        }
+      }
     },
     {
-      "parameters": { "options": {} },
+      "parameters": {
+        "options": {}
+      },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [1408, 1808],
+      "position": [
+        1408,
+        1808
+      ],
       "id": "462b848c-c294-4be0-bc51-f731cfff5ec9",
       "name": "Respond to Webhook2"
     },
@@ -514,7 +772,10 @@
       "name": "Sticky Note3",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [0, 2512]
+      "position": [
+        0,
+        2512
+      ]
     },
     {
       "parameters": {
@@ -525,7 +786,10 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [112, 2608],
+      "position": [
+        112,
+        2608
+      ],
       "id": "beeb7f60-e1fe-4068-b3a0-13b3b889e943",
       "name": "Webhook3",
       "webhookId": "677109b2-69b8-4407-ae63-e6b3376a79aa"
@@ -534,8 +798,18 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "106bb13d-fc3b-450d-8ef4-6c4b6d8ee63e", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" },
-            { "id": "720f8c75-4c9f-4b4d-bd95-7629a2bebded", "name": "serverUrl", "value": "192.168.100.111:8080", "type": "string" }
+            {
+              "id": "106bb13d-fc3b-450d-8ef4-6c4b6d8ee63e",
+              "name": "serviceKey",
+              "value": "<SERVICE_KEY>",
+              "type": "string"
+            },
+            {
+              "id": "720f8c75-4c9f-4b4d-bd95-7629a2bebded",
+              "name": "serverUrl",
+              "value": "https://papalef.duckdns.org:8181",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -544,16 +818,22 @@
       "name": "Service Key 3",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [288, 2608]
+      "position": [
+        288,
+        2608
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://{{ $('Service Key 3').first().json.serverUrl }}/api/public/service-token",
+        "url": "={{ $('Service Key 3').first().json.serverUrl }}/api/public/service-token",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-N8N-Key", "value": "={{ $('Service Key 3').first().json.serviceKey }}" }
+            {
+              "name": "X-N8N-Key",
+              "value": "={{ $('Service Key 3').first().json.serviceKey }}"
+            }
           ]
         },
         "options": {}
@@ -562,7 +842,10 @@
       "name": "Login DentalCare 3",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [464, 2608]
+      "position": [
+        464,
+        2608
+      ]
     },
     {
       "parameters": {
@@ -574,34 +857,58 @@
       "name": "AI Agent3",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [752, 2608]
+      "position": [
+        752,
+        2608
+      ]
     },
     {
       "parameters": {
-        "model": { "__rl": true, "mode": "list", "value": "gpt-4.1-mini" },
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [512, 2928],
+      "position": [
+        512,
+        2928
+      ],
       "id": "72a93449-b7b2-4e8f-9243-5728809dda65",
       "name": "OpenAI Chat Model3",
-      "credentials": { "openAiApi": { "id": "PFFN15WYjjdTA4aM", "name": "OpenAi account" } }
+      "credentials": {
+        "openAiApi": {
+          "id": "PFFN15WYjjdTA4aM",
+          "name": "OpenAi account"
+        }
+      }
     },
     {
       "parameters": {
-        "url": "=http://{{ $('Service Key 3').first().json.serverUrl }}/api/appointments",
+        "url": "={{ $('Service Key 3').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "from", "value": "={{ $fromAI('Search_After',  'Inizio finestra di ricerca ISO 8601', 'string') }}" },
-            { "name": "to", "value": "={{ $fromAI('Search_Before', 'Fine finestra di ricerca ISO 8601',   'string') }}" }
+            {
+              "name": "from",
+              "value": "={{ $fromAI('Search_After',  'Inizio finestra di ricerca ISO 8601', 'string') }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $fromAI('Search_Before', 'Fine finestra di ricerca ISO 8601',   'string') }}"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 3').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 3').first().json.token }}"
+            }
           ]
         },
         "options": {}
@@ -610,16 +917,22 @@
       "name": "Cerca appuntamento da cancellare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1168, 2816]
+      "position": [
+        1168,
+        2816
+      ]
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=http://{{ $('Service Key 3').first().json.serverUrl }}/api/appointments/{{ $fromAI('Appointment_ID', 'UUID appuntamento da cancellare', 'string') }}/status?status=cancelled",
+        "url": "={{ $('Service Key 3').first().json.serverUrl }}/api/appointments/{{ $fromAI('Appointment_ID', 'UUID appuntamento da cancellare', 'string') }}/status?status=cancelled",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Login DentalCare 3').first().json.token }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login DentalCare 3').first().json.token }}"
+            }
           ]
         },
         "options": {}
@@ -628,7 +941,10 @@
       "name": "Cancella appuntamento DentalCare",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [832, 2896]
+      "position": [
+        832,
+        2896
+      ]
     },
     {
       "parameters": {
@@ -640,55 +956,401 @@
       },
       "type": "n8n-nodes-base.gmailTool",
       "typeVersion": 2.1,
-      "position": [1472, 2848],
+      "position": [
+        1472,
+        2848
+      ],
       "id": "79fc35ef-b2c9-4400-b55c-b711a42f1421",
       "name": "Send cancellation confirmation in Gmail",
       "webhookId": "808126c3-0386-4065-9f93-d046a2307268",
-      "credentials": { "gmailOAuth2": { "id": "osgkvG7Vg8X6zvTp", "name": "Gmail account" } }
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "osgkvG7Vg8X6zvTp",
+          "name": "Gmail account"
+        }
+      }
     },
     {
-      "parameters": { "options": {} },
+      "parameters": {
+        "options": {}
+      },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [1200, 2608],
+      "position": [
+        1200,
+        2608
+      ],
       "id": "5827fd67-2cb9-422b-8d86-e0eb14767ade",
       "name": "Respond to Webhook3"
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Service Key", "type": "main", "index": 0 }]] },
-    "Service Key": { "main": [[{ "node": "Login DentalCare", "type": "main", "index": 0 }]] },
-    "Login DentalCare": { "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]] },
-    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]] },
-    "Controlla appuntamenti DentalCare": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
-    "AI Agent": { "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]] },
-    "Webhook1": { "main": [[{ "node": "Service Key 1", "type": "main", "index": 0 }]] },
-    "Service Key 1": { "main": [[{ "node": "Login DentalCare 1", "type": "main", "index": 0 }]] },
-    "Login DentalCare 1": { "main": [[{ "node": "AI Agent1", "type": "main", "index": 0 }]] },
-    "OpenAI Chat Model1": { "ai_languageModel": [[{ "node": "AI Agent1", "type": "ai_languageModel", "index": 0 }]] },
-    "Cerca paziente DentalCare": { "ai_tool": [[{ "node": "AI Agent1", "type": "ai_tool", "index": 0 }]] },
-    "Crea paziente DentalCare": { "ai_tool": [[{ "node": "AI Agent1", "type": "ai_tool", "index": 0 }]] },
-    "Lista medici DentalCare": { "ai_tool": [[{ "node": "AI Agent1", "type": "ai_tool", "index": 0 }]] },
-    "Lista poltrone DentalCare": { "ai_tool": [[{ "node": "AI Agent1", "type": "ai_tool", "index": 0 }]] },
-    "Prenota appuntamento DentalCare": { "ai_tool": [[{ "node": "AI Agent1", "type": "ai_tool", "index": 0 }]] },
-    "Send a message in Gmail": { "ai_tool": [[{ "node": "AI Agent1", "type": "ai_tool", "index": 0 }]] },
-    "AI Agent1": { "main": [[{ "node": "Respond to Webhook1", "type": "main", "index": 0 }]] },
-    "Webhook2": { "main": [[{ "node": "Service Key 2", "type": "main", "index": 0 }]] },
-    "Service Key 2": { "main": [[{ "node": "Login DentalCare 2", "type": "main", "index": 0 }]] },
-    "Login DentalCare 2": { "main": [[{ "node": "AI Agent2", "type": "main", "index": 0 }]] },
-    "OpenAI Chat Model2": { "ai_languageModel": [[{ "node": "AI Agent2", "type": "ai_languageModel", "index": 0 }]] },
-    "Cerca appuntamento da spostare": { "ai_tool": [[{ "node": "AI Agent2", "type": "ai_tool", "index": 0 }]] },
-    "Sposta appuntamento DentalCare": { "ai_tool": [[{ "node": "AI Agent2", "type": "ai_tool", "index": 0 }]] },
-    "Send an updated confirmation in Gmail": { "ai_tool": [[{ "node": "AI Agent2", "type": "ai_tool", "index": 0 }]] },
-    "AI Agent2": { "main": [[{ "node": "Respond to Webhook2", "type": "main", "index": 0 }]] },
-    "Webhook3": { "main": [[{ "node": "Service Key 3", "type": "main", "index": 0 }]] },
-    "Service Key 3": { "main": [[{ "node": "Login DentalCare 3", "type": "main", "index": 0 }]] },
-    "Login DentalCare 3": { "main": [[{ "node": "AI Agent3", "type": "main", "index": 0 }]] },
-    "OpenAI Chat Model3": { "ai_languageModel": [[{ "node": "AI Agent3", "type": "ai_languageModel", "index": 0 }]] },
-    "Cerca appuntamento da cancellare": { "ai_tool": [[{ "node": "AI Agent3", "type": "ai_tool", "index": 0 }]] },
-    "Cancella appuntamento DentalCare": { "ai_tool": [[{ "node": "AI Agent3", "type": "ai_tool", "index": 0 }]] },
-    "Send cancellation confirmation in Gmail": { "ai_tool": [[{ "node": "AI Agent3", "type": "ai_tool", "index": 0 }]] },
-    "AI Agent3": { "main": [[{ "node": "Respond to Webhook3", "type": "main", "index": 0 }]] }
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Service Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Service Key": {
+      "main": [
+        [
+          {
+            "node": "Login DentalCare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login DentalCare": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Controlla appuntamenti DentalCare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Service Key 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Service Key 1": {
+      "main": [
+        [
+          {
+            "node": "Login DentalCare 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login DentalCare 1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerca paziente DentalCare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crea paziente DentalCare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lista medici DentalCare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lista poltrone DentalCare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prenota appuntamento DentalCare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Service Key 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Service Key 2": {
+      "main": [
+        [
+          {
+            "node": "Login DentalCare 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login DentalCare 2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerca appuntamento da spostare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sposta appuntamento DentalCare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an updated confirmation in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook3": {
+      "main": [
+        [
+          {
+            "node": "Service Key 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Service Key 3": {
+      "main": [
+        [
+          {
+            "node": "Login DentalCare 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login DentalCare 3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerca appuntamento da cancellare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancella appuntamento DentalCare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send cancellation confirmation in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1", "binaryMode": "separate" }
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
 }
