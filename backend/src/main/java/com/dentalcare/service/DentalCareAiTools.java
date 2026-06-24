@@ -287,13 +287,27 @@ public class DentalCareAiTools {
                 + "Per confermare chiama confirmAction con il codice " + code + ".";
     }
 
-    @Tool(description = "Execute a previously previewed write action (create/reschedule/cancel appointment) using the confirmation code returned by the preview. Call this only after the user has explicitly confirmed.")
+    @Tool(description = "Execute one or more previously previewed write actions (create/reschedule/cancel appointment) using the confirmation code(s) returned by the preview tools. To confirm several actions at once pass all their codes separated by commas/spaces. Call this only after the user has explicitly confirmed.")
     public String confirmAction(
-            @ToolParam(description = "The confirmation code returned by the preview tool.") String code) {
+            @ToolParam(description = "One or more confirmation codes returned by the preview tools, separated by commas or spaces (e.g. '1234, 5678').") String code) {
+        if (code == null || code.isBlank()) return "Nessun codice di conferma fornito.";
+        // Estrai tutti i codici (gruppi di cifre): supporta conferma multipla.
+        List<String> codes = java.util.regex.Pattern.compile("\\d+")
+                .matcher(code).results().map(m -> m.group()).toList();
+        if (codes.isEmpty()) return "Codice di conferma non valido.";
+
+        List<String> results = new java.util.ArrayList<>();
+        for (String c : codes) {
+            results.add(executeOne(c));
+        }
+        return String.join("\n", results);
+    }
+
+    private String executeOne(String code) {
         PendingActionService.Pending p = pendingActions.consume(code);
-        if (p == null) return "Codice di conferma non valido o scaduto. Riprova l'operazione.";
+        if (p == null) return "Codice " + code + ": non valido o scaduto.";
         if (!java.util.Objects.equals(p.providerScope(), currentProviderId())) {
-            return "Codice di conferma non valido per questo utente.";
+            return "Codice " + code + ": non valido per questo utente.";
         }
         try {
             switch (p.type()) {

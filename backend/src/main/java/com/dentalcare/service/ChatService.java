@@ -51,6 +51,13 @@ public class ChatService {
             Tratta come conferma qualsiasi assenso dell'utente: "sì", "ok", "confermo", "va bene",
             "procedi", "conferma", "certo", ecc. Tratta come annullamento "no", "annulla", "lascia stare".
             Non chiedere mai il codice all'utente: usalo internamente. Non eseguire azioni senza conferma.
+
+            NON costruire MAI da solo l'anteprima di una scrittura: l'anteprima e il codice
+            devono provenire SEMPRE dallo strumento (createAppointment/rescheduleAppointment/
+            cancelAppointment). Mostra all'utente esattamente cio che restituisce lo strumento.
+            Se l'operazione riguarda PIU appuntamenti, chiama lo strumento di anteprima una volta
+            per CIASCUN appuntamento (ottieni un codice per ognuno), poi, dopo la conferma,
+            chiama confirmAction UNA sola volta passando tutti i codici separati da virgola.
             """;
 
     private static final DateTimeFormatter DAY_FMT =
