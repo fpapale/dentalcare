@@ -347,7 +347,7 @@
                   [style.height.px]="heightPx(a) * (64/96)">
                   <p class="text-[10px] font-bold truncate leading-tight mt-0.5">{{ a.patientFullName }}</p>
                   <p class="text-[9px] opacity-70 leading-tight">{{ formatTime(a.startsAt) }}</p>
-                  @if (role() !== 'doctor' && role() !== 'hygienist') {
+                  @if (a.chairLabel) {
                     <p class="text-[9px] opacity-60 truncate leading-tight">{{ a.chairLabel }}</p>
                   }
                 </a>
