@@ -1,9 +1,9 @@
 # ---- Stage 1: Build ----
-# Default JDK 21 LTS. Override with --build-arg JDK_VERSION=25 if needed.
-ARG JDK_VERSION=21
+# Default JDK 25 LTS. Override with --build-arg JDK_VERSION=21 if needed.
+ARG JDK_VERSION=25
 
 FROM eclipse-temurin:${JDK_VERSION}-jdk-alpine AS build
-ARG JDK_VERSION=21
+ARG JDK_VERSION=25
 WORKDIR /build
 
 COPY mvnw mvnw.cmd ./
@@ -16,7 +16,7 @@ RUN ./mvnw package -DskipTests -Djava.version=${JDK_VERSION} -q
 
 # ---- Stage 2: Runtime ----
 FROM eclipse-temurin:${JDK_VERSION}-jre-alpine AS runtime
-ARG JDK_VERSION=21
+ARG JDK_VERSION=25
 WORKDIR /app
 
 RUN addgroup -S dentalcare && adduser -S dentalcare -G dentalcare

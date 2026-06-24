@@ -2,9 +2,12 @@ package com.dentalcare.service;
 
 import com.dentalcare.dto.CreateTenantClinicRequest;
 import com.dentalcare.dto.CreateTenantUserRequest;
+import com.dentalcare.dto.LoginResponse;
 import com.dentalcare.dto.TenantClinicDto;
 import com.dentalcare.dto.TenantUserDto;
+import com.dentalcare.security.JwtService;
 import com.dentalcare.security.TenantContext;
+import com.dentalcare.security.TenantSchemaRegistry;
 import com.dentalcare.util.TempPasswordGenerator;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -25,20 +28,44 @@ public class TenantAdminService {
     private final NamedParameterJdbcTemplate jdbc;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-
-    @org.springframework.beans.factory.annotation.Value("${app.demo.enabled:false}")
-    private boolean demoEnabled;
+    private final JwtService jwtService;
+    private final TenantSchemaRegistry registry;
 
     @org.springframework.beans.factory.annotation.Value("${app.demo.password:}")
     private String demoPassword;
 
-    public TenantAdminService(NamedParameterJdbcTemplate jdbc, PasswordEncoder passwordEncoder, EmailService emailService) {
+    @org.springframework.beans.factory.annotation.Value("${app.demo.schema:t_9d754153}")
+    private String demoSchema;
+
+    private boolean isDemoSchema() { return demoSchema.equals(s()); }
+
+    public TenantAdminService(NamedParameterJdbcTemplate jdbc, PasswordEncoder passwordEncoder,
+                              EmailService emailService, JwtService jwtService,
+                              TenantSchemaRegistry registry) {
         this.jdbc = jdbc;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.jwtService = jwtService;
+        this.registry = registry;
     }
 
     private String s() { return TenantContext.validatedSchema(); }
+
+    /** tenant_id del tenant corrente (schema → dentalcare.tenants). */
+    private UUID currentTenantId() {
+        return jdbc.queryForObject(
+                "SELECT id FROM dentalcare.tenants WHERE schema_name = :schema",
+                new MapSqlParameterSource("schema", s()), UUID.class);
+    }
+
+    /** email (citext → PGobject) del provider chiamante. */
+    private String currentEmail(String schema) {
+        String pid = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+        Object email = jdbc.queryForObject(
+                "SELECT email FROM " + schema + ".providers WHERE id = :id AND active = true",
+                new MapSqlParameterSource("id", UUID.fromString(pid)), Object.class);
+        return email == null ? null : email.toString();
+    }
 
     @Transactional(readOnly = true)
     public List<TenantClinicDto> findClinics() {
@@ -52,11 +79,12 @@ public class TenantAdminService {
 
     @Transactional
     public TenantClinicDto createClinic(CreateTenantClinicRequest request) {
+        String schema = s();
         UUID id = UUID.randomUUID();
         String sql = """
             INSERT INTO %s.clinics (id, name, legal_name, city, province, address_line1, postal_code, phone, email)
             VALUES (:id, :name, :legalName, :city, :province, :addressLine1, :postalCode, :phone, :email)
-            """.formatted(s());
+            """.formatted(schema);
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("name", request.name())
@@ -68,6 +96,15 @@ public class TenantAdminService {
                 .addValue("phone", request.phone())
                 .addValue("email", request.email());
         jdbc.update(sql, params);
+
+        // Mappa la nuova sede al tenant (necessario per login/enter su quella clinica).
+        UUID tenantId = currentTenantId();
+        jdbc.update("INSERT INTO dentalcare.tenant_clinics (clinic_id, tenant_id) VALUES (:clinicId, :tenantId)",
+                new MapSqlParameterSource("clinicId", id).addValue("tenantId", tenantId));
+        registry.register(id.toString(), schema);
+
+        // Associa automaticamente il chiamante come admin della nuova sede.
+        addSelfAsClinicAdmin(id);
 
         return new TenantClinicDto(
                 id,
@@ -81,6 +118,33 @@ public class TenantAdminService {
                 request.email(),
                 true
         );
+    }
+
+    @Transactional
+    public TenantClinicDto updateClinic(UUID clinicId, CreateTenantClinicRequest request) {
+        String schema = s();
+        int updated = jdbc.update("""
+            UPDATE %s.clinics
+            SET name = :name, legal_name = :legalName, city = :city, province = :province,
+                address_line1 = :addressLine1, postal_code = :postalCode, phone = :phone, email = :email
+            WHERE id = :id
+            """.formatted(schema),
+                new MapSqlParameterSource()
+                        .addValue("id", clinicId)
+                        .addValue("name", request.name())
+                        .addValue("legalName", request.legalName())
+                        .addValue("city", request.city())
+                        .addValue("province", request.province())
+                        .addValue("addressLine1", request.addressLine1())
+                        .addValue("postalCode", request.postalCode())
+                        .addValue("phone", request.phone())
+                        .addValue("email", request.email()));
+        if (updated == 0) {
+            throw new IllegalStateException("Clinic not found");
+        }
+        return new TenantClinicDto(clinicId, request.name(), request.legalName(), request.city(),
+                request.province(), request.addressLine1(), request.postalCode(),
+                request.phone(), request.email(), true);
     }
 
     @Transactional
@@ -104,6 +168,34 @@ public class TenantAdminService {
         jdbc.update(
                 "DELETE FROM " + s() + ".clinics WHERE id = :clinicId",
                 new MapSqlParameterSource("clinicId", clinicId));
+
+        // Pulisci mappatura tenant + cache registry.
+        jdbc.update("DELETE FROM dentalcare.tenant_clinics WHERE clinic_id = :clinicId",
+                new MapSqlParameterSource("clinicId", clinicId));
+        registry.unregister(clinicId.toString());
+    }
+
+    /**
+     * Elimina l'intero tenant corrente: drop dello schema dedicato + pulizia registry/mappature.
+     * Operazione distruttiva e irreversibile. L'export va effettuato prima (lato client).
+     */
+    @Transactional
+    public void deleteTenant() {
+        String schema = s();
+        if (!schema.matches("^t_[0-9a-f]{8}$")) {
+            throw new IllegalStateException("Invalid schema");
+        }
+        if ("t_9d754153".equals(schema)) {
+            throw new IllegalStateException("Cannot delete demo tenant");
+        }
+        UUID tenantId = currentTenantId();
+
+        jdbc.getJdbcTemplate().execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+        jdbc.update("DELETE FROM dentalcare.tenant_clinics WHERE tenant_id = :tenantId",
+                new MapSqlParameterSource("tenantId", tenantId));
+        jdbc.update("DELETE FROM dentalcare.tenants WHERE id = :tenantId",
+                new MapSqlParameterSource("tenantId", tenantId));
+        registry.unregisterSchema(schema);
     }
 
     @Transactional(readOnly = true)
@@ -126,8 +218,9 @@ public class TenantAdminService {
 
         // Portale demo: password demo nota, nessun cambio forzato né email.
         // Cambio password al primo accesso solo per utenti reali.
-        boolean temporary = !demoEnabled;
-        String plainPassword = demoEnabled ? demoPassword : TempPasswordGenerator.generate();
+        boolean demo = isDemoSchema();
+        boolean temporary = !demo;
+        String plainPassword = demo ? demoPassword : TempPasswordGenerator.generate();
         String hashed = passwordEncoder.encode(plainPassword);
 
         String sql = """
@@ -208,7 +301,8 @@ public class TenantAdminService {
                         ".providers WHERE id = :id AND active = true",
                 new MapSqlParameterSource("id", UUID.fromString(currentProviderId)));
 
-        String email = (String) self.get("email");
+        // email è citext -> PGobject: usare toString()
+        String email = self.get("email") == null ? null : self.get("email").toString();
         String firstName = (String) self.get("first_name");
         String lastName = (String) self.get("last_name");
         String passwordHash = (String) self.get("password_hash");
@@ -237,6 +331,72 @@ public class TenantAdminService {
                 .addValue("passwordHash", passwordHash));
 
         return new TenantUserDto(newId, clinicId, firstName, lastName, email, "admin", true);
+    }
+
+    /**
+     * Entra in uno studio come amministratore senza logout: rilascia un nuovo token
+     * con ruolo admin sulla clinica scelta. Crea il provider admin se non esiste.
+     */
+    @Transactional
+    public LoginResponse enterClinic(UUID clinicId) {
+        String schema = s();
+        String currentProviderId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+
+        Map<String, Object> self = jdbc.queryForMap(
+                "SELECT first_name, last_name, email, password_hash FROM " + schema +
+                        ".providers WHERE id = :id AND active = true",
+                new MapSqlParameterSource("id", UUID.fromString(currentProviderId)));
+
+        // email è citext -> PGobject: usare toString()
+        String email = self.get("email") == null ? null : self.get("email").toString();
+        String firstName = (String) self.get("first_name");
+        String lastName = (String) self.get("last_name");
+        String passwordHash = (String) self.get("password_hash");
+
+        // clinica deve appartenere a questo tenant
+        Integer clinicExists = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM " + schema + ".clinics WHERE id = :clinicId",
+                new MapSqlParameterSource("clinicId", clinicId), Integer.class);
+        if (clinicExists == null || clinicExists == 0) {
+            throw new IllegalStateException("Clinic not found in tenant");
+        }
+
+        // get-or-create provider admin del chiamante nella clinica scelta
+        List<String> adminIds = jdbc.queryForList(
+                "SELECT id::text FROM " + schema +
+                        ".providers WHERE lower(email) = lower(:email) AND clinic_id = :clinicId" +
+                        " AND role = CAST('admin' AS dentalcare.provider_role) AND active = true",
+                new MapSqlParameterSource("email", email).addValue("clinicId", clinicId),
+                String.class);
+
+        UUID adminProviderId;
+        if (!adminIds.isEmpty()) {
+            adminProviderId = UUID.fromString(adminIds.get(0));
+        } else {
+            adminProviderId = UUID.randomUUID();
+            String sql = """
+                INSERT INTO %s.providers (id, clinic_id, first_name, last_name, email, password_hash, role, active)
+                VALUES (:id, :clinicId, :firstName, :lastName, :email, :passwordHash,
+                        CAST('admin' AS dentalcare.provider_role), true)
+                """.formatted(schema);
+            jdbc.update(sql, new MapSqlParameterSource()
+                    .addValue("id", adminProviderId)
+                    .addValue("clinicId", clinicId)
+                    .addValue("firstName", firstName)
+                    .addValue("lastName", lastName)
+                    .addValue("email", email)
+                    .addValue("passwordHash", passwordHash));
+        }
+
+        String tenantName = jdbc.queryForObject(
+                "SELECT name FROM dentalcare.tenants WHERE schema_name = :schema",
+                new MapSqlParameterSource("schema", schema), String.class);
+
+        String token = jwtService.generate(adminProviderId, clinicId, schema, "admin", tenantName);
+
+        return new LoginResponse(
+                token, email, adminProviderId.toString(), clinicId.toString(),
+                "admin", firstName, lastName, schema, tenantName, false);
     }
 
     private TenantClinicDto mapClinic(ResultSet rs) throws SQLException {

@@ -1,17 +1,26 @@
 package com.dentalcare.service;
 
 import com.dentalcare.dto.*;
+import com.dentalcare.exception.AppointmentConflictException;
+import com.dentalcare.exception.ResourceNotFoundException;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
 @Component
 public class DentalCareAiTools {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DentalCareAiTools.class);
 
     private final AppointmentService appointmentService;
     private final PatientService patientService;
@@ -20,6 +29,7 @@ public class DentalCareAiTools {
     private final InvoiceService invoiceService;
     private final DashboardService dashboardService;
     private final ProviderService providerService;
+    private final PendingActionService pendingActions;
 
     public DentalCareAiTools(
             AppointmentService appointmentService,
@@ -28,7 +38,8 @@ public class DentalCareAiTools {
             RecallService recallService,
             InvoiceService invoiceService,
             DashboardService dashboardService,
-            ProviderService providerService) {
+            ProviderService providerService,
+            PendingActionService pendingActions) {
         this.appointmentService = appointmentService;
         this.patientService = patientService;
         this.estimateService = estimateService;
@@ -36,6 +47,7 @@ public class DentalCareAiTools {
         this.invoiceService = invoiceService;
         this.dashboardService = dashboardService;
         this.providerService = providerService;
+        this.pendingActions = pendingActions;
     }
 
     // --- role helpers ---
@@ -147,13 +159,249 @@ public class DentalCareAiTools {
         return providerService.findAll(true);
     }
 
+    // --- agenda: slot liberi + scrittura (con conferma) ---
+
+    private static final ZoneId ROME = ZoneId.of("Europe/Rome");
+    private static final DateTimeFormatter HHMM = DateTimeFormatter.ofPattern("HH:mm");
+
+    @Tool(description = "Find free appointment slots for a provider on a given date. Returns available start times (HH:mm, Europe/Rome). Use this BEFORE proposing or creating an appointment.")
+    public List<String> findFreeSlots(
+            @ToolParam(description = "Provider full or partial name. Ignored for medical staff (uses the caller).") String providerName,
+            @ToolParam(description = "Date in YYYY-MM-DD format.") String date,
+            @ToolParam(description = "Appointment duration in minutes (default 30).") Integer durationMinutes) {
+        UUID providerId = isMedical() ? currentProviderId() : resolveProviderByName(providerName);
+        if (providerId == null) return List.of();
+        int dur = (durationMinutes != null && durationMinutes > 0) ? durationMinutes : 30;
+        LocalDate d;
+        try { d = LocalDate.parse(date); } catch (Exception e) { return List.of(); }
+        return appointmentService.findFreeSlots(providerId, d, dur).stream()
+                .map(s -> s.atZoneSameInstant(ROME).format(HHMM))
+                .toList();
+    }
+
+    @Tool(description = "Prepare creation of a new appointment and return a PREVIEW plus a short confirmation code. This does NOT save anything. Show the preview to the user; when the user confirms, call confirmAction with the returned code.")
+    public String createAppointment(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Provider full or partial name. Ignored for medical staff (uses the caller).") String providerName,
+            @ToolParam(description = "Date in YYYY-MM-DD format.") String date,
+            @ToolParam(description = "Start time HH:mm (24h, Europe/Rome).") String time,
+            @ToolParam(description = "Duration in minutes (default 30).") Integer durationMinutes,
+            @ToolParam(description = "Chair/room label, e.g. 'Studio 1'. Default 'Studio 1'.") String chairLabel,
+            @ToolParam(description = "Optional notes.") String notes) {
+
+        UUID providerId = isMedical() ? currentProviderId() : resolveProviderByName(providerName);
+        if (providerId == null) return "Errore: professionista non riconosciuto. Specifica il nome del medico.";
+
+        int dur = (durationMinutes != null && durationMinutes > 0) ? durationMinutes : 30;
+        OffsetDateTime start, end;
+        try {
+            ZonedDateTime z = LocalDate.parse(date).atTime(LocalTime.parse(time)).atZone(ROME);
+            start = z.toOffsetDateTime();
+            end = z.plusMinutes(dur).toOffsetDateTime();
+        } catch (Exception e) {
+            return "Errore: data/ora non valide. Usa data YYYY-MM-DD e ora HH:mm.";
+        }
+        String chair = (chairLabel == null || chairLabel.isBlank()) ? "Studio 1" : chairLabel;
+        String patientName = patientName(patientId);
+
+        String summary = "Nuovo appuntamento per " + patientName + " il " + date + " alle " + time
+                + " (" + dur + " min, " + chair + ")";
+        CreateAppointmentRequest req = new CreateAppointmentRequest(
+                UUID.fromString(patientId), providerId, chair, start, end, notes);
+        String code = pendingActions.register(PendingActionService.Type.CREATE,
+                currentProviderId(), req, null, null, summary);
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n"
+                + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare rescheduling (move) of an existing appointment and return a PREVIEW plus a short confirmation code. Can also reassign it to another provider. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String rescheduleAppointment(
+            @ToolParam(description = "Appointment UUID from getAppointments.") String appointmentId,
+            @ToolParam(description = "New date in YYYY-MM-DD format.") String date,
+            @ToolParam(description = "New start time HH:mm (24h, Europe/Rome).") String time,
+            @ToolParam(description = "Duration in minutes (default 30).") Integer durationMinutes,
+            @ToolParam(description = "Chair/room label. Leave blank to keep the appointment's current chair.") String chairLabel,
+            @ToolParam(description = "Optional: full or partial name of a different provider to reassign the appointment to. Leave blank to keep the current provider.") String providerName) {
+
+        log.info("rescheduleAppointment in: id='{}' date='{}' time='{}' dur={} chair='{}' provider='{}'",
+                appointmentId, date, time, durationMinutes, chairLabel, providerName);
+        UUID apptId;
+        try { apptId = UUID.fromString(appointmentId); }
+        catch (Exception e) {
+            log.warn("rescheduleAppointment: id non parsabile '{}'", appointmentId);
+            return "Errore: id appuntamento non valido.";
+        }
+
+        int dur = (durationMinutes != null && durationMinutes > 0) ? durationMinutes : 30;
+        OffsetDateTime start, end;
+        try {
+            ZonedDateTime z = LocalDate.parse(date).atTime(LocalTime.parse(time)).atZone(ROME);
+            start = z.toOffsetDateTime();
+            end = z.plusMinutes(dur).toOffsetDateTime();
+        } catch (Exception e) {
+            return "Errore: data/ora non valide. Usa data YYYY-MM-DD e ora HH:mm.";
+        }
+
+        // Poltrona: se non indicata, mantieni quella corrente dell'appuntamento.
+        String chair = (chairLabel != null && !chairLabel.isBlank())
+                ? chairLabel
+                : appointmentService.findChairLabel(apptId);
+        if (chair == null) return "Appuntamento non trovato.";
+
+        // Medico: medical riassegna solo a se stesso; altrimenti per nome (se indicato).
+        UUID newProviderId = null;
+        String providerNote = "";
+        if (isMedical()) {
+            // un medico non riassegna ad altri
+            providerNote = "";
+        } else if (providerName != null && !providerName.isBlank()) {
+            newProviderId = resolveProviderByName(providerName);
+            if (newProviderId == null) return "Errore: medico '" + providerName + "' non riconosciuto.";
+            // Cambio medico vietato se l'appuntamento è legato a piano di cura/preventivo.
+            if (appointmentService.isBoundToClinicalPlan(apptId)) {
+                return "Non è possibile cambiare medico: l'appuntamento è legato a un piano di cura o "
+                        + "preventivo. Posso spostarlo mantenendo lo stesso medico. Procedo così?";
+            }
+            providerNote = ", medico: " + providerName;
+        }
+
+        String summary = "Spostamento appuntamento al " + date + " alle " + time
+                + " (" + dur + " min, " + chair + providerNote + ")";
+        RescheduleAppointmentRequest req = new RescheduleAppointmentRequest(start, end, chair, newProviderId);
+        String code = pendingActions.register(PendingActionService.Type.RESCHEDULE,
+                currentProviderId(), null, apptId, req, summary);
+        log.info("rescheduleAppointment preview ok: apptId={} chair='{}' newProvider={} code={}",
+                apptId, chair, newProviderId, code);
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n"
+                + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare cancellation of an appointment and return a PREVIEW plus a short confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String cancelAppointment(
+            @ToolParam(description = "Appointment UUID from getAppointments.") String appointmentId) {
+        UUID apptId;
+        try { apptId = UUID.fromString(appointmentId); }
+        catch (Exception e) { return "Errore: id appuntamento non valido."; }
+
+        String summary = "Annullamento dell'appuntamento selezionato";
+        String code = pendingActions.register(PendingActionService.Type.CANCEL,
+                currentProviderId(), null, apptId, null, summary);
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n"
+                + summary + ".\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Execute one or more previously previewed write actions (create/reschedule/cancel appointment) using the confirmation code(s) returned by the preview tools. To confirm several actions at once pass all their codes separated by commas/spaces. Call this only after the user has explicitly confirmed.")
+    public String confirmAction(
+            @ToolParam(description = "One or more confirmation codes returned by the preview tools, separated by commas or spaces (e.g. '1234, 5678').") String code) {
+        if (code == null || code.isBlank()) return "Nessun codice di conferma fornito.";
+        // Estrai tutti i codici (gruppi di cifre): supporta conferma multipla.
+        List<String> codes = java.util.regex.Pattern.compile("\\d+")
+                .matcher(code).results().map(m -> m.group()).toList();
+        if (codes.isEmpty()) return "Codice di conferma non valido.";
+
+        List<String> results = new java.util.ArrayList<>();
+        for (String c : codes) {
+            results.add(executeOne(c));
+        }
+        return String.join("\n", results);
+    }
+
+    private String executeOne(String code) {
+        PendingActionService.Pending p = pendingActions.consume(code);
+        log.info("confirmAction executeOne: code={} found={}", code, p != null);
+        if (p == null) return "Codice " + code + ": non valido o scaduto.";
+        if (!java.util.Objects.equals(p.providerScope(), currentProviderId())) {
+            log.warn("confirmAction: scope mismatch code={} scope={} caller={}",
+                    code, p.providerScope(), currentProviderId());
+            return "Codice " + code + ": non valido per questo utente.";
+        }
+        try {
+            switch (p.type()) {
+                case CREATE -> {
+                    UUID id = appointmentService.create(p.create());
+                    return "Appuntamento creato (id " + id + "). " + p.summary();
+                }
+                case RESCHEDULE -> {
+                    log.info("confirmAction RESCHEDULE: apptId={} req={}", p.appointmentId(), p.reschedule());
+                    appointmentService.reschedule(p.appointmentId(), p.reschedule());
+                    return "Fatto. " + p.summary();
+                }
+                case CANCEL -> {
+                    boolean ok = appointmentService.cancel(p.appointmentId());
+                    return ok ? "Appuntamento annullato." : "Appuntamento non trovato o già annullato.";
+                }
+                default -> { return "Azione non riconosciuta."; }
+            }
+        } catch (ResourceNotFoundException nf) {
+            log.warn("confirmAction RESCHEDULE not found: {}", nf.getMessage());
+            return "Appuntamento non trovato.";
+        } catch (AppointmentConflictException ce) {
+            log.warn("confirmAction conflict: {}", ce.getMessage());
+            return "Operazione non possibile: " + ce.getMessage();
+        } catch (Exception e) {
+            log.error("confirmAction error", e);
+            return "Errore nell'esecuzione: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = "Get today's operational briefing: appointment counts by status plus overdue recalls, overdue invoices and pending estimates.")
+    public DailyBriefingDto getDailyBriefing() {
+        UUID providerId = isMedical() ? currentProviderId() : null;
+        LocalDate today = LocalDate.now();
+
+        List<AppointmentDto> appts = appointmentService.findByDate(today, providerId);
+        long total = appts.size();
+        long confirmed = appts.stream().filter(a ->
+                "confirmed".equals(a.appointmentStatus()) || "scheduled".equals(a.appointmentStatus())).count();
+        long completed = appts.stream().filter(a -> "completed".equals(a.appointmentStatus())).count();
+        long cancelled = appts.stream().filter(a ->
+                "cancelled".equals(a.appointmentStatus()) || "no_show".equals(a.appointmentStatus())).count();
+
+        long overdueRecalls = recallService.findAll("pending", null, null).stream()
+                .filter(r -> r.dueDate() != null && r.dueDate().isBefore(today)).count();
+        long overdueInvoices = invoiceService.findAll("overdue", providerId).size();
+        long pendingEstimates = estimateService.findAll("sent", providerId).size();
+
+        return new DailyBriefingDto(today, total, confirmed, completed, cancelled,
+                overdueRecalls, overdueInvoices, pendingEstimates);
+    }
+
     // --- private helpers ---
+
+    private String patientName(String patientId) {
+        try {
+            return patientService.findById(UUID.fromString(patientId), null)
+                    .map(PatientDetailDto::fullName)
+                    .orElse(patientId);
+        } catch (Exception e) {
+            return patientId;
+        }
+    }
+
+    // Titoli/onorifici da ignorare nel match per nome (es. "dr Marchetti").
+    private static final java.util.Set<String> HONORIFICS = java.util.Set.of(
+            "dr", "dr.", "dott", "dott.", "dottor", "dottore", "dottoressa",
+            "dssa", "dr.ssa", "prof", "prof.", "il", "la", "lo", "del", "della", "dello");
 
     private UUID resolveProviderByName(String name) {
         if (name == null || name.isBlank()) return null;
-        String nameLower = name.toLowerCase();
+        // Tokenizza la query e scarta onorifici: "dr Marchetti" -> ["marchetti"].
+        List<String> tokens = java.util.Arrays.stream(name.toLowerCase().trim().split("\\s+"))
+                .filter(t -> !t.isBlank() && !HONORIFICS.contains(t))
+                .toList();
+        if (tokens.isEmpty()) return null;
         return providerService.findAll(true).stream()
-                .filter(p -> p.fullName() != null && p.fullName().toLowerCase().contains(nameLower))
+                .filter(p -> p.fullName() != null)
+                .filter(p -> {
+                    String full = p.fullName().toLowerCase();
+                    return tokens.stream().allMatch(full::contains);
+                })
                 .map(ProviderDto::providerId)
                 .findFirst().orElse(null);
     }

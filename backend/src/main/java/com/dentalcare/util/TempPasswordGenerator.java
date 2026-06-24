@@ -9,9 +9,11 @@ public final class TempPasswordGenerator {
 
     private TempPasswordGenerator() {}
 
+    private static final int LENGTH = 10;
+
     public static String generate() {
-        StringBuilder sb = new StringBuilder(6);
-        for (int i = 0; i < 6; i++) {
+        StringBuilder sb = new StringBuilder(LENGTH);
+        for (int i = 0; i < LENGTH; i++) {
             sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
         }
         return sb.toString();

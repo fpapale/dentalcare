@@ -22,11 +22,11 @@
           </div>
           <h2 class="text-3xl font-extrabold text-slate-900 mb-3">Studio configurato con successo!</h2>
           <p class="text-slate-500 text-lg mb-8 max-w-md mx-auto">
-            Il tuo piano <span class="font-semibold text-[#00448c]">{{ planLabel(selectedPlan()) }}</span> è attivo. Accedi con l'email e la password che hai scelto. Ti abbiamo inviato un'email di conferma.
+            Il tuo piano <span class="font-semibold text-[#00448c]">{{ planLabel(selectedPlan()) }}</span> è attivo. Ti abbiamo inviato un'email con una <span class="font-semibold">password temporanea</span>. Accedi e scegli una nuova password.
           </p>
           <button (click)="goToDashboard()"
                   class="inline-flex items-center gap-2 bg-[#00448c] hover:bg-[#005BB7] text-white font-bold px-8 py-4 rounded-xl transition-colors shadow-md text-lg">
-            Accedi al tuo studio
+            Vai al login
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
           </button>
         </div>
@@ -207,15 +207,8 @@
                   <input [(ngModel)]="adminForm.email" name="adminEmail" type="email" placeholder="mario.rossi@email.it"
                          class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00448c] focus:border-transparent">
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">Password <span class="text-red-500">*</span></label>
-                  <input [(ngModel)]="adminForm.password" name="adminPassword" type="password" placeholder="Minimo 8 caratteri"
-                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00448c] focus:border-transparent">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">Conferma password <span class="text-red-500">*</span></label>
-                  <input [(ngModel)]="adminForm.confirmPassword" name="adminConfirmPassword" type="password" placeholder="Ripeti la password"
-                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00448c] focus:border-transparent">
+                <div class="sm:col-span-2">
+                  <p class="text-sm text-slate-500 italic">Riceverai via email una password temporanea. Al primo accesso ti verrà chiesto di sceglierne una nuova.</p>
                 </div>
               </div>
 

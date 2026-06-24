@@ -28,11 +28,14 @@ public class ProviderService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
-    @org.springframework.beans.factory.annotation.Value("${app.demo.enabled:false}")
-    private boolean demoEnabled;
-
     @org.springframework.beans.factory.annotation.Value("${app.demo.password:}")
     private String demoPassword;
+
+    @org.springframework.beans.factory.annotation.Value("${app.demo.schema:t_9d754153}")
+    private String demoSchema;
+
+    /** true se la sessione opera sullo schema demo (no temp password, password demo nota). */
+    private boolean isDemoSchema() { return demoSchema.equals(s()); }
 
     public ProviderService(NamedParameterJdbcTemplate jdbc,
                            PasswordEncoder passwordEncoder,
@@ -97,8 +100,9 @@ public class ProviderService {
         // Portale demo: nessuna password temporanea / nessun cambio forzato / nessuna email.
         // Gli utenti demo ricevono la password demo nota e password_temporary = false.
         // Il flusso "cambio password al primo accesso" vale solo per utenti reali.
-        boolean temporary = !demoEnabled;
-        String plainPassword = demoEnabled ? demoPassword : TempPasswordGenerator.generate();
+        boolean demo = isDemoSchema();
+        boolean temporary = !demo;
+        String plainPassword = demo ? demoPassword : TempPasswordGenerator.generate();
         String passwordHash = passwordEncoder.encode(plainPassword);
 
         jdbc.update("""

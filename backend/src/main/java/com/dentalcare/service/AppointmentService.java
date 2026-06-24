@@ -16,7 +16,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -300,12 +304,21 @@ public class AppointmentService {
     public void reschedule(UUID appointmentId, RescheduleAppointmentRequest request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
 
-        List<UUID> providers = jdbc.queryForList(
-                "SELECT provider_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
-                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
-                UUID.class);
-        if (providers.isEmpty()) throw new ResourceNotFoundException("Appointment not found: " + appointmentId);
-        UUID providerId = providers.get(0);
+        List<java.util.Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT provider_id, treatment_plan_item_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId));
+        if (rows.isEmpty()) throw new ResourceNotFoundException("Appointment not found: " + appointmentId);
+        UUID currentProvider = (UUID) rows.get(0).get("provider_id");
+        boolean boundToPlan = rows.get(0).get("treatment_plan_item_id") != null;
+
+        // Cambio medico vietato se l'appuntamento è legato a un piano di cura/preventivo.
+        if (request.providerId() != null && !request.providerId().equals(currentProvider) && boundToPlan) {
+            throw new AppointmentConflictException("PROVIDER_LOCKED",
+                    "Non è possibile cambiare medico: l'appuntamento è legato a un piano di cura o preventivo. "
+                    + "Lo spostamento deve mantenere lo stesso medico.");
+        }
+        // medico effettivo: nuovo se richiesto e consentito, altrimenti quello corrente
+        UUID providerId = request.providerId() != null ? request.providerId() : currentProvider;
 
         String chairSql = """
                 SELECT COUNT(*) FROM %s.appointments
@@ -347,7 +360,8 @@ public class AppointmentService {
 
         jdbc.update("""
                 UPDATE %s.appointments
-                SET starts_at = :startsAt, ends_at = :endsAt, chair_label = :chairLabel
+                SET starts_at = :startsAt, ends_at = :endsAt, chair_label = :chairLabel,
+                    provider_id = :providerId
                 WHERE id = :id AND clinic_id = :clinicId
                 """.formatted(s()),
                 new MapSqlParameterSource()
@@ -355,7 +369,126 @@ public class AppointmentService {
                         .addValue("clinicId",   clinicId)
                         .addValue("startsAt",   request.startsAt())
                         .addValue("endsAt",     request.endsAt())
-                        .addValue("chairLabel", request.chairLabel()));
+                        .addValue("chairLabel", request.chairLabel())
+                        .addValue("providerId", providerId));
+    }
+
+    /** True se l'appuntamento è legato a un item di piano di cura (quindi a piano/preventivo). */
+    public boolean isBoundToClinicalPlan(UUID appointmentId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<UUID> items = jdbc.queryForList(
+                "SELECT treatment_plan_item_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId AND treatment_plan_item_id IS NOT NULL".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
+                UUID.class);
+        return !items.isEmpty();
+    }
+
+    /** Poltrona/studio corrente dell'appuntamento, o null se non trovato. */
+    public String findChairLabel(UUID appointmentId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<String> chairs = jdbc.queryForList(
+                "SELECT chair_label FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
+                String.class);
+        return chairs.isEmpty() ? null : chairs.get(0);
+    }
+
+    /** Annulla un appuntamento (idempotente). Ritorna true se ha modificato una riga. */
+    public boolean cancel(UUID appointmentId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        int rows = jdbc.update("""
+                UPDATE %s.appointments
+                SET status = 'cancelled'::dentalcare.appointment_status
+                WHERE id = :id AND clinic_id = :clinicId
+                  AND status::text <> 'cancelled'
+                """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("id", appointmentId)
+                        .addValue("clinicId", clinicId));
+        return rows > 0;
+    }
+
+    /** True se il giorno è lavorativo per la clinica (no weekend, no festivo nazionale). */
+    public boolean isWorkingDay(UUID clinicId, LocalDate date) {
+        DayOfWeek dow = date.getDayOfWeek();
+        if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) return false;
+
+        String stateQuery = """
+            SELECT s.id
+            FROM %s.clinics cl
+            JOIN dentalcare.cities  ci ON ci.id = cl.city_id
+            JOIN dentalcare.regions r  ON r.id  = ci.region_id
+            JOIN dentalcare.states  s  ON s.id  = r.state_id
+            WHERE cl.id = :clinicId
+            """.formatted(s());
+        List<UUID> stateIds = jdbc.queryForList(stateQuery,
+                new MapSqlParameterSource("clinicId", clinicId), UUID.class);
+        if (stateIds.isEmpty()) return true;
+
+        List<String> names = jdbc.queryForList("""
+            SELECT name FROM dentalcare.national_holidays
+            WHERE state_id = :stateId
+              AND ((is_recurring = TRUE  AND month = :month AND day = :day)
+                OR (is_recurring = FALSE AND holiday_date = :date))
+            LIMIT 1
+            """,
+                new MapSqlParameterSource()
+                        .addValue("stateId", stateIds.get(0))
+                        .addValue("month", date.getMonthValue())
+                        .addValue("day",   date.getDayOfMonth())
+                        .addValue("date",  date),
+                String.class);
+        return names.isEmpty();
+    }
+
+    /**
+     * Slot liberi del professionista per una data, su finestra Lun-Ven 09:00-13:00 / 14:00-19:00
+     * (fuso Europe/Rome), passo 15 min. Esclude appuntamenti esistenti e slot già passati.
+     * Ritorna gli orari di inizio (max 30).
+     */
+    public List<OffsetDateTime> findFreeSlots(UUID providerId, LocalDate date, int durationMinutes) {
+        if (providerId == null) return List.of();
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        if (!isWorkingDay(clinicId, date)) return List.of();
+
+        int dur = durationMinutes > 0 ? durationMinutes : 30;
+        ZoneId rome = ZoneId.of("Europe/Rome");
+
+        List<OffsetDateTime[]> busy = jdbc.query("""
+                SELECT starts_at, ends_at FROM %s.appointments
+                WHERE clinic_id = :clinicId AND provider_id = :providerId
+                  AND status::text <> 'cancelled'
+                  AND starts_at::date = :date
+                """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("clinicId", clinicId)
+                        .addValue("providerId", providerId)
+                        .addValue("date", date),
+                (rs, n) -> new OffsetDateTime[]{
+                        rs.getTimestamp("starts_at").toInstant().atOffset(ZoneOffset.UTC),
+                        rs.getTimestamp("ends_at").toInstant().atOffset(ZoneOffset.UTC)
+                });
+
+        int[][] windows = {{9 * 60, 13 * 60}, {14 * 60, 19 * 60}};
+        int step = 15;
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        List<OffsetDateTime> free = new ArrayList<>();
+
+        for (int[] w : windows) {
+            for (int m = w[0]; m + dur <= w[1]; m += step) {
+                OffsetDateTime start = date.atTime(LocalTime.of(m / 60, m % 60))
+                        .atZone(rome).toInstant().atOffset(ZoneOffset.UTC);
+                OffsetDateTime end = start.plusMinutes(dur);
+                if (start.isBefore(now)) continue;
+                boolean overlap = false;
+                for (OffsetDateTime[] b : busy) {
+                    if (start.isBefore(b[1]) && end.isAfter(b[0])) { overlap = true; break; }
+                }
+                if (!overlap) free.add(start);
+                if (free.size() >= 30) return free;
+            }
+        }
+        return free;
     }
 
     public List<String> findChairLabels() {

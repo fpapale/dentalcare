@@ -93,4 +93,14 @@ public class TenantSchemaRegistry {
     public void register(String clinicId, String schemaName) {
         clinicToSchema.put(clinicId, schemaName);
     }
+
+    /** Remove a single clinic mapping (es. eliminazione sede). */
+    public void unregister(String clinicId) {
+        clinicToSchema.remove(clinicId);
+    }
+
+    /** Remove every clinic mapping pointing to the given schema (es. eliminazione tenant). */
+    public void unregisterSchema(String schemaName) {
+        clinicToSchema.values().removeIf(schemaName::equals);
+    }
 }

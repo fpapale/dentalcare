@@ -44,11 +44,16 @@ export class App implements OnInit {
   private lastAuthProviderId: string | null = null;
 
   readonly demoEnabled = signal(false);
-  readonly isDemoUser = computed(() => this.demoEnabled() && this.userContext.authRole() === 'admin');
+  readonly demoSchema = signal<string | null>(null);
+  // Sessione demo = utente loggato sullo schema del tenant demo (indipendente dal prefill).
+  readonly isDemoUser = computed(() => {
+    const u = this.authService.currentUser();
+    return !!u && !!this.demoSchema() && u.schemaName === this.demoSchema();
+  });
 
   constructor() {
     this.authService.getDemoConfig().subscribe({
-      next: res => this.demoEnabled.set(res.enabled),
+      next: res => { this.demoEnabled.set(res.enabled); this.demoSchema.set(res.schema ?? null); },
       error: () => {}
     });
 
@@ -59,7 +64,7 @@ export class App implements OnInit {
       if (u && u.providerId !== this.lastAuthProviderId) {
         this.lastAuthProviderId = u.providerId;
         this.userContext.initFromAuth(u);
-        if (this.demoEnabled() && u.role === 'admin') {
+        if (this.demoSchema() && u.schemaName === this.demoSchema() && u.role === 'admin') {
           this.selectedKey.set('__secretary__');
           this.userContext.setRole('secretary');
         } else {

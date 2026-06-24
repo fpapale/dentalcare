@@ -2,6 +2,7 @@ package com.dentalcare.controller;
 
 import com.dentalcare.dto.CreateTenantClinicRequest;
 import com.dentalcare.dto.CreateTenantUserRequest;
+import com.dentalcare.dto.LoginResponse;
 import com.dentalcare.dto.TenantClinicDto;
 import com.dentalcare.dto.TenantUserDto;
 import com.dentalcare.security.TenantContext;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -48,10 +50,22 @@ public class TenantAdminController {
         return tenantAdminService.createClinic(request);
     }
 
+    @PutMapping("/clinics/{clinicId}")
+    public TenantClinicDto updateClinic(@PathVariable UUID clinicId,
+                                        @Valid @RequestBody CreateTenantClinicRequest request) {
+        return tenantAdminService.updateClinic(clinicId, request);
+    }
+
     @DeleteMapping("/clinics/{clinicId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteClinic(@PathVariable UUID clinicId) {
         tenantAdminService.deleteClinic(clinicId);
+    }
+
+    @DeleteMapping("/tenant")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTenant() {
+        tenantAdminService.deleteTenant();
     }
 
     @GetMapping("/clinics/{clinicId}/users")
@@ -91,6 +105,11 @@ public class TenantAdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeSelfAsClinicAdmin(@PathVariable UUID clinicId) {
         tenantAdminService.removeSelfAsClinicAdmin(clinicId);
+    }
+
+    @PostMapping("/clinics/{clinicId}/enter")
+    public LoginResponse enterClinic(@PathVariable UUID clinicId) {
+        return tenantAdminService.enterClinic(clinicId);
     }
 
     @GetMapping("/clinics/{clinicId}/export")

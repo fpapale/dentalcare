@@ -106,6 +106,7 @@ export class AgendaComponent {
     const map = new Map<string, { count: number; pct: number }>();
     const MAX = 24;
     for (const a of this.rangeAppointments()) {
+      if (a.appointmentStatus === 'cancelled' || a.appointmentStatus === 'no_show') continue;
       const key = new Date(a.startsAt).toISOString().slice(0, 10);
       const cur = map.get(key) ?? { count: 0, pct: 0 };
       cur.count++;
@@ -357,8 +358,10 @@ export class AgendaComponent {
 
   getAppointmentsForDay(date: Date): Appointment[] {
     const key = this.toIso(date);
+    const f = this.dayStatusFilter();
     return this.rangeAppointments()
-      .filter(a => new Date(a.startsAt).toISOString().slice(0, 10) === key)
+      .filter(a => new Date(a.startsAt).toISOString().slice(0, 10) === key
+        && (f.length === 0 || f.includes(a.appointmentStatus)))
       .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   }
 
