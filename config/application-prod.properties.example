@@ -23,6 +23,9 @@ app.demo.enabled=true
 app.demo.email=demo@demo.dentalcare.it
 app.demo.password=DemoAdmin1!
 
+# ---- n8n service account ----
+app.n8n.service-key=REPLACE_WITH_N8N_SERVICE_KEY
+
 # ---- Mail (SMTP) ----
 spring.mail.host=192.168.0.68
 spring.mail.port=25
