@@ -354,11 +354,24 @@ public class DentalCareAiTools {
         }
     }
 
+    // Titoli/onorifici da ignorare nel match per nome (es. "dr Marchetti").
+    private static final java.util.Set<String> HONORIFICS = java.util.Set.of(
+            "dr", "dr.", "dott", "dott.", "dottor", "dottore", "dottoressa",
+            "dssa", "dr.ssa", "prof", "prof.", "il", "la", "lo", "del", "della", "dello");
+
     private UUID resolveProviderByName(String name) {
         if (name == null || name.isBlank()) return null;
-        String nameLower = name.toLowerCase();
+        // Tokenizza la query e scarta onorifici: "dr Marchetti" -> ["marchetti"].
+        List<String> tokens = java.util.Arrays.stream(name.toLowerCase().trim().split("\\s+"))
+                .filter(t -> !t.isBlank() && !HONORIFICS.contains(t))
+                .toList();
+        if (tokens.isEmpty()) return null;
         return providerService.findAll(true).stream()
-                .filter(p -> p.fullName() != null && p.fullName().toLowerCase().contains(nameLower))
+                .filter(p -> p.fullName() != null)
+                .filter(p -> {
+                    String full = p.fullName().toLowerCase();
+                    return tokens.stream().allMatch(full::contains);
+                })
                 .map(ProviderDto::providerId)
                 .findFirst().orElse(null);
     }
