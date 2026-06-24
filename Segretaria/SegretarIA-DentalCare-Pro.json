@@ -32,12 +32,8 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            {
-              "id": "9274ce2c-2b03-4471-a7d7-7e2eb33312bb",
-              "name": "serviceKey",
-              "value": "<SERVICE_KEY>",
-              "type": "string"
-            }
+            { "id": "9274ce2c-2b03-4471-a7d7-7e2eb33312bb", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" },
+            { "id": "8f4d01eb-8f96-4904-ae5c-3a451dbfc330", "name": "serverUrl", "value": "192.168.100.111:8080", "type": "string" }
           ]
         },
         "options": {}
@@ -51,7 +47,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8080/api/public/service-token",
+        "url": "=http://{{ $('Service Key').first().json.serverUrl }}/api/public/service-token",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -92,7 +88,7 @@
     },
     {
       "parameters": {
-        "url": "http://localhost:8080/api/appointments",
+        "url": "=http://{{ $('Service Key').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -153,7 +149,8 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "9a570376-fb29-407c-ac0e-d7a0941d4a31", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" }
+            { "id": "9a570376-fb29-407c-ac0e-d7a0941d4a31", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" },
+            { "id": "ea6b8b43-8668-44a5-9a1d-f2f79abd4117", "name": "serverUrl", "value": "192.168.100.111:8080", "type": "string" }
           ]
         },
         "options": {}
@@ -167,7 +164,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8080/api/public/service-token",
+        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/public/service-token",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -208,7 +205,7 @@
     },
     {
       "parameters": {
-        "url": "http://localhost:8080/api/patients",
+        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/patients",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -232,7 +229,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8080/api/patients",
+        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/patients",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -258,7 +255,7 @@
     },
     {
       "parameters": {
-        "url": "http://localhost:8080/api/providers",
+        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/providers",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [ { "name": "activeOnly", "value": "true" } ]
@@ -279,7 +276,7 @@
     },
     {
       "parameters": {
-        "url": "http://localhost:8080/api/appointments/chairs",
+        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/appointments/chairs",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -297,7 +294,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8080/api/appointments",
+        "url": "=http://{{ $('Service Key 1').first().json.serverUrl }}/api/appointments",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -378,7 +375,8 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "977ff9fa-5427-4556-8984-0093a2fe913d", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" }
+            { "id": "977ff9fa-5427-4556-8984-0093a2fe913d", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" },
+            { "id": "0e4db52b-d8f7-4d21-911d-56ca5f70269d", "name": "serverUrl", "value": "192.168.100.111:8080", "type": "string" }
           ]
         },
         "options": {}
@@ -392,7 +390,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8080/api/public/service-token",
+        "url": "=http://{{ $('Service Key 2').first().json.serverUrl }}/api/public/service-token",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -433,7 +431,7 @@
     },
     {
       "parameters": {
-        "url": "http://localhost:8080/api/appointments",
+        "url": "=http://{{ $('Service Key 2').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -458,7 +456,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "http://localhost:8080/api/appointments/={{ $fromAI('Appointment_ID', 'UUID appuntamento da spostare', 'string') }}/reschedule",
+        "url": "=http://{{ $('Service Key 2').first().json.serverUrl }}/api/appointments/{{ $fromAI('Appointment_ID', 'UUID appuntamento da spostare', 'string') }}/reschedule",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -536,7 +534,8 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "106bb13d-fc3b-450d-8ef4-6c4b6d8ee63e", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" }
+            { "id": "106bb13d-fc3b-450d-8ef4-6c4b6d8ee63e", "name": "serviceKey", "value": "<SERVICE_KEY>", "type": "string" },
+            { "id": "720f8c75-4c9f-4b4d-bd95-7629a2bebded", "name": "serverUrl", "value": "192.168.100.111:8080", "type": "string" }
           ]
         },
         "options": {}
@@ -550,7 +549,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8080/api/public/service-token",
+        "url": "=http://{{ $('Service Key 3').first().json.serverUrl }}/api/public/service-token",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -591,7 +590,7 @@
     },
     {
       "parameters": {
-        "url": "http://localhost:8080/api/appointments",
+        "url": "=http://{{ $('Service Key 3').first().json.serverUrl }}/api/appointments",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -616,7 +615,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "http://localhost:8080/api/appointments/={{ $fromAI('Appointment_ID', 'UUID appuntamento da cancellare', 'string') }}/status?status=cancelled",
+        "url": "=http://{{ $('Service Key 3').first().json.serverUrl }}/api/appointments/{{ $fromAI('Appointment_ID', 'UUID appuntamento da cancellare', 'string') }}/status?status=cancelled",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
