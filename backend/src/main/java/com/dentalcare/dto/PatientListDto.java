@@ -20,5 +20,6 @@ public record PatientListDto(
         Long openTreatmentItemsCount,
         Long totalAppointments,
         BigDecimal acceptedEstimatesAmount,
-        String photoUrl
+        String photoUrl,
+        boolean active
 ) {}

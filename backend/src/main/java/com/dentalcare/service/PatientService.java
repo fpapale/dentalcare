@@ -38,6 +38,7 @@ public class PatientService {
                    v.fiscal_code, v.birth_date, v.age_years, v.phone, v.email, v.city, v.province,
                    v.treatment_plans_count, v.open_treatment_items_count,
                    v.accepted_estimates_amount,
+                   v.active,
                    (SELECT COUNT(*) FROM %s.appointments a
                     WHERE a.patient_id = v.patient_id AND a.clinic_id = v.clinic_id) AS total_appointments,
                    pat.photo_url
@@ -197,6 +198,27 @@ public class PatientService {
         jdbc.update(deleteSql, existsParams);
     }
 
+    public void archive(UUID patientId) {
+        setActive(patientId, false);
+    }
+
+    public void restore(UUID patientId) {
+        setActive(patientId, true);
+    }
+
+    private void setActive(UUID patientId, boolean active) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String sql = "UPDATE " + s() + ".patients SET active = :active WHERE id = :id AND clinic_id = :clinicId";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("active", active)
+                .addValue("id", patientId)
+                .addValue("clinicId", clinicId);
+        int updated = jdbc.update(sql, params);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Patient not found: " + patientId);
+        }
+    }
+
     private PatientListDto mapListRow(ResultSet rs) throws SQLException {
         return new PatientListDto(
                 rs.getObject("patient_id", UUID.class),
@@ -214,7 +236,8 @@ public class PatientService {
                 rs.getLong("open_treatment_items_count"),
                 rs.getLong("total_appointments"),
                 rs.getBigDecimal("accepted_estimates_amount"),
-                rs.getString("photo_url")
+                rs.getString("photo_url"),
+                rs.getBoolean("active")
         );
     }
 

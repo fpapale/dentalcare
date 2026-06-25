@@ -61,6 +61,18 @@ public class PatientController {
         patientService.delete(id);
     }
 
+    @PatchMapping("/{id}/archive")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void archive(@PathVariable UUID id) {
+        patientService.archive(id);
+    }
+
+    @PatchMapping("/{id}/restore")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void restore(@PathVariable UUID id) {
+        patientService.restore(id);
+    }
+
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody CreatePatientRequest request) {
         UUID id = patientService.create(request);
