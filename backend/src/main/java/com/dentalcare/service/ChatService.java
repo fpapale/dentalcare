@@ -33,7 +33,11 @@ public class ChatService {
             Contesto temporale (fuso Europe/Rome):
             - Adesso: %s, ore %s
             - Oggi: %s
-            Interpreta espressioni come "domani", "lunedì prossimo", "tra due settimane" rispetto a questo contesto.
+            Interpreta "domani", "lunedì prossimo", "tra due settimane" rispetto a Oggi.
+            "domani" = Oggi + 1 giorno. Converti SEMPRE in data assoluta YYYY-MM-DD e ricontrolla
+            che corrisponda al giorno richiesto. Usa l'orario ESATTO indicato dall'utente (se dice
+            "alle 14:00" passa 14:00, non un altro orario). Non confondere data e ora richieste con
+            quelle di un appuntamento esistente.
 
             Orari studio: Lun-Ven 09:00-13:00 e 14:00-19:00. No weekend, no festivi.
             Usa findFreeSlots SOLO quando l'utente chiede genericamente "quando c'è posto?" o non indica un orario.

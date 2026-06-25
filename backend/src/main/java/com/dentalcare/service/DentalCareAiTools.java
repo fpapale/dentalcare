@@ -276,12 +276,14 @@ public class DentalCareAiTools {
         // Mai cambiare poltrona/orario in silenzio: avvisa e PROPONI, la conferma resta all'utente.
         AppointmentConflictException conflict = appointmentService.rescheduleConflict(apptId, req);
         if (conflict != null) {
-            log.info("rescheduleAppointment conflict in anteprima: apptId={} type={} msg='{}'",
-                    apptId, conflict.getConflictType(), conflict.getMessage());
+            log.info("rescheduleAppointment conflict in anteprima: apptId={} type={} date={} time={} msg='{}'",
+                    apptId, conflict.getConflictType(), date, time, conflict.getMessage());
+            // Riporta SEMPRE data+ora tentate: rende l'errore trasparente e auto-correggibile.
+            String when = "Per il " + date + " alle " + time + ": ";
             return switch (conflict.getConflictType()) {
                 case "CHAIR_CONFLICT" -> {
                     List<String> freeChairs = appointmentService.findFreeChairs(start, end);
-                    yield conflict.getMessage() + (freeChairs.isEmpty()
+                    yield when + conflict.getMessage() + (freeChairs.isEmpty()
                             ? " Nessun'altra poltrona libera in questo orario: scegli un altro orario."
                             : " Poltrone libere a quell'ora: " + String.join(", ", freeChairs)
                               + ". Vuoi spostarlo in una di queste?");
@@ -291,12 +293,12 @@ public class DentalCareAiTools {
                     List<String> slots = provId == null ? List.of()
                             : appointmentService.findFreeSlots(provId, LocalDate.parse(date), dur).stream()
                                     .map(s -> s.atZoneSameInstant(ROME).format(HHMM)).limit(5).toList();
-                    yield conflict.getMessage() + (slots.isEmpty()
+                    yield when + conflict.getMessage() + (slots.isEmpty()
                             ? " Nessuno slot libero per il medico quel giorno: prova un'altra data."
-                            : " Orari liberi del medico: " + String.join(", ", slots)
+                            : " Orari liberi del medico il " + date + ": " + String.join(", ", slots)
                               + ". Quale preferisci?");
                 }
-                default -> conflict.getMessage() + " Indica un altro orario o un'altra poltrona.";
+                default -> when + conflict.getMessage() + " Indica un altro orario o un'altra poltrona.";
             };
         }
 
