@@ -45,7 +45,8 @@ public class PatientService {
               AND (CAST(:search AS text) IS NULL
                    OR v.patient_full_name ILIKE '%%' || CAST(:search AS text) || '%%'
                    OR v.fiscal_code ILIKE '%%' || CAST(:search AS text) || '%%'
-                   OR v.phone ILIKE '%%' || CAST(:search AS text) || '%%')
+                   OR v.phone ILIKE '%%' || CAST(:search AS text) || '%%'
+                   OR v.email ILIKE '%%' || CAST(:search AS text) || '%%')
             """.formatted(s(), s(), s()) + providerFilter + """
             ORDER BY v.patient_last_name, v.patient_first_name
             """;
