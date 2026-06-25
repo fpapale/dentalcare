@@ -13,6 +13,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 1 | Aggiornamento agenda in tempo reale (SSE) | Medio-basso (~½ giornata) | Proposta |
 | 2 | Retell multi-studio: agente per sede/poltrona | Medio (~1 giornata) | Proposta |
 | 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
+| 4 | Documenti paziente: tab CRUD con allegati base64 | Medio (~1 giornata) | Proposta |
 
 ---
 
@@ -230,3 +231,157 @@ Aggiornare `install.sql` e la funzione `create_tenant`.
 - Pazienti stranieri con CF temporaneo italiano (11 cifre) sono trattati come stranieri → checkbox `pazienteStraniero = true`
 - Il flag `foreign_patient` in DB è utile per report fiscali e fatturazione (le fatture a stranieri senza CF italiano hanno trattamento diverso)
 - La validazione algoritmica del carattere di controllo (Luhn-like) è opzionale — regex + cross-check data coprono il 99% degli errori di battitura; aggiungibile in una seconda iterazione
+
+---
+
+## 4. Documenti paziente: tab CRUD con allegati base64
+
+**Stato:** Proposta
+**Data proposta:** 2026-06-25
+**Impatto:** Medio (~1 giornata)
+
+### Problema
+La tab "Documenti" nella scheda paziente esiste nel menu ma è completamente vuota — nessun component, nessuna tabella DB, nessun endpoint. Non è possibile allegare o visualizzare documenti (ortopanoramine, referti, consensi, RX, ecc.) ai pazienti.
+
+### Soluzione
+
+#### Tipi di documento supportati
+
+| Codice | Etichetta |
+|--------|-----------|
+| `ortopanoramica` | Ortopanoramica ⭐ |
+| `rx_endorale` | RX Endorale |
+| `cefalometria` | Cefalometria |
+| `tac_cbct` | TAC / CBCT |
+| `foto_clinica` | Foto clinica |
+| `consenso_informato` | Consenso informato |
+| `referto` | Referto / Lettera |
+| `altro` | Altro |
+
+#### Fase 1 — DB: tabella `patient_documents`
+
+```sql
+CREATE TABLE patient_documents (
+    id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id       uuid        NOT NULL REFERENCES clinics(id),
+    patient_id      uuid        NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    document_type   text        NOT NULL DEFAULT 'altro',
+    title           text        NOT NULL,
+    file_name       text        NOT NULL,
+    mime_type       text        NOT NULL,         -- 'image/jpeg', 'image/png', 'application/pdf'
+    file_base64     text        NOT NULL,         -- contenuto in base64
+    file_size_bytes integer,
+    notes           text,
+    taken_at        date,                         -- data esame/documento
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ON patient_documents (patient_id, clinic_id);
+```
+
+Aggiornare `install.sql` e la funzione `create_tenant`.
+
+> **Nota dimensioni:** base64 aumenta il peso del file del ~33%. Un'ortopanoramica JPEG da 5MB diventa ~6.7MB in DB. Per studi con molti pazienti valutare in futuro object storage (MinIO/S3) con solo URL in DB — rimandato a iterazione futura. Limite upload suggerito: **15 MB per file**.
+
+#### Fase 2 — Backend
+
+**Endpoint:**
+```
+GET    /api/patients/{patientId}/documents          → lista metadati (NO base64)
+POST   /api/patients/{patientId}/documents          → upload nuovo documento
+GET    /api/patients/{patientId}/documents/{id}     → metadati + base64 (per preview/download)
+PUT    /api/patients/{patientId}/documents/{id}     → aggiorna solo metadati (title, notes, takenAt, documentType)
+DELETE /api/patients/{patientId}/documents/{id}     → elimina
+```
+
+**Separazione metadati / contenuto** obbligatoria: il GET lista non include `file_base64` per evitare payload enormi. Il base64 viene restituito solo sul GET singolo.
+
+**DTO:**
+```java
+// Lista (senza base64)
+public record PatientDocumentSummaryDto(
+    UUID id, String documentType, String title,
+    String fileName, String mimeType, Integer fileSizeBytes,
+    String notes, LocalDate takenAt, LocalDateTime createdAt
+) {}
+
+// Dettaglio (con base64)
+public record PatientDocumentDto(
+    UUID id, String documentType, String title,
+    String fileName, String mimeType, Integer fileSizeBytes,
+    String fileBase64, String notes, LocalDate takenAt, LocalDateTime createdAt
+) {}
+
+// Upload
+public record CreatePatientDocumentRequest(
+    @NotBlank String documentType,
+    @NotBlank String title,
+    @NotBlank String fileName,
+    @NotBlank String mimeType,
+    @NotBlank String fileBase64,    // già convertito da frontend
+    Integer fileSizeBytes,
+    String notes,
+    LocalDate takenAt
+) {}
+
+// Aggiorna metadati
+public record UpdatePatientDocumentRequest(
+    @NotBlank String title,
+    String documentType,
+    String notes,
+    LocalDate takenAt
+) {}
+```
+
+**Classi:** `PatientDocumentService`, `PatientDocumentController` (nuovo file ciascuno).
+
+#### Fase 3 — Frontend
+
+**Nuovo component:** `documenti-tab.component.ts/html` in `frontend/src/app/features/pazienti/documenti-tab/`
+
+**Nuovo model:** `patient-document.model.ts` in `core/models/`
+
+**Nuovo service:** `patient-document.service.ts` in `core/services/`
+
+**UX tab Documenti:**
+- Grid card dei documenti (icona tipo + titolo + data + dimensione)
+- Thumbnail inline per immagini (JPEG/PNG) — `<img [src]="'data:'+doc.mimeType+';base64,'+doc.fileBase64">`
+- Icona PDF per file PDF; icona generica per altri tipi
+- Bottone "+ Aggiungi documento" → dialog/form upload
+- Click su card → modal preview (immagine a schermo intero o PDF in `<iframe>`)
+- Bottone download → `<a [href]="dataUrl" [download]="doc.fileName">`
+- Bottone elimina con confirm dialog
+- Bottone modifica metadati (titolo, tipo, note, data) senza re-upload
+
+**Upload flow (FileReader API):**
+```typescript
+onFileSelected(event: Event): void {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  // Limit check
+  if (file.size > 15 * 1024 * 1024) { this.uploadError.set('File troppo grande (max 15 MB)'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64 = (reader.result as string).split(',')[1]; // strip data:...;base64,
+    this.pendingFile.set({ name: file.name, mimeType: file.type, base64, sizeBytes: file.size });
+  };
+  reader.readAsDataURL(file);
+}
+```
+
+**Integrazione in `paziente-detail.component.html`:** aggiungere `@if (activeTab() === 'documenti') { <app-documenti-tab [patientId]="pazienteId"> }`.
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| DB | patch SQL + install.sql + create_tenant |
+| Backend | `PatientDocumentSummaryDto`, `PatientDocumentDto`, `CreatePatientDocumentRequest`, `UpdatePatientDocumentRequest`, `PatientDocumentService`, `PatientDocumentController` |
+| Frontend | `documenti-tab/` (component nuovo), `patient-document.model.ts`, `patient-document.service.ts`, modifica `paziente-detail.component.html` |
+
+### Note
+- La tab "Documenti" esiste già nel loop tab del template — basta aggiungere il branch `@if` per il contenuto
+- Tipi MIME accettati: `image/jpeg`, `image/png`, `image/webp`, `application/pdf`; altri bloccati a livello di `<input accept="">`
+- Il campo `taken_at` (data esame) è distinto da `created_at` (data upload) — importante per ordinare le ortopanoramine per data clinica
+- Ordinamento default lista: `taken_at DESC NULLS LAST, created_at DESC`
+- Limite 15MB per file è pratico per ortopanoramine JPEG; per CBCT in DICOM (>100MB) servirà object storage — fuori scope ora
