@@ -14,6 +14,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 2 | Retell multi-studio: agente per sede/poltrona | Medio (~1 giornata) | Proposta |
 | 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
 | 4 | Documenti paziente: tab CRUD con allegati base64 | Medio (~1 giornata) | Proposta |
+| 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
 
 ---
 
@@ -384,4 +385,135 @@ onFileSelected(event: Event): void {
 - Tipi MIME accettati: `image/jpeg`, `image/png`, `image/webp`, `application/pdf`; altri bloccati a livello di `<input accept="">`
 - Il campo `taken_at` (data esame) è distinto da `created_at` (data upload) — importante per ordinare le ortopanoramine per data clinica
 - Ordinamento default lista: `taken_at DESC NULLS LAST, created_at DESC`
-- Limite 15MB per file è pratico per ortopanoramine JPEG; per CBCT in DICOM (>100MB) servirà object storage — fuori scope ora
+- Limite 15MB per file è pratico per ortopanoramine JPEG; per CBCT in DICOM (>100MB) servirà object storage → vedi proposta #5
+
+---
+
+## 5. Object storage MinIO per documenti grandi (CBCT/DICOM)
+
+**Stato:** Proposta
+**Data proposta:** 2026-06-25
+**Impatto:** Medio (~1 giornata)
+**Prerequisito:** Proposta #4 implementata
+
+### Problema
+La proposta #4 salva i file in base64 nel DB PostgreSQL. Funziona per JPEG/PNG/PDF ≤15MB, ma non scala per:
+- CBCT / DICOM: 50–500MB per scan
+- Studi con molti pazienti: la tabella `patient_documents` diventa enorme e le query rallentano
+- Backup DB: dimensioni esplose per colpa dei blob
+
+### Soluzione: MinIO self-hosted (S3-compatibile)
+
+MinIO è un object storage open source che gira come container Docker. API identica ad AWS S3 → il codice è portabile su cloud senza modifiche.
+
+#### Fase 1 — Infrastruttura: aggiungi MinIO a docker-compose
+
+```yaml
+minio:
+  image: minio/minio:latest
+  command: server /data --console-address ":9001"
+  restart: unless-stopped
+  environment:
+    MINIO_ROOT_USER: ${MINIO_USER}
+    MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+  volumes:
+    - minio_data:/data
+  ports:
+    - "127.0.0.1:9000:9000"   # API S3 (solo localhost, non esposta)
+    - "127.0.0.1:9001:9001"   # Web console admin
+
+volumes:
+  minio_data:
+```
+
+Credenziali in `.env` (già gitignored). Web console raggiungibile via SSH tunnel.
+
+#### Fase 2 — DB: migrazione `patient_documents`
+
+La tabella acquisisce i campi MinIO; `file_base64` diventa nullable per retrocompatibilità con file già caricati.
+
+```sql
+ALTER TABLE patient_documents
+    ADD COLUMN IF NOT EXISTS storage_backend text NOT NULL DEFAULT 'db',   -- 'db' | 'minio'
+    ADD COLUMN IF NOT EXISTS bucket_name     text,
+    ADD COLUMN IF NOT EXISTS object_key      text;                          -- 'patients/{patientId}/{docId}/{fileName}'
+
+-- file_base64 rimane nullable: NULL per i nuovi file su MinIO, valorizzato per i vecchi in DB
+```
+
+Regola: `storage_backend = 'db'` → leggi `file_base64`; `storage_backend = 'minio'` → scarica da MinIO via `object_key`.
+
+#### Fase 3 — Backend: dipendenza AWS SDK + MinioStorageService
+
+**`pom.xml`:**
+```xml
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>s3</artifactId>
+    <version>2.25.x</version>
+</dependency>
+```
+
+**`MinioStorageService`:**
+```java
+@Service
+public class MinioStorageService {
+
+    private final S3Client s3;
+
+    @Value("${app.minio.bucket:dentalcare-docs}")
+    private String bucket;
+
+    // Upload: restituisce object key
+    public String upload(String objectKey, byte[] data, String mimeType) { ... }
+
+    // Download: restituisce byte[]
+    public byte[] download(String objectKey) { ... }
+
+    // Delete
+    public void delete(String objectKey) { ... }
+}
+```
+
+**`application.properties` (config/):**
+```properties
+app.minio.endpoint=http://minio:9000
+app.minio.access-key=${MINIO_USER}
+app.minio.secret-key=${MINIO_PASSWORD}
+app.minio.bucket=dentalcare-docs
+```
+
+**`PatientDocumentService`:** logica biforcata in base a `storage_backend`:
+- Upload nuovo → sempre MinIO → `storage_backend='minio'`, `file_base64=null`
+- Download → se `'minio'` chiama `MinioStorageService.download()`; se `'db'` usa `file_base64` esistente
+- Delete → se `'minio'` elimina anche l'oggetto da MinIO
+
+**Endpoint invariato** — il frontend non sa dove è salvato il file.
+
+#### Fase 4 — Migrazione file esistenti (opzionale)
+
+Script one-shot che:
+1. Legge tutte le righe con `storage_backend = 'db'` e `file_base64 NOT NULL`
+2. Carica il file su MinIO
+3. Aggiorna la riga: `storage_backend='minio'`, `object_key=...`, `file_base64=NULL`
+
+Da eseguire in manutenzione fuori orario.
+
+#### Fase 5 — Frontend
+
+Nessuna modifica — il backend gestisce la trasparenza dello storage.
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| Infrastruttura | `docker-compose.yml`, `.env` |
+| DB | patch SQL ALTER TABLE |
+| Backend | `pom.xml`, `MinioStorageService`, `PatientDocumentService` (modifica logica), `application.properties` (config/) |
+| Frontend | Nessuna modifica |
+
+### Note
+- MinIO esposto solo su `127.0.0.1` — non raggiungibile dall'esterno senza SSH tunnel o proxy
+- Object key pattern: `patients/{clinicId}/{patientId}/{docId}/{fileName}` — isolamento per tenant nel bucket
+- Il bucket va creato al primo avvio (o via `mc` CLI: `mc mb minio/dentalcare-docs`)
+- Backup MinIO: `mc mirror minio/dentalcare-docs /backup/minio/` — separato dal backup DB
+- CBCT/DICOM (`.dcm`): aggiungere `application/dicom` ai MIME accettati; viewer DICOM in-browser (es. Cornerstone.js) fuori scope per ora
