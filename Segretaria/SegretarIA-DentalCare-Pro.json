@@ -392,10 +392,10 @@
     },
     {
       "parameters": {
-        "sendTo": "={{ $json.body.args.email }}",
-        "subject": "=Conferma appuntamento DentalCare per {{ $json.body.args.name }} il {{ $json.body.args.time }}",
+        "sendTo": "={{ $('Webhook1').item.json.body.args.email }}",
+        "subject": "=Conferma appuntamento DentalCare per {{ $('Webhook1').item.json.body.args.name }} il {{ $('Webhook1').item.json.body.args.time }}",
         "emailType": "text",
-        "message": "=Ciao {{ $json.body.args.name }}!\\n\\nTi confermiamo il tuo appuntamento presso Studio Dentistico DentalCare in data {{ $json.body.args.time }} per il servizio: {{ $json.body.args.service_type }}.\\n\\nA presto!\\n\\nStudio Dentistico DentalCare",
+        "message": "=Ciao {{ $('Webhook1').item.json.body.args.name }}!\\n\\nTi confermiamo il tuo appuntamento presso Studio Dentistico DentalCare in data {{ $('Webhook1').item.json.body.args.time }} per il servizio: {{ $('Webhook1').item.json.body.args.service_type }}.\\n\\nA presto!\\n\\nStudio Dentistico DentalCare",
         "options": {}
       },
       "type": "n8n-nodes-base.gmailTool",
@@ -595,10 +595,10 @@
     },
     {
       "parameters": {
-        "sendTo": "={{ $json.body.args.email }}",
-        "subject": "=Aggiornamento appuntamento DentalCare per {{ $json.body.args.name }}",
+        "sendTo": "={{ $('Webhook2').item.json.body.args.email }}",
+        "subject": "=Aggiornamento appuntamento DentalCare per {{ $('Webhook2').item.json.body.args.name }}",
         "emailType": "text",
-        "message": "=Ciao {{ $json.body.args.name }}!\\n\\nIl tuo appuntamento e' stato spostato.\\n\\nPrecedente: {{ $json.body.args.current_time }}\\nNuovo: {{ $json.body.args.new_time }}\\n\\nA presto!\\n\\nStudio Dentistico DentalCare",
+        "message": "=Ciao {{ $('Webhook2').item.json.body.args.name }}!\\n\\nIl tuo appuntamento e' stato spostato.\\n\\nPrecedente: {{ $('Webhook2').item.json.body.args.current_time }}\\nNuovo: {{ $('Webhook2').item.json.body.args.new_time }}\\n\\nA presto!\\n\\nStudio Dentistico DentalCare",
         "options": {}
       },
       "type": "n8n-nodes-base.gmailTool",
@@ -790,10 +790,10 @@
     },
     {
       "parameters": {
-        "sendTo": "={{ $json.body.args.email }}",
-        "subject": "=Cancellazione appuntamento DentalCare per {{ $json.body.args.name }}",
+        "sendTo": "={{ $('Webhook3').item.json.body.args.email }}",
+        "subject": "=Cancellazione appuntamento DentalCare per {{ $('Webhook3').item.json.body.args.name }}",
         "emailType": "text",
-        "message": "=Ciao {{ $json.body.args.name }}!\n\nIl tuo appuntamento del {{ $json.body.args.appointment_time }} per {{ $json.body.args.service_type }} e' stato cancellato.\n\nPer riprenotare contattaci.\n\nA presto!\n\nStudio Dentistico DentalCare",
+        "message": "=Ciao {{ $('Webhook3').item.json.body.args.name }}!\n\nIl tuo appuntamento del {{ $('Webhook3').item.json.body.args.appointment_time }} per {{ $('Webhook3').item.json.body.args.service_type }} e' stato cancellato.\n\nPer riprenotare contattaci.\n\nA presto!\n\nStudio Dentistico DentalCare",
         "options": {}
       },
       "type": "n8n-nodes-base.gmailTool",
