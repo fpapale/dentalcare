@@ -16,6 +16,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 4 | Documenti paziente: tab CRUD con allegati base64 | Medio (~1 giornata) | Proposta |
 | 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
 | 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Proposta |
+| 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
 
 ---
 
@@ -750,3 +751,200 @@ drawDetections(ctx: CanvasRenderingContext2D, detections: Detection[], imgW: num
 - Privacy: le ortopanoramine con label non escono mai dal server (MinIO locale + AI service locale) — GDPR compliant
 - GPU non obbligatoria per MVP: YOLOv8n su CPU impiega ~8s su ortopanoramica standard — accettabile per uso clinico non real-time
 - Se la GPU è disponibile (anche consumer RTX 3060): inference scende a ~0.3s
+
+---
+
+## 7. GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM)
+
+**Stato:** Proposta
+**Data proposta:** 2026-06-25
+**Impatto:** Alto (~2 giorni)
+
+### Problema
+I dati sanitari e anagrafici dei pazienti (codice fiscale, data di nascita, note cliniche, anamnesi, ecc.) sono salvati in chiaro nel DB. In caso di breach del database, tutti i dati sono leggibili. Il GDPR art. 32 richiede misure tecniche adeguate — la cifratura campo-per-campo con chiavi per-tenant è la soluzione più robusta.
+
+### Principio architetturale: nessuna tabella di chiavi
+
+Le chiavi tenant **non si salvano nel DB** — si derivano deterministicamente dalla master key + schema tenant tramite **HKDF** (HMAC-based Key Derivation Function, RFC 5869):
+
+```
+tenant_enc_key  = HKDF(master_key, salt=tenant_schema, info="dental-enc-v1",  length=32)
+tenant_idx_key  = HKDF(master_key, salt=tenant_schema, info="dental-idx-v1",  length=32)
+```
+
+- `master_key`: 32 byte casuali, vive **solo** nell'env var `APP_MASTER_KEY` (mai in DB, mai nel codice)
+- Schema diverso (`t_9d754153` vs `t_abc12345`) → chiave AES diversa → isolamento matematicamente garantito
+- Nessuna tabella `tenant_keys` da proteggere
+- Rotazione master key: re-encrypt batch → nuova chiave derivata per tutti i tenant
+- Revoca tenant singolo: re-encrypt schema specifico con nuova salt → dati precedenti illeggibili
+
+### Campi da cifrare
+
+| Tabella | Campo | Cifrato | Blind index (ricercabile) |
+|---------|-------|:-------:|:------------------------:|
+| patients | fiscal_code | ✅ | ✅ (match esatto) |
+| patients | birth_date | ✅ | ❌ |
+| patients | phone | ✅ | ✅ (match esatto) |
+| patients | email | ✅ | ✅ (match esatto) |
+| patients | address_line1 | ✅ | ❌ |
+| anamnesis | content/notes | ✅ | ❌ |
+| clinical_records | notes | ✅ | ❌ |
+| prescriptions | content | ✅ | ❌ |
+| patients | first_name, last_name | ❌ | — (troppo costoso cifrare + ricerca full-text) |
+| appointments | notes | ✅ | ❌ |
+
+`first_name` e `last_name` non vengono cifrati: sono necessari per la ricerca full-text e la UX; la loro pseudonimizzazione richiederebbe un motore di ricerca separato (fuori scope).
+
+### Blind Index per campi ricercabili
+
+Problema: cifrando `fiscal_code` non si può più fare `WHERE fiscal_code = ?`.
+
+Soluzione — doppia colonna:
+```sql
+-- Esempio su patients
+ALTER TABLE patients
+  ADD COLUMN fiscal_code_enc  text,   -- AES-256-GCM(plaintext, enc_key) → Base64
+  ADD COLUMN fiscal_code_idx  text;   -- HMAC-SHA256(lower(plaintext), idx_key) → hex
+
+-- La colonna fiscal_code originale diventa NULL dopo migrazione, poi si elimina
+```
+
+Ricerca:
+```sql
+-- Invece di: WHERE fiscal_code = :input
+-- Si usa:    WHERE fiscal_code_idx = :idx
+-- Dove :idx = HMAC-SHA256(lower(input), tenant_idx_key)
+```
+
+### Fase 1 — Backend: TenantEncryptionService
+
+```java
+@Service
+public class TenantEncryptionService {
+
+    private final byte[] masterKey; // @Value("${app.encryption.master-key}")
+
+    private final Map<String, SecretKey> encKeyCache = new ConcurrentHashMap<>();
+    private final Map<String, SecretKey> idxKeyCache = new ConcurrentHashMap<>();
+
+    public String encrypt(String plaintext, String tenantSchema) {
+        if (plaintext == null) return null;
+        SecretKey key = encKey(tenantSchema);
+        byte[] iv = randomIv();                             // 12 byte GCM
+        byte[] cipher = aesGcmEncrypt(plaintext.getBytes(UTF_8), key, iv);
+        return Base64.encode(concat(iv, cipher));           // iv(12) || ciphertext || tag(16)
+    }
+
+    public String decrypt(String ciphertext, String tenantSchema) {
+        if (ciphertext == null) return null;
+        byte[] raw = Base64.decode(ciphertext);
+        byte[] iv = Arrays.copyOf(raw, 12);
+        byte[] cipher = Arrays.copyOfRange(raw, 12, raw.length);
+        return new String(aesGcmDecrypt(cipher, encKey(tenantSchema), iv), UTF_8);
+    }
+
+    public String blindIndex(String plaintext, String tenantSchema) {
+        if (plaintext == null) return null;
+        return hmacSha256Hex(plaintext.toLowerCase(Locale.ROOT), idxKey(tenantSchema));
+    }
+
+    private SecretKey encKey(String schema) {
+        return encKeyCache.computeIfAbsent(schema,
+            s -> hkdfDerive(masterKey, s, "dental-enc-v1"));
+    }
+
+    private SecretKey idxKey(String schema) {
+        return idxKeyCache.computeIfAbsent(schema,
+            s -> hkdfDerive(masterKey, s, "dental-idx-v1"));
+    }
+}
+```
+
+**Dipendenze `pom.xml`:** solo `javax.crypto` standard JDK (AES-GCM e HMAC-SHA256 sono già built-in) + `org.bouncycastle:bcprov-jdk18on` per HKDF.
+
+### Fase 2 — DB: aggiunta colonne `_enc` e `_idx`
+
+```sql
+-- patients
+ALTER TABLE patients
+  ADD COLUMN fiscal_code_enc text,
+  ADD COLUMN fiscal_code_idx text,
+  ADD COLUMN birth_date_enc  text,
+  ADD COLUMN phone_enc       text,
+  ADD COLUMN phone_idx       text,
+  ADD COLUMN email_enc       text,
+  ADD COLUMN email_idx       text,
+  ADD COLUMN address_enc     text;
+
+-- anamnesis (content già esistente)
+ALTER TABLE anamnesis ADD COLUMN content_enc text;
+
+-- appointments
+ALTER TABLE appointments ADD COLUMN notes_enc text;
+
+-- (altre tabelle con note cliniche: stesso pattern)
+```
+
+Le colonne originali restano temporaneamente per retrocompatibilità durante la migrazione; vengono eliminate dopo.
+
+### Fase 3 — Migrazione dati esistenti
+
+Script Java (o SQL con pgcrypto come supporto) che:
+1. Legge tutte le righe in chiaro
+2. Cifra con `TenantEncryptionService`
+3. Scrive nelle colonne `_enc` / `_idx`
+4. Setta le colonne originali a `NULL`
+
+Da eseguire in manutenzione (pochi minuti per studi con <10.000 pazienti).
+
+Dopo migrazione: `DROP COLUMN fiscal_code`, rinomina `fiscal_code_enc → fiscal_code` (opzionale — o mantieni il suffisso per chiarezza).
+
+### Fase 4 — Aggiornamento service layer
+
+Ogni service che legge/scrive campi sensibili:
+
+```java
+// PatientService.create
+params.addValue("fiscalCode", enc.encrypt(req.fiscalCode(), schema));
+params.addValue("fiscalCodeIdx", enc.blindIndex(req.fiscalCode(), schema));
+
+// PatientService.findAll (ricerca)
+String idx = enc.blindIndex(searchQuery, schema);
+"WHERE fiscal_code_idx = :idx OR ..."
+
+// PatientService mapRow → decrypt
+new PatientDto(..., enc.decrypt(rs.getString("fiscal_code"), schema), ...)
+```
+
+### Fase 5 — Configurazione
+
+**`config/application.properties` (gitignored, mai in repo):**
+```properties
+app.encryption.master-key=<64-char-hex-random-generated-once>
+```
+
+Generazione master key (una tantum):
+```bash
+openssl rand -hex 32
+```
+
+**Rotazione master key (procedura):**
+1. Genera nuova master key
+2. Esegui script di re-encryption: leggi con vecchia chiave, riscrivi con nuova
+3. Sostituisci master key in env
+4. Riavvia container
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| DB | patch SQL (ALTER TABLE + indici su `_idx`) + aggiornamento install.sql + script migrazione |
+| Backend | nuovo `TenantEncryptionService`, modifica `PatientService`, `AnamnesisService`, `AppointmentService`, `PrescrizioneService`, `ClinicalRecordService` |
+| Config | `config/application.properties` (aggiunta `app.encryption.master-key`) |
+| Frontend | Nessuna modifica — la cifratura è trasparente |
+
+### Note
+- AES-256-GCM con IV casuale per ogni encrypt → stessa stringa → ciphertext diverso ogni volta (non deterministico) — il blind index risolve la ricercabilità
+- Le chiavi derivate sono cachate in memoria per performance — invalidare la cache a rotazione
+- Il campo `first_name` / `last_name` non viene cifrato per non rompere la ricerca anagrafica: se richiesto in futuro, serve un motore di ricerca tokenizzato separato (es. pg_trgm cifrato o ElasticSearch)
+- I file in MinIO (ortopanoramine, PDF) sono cifrati separatamente con **MinIO Server-Side Encryption** (SSE-S3 o SSE-C) — zero modifiche al codice applicativo
+- Audit log: ogni accesso a dato cifrato loggato con `actor_id` + `resource` (senza loggare il plaintext)
