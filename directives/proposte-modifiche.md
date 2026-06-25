@@ -15,6 +15,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
 | 4 | Documenti paziente: tab CRUD con allegati base64 | Medio (~1 giornata) | Proposta |
 | 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
+| 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Proposta |
 
 ---
 
@@ -517,3 +518,203 @@ Nessuna modifica — il backend gestisce la trasparenza dello storage.
 - Il bucket va creato al primo avvio (o via `mc` CLI: `mc mb minio/dentalcare-docs`)
 - Backup MinIO: `mc mirror minio/dentalcare-docs /backup/minio/` — separato dal backup DB
 - CBCT/DICOM (`.dcm`): aggiungere `application/dicom` ai MIME accettati; viewer DICOM in-browser (es. Cornerstone.js) fuori scope per ora
+
+---
+
+## 6. AI YOLO: rilevamento carie su ortopanoramica + retraining
+
+**Stato:** Proposta
+**Data proposta:** 2026-06-25
+**Impatto:** Alto (~3-5 giorni)
+**Prerequisiti:** Proposta #4 (tab documenti) + Proposta #5 (MinIO)
+
+### Obiettivo
+Quando il medico carica un'ortopanoramica, il sistema la analizza automaticamente con un modello YOLO e mostra i bounding box delle carie (e altre patologie) sovraimposti all'immagine. Il medico può correggere/approvare i rilevamenti, che alimentano il retraining del modello.
+
+### Perché MinIO (#5) e non base64 (#4)
+
+| | Base64 in DB | MinIO |
+|---|---|---|
+| Inference YOLO su 1 file | Decode da DB → pass a YOLO | Accesso diretto file da Python |
+| Training su 5000 ortopanoramine | **Impossibile** — DB satura | Lettura diretta da bucket |
+| Salvataggio dataset labelato | Blob nel DB | File `.txt` YOLO in bucket separato |
+
+MinIO è prerequisito non negoziabile per questa feature.
+
+### Classi rilevabili (YOLO dental)
+
+```
+carie            — dental caries
+carie_profonda   — deep caries / periapical lesion
+impianto         — implant
+moncone          — abutment
+corona           — crown
+radice_residua   — retained root
+dente_incluso    — impacted tooth
+perdita_ossea    — bone loss
+```
+
+Dataset pubblici disponibili per pre-training: **DENTEX 2023** (MICCAI), **Tufts Dental Database**.
+
+### Architettura
+
+```
+Frontend Angular
+  └── upload ortopanoramica → MinIO (via backend)
+  └── POST /api/patients/{id}/documents/{docId}/analyze
+         → Spring Backend
+              → HTTP call → Python AI Service (FastAPI)
+                    → legge immagine da MinIO (boto3)
+                    → YOLO inference (ultralytics)
+                    → restituisce detections []
+              → salva in patient_document_analyses (DB)
+  └── overlay bounding box sull'immagine (Canvas API)
+  └── medico corregge/approva → POST /api/documents/{docId}/labels
+         → salva in patient_document_labels (DB)
+         → trigger retraining (asincrono)
+```
+
+### Fase 1 — Nuove tabelle DB
+
+```sql
+-- Risultati inference
+CREATE TABLE patient_document_analyses (
+    id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id       uuid        NOT NULL,
+    document_id     uuid        NOT NULL REFERENCES patient_documents(id) ON DELETE CASCADE,
+    model_version   text        NOT NULL,                    -- es. "dental-yolo-v1.2"
+    status          text        NOT NULL DEFAULT 'pending',  -- pending|running|completed|failed
+    detections      jsonb,      -- [{class, confidence, x1,y1,x2,y2, approved}]
+    error_message   text,
+    duration_ms     integer,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+-- Label corrette dal medico (per retraining)
+CREATE TABLE patient_document_labels (
+    id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id       uuid        NOT NULL,
+    document_id     uuid        NOT NULL REFERENCES patient_documents(id) ON DELETE CASCADE,
+    labeled_by      uuid,                                    -- user_id del medico
+    labels          jsonb       NOT NULL,                    -- formato YOLO: [{class_id, x_c, y_c, w, h}]
+    exported_at     timestamptz,                             -- quando incluso in training run
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+```
+
+### Fase 2 — Python AI Service (microservizio Docker)
+
+**Stack:** Python 3.11, FastAPI, Ultralytics YOLOv8/v11, boto3, torch.
+
+```
+ai-service/
+├── Dockerfile
+├── requirements.txt
+├── main.py          — FastAPI app
+├── inference.py     — YOLO inference logic
+├── training.py      — fine-tuning / retraining pipeline
+└── models/
+    └── dental_yolo.pt   — modello base (volume Docker)
+```
+
+**Endpoints FastAPI:**
+```
+POST /infer          — { object_key } → { detections, model_version, duration_ms }
+POST /train          — avvia job retraining asincrono (background task)
+GET  /train/status   — stato job corrente
+GET  /models         — lista versioni modello disponibili
+```
+
+**`docker-compose.yml` aggiunta:**
+```yaml
+ai-service:
+  build: ./ai-service/
+  restart: unless-stopped
+  environment:
+    MINIO_ENDPOINT: http://minio:9000
+    MINIO_ACCESS_KEY: ${MINIO_USER}
+    MINIO_SECRET_KEY: ${MINIO_PASSWORD}
+    MINIO_BUCKET: dentalcare-docs
+    MODEL_PATH: /models/dental_yolo.pt
+    TRAINING_DATASET_BUCKET: dentalcare-training
+  volumes:
+    - ai_models:/models
+  ports:
+    - "127.0.0.1:8001:8001"    # solo interno
+
+volumes:
+  ai_models:
+```
+
+**GPU:** se il server ha GPU NVIDIA, aggiungere `runtime: nvidia` e `CUDA_VISIBLE_DEVICES=0`. Su CPU funziona ma inference ~5-15s per immagine vs ~0.5s con GPU.
+
+### Fase 3 — Backend Spring Boot
+
+**Nuovo endpoint:**
+```
+POST /api/patients/{patientId}/documents/{docId}/analyze
+  → chiama AI service → salva analysis → restituisce analysisId
+
+GET  /api/patients/{patientId}/documents/{docId}/analysis
+  → restituisce ultima analysis (status + detections)
+
+POST /api/patients/{patientId}/documents/{docId}/labels
+  → salva label corrette dal medico
+  → se totale label > soglia → trigger retraining asincrono via AI service
+```
+
+**`AiAnalysisService`:** gestisce chiamata HTTP a `http://ai-service:8001/infer`, polling status, salvataggio risultati.
+
+### Fase 4 — Frontend Angular
+
+**Al momento del caricamento ortopanoramica:** bottone "Analizza con AI" → spinner → mostra risultati.
+
+**Overlay bounding box (Canvas API):**
+```typescript
+// Dopo ricezione detections, disegna su canvas sovrapposto all'immagine
+drawDetections(ctx: CanvasRenderingContext2D, detections: Detection[], imgW: number, imgH: number): void {
+  for (const d of detections) {
+    ctx.strokeStyle = d.approved ? '#10b981' : '#f59e0b';  // verde=approvato, ambra=da verificare
+    ctx.lineWidth = 2;
+    ctx.strokeRect(d.x1 * imgW, d.y1 * imgH, (d.x2 - d.x1) * imgW, (d.y2 - d.y1) * imgH);
+    ctx.fillText(`${d.class} ${Math.round(d.confidence * 100)}%`, d.x1 * imgW, d.y1 * imgH - 4);
+  }
+}
+```
+
+**UI correzione label:**
+- Click su bounding box → dialog: "Conferma rilevamento / Rimuovi / Cambia classe"
+- Bottone "Salva correzioni" → POST /labels → alimenta retraining
+
+### Fase 5 — Retraining pipeline
+
+**Trigger automatico:** quando `patient_document_labels` accumula N nuove label (es. 50) dall'ultimo training → Spring chiama `POST /train` su AI service.
+
+**Training job (Python asincrono):**
+1. Scarica tutte le label da DB
+2. Scarica le immagini corrispondenti da MinIO
+3. Prepara dataset in formato YOLO (`images/`, `labels/`)
+4. Fine-tune del modello base con `model.train(data=..., epochs=50)`
+5. Valuta su validation set → se mAP migliora, promuovi a `dental_yolo_v{n+1}.pt`
+6. Aggiorna `MODEL_PATH` → le inference successive usano il modello aggiornato
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| Infrastruttura | `docker-compose.yml`, `.env`, nuovo folder `ai-service/` |
+| DB | 2 nuove tabelle + aggiornamento install.sql |
+| Backend | `AiAnalysisService`, `AiAnalysisController`, 2 nuovi DTO |
+| Frontend | `documenti-tab` (aggiunta overlay Canvas + UI label), `patient-document.service.ts` (nuovi metodi) |
+| Python | `ai-service/` completo |
+
+### Ordine implementazione consigliato
+1. #4 (tab documenti, base64) — upload e visualizzazione immediata
+2. #5 (MinIO) — migrazione storage
+3. #6 questa — AI inference + label loop + retraining
+
+### Note
+- Modello base: scaricare **DENTEX 2023** weights o fine-tune YOLOv8n dental da HuggingFace come punto di partenza
+- Confidence threshold suggerito per UI: 0.35 (sopra → mostra box; sotto → ignora)
+- Privacy: le ortopanoramine con label non escono mai dal server (MinIO locale + AI service locale) — GDPR compliant
+- GPU non obbligatoria per MVP: YOLOv8n su CPU impiega ~8s su ortopanoramica standard — accettabile per uso clinico non real-time
+- Se la GPU è disponibile (anche consumer RTX 3060): inference scende a ~0.3s
