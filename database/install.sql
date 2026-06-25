@@ -18,6 +18,9 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+CREATE DATABASE :"dbname";
+\connect :"dbname"
+
 --
 -- Name: dentalcare; Type: SCHEMA; Schema: -; Owner: -
 --
