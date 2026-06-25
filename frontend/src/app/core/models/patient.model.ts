@@ -15,6 +15,7 @@ export interface PatientListItem {
   totalAppointments: number;
   acceptedEstimatesAmount: number | null;
   photoUrl?: string | null;
+  active: boolean;
 }
 
 export interface PatientDetail {

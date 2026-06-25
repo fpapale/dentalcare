@@ -45,7 +45,11 @@ export class PazientiComponent {
   }
 
   get filteredPatients(): PatientListItem[] {
-    return this.patients();
+    const f = this.activeFilter();
+    const all = this.patients();
+    if (f === 'attivi') return all.filter(p => p.active);
+    if (f === 'archiviati') return all.filter(p => !p.active);
+    return all;
   }
 
   setFilter(f: 'tutti' | 'attivi' | 'archiviati'): void {
@@ -79,6 +83,21 @@ export class PazientiComponent {
         const msg = err.error?.message ?? 'Impossibile eliminare il paziente.';
         alert(msg);
       }
+    });
+  }
+
+  archivePatient(p: PatientListItem): void {
+    if (!confirm(`Archiviare ${p.patientFullName}? Il paziente non apparirà più nella lista attivi.`)) return;
+    this.patientService.archive(p.patientId).subscribe({
+      next: () => this.loadPatients(this.userContext.providerId()),
+      error: () => alert('Impossibile archiviare il paziente.')
+    });
+  }
+
+  restorePatient(p: PatientListItem): void {
+    this.patientService.restore(p.patientId).subscribe({
+      next: () => this.loadPatients(this.userContext.providerId()),
+      error: () => alert('Impossibile ripristinare il paziente.')
     });
   }
 }

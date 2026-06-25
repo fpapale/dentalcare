@@ -68,4 +68,12 @@ export class PatientService {
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
+
+  archive(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.base}/${id}/archive`, {});
+  }
+
+  restore(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.base}/${id}/restore`, {});
+  }
 }
