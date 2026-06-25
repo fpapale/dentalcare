@@ -502,14 +502,29 @@ export class AgendaComponent {
 
   // ─── Common helpers ───────────────────────────────────────────────────────
 
+  private readonly chairPalette = [
+    'bg-blue-100 border-blue-400 text-blue-900',
+    'bg-violet-100 border-violet-400 text-violet-900',
+    'bg-emerald-100 border-emerald-400 text-emerald-900',
+    'bg-orange-100 border-orange-400 text-orange-900',
+    'bg-pink-100 border-pink-400 text-pink-900',
+    'bg-cyan-100 border-cyan-400 text-cyan-900',
+    'bg-amber-100 border-amber-400 text-amber-900',
+    'bg-teal-100 border-teal-400 text-teal-900',
+  ];
+
+  private chairColor(label: string): string {
+    if (!label) return this.chairPalette[0];
+    let h = 0;
+    for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) & 0xffff;
+    return this.chairPalette[h % this.chairPalette.length];
+  }
+
   apptColor(a: Appointment): string {
-    switch (a.appointmentStatus) {
-      case 'completed':             return 'bg-slate-100 border-slate-300 text-slate-600';
-      case 'cancelled': case 'no_show': return 'bg-red-100 border-red-400 text-red-800';
-      case 'confirmed':             return 'bg-blue-100 border-blue-400 text-blue-800';
-      case 'in_progress':           return 'bg-green-100 border-green-400 text-green-800';
-      default:                      return 'bg-yellow-50 border-yellow-300 text-yellow-800';
-    }
+    if (a.appointmentStatus === 'completed')  return 'bg-slate-100 border-slate-300 text-slate-500';
+    if (a.appointmentStatus === 'cancelled' || a.appointmentStatus === 'no_show')
+                                              return 'bg-red-100 border-red-400 text-red-800';
+    return this.chairColor(a.chairLabel ?? '');
   }
 
   statusLabel(a: Appointment): string {
