@@ -244,11 +244,14 @@ public class DentalCareAiTools {
             return "Errore: data/ora non valide. Usa data YYYY-MM-DD e ora HH:mm.";
         }
 
+        // Verifica SEMPRE che l'appuntamento esista (l'id non va inventato né ricordato dai turni).
+        String currentChair = appointmentService.findChairLabel(apptId);
+        if (currentChair == null)
+            return "Appuntamento non trovato. Richiama getAppointments per il giorno dell'appuntamento "
+                    + "e usa l'appointmentId esatto restituito, poi riprova.";
+
         // Poltrona: se non indicata, mantieni quella corrente dell'appuntamento.
-        String chair = (chairLabel != null && !chairLabel.isBlank())
-                ? chairLabel
-                : appointmentService.findChairLabel(apptId);
-        if (chair == null) return "Appuntamento non trovato.";
+        String chair = (chairLabel != null && !chairLabel.isBlank()) ? chairLabel : currentChair;
 
         // Medico: medical riassegna solo a se stesso; altrimenti per nome (se indicato).
         UUID newProviderId = null;
@@ -267,9 +270,38 @@ public class DentalCareAiTools {
             providerNote = ", medico: " + providerName;
         }
 
+        RescheduleAppointmentRequest req = new RescheduleAppointmentRequest(start, end, chair, newProviderId);
+
+        // Pre-check conflitti: non presentare un'anteprima confermabile su uno slot impossibile.
+        // Mai cambiare poltrona/orario in silenzio: avvisa e PROPONI, la conferma resta all'utente.
+        AppointmentConflictException conflict = appointmentService.rescheduleConflict(apptId, req);
+        if (conflict != null) {
+            log.info("rescheduleAppointment conflict in anteprima: apptId={} type={} msg='{}'",
+                    apptId, conflict.getConflictType(), conflict.getMessage());
+            return switch (conflict.getConflictType()) {
+                case "CHAIR_CONFLICT" -> {
+                    List<String> freeChairs = appointmentService.findFreeChairs(start, end);
+                    yield conflict.getMessage() + (freeChairs.isEmpty()
+                            ? " Nessun'altra poltrona libera in questo orario: scegli un altro orario."
+                            : " Poltrone libere a quell'ora: " + String.join(", ", freeChairs)
+                              + ". Vuoi spostarlo in una di queste?");
+                }
+                case "PROVIDER_CONFLICT" -> {
+                    UUID provId = newProviderId != null ? newProviderId : appointmentService.findProviderId(apptId);
+                    List<String> slots = provId == null ? List.of()
+                            : appointmentService.findFreeSlots(provId, LocalDate.parse(date), dur).stream()
+                                    .map(s -> s.atZoneSameInstant(ROME).format(HHMM)).limit(5).toList();
+                    yield conflict.getMessage() + (slots.isEmpty()
+                            ? " Nessuno slot libero per il medico quel giorno: prova un'altra data."
+                            : " Orari liberi del medico: " + String.join(", ", slots)
+                              + ". Quale preferisci?");
+                }
+                default -> conflict.getMessage() + " Indica un altro orario o un'altra poltrona.";
+            };
+        }
+
         String summary = "Spostamento appuntamento al " + date + " alle " + time
                 + " (" + dur + " min, " + chair + providerNote + ")";
-        RescheduleAppointmentRequest req = new RescheduleAppointmentRequest(start, end, chair, newProviderId);
         String code = pendingActions.register(PendingActionService.Type.RESCHEDULE,
                 currentProviderId(), null, apptId, req, summary);
         log.info("rescheduleAppointment preview ok: apptId={} chair='{}' newProvider={} code={}",
@@ -299,27 +331,36 @@ public class DentalCareAiTools {
     @Tool(description = "Execute one or more previously previewed write actions (create/reschedule/cancel appointment) using the confirmation code(s) returned by the preview tools. To confirm several actions at once pass all their codes separated by commas/spaces. Call this only after the user has explicitly confirmed.")
     public String confirmAction(
             @ToolParam(description = "One or more confirmation codes returned by the preview tools, separated by commas or spaces (e.g. '1234, 5678').") String code) {
-        if (code == null || code.isBlank()) return "Nessun codice di conferma fornito.";
-        // Estrai tutti i codici (gruppi di cifre): supporta conferma multipla.
-        List<String> codes = java.util.regex.Pattern.compile("\\d+")
-                .matcher(code).results().map(m -> m.group()).toList();
-        if (codes.isEmpty()) return "Codice di conferma non valido.";
+        // Estrai i codici (gruppi di cifre) se presenti: supporta conferma multipla.
+        List<String> codes = code == null ? List.of()
+                : java.util.regex.Pattern.compile("\\d+")
+                        .matcher(code).results().map(m -> m.group()).toList();
+
+        List<PendingActionService.Pending> toRun = new java.util.ArrayList<>();
+        for (String c : codes) {
+            PendingActionService.Pending p = pendingActions.consume(c);
+            log.info("confirmAction: code={} found={}", c, p != null);
+            if (p != null) toRun.add(p);
+        }
+        // Il modello spesso non riporta il codice tra i turni (non è nella history visibile):
+        // se nessun codice combacia, conferma le anteprime in sospeso per questo utente.
+        if (toRun.isEmpty()) {
+            toRun = pendingActions.consumeAllForScope(currentProviderId());
+            log.info("confirmAction fallback scope: pending={}", toRun.size());
+        }
+        if (toRun.isEmpty())
+            return "Nessuna azione in attesa di conferma. Indica di nuovo la modifica da fare.";
 
         List<String> results = new java.util.ArrayList<>();
-        for (String c : codes) {
-            results.add(executeOne(c));
-        }
+        for (PendingActionService.Pending p : toRun) results.add(execute(p));
         return String.join("\n", results);
     }
 
-    private String executeOne(String code) {
-        PendingActionService.Pending p = pendingActions.consume(code);
-        log.info("confirmAction executeOne: code={} found={}", code, p != null);
-        if (p == null) return "Codice " + code + ": non valido o scaduto.";
+    private String execute(PendingActionService.Pending p) {
         if (!java.util.Objects.equals(p.providerScope(), currentProviderId())) {
-            log.warn("confirmAction: scope mismatch code={} scope={} caller={}",
-                    code, p.providerScope(), currentProviderId());
-            return "Codice " + code + ": non valido per questo utente.";
+            log.warn("confirmAction: scope mismatch scope={} caller={}",
+                    p.providerScope(), currentProviderId());
+            return "Azione non valida per questo utente.";
         }
         try {
             switch (p.type()) {

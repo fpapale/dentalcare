@@ -320,43 +320,10 @@ public class AppointmentService {
         // medico effettivo: nuovo se richiesto e consentito, altrimenti quello corrente
         UUID providerId = request.providerId() != null ? request.providerId() : currentProvider;
 
-        String chairSql = """
-                SELECT COUNT(*) FROM %s.appointments
-                WHERE clinic_id   = :clinicId
-                  AND chair_label = :chairLabel
-                  AND id         != :excludeId
-                  AND status::text NOT IN ('cancelled')
-                  AND starts_at  < :endsAt
-                  AND ends_at    > :startsAt
-                """.formatted(s());
-        Integer chairCount = jdbc.queryForObject(chairSql, new MapSqlParameterSource()
-                .addValue("clinicId",   clinicId)
-                .addValue("chairLabel", request.chairLabel())
-                .addValue("excludeId",  appointmentId)
-                .addValue("startsAt",   request.startsAt())
-                .addValue("endsAt",     request.endsAt()), Integer.class);
-        if (chairCount != null && chairCount > 0)
-            throw new AppointmentConflictException("CHAIR_CONFLICT",
-                    "La " + request.chairLabel() + " è già occupata in questo orario.");
-
-        String provSql = """
-                SELECT COUNT(*) FROM %s.appointments
-                WHERE clinic_id   = :clinicId
-                  AND provider_id = :providerId
-                  AND id         != :excludeId
-                  AND status::text NOT IN ('cancelled')
-                  AND starts_at  < :endsAt
-                  AND ends_at    > :startsAt
-                """.formatted(s());
-        Integer provCount = jdbc.queryForObject(provSql, new MapSqlParameterSource()
-                .addValue("clinicId",   clinicId)
-                .addValue("providerId", providerId)
-                .addValue("excludeId",  appointmentId)
-                .addValue("startsAt",   request.startsAt())
-                .addValue("endsAt",     request.endsAt()), Integer.class);
-        if (provCount != null && provCount > 0)
-            throw new AppointmentConflictException("PROVIDER_CONFLICT",
-                    "Il medico ha già un appuntamento in questo orario.");
+        AppointmentConflictException conflict =
+                rescheduleConflict(clinicId, appointmentId, request.chairLabel(), providerId,
+                        request.startsAt(), request.endsAt());
+        if (conflict != null) throw conflict;
 
         jdbc.update("""
                 UPDATE %s.appointments
@@ -371,6 +338,70 @@ public class AppointmentService {
                         .addValue("endsAt",     request.endsAt())
                         .addValue("chairLabel", request.chairLabel())
                         .addValue("providerId", providerId));
+    }
+
+    /**
+     * Verifica conflitti (poltrona / medico) per uno spostamento, senza scrivere nulla.
+     * Ritorna l'eccezione di conflitto pronta da lanciare/segnalare, o null se lo slot è libero.
+     * Usata sia dalla scrittura ({@link #reschedule}) sia dall'anteprima della chat AI.
+     */
+    public AppointmentConflictException rescheduleConflict(UUID appointmentId,
+                                                           RescheduleAppointmentRequest request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<UUID> providers = jdbc.queryForList(
+                "SELECT provider_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
+                UUID.class);
+        if (providers.isEmpty())
+            return new AppointmentConflictException("NOT_FOUND", "Appuntamento non trovato.");
+        UUID providerId = request.providerId() != null ? request.providerId() : providers.get(0);
+        return rescheduleConflict(clinicId, appointmentId, request.chairLabel(), providerId,
+                request.startsAt(), request.endsAt());
+    }
+
+    private AppointmentConflictException rescheduleConflict(UUID clinicId, UUID appointmentId,
+                                                            String chairLabel, UUID providerId,
+                                                            OffsetDateTime startsAt, OffsetDateTime endsAt) {
+        // Provider prima: è il vincolo più forte (cambiare poltrona non lo risolve).
+        String provSql = """
+                SELECT COUNT(*) FROM %s.appointments
+                WHERE clinic_id   = :clinicId
+                  AND provider_id = :providerId
+                  AND id         != :excludeId
+                  AND status::text NOT IN ('cancelled')
+                  AND starts_at  < :endsAt
+                  AND ends_at    > :startsAt
+                """.formatted(s());
+        Integer provCount = jdbc.queryForObject(provSql, new MapSqlParameterSource()
+                .addValue("clinicId",   clinicId)
+                .addValue("providerId", providerId)
+                .addValue("excludeId",  appointmentId)
+                .addValue("startsAt",   startsAt)
+                .addValue("endsAt",     endsAt), Integer.class);
+        if (provCount != null && provCount > 0)
+            return new AppointmentConflictException("PROVIDER_CONFLICT",
+                    "Il medico ha già un appuntamento in questo orario.");
+
+        String chairSql = """
+                SELECT COUNT(*) FROM %s.appointments
+                WHERE clinic_id   = :clinicId
+                  AND chair_label = :chairLabel
+                  AND id         != :excludeId
+                  AND status::text NOT IN ('cancelled')
+                  AND starts_at  < :endsAt
+                  AND ends_at    > :startsAt
+                """.formatted(s());
+        Integer chairCount = jdbc.queryForObject(chairSql, new MapSqlParameterSource()
+                .addValue("clinicId",   clinicId)
+                .addValue("chairLabel", chairLabel)
+                .addValue("excludeId",  appointmentId)
+                .addValue("startsAt",   startsAt)
+                .addValue("endsAt",     endsAt), Integer.class);
+        if (chairCount != null && chairCount > 0)
+            return new AppointmentConflictException("CHAIR_CONFLICT",
+                    "La " + chairLabel + " è già occupata in questo orario.");
+
+        return null;
     }
 
     /** True se l'appuntamento è legato a un item di piano di cura (quindi a piano/preventivo). */
@@ -500,6 +531,35 @@ public class AppointmentService {
             ORDER BY chair_label
             """.formatted(s());
         return jdbc.queryForList(sql, new MapSqlParameterSource("clinicId", clinicId), String.class);
+    }
+
+    /** Poltrone libere nello slot indicato (universo = poltrone note della clinica). */
+    public List<String> findFreeChairs(OffsetDateTime startsAt, OffsetDateTime endsAt) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<String> chairs = new ArrayList<>(findChairLabels());
+        List<String> busy = jdbc.queryForList("""
+                SELECT DISTINCT chair_label FROM %s.appointments
+                WHERE clinic_id = :clinicId
+                  AND status::text NOT IN ('cancelled')
+                  AND starts_at < :endsAt
+                  AND ends_at   > :startsAt
+                """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("clinicId", clinicId)
+                        .addValue("startsAt", startsAt)
+                        .addValue("endsAt",   endsAt), String.class);
+        chairs.removeAll(busy);
+        return chairs;
+    }
+
+    /** provider_id dell'appuntamento, o null se non trovato. */
+    public UUID findProviderId(UUID appointmentId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<UUID> ids = jdbc.queryForList(
+                "SELECT provider_id FROM %s.appointments WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
+                new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
+                UUID.class);
+        return ids.isEmpty() ? null : ids.get(0);
     }
 
     private static final ZoneId ROME = ZoneId.of("Europe/Rome");

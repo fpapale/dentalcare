@@ -55,6 +55,23 @@ public class PendingActionService {
         return store.remove(code.trim());
     }
 
+    /**
+     * Rimuove e ritorna tutte le azioni in sospeso per lo scope indicato, più recenti prima.
+     * Serve a confermare l'ultima anteprima quando il modello non riporta il codice tra i turni.
+     */
+    public java.util.List<Pending> consumeAllForScope(UUID scope) {
+        purge();
+        java.util.List<Map.Entry<String, Pending>> mine = store.entrySet().stream()
+                .filter(e -> java.util.Objects.equals(e.getValue().providerScope(), scope))
+                .sorted((a, b) -> b.getValue().expiresAt().compareTo(a.getValue().expiresAt()))
+                .toList();
+        java.util.List<Pending> out = new java.util.ArrayList<>();
+        for (Map.Entry<String, Pending> e : mine) {
+            if (store.remove(e.getKey()) != null) out.add(e.getValue());
+        }
+        return out;
+    }
+
     private String nextCode() {
         String code;
         do { code = String.format("%04d", random.nextInt(10000)); }

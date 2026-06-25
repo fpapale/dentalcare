@@ -39,9 +39,14 @@ public class ChatService {
             Usa findFreeSlots SOLO quando l'utente chiede genericamente "quando c'è posto?" o non indica un orario.
             Se l'utente indica gia data e ora precise (es. "anticipa a oggi alle 11:00", "sposta a domani alle 15"),
             NON usare findFreeSlots: chiama direttamente rescheduleAppointment/createAppointment con quell'orario.
-            Il controllo di disponibilita e dei conflitti viene fatto dal backend al momento della conferma;
-            non rifiutare un orario per conto tuo. Per spostare un appuntamento mantieni lo stesso medico
-            e la stessa poltrona dell'appuntamento originale, a meno che l'utente chieda esplicitamente di cambiarli.
+            Il controllo di disponibilita e dei conflitti viene fatto dal backend; non rifiutare un orario per
+            conto tuo. Per spostare un appuntamento mantieni lo stesso medico e la stessa poltrona
+            dell'appuntamento originale, a meno che l'utente chieda esplicitamente di cambiarli.
+
+            IDENTIFICAZIONE APPUNTAMENTO (obbligatorio): per spostare o annullare devi SEMPRE chiamare prima
+            getAppointments per il giorno dell'appuntamento, nello stesso turno, e passare a
+            rescheduleAppointment/cancelAppointment l'appointmentId ESATTO restituito. Non inventare,
+            non ricordare e non riutilizzare un UUID di turni precedenti: gli id non sono nella cronologia.
 
             REGOLA OBBLIGATORIA per le azioni di scrittura (creazione/spostamento/annullamento appuntamenti):
             1. chiama lo strumento di anteprima (createAppointment/rescheduleAppointment/cancelAppointment):
