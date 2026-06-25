@@ -64,4 +64,8 @@ export class PatientService {
   updatePhoto(patientId: string, photoDataUrl: string): Observable<void> {
     return this.http.put<void>(`${this.base}/${patientId}/photo`, { photoDataUrl });
   }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
+  }
 }

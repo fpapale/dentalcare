@@ -68,4 +68,17 @@ export class PazientiComponent {
     const idx = (p.patientFullName.charCodeAt(0) || 0) % colors.length;
     return colors[idx];
   }
+
+  deletePatient(p: PatientListItem): void {
+    if (!confirm(`Eliminare definitivamente ${p.patientFullName}? L'operazione è irreversibile.`)) {
+      return;
+    }
+    this.patientService.delete(p.patientId).subscribe({
+      next: () => this.loadPatients(this.userContext.providerId()),
+      error: (err: { error?: { message?: string } }) => {
+        const msg = err.error?.message ?? 'Impossibile eliminare il paziente.';
+        alert(msg);
+      }
+    });
+  }
 }
