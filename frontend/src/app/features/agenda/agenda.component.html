@@ -337,18 +337,20 @@
                   <div class="flex-1 h-px bg-red-400"></div>
                 </div>
               }
-              <!-- Appointments -->
-              @for (a of getAppointmentsForDay(day); track a.appointmentId) {
-                <a [routerLink]="['/pazienti', a.patientId]"
-                  [queryParams]="{ appointmentId: a.appointmentId }"
-                  class="absolute left-0.5 right-0.5 rounded border-l-2 px-1 overflow-hidden cursor-pointer hover:brightness-95 transition-all block z-10"
-                  [class]="apptColor(a)"
-                  [style.top.px]="topPx(a) * (64/96)"
-                  [style.height.px]="heightPx(a) * (64/96)">
-                  <p class="text-[10px] font-bold truncate leading-tight mt-0.5">{{ a.patientFullName }}</p>
-                  <p class="text-[9px] opacity-70 leading-tight">{{ formatTime(a.startsAt) }}</p>
-                  @if (a.chairLabel) {
-                    <p class="text-[9px] opacity-60 truncate leading-tight">{{ a.chairLabel }}</p>
+              <!-- Appointments (side-by-side on overlap) -->
+              @for (layout of getWeekLayoutForDay(day); track layout.apt.appointmentId) {
+                <a [routerLink]="['/pazienti', layout.apt.patientId]"
+                  [queryParams]="{ appointmentId: layout.apt.appointmentId }"
+                  class="absolute rounded border-l-2 px-1 overflow-hidden cursor-pointer hover:brightness-95 transition-all block z-10"
+                  [class]="apptColor(layout.apt)"
+                  [style.top.px]="layout.topPx"
+                  [style.height.px]="layout.heightPx"
+                  [style.left]="layout.left"
+                  [style.width]="layout.width">
+                  <p class="text-[10px] font-bold truncate leading-tight mt-0.5">{{ layout.apt.patientFullName }}</p>
+                  <p class="text-[9px] opacity-70 leading-tight">{{ formatTime(layout.apt.startsAt) }}</p>
+                  @if (layout.apt.chairLabel) {
+                    <p class="text-[9px] opacity-60 truncate leading-tight">{{ layout.apt.chairLabel }}</p>
                   }
                 </a>
               }

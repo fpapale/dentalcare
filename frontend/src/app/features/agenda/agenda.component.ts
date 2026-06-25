@@ -365,6 +365,51 @@ export class AgendaComponent {
       .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   }
 
+  getWeekLayoutForDay(day: Date): Array<{
+    apt: Appointment;
+    topPx: number;
+    heightPx: number;
+    left: string;
+    width: string;
+  }> {
+    const apts = this.getAppointmentsForDay(day);
+    if (apts.length === 0) return [];
+
+    const colEnds: number[] = [];
+    const colOf = new Map<string, number>();
+
+    for (const apt of apts) {
+      const s = new Date(apt.startsAt).getTime();
+      let col = colEnds.findIndex(end => end <= s);
+      if (col === -1) col = colEnds.length;
+      colOf.set(apt.appointmentId, col);
+      colEnds[col] = new Date(apt.endsAt).getTime();
+    }
+
+    return apts.map(apt => {
+      const s = new Date(apt.startsAt).getTime();
+      const e = new Date(apt.endsAt).getTime();
+      const col = colOf.get(apt.appointmentId)!;
+
+      const overlapping = apts.filter(b =>
+        new Date(b.startsAt).getTime() < e && new Date(b.endsAt).getTime() > s
+      );
+      const maxCol = Math.max(...overlapping.map(b => colOf.get(b.appointmentId)!));
+      const total = maxCol + 1;
+
+      const leftPct = (col / total) * 100;
+      const widthPct = (1 / total) * 100;
+
+      return {
+        apt,
+        topPx: this.topPx(apt) * (64 / 96),
+        heightPx: this.heightPx(apt) * (64 / 96),
+        left: col === 0 ? `${leftPct}%` : `calc(${leftPct}% + 1px)`,
+        width: total === 1 ? 'calc(100% - 2px)' : `calc(${widthPct}% - 2px)`
+      };
+    });
+  }
+
   isWeekSelected(date: Date): boolean {
     return date.toDateString() === this.selectedDate().toDateString();
   }
