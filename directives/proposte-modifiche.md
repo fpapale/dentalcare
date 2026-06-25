@@ -12,6 +12,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 |---|--------|---------|-------|
 | 1 | Aggiornamento agenda in tempo reale (SSE) | Medio-basso (~½ giornata) | Proposta |
 | 2 | Retell multi-studio: agente per sede/poltrona | Medio (~1 giornata) | Proposta |
+| 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
 
 ---
 
@@ -124,3 +125,108 @@ Recuperare l'`agent_id` Retell di Giulia dalla dashboard Retell (Settings → Ag
 - Nessuna modifica al contratto API degli appuntamenti (`createAppointment` accetta già `chairLabel`)
 - Il flusso n8n rimane unico (parametrico): non servono workflow duplicati per agente
 - Per aggiungere un nuovo studio: INSERT in `retell_agents` + nuovo agente Retell con numero dedicato → zero modifiche al codice
+
+---
+
+## 3. Validazione codice fiscale con bypass pazienti stranieri
+
+**Stato:** Proposta
+**Data proposta:** 2026-06-25
+**Impatto:** Medio (~¾ giornata)
+
+### Problema
+Il CF italiano segue un formato preciso (16 caratteri, codifica nome/cognome/data/sesso/comune), ma attualmente:
+- Il frontend richiede CF obbligatorio per tutti i pazienti (impossibile registrare stranieri senza CF)
+- La validazione è solo `minLength(16)` — nessun controllo algoritmico del formato
+- Il backend non valida il formato
+- Non esiste un flag "paziente straniero" per distinguere i due casi
+- La data di nascita, già raccolta, non viene usata per cross-validare il CF
+
+### Soluzione
+
+#### Regole di validazione
+
+| Caso | CF obbligatorio | Validazione formato | Cross-check con data nascita |
+|------|:-:|:-:|:-:|
+| Paziente italiano | Sì | Sì | Sì (se coincide, warn; se diverge, errore) |
+| Paziente straniero | No | No (accetta qualsiasi stringa ≤ 16 o vuoto) | No |
+
+Il campo "paziente straniero" è una checkbox esplicita in fase di registrazione e modifica.
+
+#### Formato CF valido (regex)
+```
+^[A-Z]{6}[0-9]{2}[ABCDEHLMPRST][0-9]{2}[A-Z][0-9]{3}[A-Z]$
+```
+(case-insensitive, applicato dopo `toUpperCase()`)
+
+#### Cross-check CF vs data di nascita
+Il CF italiano codifica l'anno (pos 6-7), il mese (pos 8 = lettera A-T), il giorno (pos 9-10; +40 per femmine).
+Se entrambi CF e data di nascita sono presenti e il paziente non è straniero:
+- anno CF ≠ anno nascita → **errore**
+- mese CF ≠ mese nascita → **errore**
+- giorno CF ≠ giorno nascita (tenendo conto del +40) → **errore**
+
+#### Fase 1 — DB: colonna `foreign_patient`
+
+```sql
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS foreign_patient boolean NOT NULL DEFAULT false;
+```
+
+Aggiornare `install.sql` e la funzione `create_tenant`.
+
+#### Fase 2 — Backend
+
+**`CreatePatientRequest` / `UpdatePatientRequest`:** aggiungere `Boolean foreignPatient`.
+
+**Custom validator `@ValidFiscalCode`:**
+```java
+// Applicato a livello di classe su CreatePatientRequest e UpdatePatientRequest
+// Logica:
+// 1. Se foreignPatient == true → skip tutto → valid
+// 2. Se fiscalCode blank → invalid (obbligatorio per italiani)
+// 3. Regex sul formato → invalid se non corrisponde
+// 4. Se birthDate non null → cross-check anno/mese/giorno → invalid se diverge
+```
+
+**`PatientService`:** salvare `foreign_patient` in INSERT e UPDATE.
+
+**`PatientDetailDto` / `PatientListDto`:** esporre `foreignPatient`.
+
+#### Fase 3 — Frontend
+
+**Nuovo controllo form:** checkbox `pazienteStraniero` (default `false`).
+
+**Comportamento dinamico:**
+- Quando `pazienteStraniero = true`:
+  - CF diventa opzionale, rimuove i validator `required` e `pattern`
+  - Mostra etichetta "Documento identità (opzionale)" accanto al campo CF
+- Quando `pazienteStraniero = false`:
+  - CF richiesto, validator pattern `^[A-Za-z]{6}[0-9]{2}[A-EHLMPRSTaehlmprst][0-9]{2}[A-Za-z][0-9]{3}[A-Za-z]$`
+  - Cross-validator che confronta CF con `dataNascita` → errore contestuale
+
+**Validator Angular personalizzato:**
+```typescript
+// fiscalCodeValidator: ValidatorFn
+// - skip se foreignPatient = true o CF vuoto
+// - regex check
+// - cross-check con dataNascita se entrambi compilati
+```
+
+**Messaggio errori:**
+- Formato errato: `"Codice fiscale non valido — controlla il formato"`
+- Data non coincide: `"La data nel codice fiscale non corrisponde alla data di nascita"`
+
+**Modifica in:** `nuovo-paziente.component.ts/html` e `paziente-detail.component.ts/html` (modifica paziente esistente).
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| DB | patch SQL + install.sql + create_tenant |
+| Backend | `CreatePatientRequest`, `UpdatePatientRequest`, `PatientDetailDto`, `PatientListDto`, `PatientService`, nuovo `FiscalCodeValidator` |
+| Frontend | `nuovo-paziente.component.ts/html`, `paziente-detail.component.ts/html`, nuovo `fiscal-code.validator.ts` in `core/validators/` |
+
+### Note
+- Il cross-check usa la data di nascita già obbligatoria nel form → nessun campo aggiuntivo richiesto
+- Pazienti stranieri con CF temporaneo italiano (11 cifre) sono trattati come stranieri → checkbox `pazienteStraniero = true`
+- Il flag `foreign_patient` in DB è utile per report fiscali e fatturazione (le fatture a stranieri senza CF italiano hanno trattamento diverso)
+- La validazione algoritmica del carattere di controllo (Luhn-like) è opzionale — regex + cross-check data coprono il 99% degli errori di battitura; aggiungibile in una seconda iterazione
