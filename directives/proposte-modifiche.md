@@ -625,28 +625,60 @@ GET  /train/status   — stato job corrente
 GET  /models         — lista versioni modello disponibili
 ```
 
-**`docker-compose.yml` aggiunta:**
+**Deployment: tutto sulla stessa macchina (`192.168.0.72`), stesso `docker-compose.yml`.**
+
+```
+192.168.0.72 — Docker Engine
+├── postgres          (già presente)
+├── spring-backend    (già presente)
+├── frontend          (già presente)
+├── minio             (aggiunto con #5)
+└── ai-service        (aggiunto con #6 — Python FastAPI + YOLO)
+```
+
+Tutti i container comunicano via **rete Docker interna** per nome container:
+```
+spring-backend → http://minio:9000       (salva/legge file)
+spring-backend → http://ai-service:8001  (chiede inference)
+ai-service     → http://minio:9000       (legge immagine per YOLO)
+```
+
+`ai-service` **non è esposto all'esterno** — solo `spring-backend` lo chiama internamente.
+
+**`docker-compose.yml` — sezioni da aggiungere:**
 ```yaml
-ai-service:
-  build: ./ai-service/
-  restart: unless-stopped
-  environment:
-    MINIO_ENDPOINT: http://minio:9000
-    MINIO_ACCESS_KEY: ${MINIO_USER}
-    MINIO_SECRET_KEY: ${MINIO_PASSWORD}
-    MINIO_BUCKET: dentalcare-docs
-    MODEL_PATH: /models/dental_yolo.pt
-    TRAINING_DATASET_BUCKET: dentalcare-training
-  volumes:
-    - ai_models:/models
-  ports:
-    - "127.0.0.1:8001:8001"    # solo interno
+  minio:                                   # già definito in #5
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    volumes:
+      - minio_data:/data
+
+  ai-service:
+    build: ./ai-service/
+    restart: unless-stopped
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_USER}
+      MINIO_SECRET_KEY: ${MINIO_PASSWORD}
+      MINIO_BUCKET: dentalcare-docs
+      MODEL_PATH: /models/dental_yolo.pt
+      TRAINING_DATASET_BUCKET: dentalcare-training
+    volumes:
+      - ai_models:/models
+    depends_on:
+      - minio
+    # nessuna porta esposta: solo rete interna Docker
 
 volumes:
+  minio_data:
   ai_models:
 ```
 
-**GPU:** se il server ha GPU NVIDIA, aggiungere `runtime: nvidia` e `CUDA_VISIBLE_DEVICES=0`. Su CPU funziona ma inference ~5-15s per immagine vs ~0.5s con GPU.
+**GPU:** se il server ha GPU NVIDIA aggiungere `runtime: nvidia` al container `ai-service`. Su CPU: inference ~8-15s/immagine (accettabile). Training su CPU: ore per run → GPU fortemente consigliata per il retraining.
 
 ### Fase 3 — Backend Spring Boot
 
