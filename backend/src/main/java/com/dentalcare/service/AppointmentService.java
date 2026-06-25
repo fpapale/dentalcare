@@ -502,13 +502,15 @@ public class AppointmentService {
         return jdbc.queryForList(sql, new MapSqlParameterSource("clinicId", clinicId), String.class);
     }
 
+    private static final ZoneId ROME = ZoneId.of("Europe/Rome");
+
     private AppointmentDto mapRow(ResultSet rs) throws SQLException {
         return new AppointmentDto(
                 rs.getObject("appointment_id", UUID.class),
                 rs.getTimestamp("starts_at") != null
-                        ? rs.getTimestamp("starts_at").toInstant().atOffset(java.time.ZoneOffset.UTC) : null,
+                        ? rs.getTimestamp("starts_at").toInstant().atZone(ROME).toOffsetDateTime() : null,
                 rs.getTimestamp("ends_at") != null
-                        ? rs.getTimestamp("ends_at").toInstant().atOffset(java.time.ZoneOffset.UTC) : null,
+                        ? rs.getTimestamp("ends_at").toInstant().atZone(ROME).toOffsetDateTime() : null,
                 rs.getString("chair_label"),
                 rs.getString("appointment_status"),
                 rs.getString("notes"),
