@@ -78,7 +78,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=## Ruolo\n\nSei un verificatore di disponibilita' appuntamenti dello Studio Dentistico DentalCare.\n\n**Data e ora attuali:** {{ $now }}\n**Orario richiesto:** {{ $json.body.args.time }}\n\n## Processo\n1. Usa **Controlla appuntamenti DentalCare** con from=inizio slot, to=fine slot (+1h).\n2. Se slot libero: confermalo.\n3. Se occupato: suggerisci fino a 3 alternative vicine.\n4. Orario lavorativo: 08:00-20:00, no weekend.\n\nNon proporre orari nel passato. Rispondi in italiano.",
+        "text": "=## Ruolo\n\nSei un verificatore di disponibilita' appuntamenti dello Studio Dentistico DentalCare.\n\n**Data e ora attuali:** {{ $now }}\n**Orario richiesto:** {{ $('Webhook').item.json.body.args.time }}\n\n## Processo\n1. Usa **Controlla appuntamenti DentalCare** con from=inizio slot, to=fine slot (+1h).\n2. Se slot libero: confermalo.\n3. Se occupato: suggerisci fino a 3 alternative vicine.\n4. Orario lavorativo: 08:00-20:00, no weekend.\n\nNon proporre orari nel passato. Rispondi in italiano.",
         "options": {}
       },
       "id": "cb278919-ce9e-4816-abca-b2c4b6d7c42f",
@@ -221,7 +221,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=## Ruolo\n\nSei un agente AI per la prenotazione appuntamenti dello Studio Dentistico DentalCare.\n\n**Data e ora attuali:** {{ $now }}\n**Paziente:** {{ $json.body.args.name }}\n**Email:** {{ $json.body.args.email }}\n**Telefono:** {{ $json.body.args.phone }}\n**Servizio:** {{ $json.body.args.service_type }}\n**Orario:** {{ $json.body.args.time }}\n\n## Processo\n1. Cerca paziente (telefono o email). Se trovato usa il patientId.\n2. Se non trovato, crea paziente (firstName, lastName da nome completo).\n3. Lista medici: scegli providerId adatto.\n4. Lista poltrone: scegli prima chairLabel.\n5. Prenota: patientId, providerId, chairLabel, startsAt, endsAt=startsAt+1h, notes.\n6. Se ok, invia conferma Gmail.\n\nNon inventare UUID. Rispondi in italiano.",
+        "text": "=## Ruolo\n\nSei un agente AI per la prenotazione appuntamenti dello Studio Dentistico DentalCare.\n\n**Data e ora attuali:** {{ $now }}\n**Paziente:** {{ $('Webhook1').item.json.body.args.name }}\n**Email:** {{ $('Webhook1').item.json.body.args.email }}\n**Telefono:** {{ $('Webhook1').item.json.body.args.phone }}\n**Servizio:** {{ $('Webhook1').item.json.body.args.service_type }}\n**Orario:** {{ $('Webhook1').item.json.body.args.time }}\n\n## Processo\n1. Cerca paziente (telefono o email). Se trovato usa il patientId.\n2. Se non trovato, crea paziente (firstName, lastName da nome completo).\n3. Lista medici: scegli providerId adatto.\n4. Lista poltrone: scegli prima chairLabel.\n5. Prenota: patientId, providerId, chairLabel, startsAt, endsAt=startsAt+1h, notes.\n6. Se ok, invia conferma Gmail.\n\nNon inventare UUID. Rispondi in italiano.",
         "options": {}
       },
       "id": "06c4e1f0-a77e-44b5-8864-6f43deef156e",
