@@ -4,6 +4,8 @@ import com.dentalcare.dto.CreatePatientRequest;
 import com.dentalcare.dto.PatientDetailDto;
 import com.dentalcare.dto.PatientListDto;
 import com.dentalcare.dto.UpdatePatientRequest;
+import com.dentalcare.exception.PatientNotDeletableException;
+import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -160,6 +162,39 @@ public class PatientService {
         if (providerId != null) params.addValue("providerId", providerId);
         List<PatientDetailDto> result = jdbc.query(sql, params, (rs, n) -> mapDetailRow(rs));
         return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+    }
+
+    public void delete(UUID patientId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String schema = s();
+
+        String existsSql = "SELECT COUNT(*) FROM " + schema + ".patients WHERE id = :id AND clinic_id = :clinicId";
+        MapSqlParameterSource existsParams = new MapSqlParameterSource()
+                .addValue("id", patientId)
+                .addValue("clinicId", clinicId);
+        Integer count = jdbc.queryForObject(existsSql, existsParams, Integer.class);
+        if (count == null || count == 0) {
+            throw new ResourceNotFoundException("Patient not found: " + patientId);
+        }
+
+        String[] tables = {
+            "appointments", "estimates", "invoices", "treatment_plans",
+            "clinical_history_entries", "recalls", "patient_documents",
+            "patient_prescriptions", "patient_anamnesis", "patient_diagnoses",
+            "odontogram_teeth"
+        };
+        for (String table : tables) {
+            String checkSql = "SELECT COUNT(*) FROM " + schema + "." + table
+                    + " WHERE patient_id = :id AND clinic_id = :clinicId";
+            Integer n = jdbc.queryForObject(checkSql, existsParams, Integer.class);
+            if (n != null && n > 0) {
+                throw new PatientNotDeletableException(
+                    "Il paziente ha dati associati (" + table + ") e non può essere eliminato");
+            }
+        }
+
+        String deleteSql = "DELETE FROM " + schema + ".patients WHERE id = :id AND clinic_id = :clinicId";
+        jdbc.update(deleteSql, existsParams);
     }
 
     private PatientListDto mapListRow(ResultSet rs) throws SQLException {

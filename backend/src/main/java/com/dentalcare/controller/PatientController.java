@@ -55,6 +55,12 @@ public class PatientController {
         patientService.updatePhoto(id, request.photoDataUrl());
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+        patientService.delete(id);
+    }
+
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody CreatePatientRequest request) {
         UUID id = patientService.create(request);

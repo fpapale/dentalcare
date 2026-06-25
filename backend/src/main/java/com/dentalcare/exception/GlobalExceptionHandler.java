@@ -21,6 +21,12 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("RESOURCE_NOT_FOUND", ex.getMessage());
     }
 
+    @ExceptionHandler(PatientNotDeletableException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handlePatientNotDeletable(PatientNotDeletableException ex) {
+        return new ErrorResponse("PATIENT_NOT_DELETABLE", ex.getMessage());
+    }
+
     @ExceptionHandler(AppointmentConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleAppointmentConflict(AppointmentConflictException ex) {
