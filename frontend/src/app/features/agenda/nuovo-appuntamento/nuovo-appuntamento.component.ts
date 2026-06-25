@@ -125,6 +125,7 @@ export class NuovoAppuntamentoComponent implements OnInit {
           openTreatmentItemsCount: detail.openTreatmentItemsCount,
           totalAppointments: detail.totalAppointments,
           acceptedEstimatesAmount: null,
+          active: true,
         };
         this.selectedPatient.set(asListItem);
         this.patientQuery = detail.fullName;
