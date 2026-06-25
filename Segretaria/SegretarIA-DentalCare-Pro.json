@@ -422,7 +422,7 @@
     {
       "parameters": {
         "content": "## 3. MODIFY APPOINTMENT\nDentalCare REST API\n/api/appointments/{id}/reschedule",
-        "height": 688,
+        "height": 720,
         "width": 1728,
         "color": 6
       },
@@ -430,7 +430,7 @@
       "name": "Sticky Note2",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [0, 1728]
+      "position": [0, 1696]
     },
     {
       "parameters": {
@@ -503,7 +503,7 @@
       "name": "AI Agent2",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [752, 1808]
+      "position": [624, 1808]
     },
     {
       "parameters": {
@@ -552,7 +552,7 @@
       "name": "Cerca appuntamento da spostare",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [848, 2144]
+      "position": [576, 2144]
     },
     {
       "parameters": {
@@ -591,7 +591,7 @@
       "name": "Sposta appuntamento DentalCare",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [1168, 2128]
+      "position": [784, 2144]
     },
     {
       "parameters": {
@@ -603,7 +603,7 @@
       },
       "type": "n8n-nodes-base.gmailTool",
       "typeVersion": 2.1,
-      "position": [608, 2144],
+      "position": [976, 2144],
       "id": "5a0301f8-c6fc-4f8f-9fd7-2185d0787faa",
       "name": "Send an updated confirmation in Gmail",
       "webhookId": "808126c3-0386-4065-9f93-d046a2307268",
@@ -618,7 +618,7 @@
       "parameters": {"options": {}},
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [1408, 1808],
+      "position": [976, 1808],
       "id": "462b848c-c294-4be0-bc51-f731cfff5ec9",
       "name": "Respond to Webhook2"
     },
@@ -854,6 +854,10 @@
     "AI Agent3": {"main": [[{"node": "Respond to Webhook3", "type": "main", "index": 0}]]}
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   }
 }
