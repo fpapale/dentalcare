@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import onnxruntime as ort
 
@@ -25,7 +27,6 @@ class OnnxYoloDetector:
         return self._session
 
     def is_loaded(self) -> bool:
-        import os
         return os.path.exists(self.model_path)
 
     def predict(self, image_bgr: np.ndarray) -> list[dict]:
@@ -44,5 +45,5 @@ class OnnxYoloDetector:
             ratio=ratio, pad=pad,
         )
         for d in dets:
-            d["class_name"] = self.class_names[d["class_id"]]
+            d["class_name"] = self.class_names.get(d["class_id"], f"class_{d['class_id']}")
         return dets
