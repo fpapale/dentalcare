@@ -25,7 +25,8 @@ def send_callback(payload: dict) -> bool:
             if 200 <= resp.status_code < 300:
                 return True
             log_event("callback_non_2xx", status=resp.status_code, attempt=attempt)
-        except httpx.HTTPError as exc:
+        except Exception as exc:
             log_event("callback_error", error=str(exc), attempt=attempt)
-        time.sleep(2 ** attempt)
+        if attempt < settings.callback_retries - 1:
+            time.sleep(2 ** attempt)
     return False
