@@ -60,10 +60,16 @@ class PatientDocumentServiceTest {
     @Test
     void findAll_returnsListFromDb() {
         java.sql.Timestamp now = java.sql.Timestamp.valueOf(LocalDateTime.now());
-        Map<String, Object> row = Map.of(
-                "id", docId, "document_type", "rx_panoramica", "title", "RX 2026",
-                "file_name", "rx.jpg", "mime_type", "image/jpeg",
-                "file_size_bytes", 1024L, "created_at", now);
+        Map<String, Object> row = new java.util.HashMap<>();
+        row.put("id", docId);
+        row.put("document_type", "rx_panoramica");
+        row.put("title", "RX 2026");
+        row.put("file_name", "rx.jpg");
+        row.put("mime_type", "image/jpeg");
+        row.put("file_size_bytes", 1024L);
+        row.put("created_at", now);
+        row.put("notes", null);
+        row.put("taken_at", null);
 
         when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class)))
                 .thenReturn(List.of(row));
@@ -73,6 +79,8 @@ class PatientDocumentServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().documentType()).isEqualTo("rx_panoramica");
         assertThat(result.getFirst().title()).isEqualTo("RX 2026");
+        assertThat(result.getFirst().notes()).isNull();
+        assertThat(result.getFirst().takenAt()).isNull();
     }
 
     @Test

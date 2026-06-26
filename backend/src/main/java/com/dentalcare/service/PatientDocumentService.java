@@ -79,19 +79,24 @@ public class PatientDocumentService {
                  :fileName, :filePath, :fileSizeBytes, :mimeType, :notes, :takenAt, :uploadedBy)
             """.formatted(s());
 
-        jdbc.update(sql, new MapSqlParameterSource()
-                .addValue("id", docId)
-                .addValue("clinicId", clinic)
-                .addValue("patientId", patientId)
-                .addValue("documentType", documentType != null ? documentType : "altro")
-                .addValue("title", title)
-                .addValue("fileName", safeFileName)
-                .addValue("filePath", objectKey)
-                .addValue("fileSizeBytes", file.getSize())
-                .addValue("mimeType", mimeType)
-                .addValue("notes", notes)
-                .addValue("takenAt", takenAt)
-                .addValue("uploadedBy", currentProviderId()));
+        try {
+            jdbc.update(sql, new MapSqlParameterSource()
+                    .addValue("id", docId)
+                    .addValue("clinicId", clinic)
+                    .addValue("patientId", patientId)
+                    .addValue("documentType", documentType != null ? documentType : "altro")
+                    .addValue("title", title)
+                    .addValue("fileName", safeFileName)
+                    .addValue("filePath", objectKey)
+                    .addValue("fileSizeBytes", file.getSize())
+                    .addValue("mimeType", mimeType)
+                    .addValue("notes", notes)
+                    .addValue("takenAt", takenAt)
+                    .addValue("uploadedBy", currentProviderId()));
+        } catch (Exception e) {
+            try { minio.delete(objectKey); } catch (Exception ignored) {}
+            throw e;
+        }
 
         return findById(patientId, docId);
     }
@@ -170,8 +175,11 @@ public class PatientDocumentService {
         String objectKey = (String) rows.getFirst().get("file_path");
 
         jdbc.update(
-                "DELETE FROM %s.patient_documents WHERE id = :id AND clinic_id = :clinicId".formatted(s()),
-                new MapSqlParameterSource().addValue("id", docId).addValue("clinicId", clinic));
+                "DELETE FROM %s.patient_documents WHERE id = :id AND patient_id = :patientId AND clinic_id = :clinicId".formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("id", docId)
+                        .addValue("patientId", patientId)
+                        .addValue("clinicId", clinic));
 
         try {
             minio.delete(objectKey);
