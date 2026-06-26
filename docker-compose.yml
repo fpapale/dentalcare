@@ -58,6 +58,27 @@ services:
     networks:
       - dentalcarepro
 
+  dentalcare-ai-service:
+    build:
+      context: ./dentalcare-ai-service
+      dockerfile: Dockerfile
+    image: dentalcare-ai-service:${VERSION:-latest}
+    container_name: dentalcare-ai-service
+    restart: unless-stopped
+    env_file:
+      - ./dentalcare-ai-service/.env
+    volumes:
+      - ./dentalcare-ai-service/models:/app/models:ro
+      - ./dentalcare-ai-service/tmp:/tmp/dentalcare-ai
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    networks:
+      - dentalcarepro
+
 networks:
   dentalcarepro:
     driver: bridge
