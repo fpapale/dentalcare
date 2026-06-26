@@ -24,6 +24,8 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:/app/config/
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/public/demo-config > /dev/null 2>&1 || exit 1"]
       interval: 30s
