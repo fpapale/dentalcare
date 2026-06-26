@@ -4,7 +4,8 @@ __pycache__/
 .venv/
 venv/
 models/*.onnx
-tmp/
+tmp/*
 data/*
+!tmp/.gitkeep
 !data/.gitkeep
 !models/.gitkeep

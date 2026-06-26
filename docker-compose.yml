@@ -66,12 +66,19 @@ services:
     container_name: dentalcare-ai-service
     restart: unless-stopped
     env_file:
-      - ./dentalcare-ai-service/.env
+      - path: ./dentalcare-ai-service/.env
+        required: false
     volumes:
       - ./dentalcare-ai-service/models:/app/models:ro
       - ./dentalcare-ai-service/tmp:/tmp/dentalcare-ai
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
     deploy:
       resources:
         limits:
