@@ -53,3 +53,11 @@ backend/fakesmtp/
 
 # Credenziali locali — non committare
 credentials/
+
+# Modelli AI (montati a runtime, non committati) e tooling/binari locali
+*.pt
+*.onnx
+*.exe
+tools/runmc.bat
+tools/runmc.sh
+database/dentalcarepro.sql
