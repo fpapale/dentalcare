@@ -33,6 +33,7 @@ Supporto decisionale: ogni risultato è marcato `AI-generated, requires clinicia
 | Persistenza risultati | Tabelle DB DentalCare (`patient_document_analyses` + `patient_document_labels`) | UI lista/storico/stato revisione, audit, isolamento tenant; JSON dettaglio su MinIO |
 | Connettività MinIO | `host.docker.internal:9000` (come backend #4) | MinIO standalone host, non esposto; coerente con setup esistente |
 | Overlay UI | SVG bounding box su immagine | Box scalabili/cliccabili; base per editing futuro (move/resize) più semplice di Canvas |
+| Sync odontogramma | Solo **dopo revisione dentista**, merge non distruttivo, solo carie | AI = supporto decisionale; non sporcare cartella clinica con falsi positivi; mapping pulito solo per Caries/Deep_Caries |
 
 ---
 
@@ -269,6 +270,34 @@ Indici: `(document_id)`, `(patient_id)`, `(job_id)`, `(status)`. FK composite co
 
 Indice: `(analysis_id)`.
 
+### Patch `tooth_conditions` (per sync odontogramma)
+Aggiungere a tabella esistente (schema tenant + template global + `install.sql` + `EstimateSchemaInitializer` con `ADD COLUMN IF NOT EXISTS` per tenant già esistenti):
+| Colonna | Tipo | Note |
+|---------|------|------|
+| `source` | varchar(10) NOT NULL DEFAULT `'manual'` | `manual` / `ai` — distingue origine |
+| `analysis_id` | uuid null FK patient_document_analyses ON DELETE SET NULL | traccia analisi che ha generato la voce AI |
+
+---
+
+## 6.5 FASE B-SYNC — Sincronizzazione odontogramma
+
+**Trigger**: alla revisione dentista (`PUT .../analyses/{id}/review`) quando `review_status` → `reviewed`/`approved_for_training`. NON a COMPLETED (raw AI mai scritto in cartella clinica).
+
+**Mapping disease → condition** (`tooth_condition` vocab):
+- `Caries` → `caries`
+- `Deep_Caries` → `caries` (nota: "AI: Deep_Caries")
+- `Periapical_Lesion`, `Impacted` → **non sincronizzate** in odontogramma; restano in `patient_document_labels` + visibili nella UI analisi.
+
+**Scrittura** (`OdontogramSyncService.syncFromAnalysis(analysisId)`):
+- per ogni label confermata (`source` rimane traccia AI, action `confirmed`/`added`) con disease mappabile e `tooth_fdi` non null:
+  - upsert in `tooth_conditions` con `condition='caries'`, `source='ai'`, `analysis_id`, `tooth_fdi`, `surface=<default sentinella>` (panoramico non dà superficie; default configurabile, es. `V`; il dentista può editarla in odontogramma), `notes` = origine AI + disease + confidence
+- **idempotente**: prima rimuove le voci `source='ai'` di **questo** `analysis_id`, poi reinserisce (re-review non duplica).
+- **non distruttivo**: non tocca mai voci `source='manual'`.
+
+**Merge inverso** — `OdontogramService.save()` (salvataggio manuale odontogramma) va modificato: il `DELETE` iniziale deve essere scopato a `source='manual'` (o `source <> 'ai'`), così il salvataggio manuale **non cancella** le voci AI sincronizzate. Simmetricamente, le voci AI sono gestite solo da `OdontogramSyncService`.
+
+**UI**: voci `source='ai'` evidenziate nell'odontogramma (badge/colore "AI"); il dentista può confermarle (diventano `manual`) o rimuoverle.
+
 ---
 
 ## 7. FASE B-BE — Backend Spring
@@ -290,6 +319,8 @@ Solo `document_type=rx_panoramica` analizzabile (validazione service). `/api/int
 - `PatientDocumentAnalysisService`: crea analisi (PROCESSING + job_id), persiste, isolamento tenant via `TenantContext`; `applyCallback(...)` scrive labels + COMPLETED idempotente (per job_id/analysis_id); `reconcile()` poll fallback
 - `AiCallbackController` + `HmacVerifier` (verifica `X-AI-Signature`, secret `app.ai.hmac-secret`)
 - `SseEmitterRegistry`: map (analysisId → SseEmitter), emit su completamento, timeout/cleanup
+- `OdontogramSyncService.syncFromAnalysis(analysisId)`: chiamato da `review` quando approvato; upsert voci `caries` `source='ai'` idempotente (§6.5)
+- `OdontogramService.save()` **[MOD]**: `DELETE` scopato a `source='manual'` (non cancella voci AI)
 - `@Scheduled reconcileStaleAnalyses()` (ogni 2 min)
 - Config (in `config/`, gitignored): `app.ai.base-url=http://dentalcare-ai-service:8000`, `app.ai.hmac-secret=<segreto>`, `app.ai.callback-url=http://dentalcarepro-backend:8080/api/internal/ai/callback`
 
@@ -305,6 +336,7 @@ Solo `document_type=rx_panoramica` analizzabile (validazione service). `/api/int
 - `documento-analisi.component`: overlay **SVG** bbox sopra `<img>` ortopanoramica (box scalati a dimensioni naturali immagine via viewBox), colore per patologia, tooltip dente+confidence, badge `needs_review`
 - Integrazione nel tab Documenti (#4): per `rx_panoramica`, bottone **"Analizza con AI"**; stati `idle`/`processing` (spinner, SSE in attesa)/`completed` (overlay)/`failed` (messaggio + retry)
 - Lista/storico analisi del documento, stato revisione
+- In revisione, conferma/approvazione → trigger sync odontogramma (backend); odontogramma mostra voci `source='ai'` con badge "AI" (confermabili → `manual`, o rimovibili)
 - Disclaimer UI: `AI-generated, requires clinician review`
 
 (Editing annotazioni — move/resize/add/delete box + salvataggio `human_corrected` — predisposto da SVG e endpoint review; UI editing completa **out of scope MVP**, vedi §11.)
@@ -338,6 +370,7 @@ Solo `document_type=rx_panoramica` analizzabile (validazione service). `/api/int
 - GPU (`Dockerfile.gpu`, `docker-compose.gpu.yml`) — predisposto, non attivo
 - Cifratura MinIO (#7, hook già presente in `MinioStorageService`)
 - Viewer DICOM, benchmark endpoint
+- Superficie dentale precisa da AI: il panoramico non dà granularità per superficie → sync usa surface sentinella default (dentista raffina in odontogramma)
 
 ---
 
@@ -355,11 +388,13 @@ Solo `document_type=rx_panoramica` analizzabile (validazione service). `/api/int
 P0 (utente) ───────────────────────────────────┐
 FASE A  dentalcare-ai-service (general-purpose) │ paralleli concettuali
 B0      bucket-per-tenant     (backend-dev)     │
-B-DB    schema analisi/labels (database-dev)    │
+B-DB    schema analisi/labels + patch tooth_conditions (database-dev) │
                           ▼
 B-BE    backend AI            (backend-dev)  ← dipende: B0 + B-DB + contratto A (endpoint+webhook+HMAC)
                           ▼
-B-FE    frontend overlay      (frontend-dev) ← dipende: B-BE (endpoint+SSE)
+B-SYNC  odontogram sync       (backend-dev)  ← dipende: B-BE (review) + B-DB patch
+                          ▼
+B-FE    frontend overlay + badge AI odontogramma (frontend-dev) ← dipende: B-BE + B-SYNC
                           ▼
 E2E + review finale whole-branch (opus)
 B-DOC   aggiorna proposte-modifiche.md #6 (sostituito) + install.sql mirror
