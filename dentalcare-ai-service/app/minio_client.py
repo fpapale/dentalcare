@@ -9,12 +9,17 @@ from app.config import get_settings
 
 
 class MinioClient:
-    def __init__(self, client: Minio):
+    def __init__(self, client):
         self._client = client
 
     def ensure_bucket(self, bucket: str) -> None:
-        if not self._client.bucket_exists(bucket):
+        if self._client.bucket_exists(bucket):
+            return
+        try:
             self._client.make_bucket(bucket)
+        except S3Error:
+            # Another worker created it between the check and the call — fine.
+            pass
 
     def download_object(self, bucket: str, object_key: str, local_path: str) -> str:
         self._client.fget_object(bucket, object_key, local_path)

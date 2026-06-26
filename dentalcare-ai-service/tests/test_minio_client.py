@@ -1,4 +1,3 @@
-import json
 from unittest.mock import MagicMock
 
 from app.minio_client import MinioClient
