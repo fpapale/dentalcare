@@ -150,6 +150,22 @@ class OnnxYoloDetector:
 
 Soglie default: `MATCH_IOU_THRESHOLD=0.10`, `DISEASE_CONF_THRESHOLD=0.25`, `FDI_CONF_THRESHOLD=0.25`, `MODEL_IOU_THRESHOLD=0.45`, `MATCH_CENTER_FALLBACK=true`, `*_INPUT_SIZE=1024`.
 
+### 4.3.1 Convenzione colori bounding box (DENTEX, per quadrante)
+
+Colore box determinato dal **quadrante FDI** (prima cifra del numero dente), come nelle figure DENTEX. Stessa mappa usata da `visualization.py` (annotated.png) e overlay SVG frontend (costante condivisa concettualmente — duplicata nei due linguaggi).
+
+| Quadrante | Denti FDI | Colore | Hex |
+|-----------|-----------|--------|-----|
+| Q1 | 11–18 | verde | `#57C84D` |
+| Q2 | 21–28 | rosso | `#E84D4D` |
+| Q3 | 31–38 | ciano | `#4DC8E8` |
+| Q4 | 41–48 | giallo | `#E8C84D` |
+| n/d | tooth null (no match) | grigio | `#9E9E9E` |
+
+- Box: bordo colore quadrante, riempimento stesso colore a bassa opacità (~0.2).
+- Label su ogni box: `{FDI} {disease}` (es. `36 Caries`), testo su sfondo colore quadrante.
+- `needs_review`/`tooth=null` → colore grigio + label `? {disease}`.
+
 ### 4.4 Job asincrono
 
 `POST /api/v1/inference/jobs` (vedi §6.3 direttiva):
@@ -333,7 +349,7 @@ Solo `document_type=rx_panoramica` analizzabile (validazione service). `/api/int
 
 - `patient-analysis.model.ts`: `AnalysisDto`, `LabelDto`, enum status/review, `DISEASE_LABELS`
 - `patient-analysis.service.ts`: `start(patientId,docId)`, `list(...)`, `get(...)`, `streamStatus(...)` (EventSource SSE), `saveReview(...)`
-- `documento-analisi.component`: overlay **SVG** bbox sopra `<img>` ortopanoramica (box scalati a dimensioni naturali immagine via viewBox), colore per patologia, tooltip dente+confidence, badge `needs_review`
+- `documento-analisi.component`: overlay **SVG** bbox sopra `<img>` ortopanoramica (box scalati a dimensioni naturali immagine via viewBox), **colore per quadrante FDI** (mappa DENTEX §4.3.1: Q1 verde / Q2 rosso / Q3 ciano / Q4 giallo / null grigio), label `{FDI} {disease}`, tooltip dente+confidence, badge `needs_review`
 - Integrazione nel tab Documenti (#4): per `rx_panoramica`, bottone **"Analizza con AI"**; stati `idle`/`processing` (spinner, SSE in attesa)/`completed` (overlay)/`failed` (messaggio + retry)
 - Lista/storico analisi del documento, stato revisione
 - In revisione, conferma/approvazione → trigger sync odontogramma (backend); odontogramma mostra voci `source='ai'` con badge "AI" (confermabili → `manual`, o rimovibili)
