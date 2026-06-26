@@ -28,6 +28,8 @@ def nms(boxes: list[list[float]], scores: list[float], iou_threshold: float) -> 
 
 def parse_yolo_output(output: np.ndarray, num_classes: int, conf_threshold: float,
                       iou_threshold: float, ratio: float, pad: tuple[int, int]) -> list[dict]:
+    if num_classes <= 0:
+        raise ValueError("num_classes must be positive")
     # output: (1, 4+num_classes, N) -> (N, 4+num_classes)
     preds = np.squeeze(output, axis=0).transpose(1, 0)
     pad_x, pad_y = pad
@@ -39,7 +41,7 @@ def parse_yolo_output(output: np.ndarray, num_classes: int, conf_threshold: floa
         cls_scores = row[4:4 + num_classes]
         class_id = int(np.argmax(cls_scores))
         conf = float(cls_scores[class_id])
-        if conf < conf_threshold:
+        if conf <= 0.0 or conf < conf_threshold:
             continue
         cx, cy, w, h = row[0], row[1], row[2], row[3]
         x1 = (cx - w / 2 - pad_x) / ratio

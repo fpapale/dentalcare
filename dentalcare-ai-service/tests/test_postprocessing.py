@@ -36,3 +36,26 @@ def test_parse_yolo_output_rescales_to_original():
     assert d["confidence"] == 0.9
     # cx-w/2=462 -> /0.5 = 924
     assert d["bbox_xyxy"] == [924, 924, 1124, 1124]
+
+
+def test_parse_yolo_output_applies_padding():
+    num_classes = 4
+    out = np.zeros((1, 4 + num_classes, 1), dtype=np.float32)
+    out[0, 0, 0] = 512  # cx
+    out[0, 1, 0] = 512  # cy
+    out[0, 2, 0] = 100  # w
+    out[0, 3, 0] = 100  # h
+    out[0, 4 + 1, 0] = 0.9  # class 1
+    # ratio 1.0, pad (16, 8): x = cx ± w/2 - pad
+    dets = parse_yolo_output(out, num_classes, conf_threshold=0.25,
+                             iou_threshold=0.45, ratio=1.0, pad=(16, 8))
+    assert len(dets) == 1
+    assert dets[0]["bbox_xyxy"] == [446, 454, 546, 554]
+
+
+def test_parse_yolo_output_empty_when_all_below_threshold():
+    num_classes = 4
+    out = np.zeros((1, 4 + num_classes, 3), dtype=np.float32)  # all class scores 0
+    dets = parse_yolo_output(out, num_classes, conf_threshold=0.25,
+                             iou_threshold=0.45, ratio=1.0, pad=(0, 0))
+    assert dets == []
