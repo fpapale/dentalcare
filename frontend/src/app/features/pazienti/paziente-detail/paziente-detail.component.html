@@ -435,12 +435,25 @@
         <app-richiami-tab [patientId]="paziente.id" />
       }
 
-    } @else {
+    } @else if (activeTab() === 'documenti') {
+      @if (paziente) {
+        <app-documenti-tab [patientId]="paziente.id" />
+      }
+
+    } @else if (activeTab() === 'preventivi') {
       <div class="flex items-center justify-center h-40 text-slate-400">
         <div class="text-center">
           <span class="material-symbols-outlined text-[40px] block mb-2">construction</span>
           <p class="text-sm font-semibold">Sezione in sviluppo</p>
           <p class="text-xs mt-1">Seleziona "Panoramica" per vedere i dati disponibili</p>
+        </div>
+      </div>
+
+    } @else {
+      <div class="flex items-center justify-center h-40 text-slate-400">
+        <div class="text-center">
+          <span class="material-symbols-outlined text-[40px] block mb-2">construction</span>
+          <p class="text-sm font-semibold">Sezione in sviluppo</p>
         </div>
       </div>
     }

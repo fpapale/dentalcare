@@ -14,11 +14,12 @@ import { AnamnesiTabComponent } from '../anamnesi-tab/anamnesi-tab.component';
 import { OdontogrammaTabComponent } from '../odontogramma-tab/odontogramma-tab.component';
 import { PianoCuraTabComponent } from '../piano-cura-tab/piano-cura-tab.component';
 import { RichiamiTabComponent } from '../richiami-tab/richiami-tab.component';
+import { DocumentiTabComponent } from '../documenti-tab/documenti-tab.component';
 
 @Component({
   selector: 'app-paziente-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CartellaClinicalTabComponent, AnamnesiTabComponent, OdontogrammaTabComponent, PianoCuraTabComponent, RichiamiTabComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CartellaClinicalTabComponent, AnamnesiTabComponent, OdontogrammaTabComponent, PianoCuraTabComponent, RichiamiTabComponent, DocumentiTabComponent],
   templateUrl: './paziente-detail.component.html',
   styleUrl: './paziente-detail.component.css'
 })
