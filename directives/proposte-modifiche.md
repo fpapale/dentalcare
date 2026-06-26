@@ -15,7 +15,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
 | 4 | Documenti paziente: tab CRUD con allegati (MinIO storage) | Medio (~1 giornata) | Fatta |
 | 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
-| 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Fatta |
+| 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | In corso |
 | 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
 
 ---
@@ -524,7 +524,7 @@ Nessuna modifica — il backend gestisce la trasparenza dello storage.
 
 ## 6. AI YOLO: rilevamento carie su ortopanoramica + retraining
 
-**Stato:** Fatta
+**Stato:** In corso — modello base DENTEX addestrato (`dental_yolo.pt`); servizio inferenza + retraining DA FARE
 **Data proposta:** 2026-06-25
 **Impatto:** Alto (~3-5 giorni)
 **Prerequisiti:** Proposta #4 (tab documenti) + Proposta #5 (MinIO)
