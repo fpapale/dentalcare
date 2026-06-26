@@ -33,3 +33,33 @@ def test_create_job_returns_queued(monkeypatch):
     assert resp.status_code == 200
     assert resp.json()["status"] == "queued"
     assert resp.json()["job_id"].startswith("ai-job-")
+
+
+def test_get_job_requires_jwt():
+    resp = client.get("/api/v1/inference/jobs/ai-job-1?result_bucket=dc-t-x")
+    assert resp.status_code == 401
+
+
+def test_get_job_missing_result_bucket_422():
+    resp = client.get("/api/v1/inference/jobs/ai-job-1", headers=_auth())
+    assert resp.status_code == 422
+
+
+def test_get_job_returns_status(monkeypatch):
+    import app.routers.inference as inf
+    fake = type("S", (), {"read_job": lambda self, b, j: {"job_id": j, "status": "completed", "detections": []}})()
+    monkeypatch.setattr(inf, "get_job_service", lambda: fake)
+    resp = client.get("/api/v1/inference/jobs/ai-job-1?result_bucket=dc-t-x", headers=_auth())
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "completed"
+
+
+def test_get_job_404_on_missing_object(monkeypatch):
+    import app.routers.inference as inf
+    from minio.error import S3Error
+    def boom(self, b, j):
+        raise S3Error("NoSuchKey", "Object not found", "ai-job-1", "req-id", "host-id", response=None)
+    fake = type("S", (), {"read_job": boom})()
+    monkeypatch.setattr(inf, "get_job_service", lambda: fake)
+    resp = client.get("/api/v1/inference/jobs/ai-job-1?result_bucket=dc-t-x", headers=_auth())
+    assert resp.status_code == 404

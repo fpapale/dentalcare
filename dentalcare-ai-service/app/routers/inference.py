@@ -1,10 +1,12 @@
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from minio.error import S3Error
 
 from app.schemas import InferenceJobRequest, JobCreatedResponse, JobStatusResponse
 from app.security import require_jwt
 from app.services.registry import get_job_service
+from app.utils.logging import log_event
 
 router = APIRouter()
 
@@ -24,8 +26,11 @@ def get_job(job_id: str, result_bucket: str = Query(...),
     svc = get_job_service()
     try:
         doc = svc.read_job(result_bucket, job_id)
-    except Exception as exc:  # noqa: BLE001
+    except S3Error as exc:
         raise HTTPException(status_code=404, detail="Job not found") from exc
+    except Exception as exc:  # noqa: BLE001
+        log_event("get_job_error", job_id=job_id, error=str(exc))
+        raise HTTPException(status_code=502, detail="Storage error") from exc
     return JobStatusResponse(
         job_id=doc["job_id"], status=doc["status"],
         result_object_key=doc.get("result_object_key"),
