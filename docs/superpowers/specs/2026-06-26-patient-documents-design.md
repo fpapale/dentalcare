@@ -54,13 +54,37 @@ Colonne rilevanti:
 
 ### Configurazione
 
-`backend/config/application.properties` (gitignored):
+Due file di config (entrambi gitignored in `backend/config/`):
+
+**`backend/config/application.properties`** (dev — accesso via SSH tunnel locale):
 ```properties
+# MinIO — tunnel: ssh -L 9000:127.0.0.1:9000 fpapale@192.168.0.72
 app.minio.endpoint=http://127.0.0.1:9000
 app.minio.access-key=<segreto>
 app.minio.secret-key=<segreto>
 app.minio.bucket=dentalcare-docs
 ```
+
+**`backend/config/application-prod.properties`** (prod — backend Docker container → MinIO sul host):
+```properties
+# MinIO — backend container accede al host via host.docker.internal
+# Richiede extra_hosts in docker-compose.yml (vedi sotto)
+app.minio.endpoint=http://host.docker.internal:9000
+app.minio.access-key=<segreto>
+app.minio.secret-key=<segreto>
+app.minio.bucket=dentalcare-docs
+```
+
+**`docker-compose.yml`** — aggiungere `extra_hosts` al service `backend`:
+```yaml
+backend:
+  # ... (configurazione esistente)
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+```
+
+> **Perché host.docker.internal:** MinIO bind su `127.0.0.1:9000` del host (non esposto all'esterno).
+> Il container backend (rete bridge) non vede `127.0.0.1` dell'host — serve `host-gateway` come IP del bridge Docker verso il host.
 
 `pom.xml` — aggiungere dipendenza:
 ```xml
@@ -271,6 +295,34 @@ Aggiungere branch nel `@else`:
 | Frontend | `documenti-tab.component.ts/.html` | Nuovo |
 | Frontend | `paziente-detail.component.html` | Modifica: aggiunta branch documenti |
 | Frontend | `paziente-detail.component.ts` | Modifica: import nuovo component |
+
+---
+
+## GDPR — hook cifratura (proposta #7, futura)
+
+Il `MinioStorageService` è il punto di iniezione naturale per la cifratura AES-256-GCM prevista dalla proposta #7:
+
+```java
+// Upload: plaintext → encrypt → MinIO
+public String upload(String objectKey, byte[] data, String mimeType) {
+    byte[] payload = encryptionService.encrypt(data);  // <-- hook futuro
+    // PUT object su MinIO con payload cifrato
+}
+
+// Download: MinIO → decrypt → plaintext
+public byte[] download(String objectKey) {
+    byte[] payload = s3Client.getObject(...);
+    return encryptionService.decrypt(payload);          // <-- hook futuro
+}
+```
+
+**Preparazione in questa iterazione:**
+- `MinioStorageService` riceve `EncryptionService` via constructor injection (inizialmente no-op)
+- Quando #7 sarà implementata, basta sostituire `EncryptionService` con la versione HKDF+AES — zero modifiche a `PatientDocumentService` o ai controller
+
+**Non fare:**
+- Non applicare cifratura ora (nessuna chiave di tenant disponibile)
+- Non passare bytes raw direttamente senza passare per il service
 
 ---
 
