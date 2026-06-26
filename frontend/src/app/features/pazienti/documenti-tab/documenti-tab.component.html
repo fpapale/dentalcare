@@ -28,10 +28,9 @@
 
       <div>
         <label class="block w-full cursor-pointer">
-          <div class="border-2 border-dashed rounded-xl p-6 text-center transition-colors"
+          <div class="border-2 border-dashed rounded-xl p-6 text-center transition-colors hover:border-teal-400"
             [class.border-teal-500]="pendingFile"
-            [class.border-slate-300]="!pendingFile"
-            [class.hover:border-teal-400]="!pendingFile">
+            [class.border-slate-300]="!pendingFile">
             @if (pendingFile) {
               <span class="material-symbols-outlined text-2xl text-teal-500 block mb-1">check_circle</span>
               <p class="text-sm font-semibold text-teal-700">{{ pendingFile.name }}</p>
@@ -174,6 +173,9 @@
                   Annulla
                 </button>
               </div>
+              @if (saveError()) {
+                <p class="text-xs text-red-600 mt-1">{{ saveError() }}</p>
+              }
             </div>
 
           } @else if (confirmDeleteId() === doc.id) {

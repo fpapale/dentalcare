@@ -34,6 +34,7 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
   editingDocId = signal<string | null>(null);
   editForm: UpdatePatientDocumentRequest & { takenAt?: string; notes?: string } = { title: '', documentType: 'altro' };
   saving = signal(false);
+  saveError = signal<string | null>(null);
 
   previewDoc = signal<PatientDocumentSummary | null>(null);
   previewBlobUrl = signal<string | null>(null);
@@ -123,7 +124,9 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
         const a = document.createElement('a');
         a.href = url;
         a.download = doc.fileName;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
       },
     });
@@ -141,6 +144,7 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
 
   saveEdit(doc: PatientDocumentSummary): void {
     if (this.saving()) return;
+    this.saveError.set(null);
     this.saving.set(true);
     const req: UpdatePatientDocumentRequest = {
       title: this.editForm.title,
@@ -154,11 +158,11 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
         this.editingDocId.set(null);
         this.saving.set(false);
       },
-      error: () => { this.saving.set(false); },
+      error: () => { this.saving.set(false); this.saveError.set('Errore durante il salvataggio'); },
     });
   }
 
-  cancelEdit(): void { this.editingDocId.set(null); }
+  cancelEdit(): void { this.editingDocId.set(null); this.saveError.set(null); }
 
   confirmDelete(id: string): void { this.confirmDeleteId.set(id); }
   cancelDelete(): void { this.confirmDeleteId.set(null); }
@@ -168,6 +172,10 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
       next: () => {
         this.docs.update(list => list.filter(d => d.id !== id));
         this.confirmDeleteId.set(null);
+      },
+      error: () => {
+        this.confirmDeleteId.set(null);
+        this.error.set('Errore durante l\'eliminazione');
       },
     });
   }
