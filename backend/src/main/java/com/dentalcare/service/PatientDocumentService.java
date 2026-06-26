@@ -4,8 +4,6 @@ import com.dentalcare.dto.PatientDocumentSummaryDto;
 import com.dentalcare.dto.UpdatePatientDocumentRequest;
 import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,8 +20,6 @@ import java.util.UUID;
 
 @Service
 public class PatientDocumentService {
-
-    private static final Logger log = LoggerFactory.getLogger(PatientDocumentService.class);
 
     private final NamedParameterJdbcTemplate jdbc;
     private final MinioStorageService minio;
@@ -174,18 +170,16 @@ public class PatientDocumentService {
         if (rows.isEmpty()) throw new ResourceNotFoundException("Document not found: " + docId);
         String objectKey = (String) rows.getFirst().get("file_path");
 
+        // Delete from MinIO first — if this fails, DB row is preserved and caller gets an error.
+        // MinIO delete is idempotent: deleting a missing key is a no-op.
+        minio.delete(objectKey);
+
         jdbc.update(
                 "DELETE FROM %s.patient_documents WHERE id = :id AND patient_id = :patientId AND clinic_id = :clinicId".formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", docId)
                         .addValue("patientId", patientId)
                         .addValue("clinicId", clinic));
-
-        try {
-            minio.delete(objectKey);
-        } catch (Exception e) {
-            log.warn("MinIO delete failed for key={} (file orphaned): {}", objectKey, e.getMessage());
-        }
     }
 
     private String buildObjectKey(UUID patientId, UUID docId, String fileName) {

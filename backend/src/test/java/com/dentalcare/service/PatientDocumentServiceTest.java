@@ -107,11 +107,48 @@ class PatientDocumentServiceTest {
         String objectKey = "t_abcd1234/patients/" + patientId + "/" + docId + "/file.jpg";
         when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class)))
                 .thenReturn(List.of(Map.of("file_path", objectKey)));
-        when(jdbc.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
         service.delete(patientId, docId);
 
         verify(jdbc).update(anyString(), any(MapSqlParameterSource.class));
         verify(minio).delete(objectKey);
+    }
+
+    @Test
+    void upload_deletesMinioObjectWhenInsertFails() throws Exception {
+        // Arrange: jdbc.update throws (simulates INSERT failure)
+        org.springframework.web.multipart.MultipartFile mockFile =
+                mock(org.springframework.web.multipart.MultipartFile.class);
+        when(mockFile.getBytes()).thenReturn(new byte[]{1, 2, 3});
+        when(mockFile.getSize()).thenReturn(3L);
+        when(mockFile.getContentType()).thenReturn("image/jpeg");
+        when(mockFile.getOriginalFilename()).thenReturn("test.jpg");
+
+        // First jdbc call is the INSERT (upload doesn't call queryForList)
+        doThrow(new RuntimeException("DB error")).when(jdbc).update(anyString(), any(MapSqlParameterSource.class));
+
+        // Act + Assert
+        assertThatThrownBy(() -> service.upload(patientId, mockFile, "Test", "rx_panoramica", null, null))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("DB error");
+
+        // Verify MinIO delete was called to clean up the orphan
+        verify(minio).upload(anyString(), any(byte[].class), anyString());
+        verify(minio).delete(anyString());
+    }
+
+    @Test
+    void delete_callsMinioBeforeDb() {
+        String objectKey = "t_abcd1234/patients/" + patientId + "/" + docId + "/file.jpg";
+        when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class)))
+                .thenReturn(List.of(Map.of("file_path", objectKey)));
+
+        // Track call order
+        org.mockito.InOrder inOrder = inOrder(minio, jdbc);
+
+        service.delete(patientId, docId);
+
+        inOrder.verify(minio).delete(objectKey);
+        inOrder.verify(jdbc).update(anyString(), any(MapSqlParameterSource.class));
     }
 }

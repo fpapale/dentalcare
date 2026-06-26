@@ -61,6 +61,12 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("VALIDATION_ERROR", message);
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+    public ErrorResponse handleMaxUploadSize(org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+        return new ErrorResponse("FILE_TOO_LARGE", "Il file supera il limite di 50 MB");
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleGeneric(Exception ex) {
