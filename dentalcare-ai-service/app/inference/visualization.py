@@ -20,7 +20,7 @@ def quadrant_color(tooth: str | None) -> tuple[int, int, int]:
 def draw_detections(image_bgr: np.ndarray, detections: list[dict]) -> np.ndarray:
     out = image_bgr.copy()
     for d in detections:
-        x1, y1, x2, y2 = d["bbox_xyxy"]
+        x1, y1, x2, y2 = (int(v) for v in d["bbox_xyxy"])
         color = quadrant_color(d.get("tooth"))
         label = f"{d['tooth']} {d['disease']}" if d.get("tooth") else f"? {d['disease']}"
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
