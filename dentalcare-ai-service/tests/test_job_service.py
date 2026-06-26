@@ -38,6 +38,12 @@ def test_run_job_writes_result_and_calls_callback(monkeypatch):
     assert sent["job_id"] == "job-1"
     assert sent["detections"][0]["tooth"] == "16"
 
+    # processing index written first, completed last; annotated image uploaded
+    index_statuses = [c.args[2]["status"] for c in minio.upload_json.call_args_list
+                      if c.args[1].startswith("ai/jobs/")]
+    assert index_statuses == ["processing", "completed"]
+    assert minio.upload_file.called
+
 
 def test_run_job_failure_sets_failed_status(monkeypatch):
     minio = MagicMock()
