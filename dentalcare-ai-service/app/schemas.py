@@ -20,13 +20,13 @@ class JobCreatedResponse(BaseModel):
 
 
 class DetectionOut(BaseModel):
-    tooth: str | None
+    tooth: str | None = None
     disease: str
     disease_confidence: float
-    fdi_confidence: float | None
+    fdi_confidence: float | None = None
     bbox_xyxy: list[int]
     matching_method: str
-    matching_score: float | None
+    matching_score: float | None = None
     needs_review: bool
 
 
