@@ -13,7 +13,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 1 | Aggiornamento agenda in tempo reale (SSE) | Medio-basso (~½ giornata) | Proposta |
 | 2 | Retell multi-studio: agente per sede/poltrona | Medio (~1 giornata) | Proposta |
 | 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
-| 4 | Documenti paziente: tab CRUD con allegati base64 | Medio (~1 giornata) | Proposta |
+| 4 | Documenti paziente: tab CRUD con allegati (MinIO storage) | Medio (~1 giornata) | Fatta |
 | 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
 | 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Fatta |
 | 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
