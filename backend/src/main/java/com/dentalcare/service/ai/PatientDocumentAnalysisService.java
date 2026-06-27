@@ -35,7 +35,6 @@ public class PatientDocumentAnalysisService {
 
     public record StaleAnalysis(UUID id, String jobId, String resultBucket) {}
 
-    @Transactional
     public StartAnalysisResponse startAnalysis(UUID patientId, UUID documentId) {
         Map<String, Object> doc = jdbc.queryForList("""
                 SELECT document_type, file_path FROM %s.patient_documents
@@ -79,6 +78,10 @@ public class PatientDocumentAnalysisService {
     /** Idempotent: writes labels + COMPLETED/FAILED only if the row is still PROCESSING. */
     @Transactional
     public void applyCallback(AiCallbackRequest cb) {
+        String schema = TenantContext.validatedSchema();
+        if (!schema.equals(cb.schema_name())) {
+            throw new IllegalStateException("Schema mismatch: context=" + schema + " payload=" + cb.schema_name());
+        }
         UUID analysisId = UUID.fromString(cb.analysis_id());
         boolean failed = "failed".equalsIgnoreCase(cb.status());
         String newStatus = failed ? "FAILED" : "COMPLETED";
@@ -105,6 +108,9 @@ public class PatientDocumentAnalysisService {
         if (!failed && cb.detections() != null) {
             for (AiCallbackRequest.Detection d : cb.detections()) {
                 List<Integer> b = d.bbox_xyxy();
+                if (b == null || b.size() < 4) {
+                    continue;  // skip malformed detection; row still finalizes
+                }
                 jdbc.update("""
                         INSERT INTO %s.patient_document_labels
                           (analysis_id, tooth_fdi, disease, disease_confidence, fdi_confidence,
@@ -164,7 +170,7 @@ public class PatientDocumentAnalysisService {
     private AnalysisDto mapAnalysis(Map<String, Object> a, List<LabelDto> labels) {
         return new AnalysisDto(
                 (UUID) a.get("id"), (UUID) a.get("patient_id"), (UUID) a.get("document_id"),
-                String.valueOf(a.get("status")), ((Number) a.get("detections_count")).intValue(),
+                String.valueOf(a.get("status")), a.get("detections_count") != null ? ((Number) a.get("detections_count")).intValue() : 0,
                 Boolean.TRUE.equals(a.get("needs_review")), String.valueOf(a.get("review_status")),
                 (String) a.get("result_bucket"), (String) a.get("result_object_key"),
                 (String) a.get("annotated_object_key"), (String) a.get("error_message"),
