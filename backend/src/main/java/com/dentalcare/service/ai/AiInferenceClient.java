@@ -29,22 +29,21 @@ public class AiInferenceClient {
 
     @SuppressWarnings("unchecked")
     public String createJob(AiJobRequest req) {
-        Map<String, Object> body = http.post()
-                .uri("/api/v1/inference/jobs")
-                .header("Authorization", currentBearer())
-                .body(req)
-                .retrieve()
-                .body(Map.class);
+        String bearer = currentBearer();
+        var spec = http.post().uri("/api/v1/inference/jobs").body(req);
+        if (!bearer.isEmpty()) spec = spec.header("Authorization", bearer);
+        Map<String, Object> body = spec.retrieve().body(Map.class);
         return body != null ? (String) body.get("job_id") : null;
     }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> getJobStatus(String resultBucket, String jobId) {
-        return http.get()
+        String bearer = currentBearer();
+        var spec = http.get()
                 .uri(uri -> uri.path("/api/v1/inference/jobs/{id}")
-                        .queryParam("result_bucket", resultBucket).build(jobId))
-                .header("Authorization", currentBearer())
-                .retrieve()
-                .body(Map.class);
+                        .queryParam("result_bucket", resultBucket).build(jobId));
+        if (!bearer.isEmpty()) spec = spec.header("Authorization", bearer);
+        Map<String, Object> body = spec.retrieve().body(Map.class);
+        return body != null ? body : Map.of();
     }
 }
