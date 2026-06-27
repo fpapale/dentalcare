@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -29,6 +31,7 @@ public class TenantProvisioningService {
     private final TenantSchemaRegistry registry;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final MinioStorageService minio;
 
     @Value("${app.frontend.base-url:http://localhost:4200}")
     private String frontendBaseUrl;
@@ -36,11 +39,13 @@ public class TenantProvisioningService {
     public TenantProvisioningService(JdbcTemplate jdbc,
                                      TenantSchemaRegistry registry,
                                      PasswordEncoder passwordEncoder,
-                                     EmailService emailService) {
+                                     EmailService emailService,
+                                     MinioStorageService minio) {
         this.jdbc = jdbc;
         this.registry = registry;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.minio = minio;
     }
 
     public TenantProvisioningResult provision(RegistrationRequest req) {
@@ -72,6 +77,15 @@ public class TenantProvisioningService {
         registry.register(clinicId.toString(), schemaName);
         log.info("Tenant provisioned: schema={} clinicId={} tenantId={} adminId={}",
                 schemaName, clinicId, tenantId, adminId);
+
+        final String bucket = minio.bucketFor(schemaName);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { minio.ensureBucketExists(bucket); }
+            });
+        } else {
+            minio.ensureBucketExists(bucket);
+        }
 
         // Email con password temporanea dopo il commit. send() gestisce i propri errori.
         emailService.sendStudioWelcomeTempPassword(

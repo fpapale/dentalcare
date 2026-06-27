@@ -15,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,6 +32,7 @@ public class TenantAdminService {
     private final EmailService emailService;
     private final JwtService jwtService;
     private final TenantSchemaRegistry registry;
+    private final MinioStorageService minio;
 
     @org.springframework.beans.factory.annotation.Value("${app.demo.password:}")
     private String demoPassword;
@@ -41,12 +44,13 @@ public class TenantAdminService {
 
     public TenantAdminService(NamedParameterJdbcTemplate jdbc, PasswordEncoder passwordEncoder,
                               EmailService emailService, JwtService jwtService,
-                              TenantSchemaRegistry registry) {
+                              TenantSchemaRegistry registry, MinioStorageService minio) {
         this.jdbc = jdbc;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.jwtService = jwtService;
         this.registry = registry;
+        this.minio = minio;
     }
 
     private String s() { return TenantContext.validatedSchema(); }
@@ -189,6 +193,15 @@ public class TenantAdminService {
             throw new IllegalStateException("Cannot delete demo tenant");
         }
         UUID tenantId = currentTenantId();
+
+        final String bucket = minio.bucketFor(schema);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { minio.purgeBucket(bucket); }
+            });
+        } else {
+            minio.purgeBucket(bucket);
+        }
 
         jdbc.getJdbcTemplate().execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
         jdbc.update("DELETE FROM dentalcare.tenant_clinics WHERE tenant_id = :tenantId",
