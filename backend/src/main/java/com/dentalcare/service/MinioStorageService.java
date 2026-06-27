@@ -1,5 +1,6 @@
 package com.dentalcare.service;
 
+import com.dentalcare.security.TenantContext;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 
 @Service
 public class MinioStorageService {
@@ -29,8 +31,8 @@ public class MinioStorageService {
     @Value("${app.minio.secret-key}")
     private String secretKey;
 
-    @Value("${app.minio.bucket}")
-    private String bucket;
+    @Value("${app.minio.bucket-prefix:dc-}")
+    private String bucketPrefix;
 
     private final DocumentEncryptionService encryption;
     private S3Client s3;
@@ -38,6 +40,9 @@ public class MinioStorageService {
     public MinioStorageService(DocumentEncryptionService encryption) {
         this.encryption = encryption;
     }
+
+    /** Test seam: set the prefix without Spring context. */
+    void setBucketPrefixForTest(String prefix) { this.bucketPrefix = prefix; }
 
     @PostConstruct
     void init() {
@@ -48,27 +53,65 @@ public class MinioStorageService {
                 .region(Region.US_EAST_1)
                 .forcePathStyle(true)
                 .build();
+        log.info("MinIO storage initialized: endpoint={}, bucketPrefix={}", endpoint, bucketPrefix);
+    }
 
-        ensureBucketExists();
-        log.info("MinIO storage initialized: endpoint={}, bucket={}", endpoint, bucket);
+    /** Bucket name for a tenant schema: dc- + schema with underscores replaced by hyphens. */
+    public String bucketFor(String schema) {
+        return bucketPrefix + schema.replace('_', '-');
+    }
+
+    private String currentBucket() {
+        String bucket = bucketFor(TenantContext.validatedSchema());
+        ensureBucketExists(bucket);
+        return bucket;
+    }
+
+    public void ensureBucketExists(String bucket) {
+        try {
+            s3.headBucket(HeadBucketRequest.builder().bucket(bucket).build());
+        } catch (NoSuchBucketException e) {
+            s3.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
+            log.info("Created MinIO bucket: {}", bucket);
+        }
+    }
+
+    /** Delete every object in the bucket, then the bucket itself. Idempotent if bucket missing. */
+    public void purgeBucket(String bucket) {
+        try {
+            String token = null;
+            do {
+                ListObjectsV2Response listing = s3.listObjectsV2(ListObjectsV2Request.builder()
+                        .bucket(bucket).continuationToken(token).build());
+                List<ObjectIdentifier> ids = listing.contents().stream()
+                        .map(o -> ObjectIdentifier.builder().key(o.key()).build())
+                        .toList();
+                if (!ids.isEmpty()) {
+                    s3.deleteObjects(DeleteObjectsRequest.builder().bucket(bucket)
+                            .delete(Delete.builder().objects(ids).build()).build());
+                }
+                token = listing.isTruncated() ? listing.nextContinuationToken() : null;
+            } while (token != null);
+            s3.deleteBucket(DeleteBucketRequest.builder().bucket(bucket).build());
+            log.info("Purged MinIO bucket: {}", bucket);
+        } catch (NoSuchBucketException e) {
+            log.warn("purgeBucket: bucket already absent: {}", bucket);
+        }
     }
 
     public void upload(String objectKey, byte[] data, String mimeType) {
         byte[] payload = encryption.encrypt(data);
         s3.putObject(
                 PutObjectRequest.builder()
-                        .bucket(bucket)
-                        .key(objectKey)
-                        .contentType(mimeType)
-                        .contentLength((long) payload.length)
-                        .build(),
+                        .bucket(currentBucket()).key(objectKey).contentType(mimeType)
+                        .contentLength((long) payload.length).build(),
                 RequestBody.fromBytes(payload));
         log.debug("Uploaded object: key={}, size={}", objectKey, payload.length);
     }
 
     public byte[] download(String objectKey) {
         try (var response = s3.getObject(
-                GetObjectRequest.builder().bucket(bucket).key(objectKey).build())) {
+                GetObjectRequest.builder().bucket(currentBucket()).key(objectKey).build())) {
             return encryption.decrypt(response.readAllBytes());
         } catch (IOException e) {
             throw new RuntimeException("Failed to read object: " + objectKey, e);
@@ -76,16 +119,7 @@ public class MinioStorageService {
     }
 
     public void delete(String objectKey) {
-        s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(objectKey).build());
+        s3.deleteObject(DeleteObjectRequest.builder().bucket(currentBucket()).key(objectKey).build());
         log.debug("Deleted object: key={}", objectKey);
-    }
-
-    private void ensureBucketExists() {
-        try {
-            s3.headBucket(HeadBucketRequest.builder().bucket(bucket).build());
-        } catch (NoSuchBucketException e) {
-            s3.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
-            log.info("Created MinIO bucket: {}", bucket);
-        }
     }
 }

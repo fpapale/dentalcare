@@ -104,7 +104,7 @@ class PatientDocumentServiceTest {
 
     @Test
     void delete_callsMinioDeleteAfterDbDelete() {
-        String objectKey = "t_abcd1234/patients/" + patientId + "/" + docId + "/file.jpg";
+        String objectKey = "patients/" + patientId + "/" + docId + "/file.jpg";
         when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class)))
                 .thenReturn(List.of(Map.of("file_path", objectKey)));
 
@@ -139,7 +139,7 @@ class PatientDocumentServiceTest {
 
     @Test
     void delete_callsMinioBeforeDb() {
-        String objectKey = "t_abcd1234/patients/" + patientId + "/" + docId + "/file.jpg";
+        String objectKey = "patients/" + patientId + "/" + docId + "/file.jpg";
         when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class)))
                 .thenReturn(List.of(Map.of("file_path", objectKey)));
 

@@ -183,7 +183,7 @@ public class PatientDocumentService {
     }
 
     private String buildObjectKey(UUID patientId, UUID docId, String fileName) {
-        return "%s/patients/%s/%s/%s".formatted(s(), patientId, docId, fileName);
+        return "patients/%s/%s/%s".formatted(patientId, docId, fileName);
     }
 
     private String sanitizeFileName(String original) {
