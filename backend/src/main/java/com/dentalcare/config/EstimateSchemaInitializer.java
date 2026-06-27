@@ -73,6 +73,11 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             log.warn("EstimateSchemaInitializer: dentalcare.tenants not found — discovered {} tenant schema(s) by pattern", schemas.size());
         }
 
+        // AI enums — idempotent, created once in the global dentalcare schema
+        jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_analysis_status AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
+        jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_review_status AS ENUM ('pending','reviewed','approved_for_training','excluded'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
+        jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_label_source AS ENUM ('ai','human_corrected'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
+
         for (String schema : schemas) {
             Integer exists = jdbc.queryForObject(
                     "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?",
@@ -126,6 +131,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             runStep(schema, "v_patient_dashboard",          () -> rebuildPatientDashboardView(schema));
             runStep(schema, "v_patient_clinical_card",      () -> rebuildPatientClinicalCardView(schema));
             runStep(schema, "v_patient_estimates_summary",  () -> rebuildEstimatesSummaryView(schema));
+            runStep(schema, "ai analyses tables",           () -> createAiTables(schema));
             log.debug("EstimateSchemaInitializer: patched schema {}", schema);
         }
     }
@@ -475,6 +481,40 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             " FROM " + schema + ".estimates e" +
             " LEFT JOIN " + schema + ".patients p ON p.id = e.patient_id AND p.clinic_id = e.clinic_id"
         );
+    }
+
+    private void createAiTables(String schema) {
+        jdbc.execute(("""
+            CREATE TABLE IF NOT EXISTS %1$s.patient_document_analyses (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                clinic_id uuid NOT NULL, patient_id uuid NOT NULL, document_id uuid NOT NULL,
+                job_id text, status dentalcare.ai_analysis_status NOT NULL DEFAULT 'PENDING',
+                model_fdi text, model_disease text, result_bucket text, result_object_key text,
+                annotated_object_key text, detections_count integer NOT NULL DEFAULT 0,
+                needs_review boolean NOT NULL DEFAULT false,
+                review_status dentalcare.ai_review_status NOT NULL DEFAULT 'pending',
+                reviewed_by_provider_id uuid, reviewed_at timestamptz, error_message text,
+                requested_by_provider_id uuid,
+                created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())
+            """).formatted(schema));
+        jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pda_document ON %1$s.patient_document_analyses (document_id)".formatted(schema));
+        jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pda_patient ON %1$s.patient_document_analyses (patient_id)".formatted(schema));
+        jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pda_job ON %1$s.patient_document_analyses (job_id)".formatted(schema));
+        jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pda_status ON %1$s.patient_document_analyses (status)".formatted(schema));
+        jdbc.execute(("""
+            CREATE TABLE IF NOT EXISTS %1$s.patient_document_labels (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                analysis_id uuid NOT NULL REFERENCES %1$s.patient_document_analyses (id) ON DELETE CASCADE,
+                tooth_fdi text, disease text NOT NULL, disease_confidence numeric(5,4), fdi_confidence numeric(5,4),
+                bbox_x1 integer NOT NULL, bbox_y1 integer NOT NULL, bbox_x2 integer NOT NULL, bbox_y2 integer NOT NULL,
+                matching_method text NOT NULL, matching_score numeric(5,4),
+                needs_review boolean NOT NULL DEFAULT false,
+                source dentalcare.ai_label_source NOT NULL DEFAULT 'ai', action text,
+                created_at timestamptz NOT NULL DEFAULT now())
+            """).formatted(schema));
+        jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pdl_analysis ON %1$s.patient_document_labels (analysis_id)".formatted(schema));
+        jdbc.execute("ALTER TABLE %1$s.tooth_conditions ADD COLUMN IF NOT EXISTS source varchar(10) NOT NULL DEFAULT 'manual'".formatted(schema));
+        jdbc.execute("ALTER TABLE %1$s.tooth_conditions ADD COLUMN IF NOT EXISTS analysis_id uuid".formatted(schema));
     }
 
     private void rebuildDashboardView(String schema) {
