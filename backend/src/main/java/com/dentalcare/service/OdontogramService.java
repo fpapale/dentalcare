@@ -48,7 +48,7 @@ public class OdontogramService {
 
         jdbc.update("""
             DELETE FROM %s.tooth_conditions
-            WHERE clinic_id = :clinicId AND patient_id = :patientId
+            WHERE clinic_id = :clinicId AND patient_id = :patientId AND source = 'manual'
             """.formatted(s()),
             new MapSqlParameterSource()
                     .addValue("clinicId", clinicId)
