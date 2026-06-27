@@ -15,7 +15,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
 | 4 | Documenti paziente: tab CRUD con allegati (MinIO storage) | Medio (~1 giornata) | Fatta |
 | 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
-| 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | In corso |
+| 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Fatta |
 | 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
 
 ---
@@ -524,7 +524,7 @@ Nessuna modifica — il backend gestisce la trasparenza dello storage.
 
 ## 6. AI YOLO: rilevamento carie su ortopanoramica + retraining
 
-**Stato:** In corso — modello base DENTEX addestrato (`dental_yolo.pt`); servizio inferenza + retraining DA FARE
+**Stato:** Fatta — microservizio `dentalcare-ai-service` (Python/FastAPI/ONNX) + integrazione DentalCare (bucket-per-tenant, tabelle analyses/labels, webhook HMAC, SSE, reconciler, sync odontogramma, overlay SVG). Spec: `docs/superpowers/specs/2026-06-26-ai-yolo-service-design.md`. Piani: `docs/superpowers/plans/2026-06-26-ai-service-python.md` + `2026-06-26-ai-integration-dentalcare.md`. Branch `feat/ai-yolo-service`.
 **Data proposta:** 2026-06-25
 **Impatto:** Alto (~3-5 giorni)
 **Prerequisiti:** Proposta #4 (tab documenti) + Proposta #5 (MinIO)
