@@ -25,6 +25,9 @@ import { AuthService } from '../../../core/auth/auth.service';
           </button>
         }
       </div>
+      @if (analyzeError()) {
+        <p class="text-sm text-red-600">{{ analyzeError() }}</p>
+      }
 
       <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
         AI-generated, requires clinician review
@@ -86,9 +89,11 @@ export class DocumentoAnalisiComponent implements OnInit, OnDestroy {
   readonly busy = signal(false);
   readonly natW = signal(0);
   readonly natH = signal(0);
+  readonly analyzeError = signal<string | null>(null);
 
   private blobUrl: string | null = null;
   private es: EventSource | null = null;
+  private fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.docSvc.getContent(this.patientId, this.docId).subscribe(blob => {
@@ -96,7 +101,8 @@ export class DocumentoAnalisiComponent implements OnInit, OnDestroy {
       this.imageUrl.set(this.sanitizer.bypassSecurityTrustUrl(this.blobUrl));
     });
     this.analysisSvc.list(this.patientId, this.docId).subscribe(list => {
-      if (list.length > 0) this.loadAnalysis(list[0].id);
+      const sorted = [...list].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+      if (sorted.length > 0) this.loadAnalysis(sorted[0].id);
     });
   }
 
@@ -104,6 +110,7 @@ export class DocumentoAnalisiComponent implements OnInit, OnDestroy {
     if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
     this.es?.close();
     this.es = null;
+    if (this.fallbackTimer) { clearTimeout(this.fallbackTimer); this.fallbackTimer = null; }
   }
 
   color(tooth: string | null): string { return quadrantColor(tooth); }
@@ -119,10 +126,11 @@ export class DocumentoAnalisiComponent implements OnInit, OnDestroy {
   }
 
   analyze(): void {
+    this.analyzeError.set(null);
     this.busy.set(true);
     this.analysisSvc.start(this.patientId, this.docId).subscribe({
       next: a => { this.analysis.set(a); this.busy.set(false); this.subscribeStatus(a.id); },
-      error: () => { this.busy.set(false); },
+      error: () => { this.busy.set(false); this.analyzeError.set('Impossibile avviare l\'analisi. Riprova più tardi.'); },
     });
   }
 
@@ -131,7 +139,7 @@ export class DocumentoAnalisiComponent implements OnInit, OnDestroy {
     this.es = null;
 
     if (this.auth.getToken() === null) {
-      setTimeout(() => { if (this.analysis()?.status === 'PROCESSING') this.loadAnalysis(analysisId); }, 8000);
+      this.fallbackTimer = setTimeout(() => { if (this.analysis()?.status === 'PROCESSING') this.loadAnalysis(analysisId); }, 8000);
       return;
     }
 
@@ -141,7 +149,12 @@ export class DocumentoAnalisiComponent implements OnInit, OnDestroy {
       this.es?.close();
       this.es = null;
     });
-    setTimeout(() => { if (this.analysis()?.status === 'PROCESSING') this.loadAnalysis(analysisId); }, 8000);
+    this.es.addEventListener('error', () => {
+      this.es?.close();
+      this.es = null;
+      if (this.analysis()?.status === 'PROCESSING') this.loadAnalysis(analysisId);
+    });
+    this.fallbackTimer = setTimeout(() => { if (this.analysis()?.status === 'PROCESSING') this.loadAnalysis(analysisId); }, 8000);
   }
 
   private loadAnalysis(analysisId: string): void {
