@@ -1,6 +1,5 @@
 package com.dentalcare.controller.ai;
 
-import com.dentalcare.dto.ai.StartAnalysisResponse;
 import com.dentalcare.service.ai.OdontogramSyncService;
 import com.dentalcare.service.ai.PatientDocumentAnalysisService;
 import com.dentalcare.service.ai.SseEmitterRegistry;
@@ -8,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,6 +20,7 @@ class PatientDocumentAnalysisControllerTest {
         var sync = mock(OdontogramSyncService.class);
         var controller = new PatientDocumentAnalysisController(service, sse, sync);
         UUID pat = UUID.randomUUID(), doc = UUID.randomUUID(), an = UUID.randomUUID();
+        when(service.review(any(), any(), any())).thenReturn(org.mockito.Mockito.mock(com.dentalcare.dto.ai.AnalysisDto.class));
 
         controller.review(pat, doc, an,
                 new com.dentalcare.dto.ai.ReviewAnalysisRequest("reviewed", java.util.List.of()));

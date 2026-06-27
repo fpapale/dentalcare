@@ -51,6 +51,7 @@ public class PatientDocumentAnalysisController {
         return dto;
     }
 
+    // EventSource cannot send headers — clients authenticate this SSE endpoint via ?token=<jwt> (supported by JwtAuthenticationFilter)
     @GetMapping("/{analysisId}/stream")
     public SseEmitter stream(@PathVariable UUID patientId, @PathVariable UUID docId, @PathVariable UUID analysisId) {
         return sse.create(analysisId);

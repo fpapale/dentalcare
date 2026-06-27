@@ -19,6 +19,8 @@ import java.util.UUID;
 @Service
 public class PatientDocumentAnalysisService {
 
+    private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER = new com.fasterxml.jackson.databind.ObjectMapper();
+
     private final NamedParameterJdbcTemplate jdbc;
     private final MinioStorageService minio;
     private final AiInferenceClient ai;
@@ -31,7 +33,11 @@ public class PatientDocumentAnalysisService {
 
     private String s() { return TenantContext.validatedSchema(); }
     private UUID clinicId() { return UUID.fromString(TenantContext.getCurrentTenant()); }
-    private UUID providerId() { return UUID.fromString(SecurityContextHolder.getContext().getAuthentication().getName()); }
+    private UUID providerId() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) throw new IllegalStateException("No authenticated provider in context");
+        return UUID.fromString(auth.getName());
+    }
 
     public record StaleAnalysis(UUID id, String jobId, String resultBucket) {}
 
@@ -173,11 +179,11 @@ public class PatientDocumentAnalysisService {
                 UPDATE %s.patient_document_analyses
                 SET review_status = CAST(:rs AS dentalcare.ai_review_status),
                     reviewed_by_provider_id = :prov, reviewed_at = now(), updated_at = now()
-                WHERE id = :id AND patient_id = :pat AND clinic_id = :clinic
+                WHERE id = :id AND patient_id = :pat AND clinic_id = :clinic AND status = 'COMPLETED'
                 """.formatted(s()), new MapSqlParameterSource()
                 .addValue("rs", req.reviewStatus()).addValue("prov", providerId())
                 .addValue("id", analysisId).addValue("pat", patientId).addValue("clinic", clinicId()));
-        if (updated == 0) throw new ResourceNotFoundException("Analysis not found");
+        if (updated == 0) throw new ResourceNotFoundException("Analysis not found or not completed");
         return getAnalysis(patientId, analysisId);
     }
 
@@ -189,16 +195,18 @@ public class PatientDocumentAnalysisService {
         if (!"completed".equalsIgnoreCase(String.valueOf(status.get("status")))) return;
         // Rebuild a callback from the job-status document and apply it idempotently.
         // The job-status 'detections' have the same field names as the callback detections.
-        com.fasterxml.jackson.databind.ObjectMapper m = new com.fasterxml.jackson.databind.ObjectMapper();
-        AiCallbackRequest cb = m.convertValue(Map.of(
-                "job_id", stale.jobId(), "status", "completed",
-                "schema_name", s(), "analysis_id", stale.id().toString(),
-                "patient_id", "", "document_id", "",
-                "result_bucket", stale.resultBucket(),
-                "result_object_key", status.getOrDefault("result_object_key", null),
-                "annotated_object_key", status.getOrDefault("annotated_image_object_key", null),
-                "detections", status.getOrDefault("detections", List.of())
-        ), AiCallbackRequest.class);
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("job_id", stale.jobId());
+        payload.put("status", "completed");
+        payload.put("schema_name", s());
+        payload.put("analysis_id", stale.id().toString());
+        payload.put("patient_id", "");
+        payload.put("document_id", "");
+        payload.put("result_bucket", stale.resultBucket());
+        payload.put("result_object_key", status.get("result_object_key"));
+        payload.put("annotated_object_key", status.get("annotated_image_object_key"));
+        payload.put("detections", status.getOrDefault("detections", java.util.List.of()));
+        AiCallbackRequest cb = MAPPER.convertValue(payload, AiCallbackRequest.class);
         applyCallback(cb);
     }
 
