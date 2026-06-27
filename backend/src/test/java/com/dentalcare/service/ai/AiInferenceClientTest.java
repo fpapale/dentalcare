@@ -36,7 +36,7 @@ class AiInferenceClientTest {
         servletReq.addHeader("Authorization", "Bearer test-token");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(servletReq));
 
-        AiInferenceClient client = new AiInferenceClient(server.url("/").toString());
+        AiInferenceClient client = new AiInferenceClient(server.url("/").toString(), new com.dentalcare.security.JwtService("test-secret-test-secret-test-secret-1234", 86400000L));
         String jobId = client.createJob(new AiJobRequest("P1", "D1", "A1", "t_x",
                 "dc-t-x", "patients/P1/D1/p.png", "dc-t-x", "patients/P1/D1/ai/A1/",
                 true, Map.of()));
@@ -54,7 +54,7 @@ class AiInferenceClientTest {
         server.enqueue(new MockResponse()
                 .setHeader("Content-Type", "application/json")
                 .setBody("{\"job_id\":\"ai-job-1\",\"status\":\"completed\"}"));
-        AiInferenceClient client = new AiInferenceClient(server.url("/").toString());
+        AiInferenceClient client = new AiInferenceClient(server.url("/").toString(), new com.dentalcare.security.JwtService("test-secret-test-secret-test-secret-1234", 86400000L));
         Map<String, Object> status = client.getJobStatus("dc-t-x", "ai-job-1");
         assertEquals("completed", status.get("status"));
         RecordedRequest recorded = server.takeRequest();

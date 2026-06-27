@@ -1,6 +1,7 @@
 package com.dentalcare.service.ai;
 
 import com.dentalcare.dto.ai.AiJobRequest;
+import com.dentalcare.security.JwtService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -8,21 +9,29 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AiInferenceClient {
 
     private final RestClient http;
+    private final JwtService jwtService;
 
-    public AiInferenceClient(@Value("${app.ai.base-url}") String baseUrl) {
+    public AiInferenceClient(@Value("${app.ai.base-url}") String baseUrl, JwtService jwtService) {
         this.http = RestClient.builder().baseUrl(baseUrl).build();
+        this.jwtService = jwtService;
     }
 
     private String currentBearer() {
         var attrs = RequestContextHolder.getRequestAttributes();
         if (attrs instanceof ServletRequestAttributes sra) {
             String header = sra.getRequest().getHeader("Authorization");
-            if (header != null) return header;
+            if (header != null && !header.isEmpty()) return header;
+        }
+        String schema = com.dentalcare.security.TenantContext.getCurrentSchema();
+        if (schema != null) {
+            java.util.UUID sys = new java.util.UUID(0L, 0L);
+            return "Bearer " + jwtService.generate(sys, sys, schema, "SYSTEM", "system");
         }
         return "";
     }
