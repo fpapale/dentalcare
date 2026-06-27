@@ -41,8 +41,10 @@ class OdontogramSyncServiceTest {
                 new java.util.HashMap<>() {{ put("tooth_fdi", null); put("disease", "Caries"); }} // skipped (no tooth)
         ));
         svc.syncFromAnalysis(patientId, analysisId);
-        // 1 delete (ai rows for this analysis) + 2 inserts (16, 26)
-        verify(jdbc, times(1)).update(contains("DELETE"), any(MapSqlParameterSource.class));
+        // 1 delete scoped to analysis_id+source (not all patient rows) + 2 inserts (16, 26)
+        verify(jdbc, times(1)).update(
+            org.mockito.ArgumentMatchers.argThat(sql -> sql.contains("DELETE") && sql.contains("analysis_id") && sql.contains("source")),
+            org.mockito.ArgumentMatchers.any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class));
         verify(jdbc, times(2)).update(contains("INSERT"), any(MapSqlParameterSource.class));
     }
 }
