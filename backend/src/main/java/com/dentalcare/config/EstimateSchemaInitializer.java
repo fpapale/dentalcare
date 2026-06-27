@@ -74,9 +74,21 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         }
 
         // AI enums — idempotent, created once in the global dentalcare schema
-        jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_analysis_status AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
-        jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_review_status AS ENUM ('pending','reviewed','approved_for_training','excluded'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
-        jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_label_source AS ENUM ('ai','human_corrected'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
+        try {
+            jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_analysis_status AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
+        } catch (Exception e) {
+            log.warn("EstimateSchemaInitializer: AI enum ai_analysis_status creation skipped: {}", e.getMessage());
+        }
+        try {
+            jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_review_status AS ENUM ('pending','reviewed','approved_for_training','excluded'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
+        } catch (Exception e) {
+            log.warn("EstimateSchemaInitializer: AI enum ai_review_status creation skipped: {}", e.getMessage());
+        }
+        try {
+            jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_label_source AS ENUM ('ai','human_corrected'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
+        } catch (Exception e) {
+            log.warn("EstimateSchemaInitializer: AI enum ai_label_source creation skipped: {}", e.getMessage());
+        }
 
         for (String schema : schemas) {
             Integer exists = jdbc.queryForObject(
