@@ -8,11 +8,12 @@ import {
   PatientDocumentSummary,
   UpdatePatientDocumentRequest,
 } from '../../../core/models/patient-document.model';
+import { DocumentoAnalisiComponent } from '../documento-analisi/documento-analisi.component';
 
 @Component({
   selector: 'app-documenti-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DocumentoAnalisiComponent],
   templateUrl: './documenti-tab.component.html',
 })
 export class DocumentiTabComponent implements OnInit, OnDestroy {
@@ -46,6 +47,7 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
   });
 
   confirmDeleteId = signal<string | null>(null);
+  readonly analyzeDocId = signal<string | null>(null);
 
   readonly documentTypes = Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => ({ key, label }));
 
@@ -166,6 +168,9 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
 
   confirmDelete(id: string): void { this.confirmDeleteId.set(id); }
   cancelDelete(): void { this.confirmDeleteId.set(null); }
+
+  openAnalyze(docId: string): void { this.analyzeDocId.set(docId); }
+  closeAnalyze(): void { this.analyzeDocId.set(null); }
 
   doDelete(id: string): void {
     this.docService.delete(this.patientId, id).subscribe({

@@ -197,6 +197,12 @@
                 class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-teal-600 transition-colors">
                 <span class="material-symbols-outlined text-[18px]">edit</span>
               </button>
+              @if (doc.documentType === 'rx_panoramica') {
+                <button (click)="openAnalyze(doc.id)"
+                  class="flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-700 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors">
+                  <span class="material-symbols-outlined text-[15px]">auto_awesome</span> Analizza AI
+                </button>
+              }
               <button (click)="confirmDelete(doc.id)" title="Elimina"
                 class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors ml-auto">
                 <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -209,6 +215,21 @@
   }
 
 </div>
+
+<!-- AI Analysis Modal -->
+@if (analyzeDocId()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="closeAnalyze()">
+    <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-4xl max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-slate-800 text-lg">Analisi AI</h3>
+        <button (click)="closeAnalyze()" class="p-1 text-slate-400 hover:text-slate-600">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <app-documento-analisi [patientId]="patientId" [docId]="analyzeDocId()!" />
+    </div>
+  </div>
+}
 
 <!-- Preview Modal -->
 @if (previewDoc()) {
