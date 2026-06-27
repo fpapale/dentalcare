@@ -9,6 +9,8 @@ import com.dentalcare.security.JwtService;
 import com.dentalcare.security.TenantContext;
 import com.dentalcare.security.TenantSchemaRegistry;
 import com.dentalcare.util.TempPasswordGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +28,8 @@ import java.util.UUID;
 
 @Service
 public class TenantAdminService {
+
+    private static final Logger log = LoggerFactory.getLogger(TenantAdminService.class);
 
     private final NamedParameterJdbcTemplate jdbc;
     private final PasswordEncoder passwordEncoder;
@@ -197,7 +201,13 @@ public class TenantAdminService {
         final String bucket = minio.bucketFor(schema);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override public void afterCommit() { minio.purgeBucket(bucket); }
+                @Override public void afterCommit() {
+                    try {
+                        minio.purgeBucket(bucket);
+                    } catch (Exception e) {
+                        log.error("purgeBucket failed for bucket={} — storage leak, manual cleanup required", bucket, e);
+                    }
+                }
             });
         } else {
             minio.purgeBucket(bucket);

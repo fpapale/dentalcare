@@ -14,7 +14,7 @@ class MinioStorageServiceBucketTest {
     }
 
     @Test
-    void purgeBucket_deletesObjectsThenBucket() {
+    void bucketFor_returnsSanitizedNameForPurgeTarget() {
         // Covered by an integration check; here assert bucketFor used for purge name.
         MinioStorageService svc = new MinioStorageService(new NoOpDocumentEncryptionService());
         svc.setBucketPrefixForTest("dc-");
