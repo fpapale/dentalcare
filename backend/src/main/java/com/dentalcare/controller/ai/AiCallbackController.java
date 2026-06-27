@@ -26,11 +26,19 @@ public class AiCallbackController {
     @PostMapping("/callback")
     public ResponseEntity<Void> callback(
             @RequestBody byte[] rawBody,
-            @RequestHeader(value = "X-AI-Signature", required = false) String signature) throws Exception {
+            @RequestHeader(value = "X-AI-Signature", required = false) String signature) {
         if (!hmac.verify(rawBody, signature)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        AiCallbackRequest cb = mapper.readValue(rawBody, AiCallbackRequest.class);
+        AiCallbackRequest cb;
+        try {
+            cb = mapper.readValue(rawBody, AiCallbackRequest.class);
+        } catch (java.io.IOException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (cb.schema_name() == null || !cb.schema_name().matches("^t_[0-9a-f]{8}$")) {
+            return ResponseEntity.badRequest().build();
+        }
         try {
             TenantContext.setCurrentSchema(cb.schema_name());
             service.applyCallback(cb);

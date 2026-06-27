@@ -27,7 +27,7 @@ public class HmacVerifier {
             for (byte b : raw) sb.append(String.format("%02x", b));
             return MessageDigest.isEqual(
                     sb.toString().getBytes(StandardCharsets.UTF_8),
-                    signatureHex.getBytes(StandardCharsets.UTF_8));
+                    signatureHex.toLowerCase(java.util.Locale.ROOT).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             return false;
         }

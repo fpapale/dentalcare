@@ -32,4 +32,18 @@ class HmacVerifierTest {
         byte[] body = "{\"job_id\":\"j1\"}".getBytes(StandardCharsets.UTF_8);
         assertFalse(v.verify(body, "deadbeef"));
     }
+
+    @Test
+    void verify_rejectsWrongKeySignature() throws Exception {
+        HmacVerifier v = new HmacVerifier("secret");
+        byte[] body = "{\"job_id\":\"j1\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertFalse(v.verify(body, sign(body, "wrong-secret")));
+    }
+
+    @Test
+    void verify_acceptsUppercaseHexSignature() throws Exception {
+        HmacVerifier v = new HmacVerifier("secret");
+        byte[] body = "{\"job_id\":\"j1\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(v.verify(body, sign(body, "secret").toUpperCase()));
+    }
 }
