@@ -53,7 +53,12 @@ public class MinioStorageService {
                 .region(Region.US_EAST_1)
                 .forcePathStyle(true)
                 .build();
-        log.info("MinIO storage initialized: endpoint={}, bucketPrefix={}", endpoint, bucketPrefix);
+        try {
+            s3.listBuckets();
+            log.info("MinIO storage initialized: endpoint={}, bucketPrefix={}", endpoint, bucketPrefix);
+        } catch (Exception e) {
+            log.warn("MinIO connectivity check failed at startup (endpoint={}): {}", endpoint, e.getMessage());
+        }
     }
 
     /** Bucket name for a tenant schema: dc- + schema with underscores replaced by hyphens. */
@@ -62,17 +67,19 @@ public class MinioStorageService {
     }
 
     private String currentBucket() {
-        String bucket = bucketFor(TenantContext.validatedSchema());
-        ensureBucketExists(bucket);
-        return bucket;
+        return bucketFor(TenantContext.validatedSchema());
     }
 
     public void ensureBucketExists(String bucket) {
         try {
             s3.headBucket(HeadBucketRequest.builder().bucket(bucket).build());
         } catch (NoSuchBucketException e) {
-            s3.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
-            log.info("Created MinIO bucket: {}", bucket);
+            try {
+                s3.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
+                log.info("Created MinIO bucket: {}", bucket);
+            } catch (BucketAlreadyOwnedByYouException | BucketAlreadyExistsException raceEx) {
+                log.debug("Bucket already exists (race): {}", bucket);
+            }
         }
     }
 
@@ -87,8 +94,12 @@ public class MinioStorageService {
                         .map(o -> ObjectIdentifier.builder().key(o.key()).build())
                         .toList();
                 if (!ids.isEmpty()) {
-                    s3.deleteObjects(DeleteObjectsRequest.builder().bucket(bucket)
-                            .delete(Delete.builder().objects(ids).build()).build());
+                    DeleteObjectsResponse resp = s3.deleteObjects(DeleteObjectsRequest.builder()
+                            .bucket(bucket).delete(Delete.builder().objects(ids).build()).build());
+                    if (resp.hasErrors()) {
+                        resp.errors().forEach(e -> log.error("purgeBucket: failed key={}: {}", e.key(), e.message()));
+                        throw new RuntimeException("purgeBucket: " + resp.errors().size() + " object(s) not deleted in bucket " + bucket);
+                    }
                 }
                 token = listing.isTruncated() ? listing.nextContinuationToken() : null;
             } while (token != null);
@@ -100,10 +111,12 @@ public class MinioStorageService {
     }
 
     public void upload(String objectKey, byte[] data, String mimeType) {
+        String bucket = currentBucket();
+        ensureBucketExists(bucket);
         byte[] payload = encryption.encrypt(data);
         s3.putObject(
                 PutObjectRequest.builder()
-                        .bucket(currentBucket()).key(objectKey).contentType(mimeType)
+                        .bucket(bucket).key(objectKey).contentType(mimeType)
                         .contentLength((long) payload.length).build(),
                 RequestBody.fromBytes(payload));
         log.debug("Uploaded object: key={}, size={}", objectKey, payload.length);
