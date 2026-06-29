@@ -11,7 +11,7 @@ class TempPasswordGeneratorTest {
     @Test
     void generate_returnsValidPasswordLength() {
         String password = TempPasswordGenerator.generate();
-        assertEquals(6, password.length(), "Generated password should be exactly 6 characters");
+        assertEquals(10, password.length(), "Generated password should be exactly 10 characters");
     }
 
     @Test
@@ -44,7 +44,7 @@ class TempPasswordGeneratorTest {
         String password2 = TempPasswordGenerator.generate();
         String password3 = TempPasswordGenerator.generate();
         
-        // With 6 random characters from 36 possibilities, collisions are rare
+        // With 10 random characters from 36 possibilities, collisions are rare
         // Just verify at least one is different (statistically should have differences)
         boolean allIdentical = password1.equals(password2) && password2.equals(password3);
         assertFalse(allIdentical, 
@@ -63,7 +63,7 @@ class TempPasswordGeneratorTest {
         // This tests that the method is deterministic (produces valid results on each call)
         for (int i = 0; i < 100; i++) {
             String password = TempPasswordGenerator.generate();
-            assertEquals(6, password.length());
+            assertEquals(10, password.length());
             assertNotNull(password);
             assertFalse(password.isEmpty());
         }
