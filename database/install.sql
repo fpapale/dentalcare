@@ -2544,6 +2544,7 @@ CREATE INDEX IF NOT EXISTS idx_pdl_analysis ON t_9d754153.patient_document_label
 
 ALTER TABLE t_9d754153.tooth_conditions ADD COLUMN IF NOT EXISTS source varchar(10) NOT NULL DEFAULT 'manual';
 ALTER TABLE t_9d754153.tooth_conditions ADD COLUMN IF NOT EXISTS analysis_id uuid;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_tooth_conditions_conflict ON t_9d754153.tooth_conditions (clinic_id, patient_id, tooth_fdi, surface);
 
 
 --

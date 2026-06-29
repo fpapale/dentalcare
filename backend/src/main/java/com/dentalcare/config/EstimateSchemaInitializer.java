@@ -527,6 +527,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pdl_analysis ON %1$s.patient_document_labels (analysis_id)".formatted(schema));
         jdbc.execute("ALTER TABLE %1$s.tooth_conditions ADD COLUMN IF NOT EXISTS source varchar(10) NOT NULL DEFAULT 'manual'".formatted(schema));
         jdbc.execute("ALTER TABLE %1$s.tooth_conditions ADD COLUMN IF NOT EXISTS analysis_id uuid".formatted(schema));
+        jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_tooth_conditions_conflict ON %1$s.tooth_conditions (clinic_id, patient_id, tooth_fdi, surface)".formatted(schema));
     }
 
     private void rebuildDashboardView(String schema) {

@@ -163,6 +163,18 @@ public class PatientDocumentAnalysisService {
                 .stream().map(a -> mapAnalysis(a, List.of())).toList();
     }
 
+    @Transactional
+    public int failStuckNullJob(Duration olderThan) {
+        return jdbc.update("""
+                UPDATE %s.patient_document_analyses
+                SET status = 'FAILED',
+                    error_message = 'No job id recorded (provisioning interrupted)',
+                    updated_at = now()
+                WHERE status = 'PROCESSING' AND job_id IS NULL
+                  AND updated_at < now() - (:secs * interval '1 second')
+                """.formatted(s()), new MapSqlParameterSource("secs", olderThan.getSeconds()));
+    }
+
     @Transactional(readOnly = true)
     public List<StaleAnalysis> findStaleProcessing(Duration olderThan) {
         return jdbc.query("""

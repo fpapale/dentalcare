@@ -39,6 +39,8 @@ public class AnalysisReconciler {
                         log.warn("reconcileOne failed schema={} analysis={}: {}", schema, stale.id(), e.getMessage());
                     }
                 }
+                int failed = service.failStuckNullJob(Duration.ofMinutes(15));
+                if (failed > 0) log.warn("Reconciler failed {} stuck PROCESSING rows with null job_id in schema {}", failed, schema);
             } finally {
                 TenantContext.clear();
             }
