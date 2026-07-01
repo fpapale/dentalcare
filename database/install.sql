@@ -932,6 +932,8 @@ CREATE TABLE tooth_conditions (
     surface character varying(10) NOT NULL,
     condition character varying(50) NOT NULL,
     notes text,
+    source character varying(10) DEFAULT 'manual'::character varying NOT NULL,
+    analysis_id uuid,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -1662,6 +1664,57 @@ ALTER TABLE ONLY treatment_plan_items
 
 ALTER TABLE ONLY treatment_plans
     ADD CONSTRAINT treatment_plans_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE;
+
+-- AI YOLO: risultati inference (analyses) + rilevamenti (labels). Enum in schema dentalcare (globali).
+CREATE TABLE IF NOT EXISTS patient_document_analyses (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id uuid NOT NULL,
+    patient_id uuid NOT NULL,
+    document_id uuid NOT NULL,
+    job_id text,
+    status dentalcare.ai_analysis_status NOT NULL DEFAULT 'PENDING'::dentalcare.ai_analysis_status,
+    model_fdi text,
+    model_disease text,
+    result_bucket text,
+    result_object_key text,
+    annotated_object_key text,
+    detections_count integer NOT NULL DEFAULT 0,
+    needs_review boolean NOT NULL DEFAULT false,
+    review_status dentalcare.ai_review_status NOT NULL DEFAULT 'pending'::dentalcare.ai_review_status,
+    reviewed_by_provider_id uuid,
+    reviewed_at timestamptz,
+    error_message text,
+    requested_by_provider_id uuid,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_pda_document ON patient_document_analyses (document_id);
+CREATE INDEX IF NOT EXISTS idx_pda_patient  ON patient_document_analyses (patient_id);
+CREATE INDEX IF NOT EXISTS idx_pda_job      ON patient_document_analyses (job_id);
+CREATE INDEX IF NOT EXISTS idx_pda_status   ON patient_document_analyses (status);
+
+CREATE TABLE IF NOT EXISTS patient_document_labels (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    analysis_id uuid NOT NULL REFERENCES patient_document_analyses (id) ON DELETE CASCADE,
+    tooth_fdi text,
+    disease text NOT NULL,
+    disease_confidence numeric(5,4),
+    fdi_confidence numeric(5,4),
+    bbox_x1 integer NOT NULL,
+    bbox_y1 integer NOT NULL,
+    bbox_x2 integer NOT NULL,
+    bbox_y2 integer NOT NULL,
+    matching_method text NOT NULL,
+    matching_score numeric(5,4),
+    needs_review boolean NOT NULL DEFAULT false,
+    source dentalcare.ai_label_source NOT NULL DEFAULT 'ai'::dentalcare.ai_label_source,
+    action text,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_pdl_analysis ON patient_document_labels (analysis_id);
+
+-- Vincolo per ON CONFLICT del sync odontogramma AI (una condizione per dente/superficie).
+CREATE UNIQUE INDEX IF NOT EXISTS ux_tooth_conditions_conflict ON tooth_conditions (clinic_id, patient_id, tooth_fdi, surface);
 $ddl$;
     EXECUTE l_ddl;
 
