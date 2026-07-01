@@ -100,48 +100,6 @@ public class AnamnesisService {
         }
 
         syncLegacyAnamnesis(patientId, clinicId, request);
-        syncPatientSummary(patientId, clinicId);
-    }
-
-    /**
-     * Propaga i dati generali e i flag derivati dalla versione corrente di patient_anamnesis
-     * verso le colonne "cache" della tabella patients, lette dal dettaglio/panoramica paziente.
-     * Non tocca other_allergies, che non è derivato dall'anamnesi strutturata.
-     */
-    private void syncPatientSummary(UUID patientId, UUID clinicId) {
-        String sql = """
-                UPDATE %s.patients
-                   SET blood_type              = (SELECT pa.blood_type FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       anamnesis_notes         = (SELECT pa.general_notes FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       anamnesis_date          = now(),
-                       smoker                  = (SELECT pa.smoker FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       hypertension            = (SELECT pa.hypertension FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       diabetes                = (SELECT pa.diabetes FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       heart_disease           = (SELECT pa.heart_disease FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       allergy_penicillin      = (SELECT pa.allergy_penicillin FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       allergy_latex           = (SELECT pa.allergy_latex FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       allergy_anesthetic      = (SELECT pa.allergy_anesthetic FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       taking_anticoagulants   = (SELECT pa.taking_anticoagulants FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true),
-                       taking_bisphosphonates  = (SELECT pa.taking_bisphosphonates FROM %s.patient_anamnesis pa
-                                                     WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true)
-                 WHERE id = :patientId AND clinic_id = :clinicId
-                   AND EXISTS (SELECT 1 FROM %s.patient_anamnesis pa
-                                WHERE pa.clinic_id = :clinicId AND pa.patient_id = :patientId AND pa.is_current = true)
-                """.formatted(s(), s(), s(), s(), s(), s(), s(), s(), s(), s(), s(), s(), s());
-
-        jdbc.update(sql, new MapSqlParameterSource()
-                .addValue("clinicId", clinicId)
-                .addValue("patientId", patientId));
     }
 
     /**
