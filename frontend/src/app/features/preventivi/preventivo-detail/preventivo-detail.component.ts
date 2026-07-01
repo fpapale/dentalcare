@@ -114,7 +114,7 @@ export class PreventivoDetailComponent implements OnInit {
   // ── Create ─────────────────────────────────────────────────────────────────
 
   createEstimate(): void {
-    if (!this.newPatientId) return;
+    if (!this.newPatientId || this.creating()) return;
     this.creating.set(true);
     this.estimateService.create({
       patientId: this.newPatientId,
@@ -124,7 +124,12 @@ export class PreventivoDetailComponent implements OnInit {
       notes: this.newNotes || undefined,
       validUntil: this.newValidUntil || undefined
     }).subscribe({
-      next: id => { this.creating.set(false); this.router.navigate(['/preventivi', id]); },
+      next: () => {
+        this.creating.set(false);
+        // Torna alla lista preventivi del paziente (mostra il nuovo) e sostituisci la history
+        // così il back non riapre il form pieno -> niente doppioni.
+        this.router.navigate(['/pazienti', this.newPatientId], { queryParams: { tab: 'preventivi' }, replaceUrl: true });
+      },
       error: () => { this.creating.set(false); this.error.set('Errore nella creazione del preventivo'); }
     });
   }
