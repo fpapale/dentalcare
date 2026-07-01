@@ -36,9 +36,7 @@ public class ChatController {
 
     @PostMapping
     public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
-        UUID sessionId = request.sessionId() != null
-            ? request.sessionId()
-            : chatHistoryService.createSession(request.message());
+        UUID sessionId = chatHistoryService.resolveOwnedSession(request.sessionId(), request.message());
 
         chatHistoryService.appendMessage(sessionId, "user", request.message());
         ChatResponse aiResponse = chatService.chat(request);
@@ -55,9 +53,7 @@ public class ChatController {
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@Valid @RequestBody ChatRequest request) {
-        UUID sessionId = request.sessionId() != null
-            ? request.sessionId()
-            : chatHistoryService.createSession(request.message());
+        UUID sessionId = chatHistoryService.resolveOwnedSession(request.sessionId(), request.message());
         chatHistoryService.appendMessage(sessionId, "user", request.message());
 
         // Cattura il contesto del thread di richiesta per ripristinarlo sul worker.

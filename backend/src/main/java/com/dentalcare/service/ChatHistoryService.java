@@ -2,6 +2,7 @@ package com.dentalcare.service;
 
 import com.dentalcare.dto.ChatMessageDto;
 import com.dentalcare.dto.ChatSessionDto;
+import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -26,6 +27,24 @@ public class ChatHistoryService {
 
     private UUID currentProviderId() {
         return UUID.fromString(SecurityContextHolder.getContext().getAuthentication().getName());
+    }
+
+    /** Fails (404, senza rivelare l'esistenza) se la sessione non appartiene al provider corrente. */
+    private void assertOwned(UUID sessionId) {
+        Integer count = jdbc.queryForObject("""
+            SELECT count(*) FROM %s.chat_sessions WHERE id = :id AND provider_id = :pid
+            """.formatted(s()),
+            new MapSqlParameterSource().addValue("id", sessionId).addValue("pid", currentProviderId()),
+            Integer.class);
+        if (count == null || count == 0) throw new ResourceNotFoundException("Chat session not found");
+    }
+
+    /** Risolve la sessione della richiesta: null -> nuova (del provider corrente); fornita -> deve essere sua. */
+    @Transactional
+    public UUID resolveOwnedSession(UUID sessionId, String firstMessage) {
+        if (sessionId == null) return createSession(firstMessage);
+        assertOwned(sessionId);
+        return sessionId;
     }
 
     @Transactional
@@ -88,6 +107,7 @@ public class ChatHistoryService {
 
     @Transactional(readOnly = true)
     public List<ChatMessageDto> getSessionMessages(UUID sessionId) {
+        assertOwned(sessionId);
         return jdbc.query("""
             SELECT id, role, content, created_at
             FROM %s.chat_messages

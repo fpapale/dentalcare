@@ -18,7 +18,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Fatta |
 | 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
 | 8 | AI Service: supporto nativo DICOM (formato sorgente radiografico) | Medio (~1 giorno) | Proposta |
-| 9 | Segreteria AI: isolamento chat per utente (hardening IDOR sessioni) | Basso (~½ giornata) | Confermata |
+| 9 | Segreteria AI: isolamento chat per utente (hardening IDOR sessioni) | Basso (~½ giornata) | Fatta |
 
 ---
 
@@ -1079,7 +1079,7 @@ Dato originale → maggiore accuratezza; conformità standard medicali; eliminaz
 
 ## 9. Segreteria AI: isolamento chat per utente (hardening IDOR sessioni)
 
-**Stato:** Confermata
+**Stato:** Fatta — `ChatHistoryService.assertOwned`/`resolveOwnedSession` + guard su `getSessionMessages`; `ChatController` POST e `/stream` usano `resolveOwnedSession`. Test `ChatHistoryServiceTest` (4). Suite 40 verde.
 **Data proposta:** 2026-07-01
 **Impatto:** Basso (~½ giornata)
 
