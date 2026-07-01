@@ -109,7 +109,7 @@ export class App implements OnInit {
     if (this.userContext.authRole() === 'tenant_admin') return [];
     const allItems = [
       { path: '/dashboard',    icon: 'dashboard',            label: 'Dashboard' },
-      ...(['secretary', 'doctor'].includes(r) ? [{ path: '/segretaria', icon: 'smart_toy', label: 'Segreteria AI' }] : []),
+      ...(['secretary', 'doctor'].includes(r) ? [{ path: '/segretaria', icon: 'smart_toy', label: 'Copilot AI' }] : []),
       { path: '/agenda',       icon: 'event',                label: 'Agenda' },
       { path: '/pazienti',     icon: 'folder_shared',        label: 'Pazienti' },
       { path: '/preventivi',   icon: 'description',          label: 'Preventivi' },

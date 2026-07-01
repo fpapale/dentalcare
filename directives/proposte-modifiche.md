@@ -20,6 +20,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 8 | AI Service: supporto nativo DICOM (formato sorgente radiografico) | Medio (~1 giorno) | Proposta |
 | 9 | Segreteria AI: isolamento chat per utente (hardening IDOR sessioni) | Basso (~½ giornata) | Fatta |
 | 10 | Da Segreteria AI a DentalCare AI Copilot (roadmap a fasi) | Alto (~multi-settimana) | Proposta |
+| 11 | Rinomina UI "Segreteria AI" → "Copilot AI" (feature, non ruolo) | Basso (~½ giornata) | Proposta |
 
 ---
 
@@ -1171,3 +1172,42 @@ Memoria long-term per-provider (preferenze, pattern); planner multi-step che con
 - Confirm-gating e audit restano trasversali a tutte le fasi.
 - La scelta del modello (attuale `gpt-4o` via Spring AI) va rivalutata per visione/costi in Fase 5.
 - GDPR/MDR: dati clinici nei prompt richiedono #7 (cifratura) e audit di Fase 0 prima di esporre reasoning clinico in produzione.
+
+---
+
+## 11. Rinomina UI "Segreteria AI" → "Copilot AI" (feature, non ruolo)
+
+**Stato:** Proposta (Livello A già fatto: label menu)
+**Data proposta:** 2026-07-01
+**Impatto:** Basso (~½ giornata) — solo stringhe UI, nessuna logica
+
+### Contesto
+"Segreteria AI"/"SegretarIA" identifica **due concetti diversi**:
+1. la **feature chat AI** (assistente) — da rinominare in "Copilot AI"
+2. il **ruolo utente** `secretary` / "Segreteria" (segretaria vs medico vs admin) — **da NON toccare** (guard/permessi)
+
+Il **Livello A** (label del menu `Segreteria AI` → `Copilot AI` in `app.ts`) è **già fatto**. Questa proposta copre il **Livello B**: rinominare la feature ovunque nella UI in-app, lasciando intatto il ruolo.
+
+### Ambito (Livello B — stringhe da cambiare)
+- `features/segretaria/segretaria.component.html`: "SegretarIA" (header, ~riga 12), "SegretarIA AI" (label messaggi, ~114), "Powered by SegretarIA Engine v2.4" (~304); opzionale persona "Giulia Segreteria" (~217)
+- `features/impostazioni/impostazioni.component.html`: "Cronologia chat SegretarIA" (~1180-1181)
+- `features/agenda/nuovo-appuntamento/nuovo-appuntamento.component.html`: badge "SegretarIA" (~259)
+
+### Da NON toccare
+- Ruolo `secretary` / label "Segreteria": `impostazioni.component.ts:121`, `app.html:86` e `:106`, `role.guard.ts`, `core/services/user-context.service.ts`
+- Asset `ai-den-secretary.png` (rinomina opzionale, cosmetica)
+- Backend: nessun naming "Segreteria" nel codice AI (`ChatService`, `DentalCareAiTools`)
+
+### Fuori ambito (livelli superiori, decisioni a parte)
+- **C — Route/cartella**: `/segretaria` → `/copilot`, `features/segretaria/` → `features/copilot/`, rinomina componente + import in `app.routes.ts` e link. Cosmetico, più file.
+- **D — Marketing pubblico**: `landing.component.html` ("Segretaria Virtuale/AI"), `registrazione` ("AI-DEN Segretaria"). Branding di prodotto.
+
+### File coinvolti (Livello B)
+| Layer | File |
+|-------|------|
+| Frontend | `segretaria.component.html`, `impostazioni.component.html`, `nuovo-appuntamento.component.html` (solo stringhe) |
+| Backend | Nessuno |
+
+### Note
+- Nessun cambio di logica/route → rischio minimo; serve solo rebuild frontend.
+- Coerente con la roadmap #10 (il prodotto evolve da "segreteria" reattiva a "copilot").
