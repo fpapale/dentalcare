@@ -143,6 +143,6 @@ echo ""
 log "Deploy completato."
 echo -e "  Frontend : ${GREEN}http://${HOST_IP}:${FRONTEND_PORT:-8181}/${NC}"
 echo -e "  DB       : dentalcare_prod @ 192.168.0.173"
-echo -e "  Login    : admin@demo.dentalcare.it / DemoAdmin1!"
+echo -e "  Login    : demo@demo.dentalcare.it / DemoAdmin1!"
 docker compose ps --format 'table {{.Name}}\t{{.Status}}\t{{.Ports}}'
 echo ""

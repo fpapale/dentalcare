@@ -6,7 +6,7 @@
 # Punta al database dentalcare_prod sulla macchina 192.168.0.173.
 
 # ---- Database (PostgreSQL) ----
-spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/DentalCare_Prod
+spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/dentalcare_prod
 spring.datasource.username=postgres
 spring.datasource.password=REPLACE_WITH_DB_PASSWORD
 spring.datasource.driver-class-name=org.postgresql.Driver
