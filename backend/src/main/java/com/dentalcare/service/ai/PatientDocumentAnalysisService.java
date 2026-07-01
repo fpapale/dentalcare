@@ -145,9 +145,9 @@ public class PatientDocumentAnalysisService {
                 SELECT * FROM %s.patient_document_labels WHERE analysis_id = :id ORDER BY created_at
                 """.formatted(s()), new MapSqlParameterSource("id", analysisId), (rs, n) -> new LabelDto(
                 rs.getObject("id", UUID.class), rs.getString("tooth_fdi"), rs.getString("disease"),
-                (Double) rs.getObject("disease_confidence"), (Double) rs.getObject("fdi_confidence"),
+                toDouble(rs.getBigDecimal("disease_confidence")), toDouble(rs.getBigDecimal("fdi_confidence")),
                 rs.getInt("bbox_x1"), rs.getInt("bbox_y1"), rs.getInt("bbox_x2"), rs.getInt("bbox_y2"),
-                rs.getString("matching_method"), (Double) rs.getObject("matching_score"),
+                rs.getString("matching_method"), toDouble(rs.getBigDecimal("matching_score")),
                 rs.getBoolean("needs_review"), rs.getString("source"), rs.getString("action")));
         return mapAnalysis(a, labels);
     }
@@ -231,5 +231,10 @@ public class PatientDocumentAnalysisService {
                 (String) a.get("annotated_object_key"), (String) a.get("error_message"),
                 a.get("created_at") != null ? ((java.sql.Timestamp) a.get("created_at")).toLocalDateTime() : (LocalDateTime) null,
                 labels);
+    }
+
+    /** numeric columns come back as BigDecimal via JDBC; convert null-safely to Double. */
+    private static Double toDouble(java.math.BigDecimal value) {
+        return value == null ? null : value.doubleValue();
     }
 }

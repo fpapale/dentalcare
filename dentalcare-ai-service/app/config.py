@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     fdi_conf_threshold: float = 0.25
     disease_conf_threshold: float = 0.25
     model_iou_threshold: float = 0.45
+    # Scala normalizzazione input: 255 = standard (model attende 0-1); 1 = modello
+    # con /255 bakata nel grafo ONNX (model attende 0-255).
+    model_input_scale: float = 255.0
     match_iou_threshold: float = 0.10
     match_center_fallback: bool = True
 

@@ -3,11 +3,13 @@ package com.dentalcare.service.ai;
 import com.dentalcare.dto.ai.AiJobRequest;
 import com.dentalcare.security.JwtService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.net.http.HttpClient;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,7 +20,13 @@ public class AiInferenceClient {
     private final JwtService jwtService;
 
     public AiInferenceClient(@Value("${app.ai.base-url}") String baseUrl, JwtService jwtService) {
-        this.http = RestClient.builder().baseUrl(baseUrl).build();
+        // Force HTTP/1.1: JDK HttpClient defaults to HTTP/2 and sends an h2c upgrade
+        // over cleartext, which uvicorn (HTTP/1.1 only) rejects as an invalid request.
+        HttpClient http11 = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
+        this.http = RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(new JdkClientHttpRequestFactory(http11))
+                .build();
         this.jwtService = jwtService;
     }
 

@@ -15,7 +15,9 @@ def letterbox(image_bgr: np.ndarray, new_size: int) -> tuple[np.ndarray, float, 
     return padded, ratio, (pad_x, pad_y)
 
 
-def to_model_input(padded_bgr: np.ndarray) -> np.ndarray:
-    rgb = cv2.cvtColor(padded_bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+def to_model_input(padded_bgr: np.ndarray, input_scale: float = 255.0) -> np.ndarray:
+    # input_scale=255 per modelli standard (input atteso 0-1); input_scale=1 per
+    # modelli che bakano la normalizzazione /255 nel grafo (input atteso 0-255).
+    rgb = cv2.cvtColor(padded_bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / input_scale
     chw = np.transpose(rgb, (2, 0, 1))
     return np.expand_dims(chw, axis=0).astype(np.float32)

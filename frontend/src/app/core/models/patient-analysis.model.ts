@@ -33,6 +33,13 @@ export interface ReviewAnalysisRequest {
   labels: AnalysisLabel[];
 }
 
+/** Response of POST .../analyses — returns the new analysis id, not the full record. */
+export interface StartAnalysisResponse {
+  analysisId: string;
+  status: string;
+  jobId: string;
+}
+
 export const DISEASE_LABELS: Record<string, string> = {
   Caries: 'Carie',
   Deep_Caries: 'Carie profonda',

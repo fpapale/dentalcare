@@ -10,12 +10,13 @@ from app.utils.logging import log_event
 
 class OnnxYoloDetector:
     def __init__(self, model_path: str, class_names: dict[int, str], input_size: int,
-                 conf_threshold: float, iou_threshold: float):
+                 conf_threshold: float, iou_threshold: float, input_scale: float = 255.0):
         self.model_path = model_path
         self.class_names = class_names
         self.input_size = input_size
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
+        self.input_scale = input_scale
         self._session: ort.InferenceSession | None = None
         self._logged_shape = False
 
@@ -32,7 +33,7 @@ class OnnxYoloDetector:
     def predict(self, image_bgr: np.ndarray) -> list[dict]:
         session = self._ensure_session()
         padded, ratio, pad = letterbox(image_bgr, self.input_size)
-        tensor = to_model_input(padded)
+        tensor = to_model_input(padded, self.input_scale)
         input_name = session.get_inputs()[0].name
         outputs = session.run(None, {input_name: tensor})
         output = outputs[0]

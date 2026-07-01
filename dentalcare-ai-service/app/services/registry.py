@@ -11,14 +11,14 @@ from app.services.job_service import JobService
 def get_fdi_detector() -> OnnxYoloDetector:
     s = get_settings()
     return OnnxYoloDetector(s.fdi_model_path, FDI_CLASS_NAMES, s.fdi_input_size,
-                            s.fdi_conf_threshold, s.model_iou_threshold)
+                            s.fdi_conf_threshold, s.model_iou_threshold, s.model_input_scale)
 
 
 @lru_cache
 def get_disease_detector() -> OnnxYoloDetector:
     s = get_settings()
     return OnnxYoloDetector(s.disease_model_path, DISEASE_CLASS_NAMES, s.disease_input_size,
-                            s.disease_conf_threshold, s.model_iou_threshold)
+                            s.disease_conf_threshold, s.model_iou_threshold, s.model_input_scale)
 
 
 @lru_cache

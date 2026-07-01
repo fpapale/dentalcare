@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { PatientAnalysis, ReviewAnalysisRequest } from '../models/patient-analysis.model';
+import { PatientAnalysis, ReviewAnalysisRequest, StartAnalysisResponse } from '../models/patient-analysis.model';
 import { AuthService } from '../auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -14,8 +14,8 @@ export class PatientAnalysisService {
     return `${environment.apiBaseUrl}/patients/${patientId}/documents/${docId}/analyses`;
   }
 
-  start(patientId: string, docId: string): Observable<PatientAnalysis> {
-    return this.http.post<PatientAnalysis>(this.base(patientId, docId), {});
+  start(patientId: string, docId: string): Observable<StartAnalysisResponse> {
+    return this.http.post<StartAnalysisResponse>(this.base(patientId, docId), {});
   }
 
   list(patientId: string, docId: string): Observable<PatientAnalysis[]> {
