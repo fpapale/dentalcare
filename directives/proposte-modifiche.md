@@ -18,6 +18,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Fatta |
 | 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
 | 8 | AI Service: supporto nativo DICOM (formato sorgente radiografico) | Medio (~1 giorno) | Proposta |
+| 9 | Segreteria AI: isolamento chat per utente (hardening IDOR sessioni) | Basso (~½ giornata) | Confermata |
 
 ---
 
@@ -1073,3 +1074,41 @@ Dato originale → maggiore accuratezza; conformità standard medicali; eliminaz
 - L'anonimizzazione non deve loggare i tag rimossi (nessun PII nei log).
 - Confidence/soglie e mappa classi restano invariate — cambia solo il **loader** a monte del preprocessing.
 - Il matching FDI↔disease e il sync odontogramma non cambiano (lavorano su ndarray).
+
+---
+
+## 9. Segreteria AI: isolamento chat per utente (hardening IDOR sessioni)
+
+**Stato:** Confermata
+**Data proposta:** 2026-07-01
+**Impatto:** Basso (~½ giornata)
+
+### Contesto
+La cronologia della Segreteria AI è **già suddivisa per utente** (`chat_sessions.provider_id`): creazione, elenco (`GET /chat/sessions`) e cancellazione sono filtrati sul `provider_id` derivato dal JWT. `ai_conversations` (vecchia tabella clinic-scoped) non è più usata. La cronologia appare condivisa solo quando si accede con lo **stesso account** (es. demo).
+
+### Problema (IDOR)
+Due endpoint non verificano la proprietà della sessione:
+- `GET /chat/sessions/{id}/messages` → legge i messaggi di **qualsiasi** sessione conoscendone l'UUID
+- `POST /chat` e `POST /chat/stream` con `sessionId` fornito dal client → **appendono** messaggi a una sessione altrui
+
+Un utente che conosce/indovina un UUID di sessione può leggere o continuare la chat di un altro provider (Insecure Direct Object Reference).
+
+### Soluzione
+Enforcement della proprietà lato server, senza cambi di schema:
+1. `ChatHistoryService.assertOwned(sessionId)` — verifica `chat_sessions.id = :id AND provider_id = :pid`; se assente → `ResourceNotFoundException` (404, non rivela l'esistenza).
+2. `ChatHistoryService.resolveOwnedSession(sessionId, firstMessage)` — se `sessionId` null crea una nuova sessione (di proprietà del provider corrente); altrimenti `assertOwned` e la restituisce.
+3. `getSessionMessages` → chiama `assertOwned` prima di leggere.
+4. `ChatController` (`POST /chat` e `/chat/stream`) → usa `resolveOwnedSession` invece di accettare ciecamente `request.sessionId()`.
+5. `deleteSession` già scoped (`WHERE id AND provider_id`) — nessuna modifica.
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| Backend | `ChatHistoryService` (assertOwned + resolveOwnedSession + guard in getSessionMessages), `ChatController` (POST + stream usano resolveOwnedSession) |
+| Frontend | Nessuna modifica (già usa gli endpoint per-provider) |
+| DB | Nessuna modifica (`provider_id` + indice già presenti, anche in `create_tenant`) |
+
+### Note
+- Per avere effettivamente cronologie separate serve che ogni operatore abbia un **account (provider) distinto** — il modello dati lo supporta già.
+- Il contesto AI usa `request.history` (client) → nessun leak di contesto tra utenti; la fix riguarda solo la persistenza server-side.
+- Nessun cambio al contratto API né al frontend.
