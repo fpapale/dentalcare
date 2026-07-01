@@ -2591,14 +2591,6 @@ CREATE TABLE IF NOT EXISTS t_9d754153.patient_document_labels (
 CREATE INDEX IF NOT EXISTS idx_pdl_analysis ON t_9d754153.patient_document_labels (analysis_id);
 
 
---
--- Name: tooth_conditions AI columns; Schema: t_9d754153; Owner: -
---
-
-ALTER TABLE t_9d754153.tooth_conditions ADD COLUMN IF NOT EXISTS source varchar(10) NOT NULL DEFAULT 'manual';
-ALTER TABLE t_9d754153.tooth_conditions ADD COLUMN IF NOT EXISTS analysis_id uuid;
-CREATE UNIQUE INDEX IF NOT EXISTS ux_tooth_conditions_conflict ON t_9d754153.tooth_conditions (clinic_id, patient_id, tooth_fdi, surface);
-
 
 --
 -- Name: patient_prescriptions; Type: TABLE; Schema: t_9d754153; Owner: -
@@ -2900,6 +2892,8 @@ CREATE TABLE t_9d754153.tooth_conditions (
     surface character varying(10) NOT NULL,
     condition character varying(50) NOT NULL,
     notes text,
+    source character varying(10) DEFAULT 'manual'::character varying NOT NULL,
+    analysis_id uuid,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
