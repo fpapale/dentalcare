@@ -102,6 +102,19 @@ interface PianificaItem {
   parentRowId?: string;
 }
 
+/** UUID generator safe in non-secure contexts (HTTP): crypto.randomUUID is undefined off HTTPS/localhost. */
+function genId(): string {
+  const c: Crypto | undefined = globalThis.crypto;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  const b = new Uint8Array(16);
+  if (c && typeof c.getRandomValues === 'function') { c.getRandomValues(b); }
+  else { for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256); }
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, x => x.toString(16).padStart(2, '0'));
+  return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+}
+
 @Component({
   selector: 'app-odontogramma-tab',
   standalone: true,
@@ -383,11 +396,11 @@ export class OdontogrammaTabComponent implements OnInit {
         const rows: PianificaItem[] = [];
         for (const src of sourceItems) {
           const defaults: ServiceItem[] = result[`d_${src.condition}`] ?? [];
-          const primaryId = crypto.randomUUID();
+          const primaryId = genId();
           rows.push({ rowId: primaryId, fdi: src.fdi, condition: src.condition,
                       serviceId: defaults[0]?.serviceId ?? '', isSuggested: false });
           for (let i = 1; i < defaults.length; i++) {
-            rows.push({ rowId: crypto.randomUUID(), fdi: src.fdi, condition: src.condition,
+            rows.push({ rowId: genId(), fdi: src.fdi, condition: src.condition,
                         serviceId: defaults[i].serviceId, isSuggested: true, parentRowId: primaryId });
           }
         }
@@ -415,7 +428,7 @@ export class OdontogrammaTabComponent implements OnInit {
         const row = this.pianificaItems().find(i => i.rowId === rowId);
         if (!row) return;
         const suggested: PianificaItem[] = bundle.map(s => ({
-          rowId: crypto.randomUUID(),
+          rowId: genId(),
           fdi: row.fdi,
           condition: row.condition,
           serviceId: s.serviceId,
@@ -439,7 +452,7 @@ export class OdontogrammaTabComponent implements OnInit {
   }
 
   addRowForFdi(fdi: number, condition: string): void {
-    const newRow: PianificaItem = { rowId: crypto.randomUUID(), fdi, condition, serviceId: '', isSuggested: false };
+    const newRow: PianificaItem = { rowId: genId(), fdi, condition, serviceId: '', isSuggested: false };
     const lastIdx = this.pianificaItems().map((i, idx) => i.fdi === fdi ? idx : -1).filter(x => x >= 0).at(-1) ?? -1;
     this.pianificaItems.update(items => [
       ...items.slice(0, lastIdx + 1),
