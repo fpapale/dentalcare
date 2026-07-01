@@ -38,6 +38,7 @@ services:
           memory: 1g
     networks:
       - dentalcarepro
+      - minio
 
   frontend:
     build:
@@ -85,7 +86,13 @@ services:
           memory: 4g
     networks:
       - dentalcarepro
+      - minio
 
 networks:
   dentalcarepro:
     driver: bridge
+  # Rete del container MinIO (compose separato "minio" → rete "minio_default").
+  # Backend e ai-service vi si agganciano per raggiungere MinIO col nome container.
+  minio:
+    external: true
+    name: minio_default
