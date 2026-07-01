@@ -20,7 +20,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 8 | AI Service: supporto nativo DICOM (formato sorgente radiografico) | Medio (~1 giorno) | Proposta |
 | 9 | Segreteria AI: isolamento chat per utente (hardening IDOR sessioni) | Basso (~½ giornata) | Fatta |
 | 10 | Da Segreteria AI a DentalCare AI Copilot (roadmap a fasi) | Alto (~multi-settimana) | Proposta |
-| 11 | Rinomina UI "Segreteria AI" → "Copilot AI" (feature, non ruolo) | Basso (~½ giornata) | Proposta |
+| 11 | Rinomina UI "Segreteria AI" → "Copilot AI" (feature, non ruolo) | Basso (~½ giornata) | Fatta |
 
 ---
 
@@ -1177,7 +1177,7 @@ Memoria long-term per-provider (preferenze, pattern); planner multi-step che con
 
 ## 11. Rinomina UI "Segreteria AI" → "Copilot AI" (feature, non ruolo)
 
-**Stato:** Proposta (Livello A già fatto: label menu)
+**Stato:** Fatta (Livello A+B) — label menu + stringhe chat/impostazioni/badge appuntamento rinominate in "Copilot AI"; ruolo `secretary` e backend intatti. Livelli C (route/cartella) e D (marketing) restano fuori ambito.
 **Data proposta:** 2026-07-01
 **Impatto:** Basso (~½ giornata) — solo stringhe UI, nessuna logica
 
