@@ -111,9 +111,9 @@ public class DentalCareAiTools {
                 .orElse(null);
     }
 
-    @Tool(description = "Get estimates (preventivi) filtered by status and/or patient. Status values: draft, proposed, accepted, rejected.")
+    @Tool(description = "Get estimates (preventivi) filtered by status and/or patient. Status values: draft, sent, accepted, rejected, expired, cancelled.")
     public List<EstimateDto> getEstimates(
-            @ToolParam(description = "Status filter: draft, proposed, accepted, rejected. Leave blank for all.") String status,
+            @ToolParam(description = "Status filter: draft, sent, accepted, rejected, expired, cancelled. Leave blank for all.") String status,
             @ToolParam(description = "Patient UUID to filter estimates for a specific patient (optional).") String patientId) {
         String s = (status == null || status.isBlank()) ? null : status;
         if (patientId != null && !patientId.isBlank()) {
@@ -124,10 +124,10 @@ public class DentalCareAiTools {
         return estimateService.findAll(s, providerId);
     }
 
-    @Tool(description = "Get recalls (richiami) filtered by status, priority, or patient. Status: pending, done, cancelled. Priority: low, medium, high. For non-secretary roles a patient UUID is required.")
+    @Tool(description = "Get recalls (richiami) filtered by status, priority, or patient. Status values: da_contattare, contattato, in_attesa, confermato, chiuso, annullato. Priority values: alta, media, bassa. For non-secretary roles a patient UUID is required.")
     public List<RecallDto> getRecalls(
-            @ToolParam(description = "Status filter: pending, done, cancelled. Leave blank for all.") String status,
-            @ToolParam(description = "Priority filter: low, medium, high. Leave blank for all.") String priority,
+            @ToolParam(description = "Status filter: da_contattare, contattato, in_attesa, confermato, chiuso, annullato. Leave blank for all.") String status,
+            @ToolParam(description = "Priority filter: alta, media, bassa. Leave blank for all.") String priority,
             @ToolParam(description = "Patient UUID to filter recalls for a specific patient (required for non-secretary roles).") String patientId) {
         // Medical roles require patientId; return empty if missing
         if (isMedical() && (patientId == null || patientId.isBlank())) {
@@ -140,9 +140,9 @@ public class DentalCareAiTools {
                 pid);
     }
 
-    @Tool(description = "Get invoices (fatture) filtered by status. Status values: draft, sent, paid, overdue.")
+    @Tool(description = "Get invoices (fatture) filtered by status. Status values: draft, issued, paid, cancelled.")
     public List<InvoiceDto> getInvoices(
-            @ToolParam(description = "Status filter: draft, sent, paid, overdue. Leave blank for all.") String status) {
+            @ToolParam(description = "Status filter: draft, issued, paid, cancelled. Leave blank for all.") String status) {
         String s = (status == null || status.isBlank()) ? null : status;
         // Medical roles see only invoices for their own patients
         UUID providerId = isMedical() ? currentProviderId() : null;
