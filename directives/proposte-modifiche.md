@@ -17,6 +17,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
 | 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Fatta |
 | 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
+| 8 | AI Service: supporto nativo DICOM (formato sorgente radiografico) | Medio (~1 giorno) | Proposta |
 
 ---
 
@@ -965,3 +966,110 @@ openssl rand -hex 32
 - Il campo `first_name` / `last_name` non viene cifrato per non rompere la ricerca anagrafica: se richiesto in futuro, serve un motore di ricerca tokenizzato separato (es. pg_trgm cifrato o ElasticSearch)
 - I file in MinIO (ortopanoramine, PDF) sono cifrati separatamente con **MinIO Server-Side Encryption** (SSE-S3 o SSE-C) — zero modifiche al codice applicativo
 - Audit log: ogni accesso a dato cifrato loggato con `actor_id` + `resource` (senza loggare il plaintext)
+
+---
+
+## 8. AI Service: supporto nativo DICOM (formato sorgente radiografico)
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-01
+**Impatto:** Medio (~1 giorno)
+**Prerequisito:** Proposta #6 (AI service) — Fatta
+
+### Obiettivo
+Il servizio `dentalcare-ai-service` usa come formato sorgente **nativo il DICOM** (Digital Imaging and Communications in Medicine), mantenendo PNG/JPEG solo per debug, sviluppo e retrocompatibilità. L'intera pipeline AI lavora sul dato radiografico originale.
+
+### Motivazioni
+Le ortopanoramiche prodotte dai dispositivi radiografici sono archiviate come DICOM. Usare il file originale permette di:
+- preservare la qualità radiografica originale (12/16 bit)
+- evitare perdita di informazioni dovuta alla conversione JPEG
+- mantenere i metadati clinici
+- consentire futura integrazione con PACS
+- essere conformi allo standard medicale internazionale (predisposizione MDR)
+
+### Architettura aggiornata
+```
+DentalCare → Upload DICOM → MinIO → AI Service → Download DICOM
+  → DICOM Parser → Anonymization (RAM) → Image Normalization → Preprocessing
+  → YOLO FDI → YOLO Disease → Matching → JSON risultato → DentalCare
+```
+
+### Formati supportati
+- **Input priorità:** `.dcm` (formato ufficiale)
+- **Compatibilità (fallback):** `.png` `.jpg` `.jpeg` (solo debug/dev)
+
+Il servizio determina automaticamente il tipo di file dall'estensione dell'`image_object_key`.
+
+### Nuovo modulo — `app/inference/dicom.py`
+Responsabilità: caricamento DICOM, anonimizzazione, estrazione pixel array, normalizzazione, windowing, conversione in `ndarray`.
+
+```python
+class DicomLoader:
+    def load(self, path: str) -> np.ndarray: ...      # dcm -> ndarray uint8 RGB pronto per YOLO
+    def anonymize(self, dataset) -> None: ...          # in RAM, non tocca il file originale
+    def normalize(self, image: np.ndarray) -> np.ndarray: ...
+    def to_uint8(self, image: np.ndarray) -> np.ndarray: ...
+```
+
+**Librerie da aggiungere** (`requirements.txt`): `pydicom`, `highdicom`, (già presenti `numpy`, `opencv-python-headless`).
+
+### Pipeline aggiornata (`job_service.run_job`)
+```
+Download MinIO → verifica estensione
+  ├─ .dcm  → DicomLoader.load() → pixel_array → normalize() → resize() → YOLO
+  └─ png/jpg (se ENABLE_PNG_FALLBACK) → cv2.imread → YOLO
+```
+
+### Gestione pixel
+`dataset.pixel_array` → conversione `float32` → normalizzazione → conversione RGB (canale grigio replicato).
+
+### Windowing
+Se presenti i tag `WindowCenter` / `WindowWidth` → applicare windowing. In assenza → normalizzazione automatica sul range min/max dei pixel.
+
+### Anonimizzazione (obbligatoria, in RAM)
+Prima di qualsiasi uso, rimuovere dal dataset in memoria: `PatientName`, `PatientID`, `PatientBirthDate`, `PatientSex`, `InstitutionName`, `AccessionNumber`, `StudyID`, `SeriesDescription`, `OperatorName` e ogni altro identificativo personale. **Il file DICOM originale su MinIO non viene mai modificato.**
+
+### Gestione temporanei
+Nessun PNG permanente. Solo `/tmp/dentalcare-ai/{job_id}/`, eliminato a fine job (già il pattern attuale di `job_service`). Il PNG viene creato solo se `save_preview=true` o `save_annotated_image=true`.
+
+### Struttura MinIO consigliata
+```
+patients/{patientId}/studies/{studyId}/
+    panoramic.dcm            ← dato originale
+    ai/
+        result.json
+        annotated.png        ← solo artefatto di visualizzazione
+```
+
+### API
+Endpoint invariato `POST /api/v1/inference/jobs`; il payload passa la key DICOM:
+```json
+{ "image_bucket": "dentalcare-docs", "image_object_key": "patients/P001/studies/S001/panoramic.dcm" }
+```
+**Output JSON invariato.** Le bounding box sono sempre riferite all'immagine originale estratta dal DICOM.
+
+### Configurazione (`.env` / `config.py`)
+```
+ENABLE_DICOM=true
+ENABLE_PNG_FALLBACK=true
+SAVE_PREVIEW=false
+SAVE_ANNOTATED_IMAGE=true
+```
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| AI service | nuovo `app/inference/dicom.py`; modifica `app/services/job_service.py` (branch estensione); `app/config.py` (nuovi flag); `app/inference/preprocessing.py` (input già ndarray); `requirements.txt` (+`pydicom`, `highdicom`); `.env.example` |
+| Backend/Frontend | nessuna modifica al contratto; il tipo `rx_panoramica` accetta anche upload `.dcm` (verificare MIME `application/dicom` in upload documenti) |
+
+### Compatibilità futura
+La progettazione consente integrazione futura con **PACS / Orthanc / DICOMweb (WADO-RS, QIDO-RS, STOW-RS)** senza modifiche sostanziali alla pipeline: `DicomLoader` diventa il punto di aggancio (sorgente file locale oggi, sorgente DICOMweb domani).
+
+### Benefici
+Dato originale → maggiore accuratezza; conformità standard medicali; eliminazione conversioni preventive; predisposizione integrazione ospedaliera; migliore gestione GDPR (anonimizzazione in RAM); predisposizione certificazione MDR.
+
+### Note / caveat
+- L'upload documenti (#4/#5) deve accettare `application/dicom` e key `.dcm`; verificare i MIME ammessi lato frontend/backend.
+- L'anonimizzazione non deve loggare i tag rimossi (nessun PII nei log).
+- Confidence/soglie e mappa classi restano invariate — cambia solo il **loader** a monte del preprocessing.
+- Il matching FDI↔disease e il sync odontogramma non cambiano (lavorano su ndarray).
