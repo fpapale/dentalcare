@@ -19,6 +19,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
 | 8 | AI Service: supporto nativo DICOM (formato sorgente radiografico) | Medio (~1 giorno) | Proposta |
 | 9 | Segreteria AI: isolamento chat per utente (hardening IDOR sessioni) | Basso (~½ giornata) | Fatta |
+| 10 | Da Segreteria AI a DentalCare AI Copilot (roadmap a fasi) | Alto (~multi-settimana) | Proposta |
 
 ---
 
@@ -1112,3 +1113,61 @@ Enforcement della proprietà lato server, senza cambi di schema:
 - Per avere effettivamente cronologie separate serve che ogni operatore abbia un **account (provider) distinto** — il modello dati lo supporta già.
 - Il contesto AI usa `request.history` (client) → nessun leak di contesto tra utenti; la fix riguarda solo la persistenza server-side.
 - Nessun cambio al contratto API né al frontend.
+
+---
+
+## 10. Da Segreteria AI a DentalCare AI Copilot (roadmap a fasi)
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-01
+**Impatto:** Alto (~multi-settimana, incrementale a fasi)
+**Prerequisiti:** #6 (Fatta), #1 (SSE realtime), #7 (cifratura GDPR), #8 (DICOM)
+
+### Punto di partenza
+La **Segreteria AI** è oggi un assistente **reattivo** per agenda + consultazione. Chat role-aware (segretaria/medico) con `DentalCareAiTools`:
+- **Lettura**: appuntamenti, pazienti, dettaglio paziente, preventivi, richiami, fatture, dashboard, provider, slot liberi
+- **Scrittura** (solo agenda, preview+conferma): crea/sposta/annulla appuntamento
+- Storia per-provider (#9), contesto da `request.history`, canali in-app + n8n (Retell voce, gmail)
+
+### Obiettivo
+Trasformarla in un **Copilot clinico-operativo**: proattivo, consapevole del contesto, multimodale, con azioni su tutti i moduli, ragionamento sui dati clinici AI e recupero semantico della conoscenza — mantenendo confirm-gating, audit e gating per ruolo.
+
+### Roadmap a fasi
+
+**Fase 0 — Fondamenta sicurezza/audit**
+Audit log di ogni azione AI (chi/cosa/quando), disclaimer clinici obbligatori sulle risposte diagnostiche, rinforzo del gating per ruolo sui tool. Prerequisito per uso clinico/MDR.
+
+**Fase 1 — Copertura azioni (scrittura su tutti i moduli)**
+Estendere `DentalCareAiTools` con tool di scrittura confirm-gated (stesso pattern preview→`confirmAction`): crea/modifica paziente, preventivi, richiami, fatture, piani di cura, note cliniche, documenti.
+
+**Fase 2 — Intelligenza clinica (integra #6)**
+Tool su `patient_document_labels` / odontogramma: "mostra le patologie AI del paziente X", "genera un preventivo dalle carie rilevate", cross-reference odontogramma ↔ preventivi ↔ anamnesi.
+
+**Fase 3 — Contesto + proattività**
+Iniezione del contesto corrente (paziente/schermata aperta) nel prompt; suggerimenti proattivi via SSE (#1): richiami scaduti, preventivi fermi, controlli consigliati.
+
+**Fase 4 — RAG / conoscenza**
+`pgvector`: embeddings su documenti, referti, anamnesi, note e protocolli clinici → ricerca semantica e risposte con citazioni della fonte.
+
+**Fase 5 — Multimodale**
+Lettura ortopanoramica e referti PDF (lega a #6/#8 DICOM): visione e parsing documenti nel contesto della conversazione.
+
+**Fase 6 — Memoria + orchestrazione**
+Memoria long-term per-provider (preferenze, pattern); planner multi-step che concatena azioni ("prepara richiamo → invia email → crea appuntamento").
+
+### File coinvolti (indicativi, per fase)
+| Fase | Layer principale |
+|------|------------------|
+| 0 | Backend: audit table + interceptor sui tool; system prompt (disclaimer) |
+| 1 | Backend: `DentalCareAiTools` (+tool scrittura), pattern confirmAction esistente |
+| 2 | Backend: tool su labels/odontogramma; ChatService prompt clinico |
+| 3 | Backend: contesto corrente nel `ChatRequest`; SSE (#1); Frontend: passa contesto schermata |
+| 4 | DB: `pgvector`; Backend: servizio embeddings + retrieval; ingest documenti |
+| 5 | AI service / provider visione; parsing PDF/DICOM (#8) |
+| 6 | Backend: memoria per-provider; planner multi-tool |
+
+### Note
+- Ogni fase è **rilasciabile in autonomia** e porta valore incrementale; ordine consigliato 0→6.
+- Confirm-gating e audit restano trasversali a tutte le fasi.
+- La scelta del modello (attuale `gpt-4o` via Spring AI) va rivalutata per visione/costi in Fase 5.
+- GDPR/MDR: dati clinici nei prompt richiedono #7 (cifratura) e audit di Fase 0 prima di esporre reasoning clinico in produzione.
