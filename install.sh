@@ -97,7 +97,31 @@ if [ "${1:-}" != "--update" ]; then
   fi
 fi
 
-# ── 5. Build e avvio ─────────────────────────────────────────────────────────
+# ── 5. Modelli AI ONNX (copia automatica se assenti) ─────────────────────────
+# I modelli sono gitignored (non arrivano col clone). Se mancano, li copia dalla
+# sorgente MODELS_SRC (default: 192.168.0.72). Su quella macchina sono già presenti
+# quindi lo step viene saltato. Override: MODELS_SRC=... ./install.sh
+if [ "${1:-}" != "--update" ]; then
+  MODELS_DIR="$DEPLOY_DIR/dentalcare-ai-service/models"
+  MODELS_SRC="${MODELS_SRC:-fpapale@192.168.0.72:~/docker/dentalcarepro/dentalcare-ai-service/models}"
+  mkdir -p "$MODELS_DIR"
+  for MODEL in dentex_fdi_v1.onnx dentex_disease_v1.onnx; do
+    if [ -f "$MODELS_DIR/$MODEL" ]; then
+      log "Modello $MODEL già presente."
+    else
+      warn "Modello $MODEL assente — copia da $MODELS_SRC ..."
+      if command -v rsync >/dev/null 2>&1; then
+        rsync -az "$MODELS_SRC/$MODEL" "$MODELS_DIR/$MODEL" \
+          || warn "Copia $MODEL fallita — copiarlo a mano in $MODELS_DIR (l'AI resterà 'loaded:false')."
+      else
+        scp "$MODELS_SRC/$MODEL" "$MODELS_DIR/$MODEL" \
+          || warn "Copia $MODEL fallita — copiarlo a mano in $MODELS_DIR (l'AI resterà 'loaded:false')."
+      fi
+    fi
+  done
+fi
+
+# ── 6. Build e avvio ─────────────────────────────────────────────────────────
 log "Build immagini e avvio container..."
 docker compose up -d --build
 

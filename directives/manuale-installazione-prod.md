@@ -93,7 +93,9 @@ I file **con segreti** (`backend/config/`, `dentalcare-ai-service/.env`, `creden
 
 Tutti i parametri prod si modificano in **pochi file gitignored**. Nessun segreto nel repo.
 
-### 4.1 Backend — `backend/config/application-prod.properties` (montato `:ro`)
+### 4.1 Backend — `config/application-prod.properties` (root, montato `./config:/app/config:ro`)
+> Deploy Docker prod: la config sta in **`config/`** alla radice del repo (montata dal compose). `install.sh` la crea da `config/application-prod.properties.example` se assente. (`backend/config/` serve solo all'avvio **locale** con `mvnw`.)
+
 Override reali (il committato `src/main/resources/application-prod.properties` ha solo default/placeholder):
 ```properties
 # DB
@@ -181,12 +183,20 @@ docker run -d --name minio --restart unless-stopped \
 
 ## 6. dentalcare-ai-service
 
-### 6.1 Modelli ONNX (obbligatori, non in git)
-Copiare i due modelli in `dentalcare-ai-service/models/` sul server:
+### 6.1 Modelli ONNX (obbligatori, non in git — copia automatica)
+I due modelli servono in `dentalcare-ai-service/models/`:
 ```
 dentex_fdi_v1.onnx        (denti FDI, 32 classi)
 dentex_disease_v1.onnx    (patologie, 4 classi)
 ```
+**`install.sh` li copia automaticamente** se assenti, dalla sorgente `MODELS_SRC`
+(default `fpapale@192.168.0.72:~/docker/dentalcarepro/dentalcare-ai-service/models`).
+Su `192.168.0.72` sono già presenti → lo step viene saltato. Su un host cloud la
+copia richiede accesso SSH a `192.168.0.72`; override della sorgente:
+```bash
+MODELS_SRC=user@altro-host:/path/models ./install.sh
+```
+Se la copia automatica fallisce, copiarli a mano (l'AI resta `loaded:false` finché mancano).
 Se i modelli sono `.pt` (PyTorch/Ultralytics) vanno convertiti in ONNX prima:
 ```python
 from ultralytics import YOLO
@@ -306,7 +316,7 @@ App: `http://<host>:8181/` — login demo `admin@demo.dentalcare.it` / `DemoAdmi
 - [ ] `backend/config/application-prod.properties` creato (DB, MinIO, `app.ai.*`)
 - [ ] `credentials/credential.properties` creato (DB pw, JWT, OpenAI)
 - [ ] `dentalcare-ai-service/.env` creato (JWT, MinIO, callback, modelli, scale)
-- [ ] modelli `*.onnx` copiati in `dentalcare-ai-service/models/`
+- [ ] modelli `*.onnx` presenti in `dentalcare-ai-service/models/` (auto-copia di `install.sh` da `MODELS_SRC`, o manuale)
 - [ ] `.env` root (FRONTEND_PORT, VERSION, JDK_VERSION)
 - [ ] segreti condivisi combaciano (JWT, HMAC) — §4.5
 - [ ] MinIO installato/raggiungibile (§5)
