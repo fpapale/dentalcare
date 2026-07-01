@@ -72,6 +72,19 @@
               placeholder="Indicazioni aggiuntive..."
               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"></textarea>
           </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+              Allega prescrizione (opzionale)
+            </label>
+            <input type="file" (change)="onFileSelected($event)"
+              class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
+            @if (pendingFile) {
+              <p class="text-xs text-slate-400 mt-1.5 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">attach_file</span>
+                {{ pendingFile.name }}
+              </p>
+            }
+          </div>
         </div>
         @if (error()) {
           <div class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-4">
@@ -80,7 +93,7 @@
           </div>
         }
         <div class="flex gap-3 mt-5">
-          <button (click)="showForm.set(false); error.set(null)"
+          <button (click)="showForm.set(false); error.set(null); pendingFile = null"
             class="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors">
             Annulla
           </button>
@@ -92,6 +105,14 @@
             {{ saving() ? 'Salvataggio…' : 'Salva' }}
           </button>
         </div>
+      </div>
+    }
+
+    <!-- Error (es. upload documento fallito dopo salvataggio riuscito) -->
+    @if (error() && !showForm()) {
+      <div class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-red-500 text-[18px]">error</span>
+        <p class="text-sm text-red-700">{{ error() }}</p>
       </div>
     }
 

@@ -2,6 +2,7 @@ import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
+import { defaultIfEmpty } from 'rxjs/operators';
 import { OdontogramService } from '../../../core/services/odontogram.service';
 import { ServiceCatalogService } from '../../../core/services/service-catalog.service';
 import { TreatmentPlanService } from '../../../core/services/treatment-plan.service';
@@ -366,7 +367,14 @@ export class OdontogrammaTabComponent implements OnInit {
     for (const fdi of uniqueFdis) requests[`s_${fdi}`] = this.serviceCatalogService.findAll(fdi);
     for (const c of uniqueConditions) requests[`d_${c}`] = this.serviceCatalogService.findConditionDefaults(c);
 
-    forkJoin(requests).subscribe({
+    if (Object.keys(requests).length === 0) {
+      this.servicesByFdi.set(new Map());
+      this.pianificaItems.set([]);
+      this.servicesLoading.set(false);
+      return;
+    }
+
+    forkJoin(requests).pipe(defaultIfEmpty({} as Record<string, ServiceItem[]>)).subscribe({
       next: (result: Record<string, ServiceItem[]>) => {
         const svcMap = new Map<number, ServiceItem[]>();
         for (const fdi of uniqueFdis) svcMap.set(fdi, result[`s_${fdi}`] ?? []);

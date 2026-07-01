@@ -51,6 +51,12 @@ public class ClinicalRecordController {
         return clinicalRecordService.updateDiaryEntry(patientId, entryId, request);
     }
 
+    @DeleteMapping("/diary/{entryId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteDiaryEntry(@PathVariable UUID patientId, @PathVariable UUID entryId) {
+        clinicalRecordService.deleteDiaryEntry(patientId, entryId);
+    }
+
     @GetMapping("/treatment-plans")
     public List<TreatmentPlanSummaryDto> getTreatmentPlans(@PathVariable UUID patientId) {
         return clinicalRecordService.findTreatmentPlans(patientId);

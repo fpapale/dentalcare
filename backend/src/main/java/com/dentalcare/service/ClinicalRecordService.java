@@ -159,6 +159,20 @@ public class ClinicalRecordService {
         return findDiaryEntry(patientId, entryId);
     }
 
+    public void deleteDiaryEntry(UUID patientId, UUID entryId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String delete = """
+                DELETE FROM %s.clinical_history_entries
+                WHERE id = :id AND clinic_id = :clinicId AND patient_id = :patientId
+                """.formatted(s());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", entryId)
+                .addValue("clinicId", clinicId)
+                .addValue("patientId", patientId);
+        int rows = jdbc.update(delete, params);
+        if (rows == 0) throw new ResourceNotFoundException("Diary entry not found: " + entryId);
+    }
+
     public List<TreatmentPlanSummaryDto> findTreatmentPlans(UUID patientId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """

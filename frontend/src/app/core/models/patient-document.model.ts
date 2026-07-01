@@ -25,6 +25,7 @@ export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   foto_extraorale: 'Foto extraorale',
   consenso_informato: 'Consenso informato',
   referto: 'Referto / Lettera',
+  prescrizione: 'Prescrizione',
   documento_amministrativo: 'Documento amministrativo',
   altro: 'Altro',
 };

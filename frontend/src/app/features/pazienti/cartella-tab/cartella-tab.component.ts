@@ -8,8 +8,10 @@ import { UserContextService } from '../../../core/services/user-context.service'
 import { TreatmentPlanService } from '../../../core/services/treatment-plan.service';
 import { DiagnosiService } from '../../../core/services/diagnosi.service';
 import { PrescrizioneService } from '../../../core/services/prescrizione.service';
+import { PatientDocumentService } from '../../../core/services/patient-document.service';
 import { Diagnosi } from '../../../core/models/diagnosi.model';
 import { Prescrizione } from '../../../core/models/prescrizione.model';
+import { DOCUMENT_TYPE_LABELS, PatientDocumentSummary } from '../../../core/models/patient-document.model';
 
 @Component({
   selector: 'app-cartella-tab',
@@ -22,6 +24,7 @@ export class CartellaClinicalTabComponent implements OnInit {
   private readonly treatmentPlanService = inject(TreatmentPlanService);
   private readonly diagnosiService = inject(DiagnosiService);
   private readonly prescrizioneService = inject(PrescrizioneService);
+  private readonly docService = inject(PatientDocumentService);
 
   @Input({ required: true }) paziente!: any;
   @Input({ required: true }) patientId!: string;
@@ -35,16 +38,20 @@ export class CartellaClinicalTabComponent implements OnInit {
   odontogram = signal<OdontogramSummary | null>(null);
   diagnosi = signal<Diagnosi[]>([]);
   prescrizioni = signal<Prescrizione[]>([]);
+  documenti = signal<PatientDocumentSummary[]>([]);
   loadingDiary = signal(true);
   loadingPlans = signal(true);
   loadingOdonto = signal(true);
   loadingDiagnosi = signal(true);
   loadingPrescrizioni = signal(true);
+  loadingDocumenti = signal(true);
 
   showCreaPianoModal = signal(false);
   nuovoPianoNome = signal('');
   nuovoPianoDesc = signal('');
   savingPiano = signal(false);
+
+  confirmDeleteDiaryId = signal<string | null>(null);
 
   constructor(private clinicalService: ClinicalRecordService) {}
 
@@ -60,6 +67,10 @@ export class CartellaClinicalTabComponent implements OnInit {
     this.clinicalService.getOdontogramSummary(this.patientId).subscribe({
       next: d => { this.odontogram.set(d); this.loadingOdonto.set(false); },
       error: () => this.loadingOdonto.set(false)
+    });
+    this.docService.findAll(this.patientId).subscribe({
+      next: d => { this.documenti.set(d); this.loadingDocumenti.set(false); },
+      error: () => this.loadingDocumenti.set(false)
     });
     const r = this.role();
     if (r !== 'secretary') {
@@ -148,6 +159,24 @@ export class CartellaClinicalTabComponent implements OnInit {
     return 'edit_note';
   }
 
+  askDeleteDiary(entryId: string): void {
+    this.confirmDeleteDiaryId.set(entryId);
+  }
+
+  cancelDeleteDiary(): void {
+    this.confirmDeleteDiaryId.set(null);
+  }
+
+  deleteDiary(entryId: string): void {
+    this.clinicalService.deleteDiaryEntry(this.patientId, entryId).subscribe({
+      next: () => {
+        this.diary.update(list => list.filter(e => e.entryId !== entryId));
+        this.confirmDeleteDiaryId.set(null);
+      },
+      error: () => this.confirmDeleteDiaryId.set(null)
+    });
+  }
+
   diagnosiStatusLabel(s: string): string {
     return s === 'active' ? 'Attiva' : s === 'resolved' ? 'Risolta' : 'Cronica';
   }
@@ -155,5 +184,28 @@ export class CartellaClinicalTabComponent implements OnInit {
   diagnosiStatusClass(s: string): string {
     return s === 'active' ? 'bg-red-100 text-red-700' :
            s === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700';
+  }
+
+  typeLabel(t: string): string {
+    return DOCUMENT_TYPE_LABELS[t] ?? t;
+  }
+
+  downloadDoc(doc: PatientDocumentSummary): void {
+    this.docService.getContent(this.patientId, doc.id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      },
+    });
+  }
+
+  vediTutti(): void {
+    this.openTab.emit('documenti');
   }
 }

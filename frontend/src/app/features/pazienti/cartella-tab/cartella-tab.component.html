@@ -315,26 +315,46 @@
         } @else {
           <div class="divide-y divide-slate-100">
             @for (entry of diary(); track entry.entryId) {
-              <a [routerLink]="['/pazienti', patientId, 'visita', entry.entryId]"
-                class="p-4 flex items-start gap-3 hover:bg-teal-50 transition-colors block">
-                <div class="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <span class="material-symbols-outlined text-[16px] text-teal-600">{{ diaryEntryIcon(entry) }}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-semibold text-slate-700">
-                      {{ entry.serviceName ?? 'Nota clinica' }}
-                    </span>
-                    @if (entry.toothNumber) {
-                      <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-mono font-bold">
-                        Dente {{ entry.toothNumber }}
+              <div class="flex items-start gap-1 hover:bg-teal-50 transition-colors">
+                <a [routerLink]="['/pazienti', patientId, 'visita', entry.entryId]"
+                  class="p-4 flex items-start gap-3 flex-1 min-w-0 block">
+                  <div class="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[16px] text-teal-600">{{ diaryEntryIcon(entry) }}</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-semibold text-slate-700">
+                        {{ entry.serviceName ?? 'Nota clinica' }}
                       </span>
+                      @if (entry.toothNumber) {
+                        <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-mono font-bold">
+                          Dente {{ entry.toothNumber }}
+                        </span>
+                      }
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5 line-clamp-2">{{ entry.clinicalNotes }}</p>
+                    <p class="text-[11px] text-slate-400 mt-1">{{ formatDate(entry.entryDate) }} — {{ entry.providerName }}</p>
+                  </div>
+                </a>
+                @if (role() !== 'secretary') {
+                  <div class="pr-4 pt-4 shrink-0">
+                    @if (confirmDeleteDiaryId() === entry.entryId) {
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-slate-500">Eliminare?</span>
+                        <button (click)="deleteDiary(entry.entryId)"
+                          class="px-2 py-1 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">Sì</button>
+                        <button (click)="cancelDeleteDiary()"
+                          class="px-2 py-1 text-xs font-semibold text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">No</button>
+                      </div>
+                    } @else {
+                      <button (click)="askDeleteDiary(entry.entryId)" title="Elimina nota"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
                     }
                   </div>
-                  <p class="text-xs text-slate-500 mt-0.5 line-clamp-2">{{ entry.clinicalNotes }}</p>
-                  <p class="text-[11px] text-slate-400 mt-1">{{ formatDate(entry.entryDate) }} — {{ entry.providerName }}</p>
-                </div>
-              </a>
+                }
+              </div>
             }
           </div>
         }
@@ -393,20 +413,43 @@
           }
         </div>
 
-        <!-- Esami e documenti -->
+        <!-- Esami e Documenti -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-[15px] text-teal-600">folder_open</span>
-            Esami e documenti
-          </h3>
-          <div class="text-center py-4">
-            <span class="material-symbols-outlined text-[30px] text-slate-200 block mb-1">folder_open</span>
-            <p class="text-xs text-slate-400">Nessun documento clinico.</p>
-            <button class="mt-2 text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1 mx-auto">
-              <span class="material-symbols-outlined text-[13px]">upload</span>
-              Carica documento
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[15px] text-teal-600">folder</span>
+              Esami e Documenti
+            </h3>
+            <button (click)="vediTutti()" class="text-[11px] font-bold text-teal-600 hover:text-teal-700">
+              Vedi tutte
             </button>
           </div>
+          @if (loadingDocumenti()) {
+            <div class="space-y-2">
+              <div class="h-8 bg-slate-100 rounded-lg animate-pulse"></div>
+              <div class="h-8 bg-slate-100 rounded-lg animate-pulse"></div>
+            </div>
+          } @else if (documenti().length === 0) {
+            <div class="text-center py-4">
+              <span class="material-symbols-outlined text-[30px] text-slate-200 block mb-1">folder</span>
+              <p class="text-xs text-slate-400">Nessun documento caricato.</p>
+            </div>
+          } @else {
+            <div class="space-y-2">
+              @for (doc of documenti().slice(0,5); track doc.id) {
+                <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-lg hover:bg-teal-50 transition-colors">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-slate-700 truncate">{{ doc.title }}</p>
+                    <p class="text-[11px] text-slate-400">{{ typeLabel(doc.documentType) }} · {{ formatDate(doc.createdAt) }}</p>
+                  </div>
+                  <button (click)="downloadDoc(doc)" title="Scarica documento"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-teal-100 text-slate-400 hover:text-teal-600 transition-colors shrink-0">
+                    <span class="material-symbols-outlined text-[16px]">download</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <!-- Prescrizioni -->

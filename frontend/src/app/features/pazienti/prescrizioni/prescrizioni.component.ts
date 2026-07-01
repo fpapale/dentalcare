@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { PrescrizioneService } from '../../../core/services/prescrizione.service';
 import { UserContextService } from '../../../core/services/user-context.service';
+import { PatientDocumentService } from '../../../core/services/patient-document.service';
 import { Prescrizione } from '../../../core/models/prescrizione.model';
 
 @Component({
@@ -16,6 +17,7 @@ export class PrescrizioniComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly prescrizioneService = inject(PrescrizioneService);
   private readonly userContext = inject(UserContextService);
+  private readonly docService = inject(PatientDocumentService);
 
   patientId = signal('');
   prescrizioni = signal<Prescrizione[]>([]);
@@ -32,6 +34,10 @@ export class PrescrizioniComponent implements OnInit {
     expiresAt: '',
     notes: ''
   };
+
+  pendingFile: File | null = null;
+
+  private static readonly MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
   ngOnInit(): void {
     this.patientId.set(this.route.snapshot.paramMap.get('id') ?? '');
@@ -63,10 +69,47 @@ export class PrescrizioniComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this.showForm.set(false);
+        const drugName = this.form.drugName.trim();
+        const notes = this.form.notes;
         this.form = { drugName: '', dosage: '', frequency: '', duration: '', expiresAt: '', notes: '' };
-        this.load();
+        if (this.pendingFile) {
+          this.uploadPendingFile(drugName, notes);
+        } else {
+          this.load();
+        }
       },
       error: () => { this.error.set('Errore durante il salvataggio'); this.saving.set(false); }
+    });
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.size > PrescrizioniComponent.MAX_FILE_SIZE_BYTES) {
+      this.error.set('Il file supera la dimensione massima di 50MB');
+      input.value = '';
+      this.pendingFile = null;
+      return;
+    }
+    this.pendingFile = file;
+  }
+
+  private uploadPendingFile(drugName: string, notes: string): void {
+    const file = this.pendingFile;
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('title', `Prescrizione: ${drugName}`);
+    fd.append('documentType', 'prescrizione');
+    if (notes) fd.append('notes', notes);
+    this.docService.upload(this.patientId(), fd).subscribe({
+      next: () => { this.pendingFile = null; this.load(); },
+      error: () => {
+        this.error.set('Prescrizione salvata, ma il caricamento del documento è fallito');
+        this.pendingFile = null;
+        this.load();
+      }
     });
   }
 

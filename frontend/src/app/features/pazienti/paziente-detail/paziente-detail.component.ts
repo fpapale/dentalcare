@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -8,6 +8,8 @@ import { Provider } from '../../../core/models/provider.model';
 import { AppointmentService, RescheduleAppointmentRequest } from '../../../core/services/appointment.service';
 import { AppSettingsService } from '../../../core/services/app-settings.service';
 import { UserContextService } from '../../../core/services/user-context.service';
+import { EstimateService } from '../../../core/services/estimate.service';
+import { Estimate } from '../../../core/models/estimate.model';
 import { PatientDetail } from '../../../core/models/patient.model';
 import { CartellaClinicalTabComponent } from '../cartella-tab/cartella-tab.component';
 import { AnamnesiTabComponent } from '../anamnesi-tab/anamnesi-tab.component';
@@ -71,6 +73,10 @@ export class PazienteDetailComponent implements OnInit {
 
   providers = signal<Provider[]>([]);
 
+  estimates = signal<Estimate[]>([]);
+  loadingEstimates = signal(false);
+  estimatesLoaded = signal(false);
+
   editForm: UpdatePatientRequest = {
     firstName: '', lastName: '', fiscalCode: '', birthDate: '',
     phone: '', email: '', addressLine1: '', city: '', province: '', postalCode: '', notes: '',
@@ -82,8 +88,15 @@ export class PazienteDetailComponent implements OnInit {
     private patientService: PatientService,
     private providerService: ProviderService,
     private appointmentService: AppointmentService,
+    private estimateService: EstimateService,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    effect(() => {
+      if (this.activeTab() === 'preventivi' && this.paziente && !this.estimatesLoaded()) {
+        this.loadEstimates();
+      }
+    });
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
@@ -135,6 +148,10 @@ export class PazienteDetailComponent implements OnInit {
         this.saveError.set('Errore durante il salvataggio');
       }
     });
+  }
+
+  onAnamnesiSaved(): void {
+    if (this.paziente) this.loadPatient(this.paziente.id);
   }
 
   private loadPatient(id: string): void {
@@ -321,6 +338,52 @@ export class PazienteDetailComponent implements OnInit {
       no_show: 'Non presentato'
     };
     return map[status] ?? status;
+  }
+
+  loadEstimates(): void {
+    const id = this.paziente?.id ?? this.route.snapshot.paramMap.get('id');
+    if (!id) return;
+    this.loadingEstimates.set(true);
+    this.estimateService.findByPatient(id).subscribe({
+      next: data => {
+        this.estimates.set(data);
+        this.loadingEstimates.set(false);
+        this.estimatesLoaded.set(true);
+      },
+      error: () => this.loadingEstimates.set(false)
+    });
+  }
+
+  nuovoPreventivo(): void {
+    this.router.navigate(['/preventivi', 'nuovo'], { queryParams: { patientId: this.paziente.id } });
+  }
+
+  openPreventivo(id: string): void {
+    this.router.navigate(['/preventivi', id]);
+  }
+
+  estimateStatoLabel(status: string): string {
+    const map: Record<string, string> = {
+      draft: 'Bozza', sent: 'Inviato', accepted: 'Accettato',
+      rejected: 'Rifiutato', expired: 'Scaduto', cancelled: 'Annullato'
+    };
+    return map[status] ?? status;
+  }
+
+  estimateStatoClass(status: string): string {
+    switch (status) {
+      case 'draft':    return 'bg-slate-100 text-slate-600';
+      case 'sent':     return 'bg-blue-100 text-blue-700';
+      case 'accepted': return 'bg-green-100 text-green-700';
+      case 'rejected': return 'bg-red-100 text-red-600';
+      case 'expired':  return 'bg-orange-100 text-orange-600';
+      default:         return 'bg-slate-100 text-slate-600';
+    }
+  }
+
+  formatDate(iso: string | null): string {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   openPhotoModal(): void {

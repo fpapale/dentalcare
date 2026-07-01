@@ -81,6 +81,28 @@
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
           <h2 class="font-bold text-slate-700">Informazioni preventivo</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            @if (newPatientId) {
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Paziente</label>
+                <p class="text-sm font-semibold text-slate-800 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                  {{ estimate()?.patientFullName ?? 'Paziente selezionato' }}
+                </p>
+              </div>
+            } @else {
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Paziente *</label>
+                <select [(ngModel)]="newPatientId"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                  <option value="">Seleziona un paziente...</option>
+                  @for (p of patients(); track p.patientId) {
+                    <option [value]="p.patientId">{{ p.patientFullName }}</option>
+                  }
+                </select>
+                @if (patientsLoading()) {
+                  <p class="text-xs text-slate-400 mt-1">Caricamento pazienti...</p>
+                }
+              </div>
+            }
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Titolo</label>
               <input [(ngModel)]="newTitle" type="text"

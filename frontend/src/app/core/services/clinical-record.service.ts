@@ -16,6 +16,10 @@ export class ClinicalRecordService {
     return this.http.get<ClinicalHistoryEntry[]>(`${this.base(patientId)}/diary`);
   }
 
+  deleteDiaryEntry(patientId: string, entryId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base(patientId)}/diary/${entryId}`);
+  }
+
   getTreatmentPlans(patientId: string): Observable<TreatmentPlanSummary[]> {
     return this.http.get<TreatmentPlanSummary[]>(`${this.base(patientId)}/treatment-plans`);
   }

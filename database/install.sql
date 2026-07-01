@@ -62,6 +62,7 @@ CREATE TYPE dentalcare.document_type AS ENUM (
     'documento_amministrativo',
     'consenso_informato',
     'referto',
+    'prescrizione',
     'altro'
 );
 

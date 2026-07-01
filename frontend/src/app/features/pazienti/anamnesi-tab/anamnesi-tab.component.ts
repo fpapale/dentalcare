@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AnamnesisService } from '../../../core/services/anamnesis.service';
 import { AnamnesisCategoryDto, AnamnesisItemDto } from '../../../core/models/anamnesis.model';
@@ -14,6 +14,7 @@ export class AnamnesiTabComponent implements OnInit {
   @Input() bloodType: string | null = null;
   @Input() anamnesisNotes: string | null = null;
   @Input() anamnesisDate: string | null = null;
+  @Output() readonly saved = new EventEmitter<void>();
 
   categories = signal<AnamnesisCategoryDto[]>([]);
   loading = signal(true);
@@ -142,6 +143,7 @@ export class AnamnesiTabComponent implements OnInit {
         this.saving.set(false);
         this.editMode.set(false);
         this.loadAnamnesis();
+        this.saved.emit();
       },
       error: () => {
         this.errorMsg.set('Errore nel salvataggio. Riprova.');

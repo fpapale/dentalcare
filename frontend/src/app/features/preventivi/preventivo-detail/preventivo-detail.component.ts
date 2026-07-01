@@ -8,9 +8,11 @@ import { EstimateService } from '../../../core/services/estimate.service';
 import { TreatmentPlanService } from '../../../core/services/treatment-plan.service';
 import { ServiceCatalogService } from '../../../core/services/service-catalog.service';
 import { UserContextService } from '../../../core/services/user-context.service';
+import { PatientService } from '../../../core/services/patient.service';
 import { EstimateDetail, PlanItemCoverage } from '../../../core/models/estimate.model';
 import { TreatmentPlan } from '../../../core/models/treatment-plan.model';
 import { ServiceItem } from '../../../core/models/service.model';
+import { PatientListItem } from '../../../core/models/patient.model';
 
 @Component({
   selector: 'app-preventivo-detail',
@@ -29,6 +31,8 @@ export class PreventivoDetailComponent implements OnInit {
   newNotes = '';
   newValidUntil = '';
   creating = signal(false);
+  patients = signal<PatientListItem[]>([]);
+  patientsLoading = signal(false);
 
   estimate = signal<EstimateDetail | null>(null);
   loading = signal(true);
@@ -73,7 +77,8 @@ export class PreventivoDetailComponent implements OnInit {
     private estimateService: EstimateService,
     private treatmentPlanService: TreatmentPlanService,
     private serviceCatalogService: ServiceCatalogService,
-    private userContext: UserContextService
+    private userContext: UserContextService,
+    private patientService: PatientService
   ) {}
 
   ngOnInit(): void {
@@ -83,7 +88,13 @@ export class PreventivoDetailComponent implements OnInit {
     if (this.isNew) {
       this.newPatientId = this.route.snapshot.queryParamMap.get('patientId') ?? '';
       this.newPlanId = this.route.snapshot.queryParamMap.get('planId') ?? '';
-      if (!this.newPatientId) this.error.set('Paziente non specificato. Torna indietro e crea il preventivo da una scheda paziente.');
+      if (!this.newPatientId) {
+        this.patientsLoading.set(true);
+        this.patientService.findAll().subscribe({
+          next: data => { this.patients.set(data); this.patientsLoading.set(false); },
+          error: () => { this.error.set('Errore nel caricamento dei pazienti'); this.patientsLoading.set(false); }
+        });
+      }
       this.loading.set(false);
     } else {
       this.loadEstimate();
