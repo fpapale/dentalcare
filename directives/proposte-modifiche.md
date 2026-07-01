@@ -524,7 +524,7 @@ Nessuna modifica — il backend gestisce la trasparenza dello storage.
 
 ## 6. AI YOLO: rilevamento carie su ortopanoramica + retraining
 
-**Stato:** Fatta — microservizio `dentalcare-ai-service` (Python/FastAPI/ONNX) + integrazione DentalCare (bucket-per-tenant, tabelle analyses/labels, webhook HMAC, SSE, reconciler, sync odontogramma, overlay SVG). Spec: `docs/superpowers/specs/2026-06-26-ai-yolo-service-design.md`. Piani: `docs/superpowers/plans/2026-06-26-ai-service-python.md` + `2026-06-26-ai-integration-dentalcare.md`. Branch `feat/ai-yolo-service`.
+**Stato:** Fatta — validato E2E e **mergiato su `master`** (2026-06-30, FF). Microservizio `dentalcare-ai-service` (Python/FastAPI/ONNX) + integrazione DentalCare (bucket-per-tenant, tabelle analyses/labels, webhook HMAC, SSE, reconciler, sync odontogramma, overlay SVG). Spec: `docs/superpowers/specs/2026-06-26-ai-yolo-service-design.md`. Piani: `docs/superpowers/plans/2026-06-26-ai-service-python.md` + `2026-06-26-ai-integration-dentalcare.md`.
 **Data proposta:** 2026-06-25
 **Impatto:** Alto (~3-5 giorni)
 **Prerequisiti:** Proposta #4 (tab documenti) + Proposta #5 (MinIO)
@@ -751,6 +751,23 @@ drawDetections(ctx: CanvasRenderingContext2D, detections: Detection[], imgW: num
 - Privacy: le ortopanoramine con label non escono mai dal server (MinIO locale + AI service locale) — GDPR compliant
 - GPU non obbligatoria per MVP: YOLOv8n su CPU impiega ~8s su ortopanoramica standard — accettabile per uso clinico non real-time
 - Se la GPU è disponibile (anche consumer RTX 3060): inference scende a ~0.3s
+
+### Sessione validazione E2E (2026-06-30)
+
+Test end-to-end reale (backend + ai-service + MinIO + frontend) con modelli ONNX reali su ortopanoramica. Bug di integrazione trovati e risolti (commit `5437f3e`):
+- **ai-service** — i modelli ONNX bakano la normalizzazione `/255`: aggiunto `model_input_scale` configurabile (default 255) per non normalizzare due volte.
+- **backend** — `RestClient` forzato a HTTP/1.1: JDK HttpClient usava HTTP/2 h2c upgrade in chiaro, rifiutato da uvicorn come richiesta invalida.
+- **backend** — colonne `numeric` lette come `BigDecimal` poi convertite a `Double` (il cast `rs.getObject` a `Double` lanciava `ClassCastException`).
+- **frontend** — `start()` legge `analysisId` (era `id` → undefined, rompeva l'URL SSE).
+
+Feature aggiunte (commit `a33f48b`):
+- **Mappa coerente AI→condizione DentalCare** (tutti i tenant): `Caries`/`Deep_Caries`→`cavity` (superficie B), `Periapical_Lesion`→`root_canal` (whole), `Impacted`→**nuova condizione** `impacted` (Incluso, whole).
+- **Distinzione AI/manuale in odontogramma**: `source` esposto nel DTO + badge cyan "AI" sui denti con condizione AI + voce legenda.
+- **Save manuale robusto**: upsert `ON CONFLICT` (una modifica manuale su una cella AI ne prende possesso, `source→manual`); il frontend omette le AI non toccate dal payload per preservarne il badge.
+- **UI analisi**: legenda evidenze in chiaro, viewer a schermo intero, bottone "Ri-analizza" (re-inferenza esplicita) e re-sync odontogramma; alla riapertura ridisegna i box dai dati salvati **senza re-inferenza**.
+- Sync odontogramma: DELETE allargato a tutte le righe AI del paziente (ultima analisi vince).
+
+Suite backend verde (36 test). Merge su `master` in FF; branch `feat/ai-yolo-service` eliminato.
 
 ---
 
