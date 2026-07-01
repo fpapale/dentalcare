@@ -62,11 +62,12 @@ export const CONDITIONS: Record<string, { label: string; fill: string; border: s
   bridge_pontic: { label: 'Bridge (pontile)',  fill: '#d1fae5', border: '#065f46' },
   root_canal:    { label: 'Devitalizzato',     fill: '#fb923c', border: '#7c2d12' },
   to_extract:    { label: 'Da estrarre',       fill: '#fca5a5', border: '#991b1b' },
+  impacted:      { label: 'Incluso',           fill: '#22d3ee', border: '#0e7490' },
 };
 
 const SURFACE_CONDITIONS = ['healthy', 'cavity', 'filling'];
 const WHOLE_CONDITIONS   = ['none', 'crown', 'missing', 'extracted', 'implant',
-                             'bridge_pillar', 'bridge_pontic', 'root_canal', 'to_extract'];
+                             'bridge_pillar', 'bridge_pontic', 'root_canal', 'to_extract', 'impacted'];
 
 const ACTIONABLE = new Set([
   'cavity', 'to_extract', 'root_canal', 'missing',
@@ -127,6 +128,8 @@ export class OdontogrammaTabComponent implements OnInit {
   error       = signal<string | null>(null);
 
   conditionMap    = signal<Map<string, string>>(new Map());
+  aiTeeth         = signal<Set<number>>(new Set());        // FDI numbers with at least one AI-sourced condition
+  aiConditionMap  = signal<Map<string, string>>(new Map()); // `${fdi}_${surface}` -> condition for AI-sourced rows
   selectedFdi     = signal<number | null>(null);
   selectedSurface = signal<string | null>(null);
   panelX          = signal(0);
@@ -163,8 +166,16 @@ export class OdontogrammaTabComponent implements OnInit {
     this.odontogramService.get(this.patientId).subscribe({
       next: list => {
         const m = new Map<string, string>();
-        list.forEach(c => m.set(`${c.toothFdi}_${c.surface}`, c.condition));
+        const ai = new Set<number>();
+        const aiCond = new Map<string, string>();
+        list.forEach(c => {
+          const key = `${c.toothFdi}_${c.surface}`;
+          m.set(key, c.condition);
+          if (c.source === 'ai') { ai.add(c.toothFdi); aiCond.set(key, c.condition); }
+        });
         this.conditionMap.set(m);
+        this.aiTeeth.set(ai);
+        this.aiConditionMap.set(aiCond);
         this.loading.set(false);
       },
       error: () => {
@@ -224,6 +235,7 @@ export class OdontogrammaTabComponent implements OnInit {
 
   isExtracted(fdi: number): boolean { return this.wholeCondition(fdi) === 'extracted'; }
   isMissing(fdi: number):   boolean { return this.wholeCondition(fdi) === 'missing';   }
+  isAi(fdi: number):        boolean { return this.aiTeeth().has(fdi); }
 
   wholeIndicatorFill(fdi: number): string {
     const c = this.wholeCondition(fdi);
@@ -279,10 +291,15 @@ export class OdontogrammaTabComponent implements OnInit {
 
   save(): void {
     this.saving.set(true);
-    const conditions = Array.from(this.conditionMap().entries()).map(([key, condition]) => {
-      const us = key.indexOf('_');
-      return { toothFdi: Number(key.slice(0, us)), surface: key.slice(us + 1), condition, notes: null };
-    });
+    // Skip untouched AI conditions: they stay AI in the DB (don't claim them as manual).
+    // Edited AI surfaces differ from aiConditionMap and are sent -> backend upserts them to manual.
+    const aiCond = this.aiConditionMap();
+    const conditions = Array.from(this.conditionMap().entries())
+      .filter(([key, condition]) => aiCond.get(key) !== condition)
+      .map(([key, condition]) => {
+        const us = key.indexOf('_');
+        return { toothFdi: Number(key.slice(0, us)), surface: key.slice(us + 1), condition, notes: null };
+      });
     this.odontogramService.save(this.patientId, { conditions }).subscribe({
       next: () => {
         this.saving.set(false);

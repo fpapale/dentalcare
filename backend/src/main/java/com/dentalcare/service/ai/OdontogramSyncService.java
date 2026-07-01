@@ -18,8 +18,17 @@ public class OdontogramSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(OdontogramSyncService.class);
 
-    private static final Set<String> CARIES_DISEASES = Set.of("Caries", "Deep_Caries");
-    private static final String DEFAULT_SURFACE = "V";  // panoramic gives no surface; dentist can refine
+    /** AI disease (DENTEX) -> DentalCare odontogram condition (consistent for every tenant). */
+    private static final Map<String, String> DISEASE_TO_CONDITION = Map.of(
+            "Caries", "cavity",
+            "Deep_Caries", "cavity",
+            "Periapical_Lesion", "root_canal",
+            "Impacted", "impacted"
+    );
+    /** Surface-scoped conditions go on the vestibular surface; the rest are whole-tooth. */
+    private static final Set<String> SURFACE_CONDITIONS = Set.of("cavity", "filling");
+    private static final String DEFAULT_SURFACE = "B";   // vestibular key used by the odontogram UI; panoramic gives no real surface, dentist refines
+    private static final String WHOLE_SURFACE = "WHOLE"; // whole-tooth conditions (root_canal, impacted)
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -34,12 +43,14 @@ public class OdontogramSyncService {
 
         UUID clinic = clinicId();
 
-        // Remove prior AI rows for THIS analysis (idempotent re-review), never touching manual rows.
+        // Replace ALL prior AI rows for this patient (latest analysis wins), never touching
+        // manual rows. Scoping the delete to one analysis_id would let stale AI rows from an
+        // earlier analysis block re-insertion via the (clinic,patient,tooth,surface) constraint.
         jdbc.update("""
                 DELETE FROM %s.tooth_conditions
-                WHERE clinic_id = :clinic AND patient_id = :pat AND source = 'ai' AND analysis_id = :aid
+                WHERE clinic_id = :clinic AND patient_id = :pat AND source = 'ai'
                 """.formatted(s()), new MapSqlParameterSource()
-                .addValue("clinic", clinic).addValue("pat", patientId).addValue("aid", analysisId));
+                .addValue("clinic", clinic).addValue("pat", patientId));
 
         List<Map<String, Object>> labels = jdbc.queryForList("""
                 SELECT tooth_fdi, disease, disease_confidence FROM %s.patient_document_labels
@@ -49,7 +60,8 @@ public class OdontogramSyncService {
         for (Map<String, Object> label : labels) {
             String tooth = (String) label.get("tooth_fdi");
             String disease = (String) label.get("disease");
-            if (tooth == null || !CARIES_DISEASES.contains(disease)) continue;
+            String condition = disease == null ? null : DISEASE_TO_CONDITION.get(disease);
+            if (tooth == null || condition == null) continue;
 
             short toothNum;
             try {
@@ -59,14 +71,16 @@ public class OdontogramSyncService {
                 continue;
             }
 
+            String surface = SURFACE_CONDITIONS.contains(condition) ? DEFAULT_SURFACE : WHOLE_SURFACE;
+
             jdbc.update("""
                     INSERT INTO %s.tooth_conditions
                       (id, clinic_id, patient_id, tooth_fdi, surface, condition, notes, source, analysis_id, updated_at)
-                    VALUES (:id, :clinic, :pat, :tooth, :surface, 'caries', :notes, 'ai', :aid, now())
+                    VALUES (:id, :clinic, :pat, :tooth, :surface, :condition, :notes, 'ai', :aid, now())
                     ON CONFLICT (clinic_id, patient_id, tooth_fdi, surface) DO NOTHING
                     """.formatted(s()), new MapSqlParameterSource()
                     .addValue("id", UUID.randomUUID()).addValue("clinic", clinic).addValue("pat", patientId)
-                    .addValue("tooth", toothNum).addValue("surface", DEFAULT_SURFACE)
+                    .addValue("tooth", toothNum).addValue("surface", surface).addValue("condition", condition)
                     .addValue("notes", "AI: " + disease).addValue("aid", analysisId));
         }
     }

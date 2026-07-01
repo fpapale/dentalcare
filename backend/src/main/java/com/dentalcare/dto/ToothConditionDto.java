@@ -4,5 +4,6 @@ public record ToothConditionDto(
         int toothFdi,
         String surface,
         String condition,
-        String notes
+        String notes,
+        String source
 ) {}

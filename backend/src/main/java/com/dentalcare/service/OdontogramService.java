@@ -25,7 +25,7 @@ public class OdontogramService {
     public List<ToothConditionDto> findByPatient(UUID patientId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
-            SELECT tooth_fdi, surface, condition, notes
+            SELECT tooth_fdi, surface, condition, notes, source
             FROM %s.tooth_conditions
             WHERE clinic_id = :clinicId
               AND patient_id = :patientId
@@ -38,7 +38,8 @@ public class OdontogramService {
                 rs.getInt("tooth_fdi"),
                 rs.getString("surface"),
                 rs.getString("condition"),
-                rs.getString("notes")
+                rs.getString("notes"),
+                rs.getString("source")
         ));
     }
 
@@ -62,11 +63,16 @@ public class OdontogramService {
 
         if (toSave.isEmpty()) return;
 
+        // Upsert: a manual edit on a tooth/surface that already holds an AI row takes ownership
+        // (becomes source='manual', analysis_id cleared). Prevents uq_tooth_surface conflicts.
         String insertSql = """
             INSERT INTO %s.tooth_conditions
-                (id, clinic_id, patient_id, tooth_fdi, surface, condition, notes, updated_at)
+                (id, clinic_id, patient_id, tooth_fdi, surface, condition, notes, source, updated_at)
             VALUES
-                (:id, :clinicId, :patientId, :toothFdi, :surface, :condition, :notes, now())
+                (:id, :clinicId, :patientId, :toothFdi, :surface, :condition, :notes, 'manual', now())
+            ON CONFLICT (clinic_id, patient_id, tooth_fdi, surface)
+            DO UPDATE SET condition = EXCLUDED.condition, notes = EXCLUDED.notes,
+                          source = 'manual', analysis_id = NULL, updated_at = now()
             """.formatted(s());
 
         for (ToothConditionDto c : toSave) {
