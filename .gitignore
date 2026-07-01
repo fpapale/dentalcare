@@ -61,3 +61,6 @@ credentials/
 tools/runmc.bat
 tools/runmc.sh
 database/dentalcarepro.sql
+# Immagini di test/campione locali (evita bloat del repo)
+/models/*.png
+/models/*.jpg
