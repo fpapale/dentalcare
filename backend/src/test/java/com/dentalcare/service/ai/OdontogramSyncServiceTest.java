@@ -31,20 +31,21 @@ class OdontogramSyncServiceTest {
     void tearDown() { TenantContext.clear(); }
 
     @Test
-    void sync_insertsCariesForMappableLabelsOnly() {
+    void sync_insertsMappableDiseasesAndReplacesAllPatientAiRows() {
         UUID analysisId = UUID.randomUUID();
         UUID patientId = UUID.randomUUID();
         when(jdbc.queryForList(contains("patient_document_labels"), any(MapSqlParameterSource.class))).thenReturn(List.of(
-                Map.of("tooth_fdi", "16", "disease", "Caries"),
-                Map.of("tooth_fdi", "26", "disease", "Deep_Caries"),
-                Map.of("tooth_fdi", "36", "disease", "Periapical_Lesion"), // skipped
+                Map.of("tooth_fdi", "16", "disease", "Caries"),            // -> cavity
+                Map.of("tooth_fdi", "26", "disease", "Deep_Caries"),       // -> cavity
+                Map.of("tooth_fdi", "36", "disease", "Periapical_Lesion"), // -> root_canal
+                Map.of("tooth_fdi", "18", "disease", "Unknown"),           // skipped (unmapped disease)
                 new java.util.HashMap<>() {{ put("tooth_fdi", null); put("disease", "Caries"); }} // skipped (no tooth)
         ));
         svc.syncFromAnalysis(patientId, analysisId);
-        // 1 delete scoped to analysis_id+source (not all patient rows) + 2 inserts (16, 26)
+        // one delete of ALL AI rows for the patient (source-scoped, not analysis_id) + 3 mapped inserts
         verify(jdbc, times(1)).update(
-            org.mockito.ArgumentMatchers.argThat(sql -> sql.contains("DELETE") && sql.contains("analysis_id") && sql.contains("source")),
+            org.mockito.ArgumentMatchers.argThat(sql -> sql.contains("DELETE") && sql.contains("source") && !sql.contains("analysis_id")),
             org.mockito.ArgumentMatchers.any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class));
-        verify(jdbc, times(2)).update(contains("INSERT"), any(MapSqlParameterSource.class));
+        verify(jdbc, times(3)).update(contains("INSERT"), any(MapSqlParameterSource.class));
     }
 }
