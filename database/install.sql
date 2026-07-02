@@ -935,6 +935,16 @@ CREATE TABLE service_catalog (
     CONSTRAINT service_catalog_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
 );
 
+CREATE TABLE service_categories (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    name text NOT NULL,
+    sort_order integer DEFAULT 10 NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE tooth_conditions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     clinic_id uuid NOT NULL,
@@ -1262,6 +1272,9 @@ ALTER TABLE ONLY recall_contacts
 ALTER TABLE ONLY service_bundle_items
     ADD CONSTRAINT service_bundle_items_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY service_categories
+    ADD CONSTRAINT service_categories_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY service_catalog
     ADD CONSTRAINT service_catalog_pkey PRIMARY KEY (id);
 
@@ -1418,6 +1431,8 @@ CREATE INDEX ix_treatment_plans_status_updated ON treatment_plans USING btree (c
 CREATE UNIQUE INDEX ux_clinics_vat_number ON clinics USING btree (vat_number) WHERE (vat_number IS NOT NULL);
 
 CREATE UNIQUE INDEX ux_patients_clinic_fiscal_code ON patients USING btree (clinic_id, fiscal_code) WHERE (fiscal_code IS NOT NULL);
+
+CREATE UNIQUE INDEX ux_service_categories_clinic_name ON service_categories USING btree (clinic_id, lower(name));
 
 CREATE TRIGGER trg_ai_conversations_updated_at BEFORE UPDATE ON ai_conversations FOR EACH ROW EXECUTE FUNCTION dentalcare.set_updated_at();
 
@@ -1665,6 +1680,9 @@ ALTER TABLE ONLY recall_contacts
 
 ALTER TABLE ONLY service_bundle_items
     ADD CONSTRAINT service_bundle_items_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY service_categories
+    ADD CONSTRAINT service_categories_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY service_catalog
     ADD CONSTRAINT service_catalog_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE;
@@ -2909,6 +2927,21 @@ CREATE TABLE t_9d754153.service_catalog (
     CONSTRAINT service_catalog_default_price_non_negative CHECK ((default_price >= (0)::numeric)),
     CONSTRAINT service_catalog_default_vat_rate_range CHECK (((default_vat_rate >= (0)::numeric) AND (default_vat_rate <= (100)::numeric))),
     CONSTRAINT service_catalog_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
+);
+
+
+--
+-- Name: service_categories; Type: TABLE; Schema: t_9d754153; Owner: -
+--
+
+CREATE TABLE t_9d754153.service_categories (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    name text NOT NULL,
+    sort_order integer DEFAULT 10 NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -5179,6 +5212,22 @@ d1000001-0000-0000-0000-000000000024	9d754153-6579-4b7e-a56b-025f00299cd9	EST-01
 
 
 --
+-- Data for Name: service_categories; Type: TABLE DATA; Schema: t_9d754153; Owner: -
+--
+
+COPY t_9d754153.service_categories (id, clinic_id, name, sort_order, active, created_at, updated_at) FROM stdin;
+\.
+
+-- Nota: l'indice unique ux_service_categories_clinic_name (t_9d754153) viene creato
+-- più avanti nel file (sezione indici del dump); niente ON CONFLICT qui, il SELECT
+-- DISTINCT sulla source garantisce già assenza di duplicati su un tenant demo fresh install.
+INSERT INTO t_9d754153.service_categories (clinic_id, name)
+SELECT DISTINCT clinic_id, category
+FROM t_9d754153.service_catalog
+WHERE category IS NOT NULL AND btrim(category) <> '';
+
+
+--
 -- Data for Name: stock_movements; Type: TABLE DATA; Schema: t_9d754153; Owner: -
 --
 
@@ -5808,6 +5857,14 @@ ALTER TABLE ONLY t_9d754153.service_bundle_items
 
 
 --
+-- Name: service_categories service_categories_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.service_categories
+    ADD CONSTRAINT service_categories_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: service_catalog service_catalog_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
 --
 
@@ -6382,6 +6439,13 @@ CREATE UNIQUE INDEX ux_clinics_vat_number ON t_9d754153.clinics USING btree (vat
 --
 
 CREATE UNIQUE INDEX ux_patients_clinic_fiscal_code ON t_9d754153.patients USING btree (clinic_id, fiscal_code) WHERE (fiscal_code IS NOT NULL);
+
+
+--
+-- Name: ux_service_categories_clinic_name; Type: INDEX; Schema: t_9d754153; Owner: -
+--
+
+CREATE UNIQUE INDEX ux_service_categories_clinic_name ON t_9d754153.service_categories USING btree (clinic_id, lower(name));
 
 
 --
@@ -7126,6 +7190,14 @@ ALTER TABLE ONLY t_9d754153.recall_contacts
 
 ALTER TABLE ONLY t_9d754153.service_bundle_items
     ADD CONSTRAINT service_bundle_items_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES t_9d754153.clinics(id) ON DELETE CASCADE;
+
+
+--
+-- Name: service_categories service_categories_clinic_id_fkey; Type: FK CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.service_categories
+    ADD CONSTRAINT service_categories_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES t_9d754153.clinics(id) ON DELETE CASCADE;
 
 
 --
