@@ -1,7 +1,5 @@
 package com.dentalcare.service;
 
-import com.dentalcare.dto.CreateAppointmentRequest;
-import com.dentalcare.dto.RescheduleAppointmentRequest;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -9,26 +7,26 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * Gate di conferma server-side per le azioni di scrittura della chat AI.
- * L'anteprima registra l'azione con un codice corto (4 cifre); la conferma esegue
- * l'azione memorizzata. Così il modello non deve trasportare UUID lunghi tra i turni
- * (fonte di errori) ed evitiamo di affidarci solo al prompt per il gate di conferma.
+ * L'anteprima registra l'azione con un codice corto (4 cifre) e una closure che esegue
+ * l'azione vera e propria; la conferma invoca la closure memorizzata. Così il modello non
+ * deve trasportare UUID lunghi tra i turni (fonte di errori) ed evitiamo di affidarci solo
+ * al prompt per il gate di conferma. Il modello a closure è generico e permette a qualsiasi
+ * tool di scrittura (agenda, preventivi, richiami, pazienti, piani di cura, clinico) di
+ * registrare un'anteprima senza dover estendere questo servizio.
  */
 @Service
 public class PendingActionService {
 
-    public enum Type { CREATE, RESCHEDULE, CANCEL }
-
     public record Pending(
-            Type type,
+            String actionType,
             UUID providerScope,
-            CreateAppointmentRequest create,
-            UUID appointmentId,
-            RescheduleAppointmentRequest reschedule,
             String summary,
-            Instant expiresAt
+            Instant expiresAt,
+            Supplier<String> action
     ) {}
 
     private static final long TTL_SECONDS = 600;
@@ -36,15 +34,20 @@ public class PendingActionService {
     private final Map<String, Pending> store = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
 
-    public String register(Type type, UUID providerScope,
-                           CreateAppointmentRequest create,
-                           UUID appointmentId,
-                           RescheduleAppointmentRequest reschedule,
-                           String summary) {
+    /**
+     * Registra un'azione in sospeso e ritorna il codice di conferma a 4 cifre.
+     *
+     * @param actionType  etichetta libera dell'azione (es. "CREATE_APPOINTMENT", "CREATE_ESTIMATE"),
+     *                    usata solo per audit/log
+     * @param providerScope provider a cui è associata l'anteprima (per il controllo di scope alla conferma)
+     * @param summary     descrizione leggibile mostrata all'utente e salvata nell'audit
+     * @param action      closure che esegue realmente l'azione e ritorna il messaggio di esito
+     */
+    public String register(String actionType, UUID providerScope, String summary, Supplier<String> action) {
         purge();
         String code = nextCode();
-        store.put(code, new Pending(type, providerScope, create, appointmentId, reschedule,
-                summary, Instant.now().plusSeconds(TTL_SECONDS)));
+        store.put(code, new Pending(actionType, providerScope, summary,
+                Instant.now().plusSeconds(TTL_SECONDS), action));
         return code;
     }
 

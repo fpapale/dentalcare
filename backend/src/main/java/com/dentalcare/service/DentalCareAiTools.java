@@ -31,6 +31,14 @@ public class DentalCareAiTools {
     private final ProviderService providerService;
     private final PendingActionService pendingActions;
     private final AiAuditService auditService;
+    private final TreatmentPlanService treatmentPlanService;
+    private final ClinicalRecordService clinicalRecordService;
+    private final DiagnosiService diagnosiService;
+    private final PrescrizioneService prescrizioneService;
+    private final OdontogramService odontogramService;
+    private final ServiceCatalogService serviceCatalogService;
+    private final ProductService productService;
+    private final AnamnesisService anamnesisService;
 
     public DentalCareAiTools(
             AppointmentService appointmentService,
@@ -41,7 +49,15 @@ public class DentalCareAiTools {
             DashboardService dashboardService,
             ProviderService providerService,
             PendingActionService pendingActions,
-            AiAuditService auditService) {
+            AiAuditService auditService,
+            TreatmentPlanService treatmentPlanService,
+            ClinicalRecordService clinicalRecordService,
+            DiagnosiService diagnosiService,
+            PrescrizioneService prescrizioneService,
+            OdontogramService odontogramService,
+            ServiceCatalogService serviceCatalogService,
+            ProductService productService,
+            AnamnesisService anamnesisService) {
         this.appointmentService = appointmentService;
         this.patientService = patientService;
         this.estimateService = estimateService;
@@ -51,6 +67,14 @@ public class DentalCareAiTools {
         this.providerService = providerService;
         this.pendingActions = pendingActions;
         this.auditService = auditService;
+        this.treatmentPlanService = treatmentPlanService;
+        this.clinicalRecordService = clinicalRecordService;
+        this.diagnosiService = diagnosiService;
+        this.prescrizioneService = prescrizioneService;
+        this.odontogramService = odontogramService;
+        this.serviceCatalogService = serviceCatalogService;
+        this.productService = productService;
+        this.anamnesisService = anamnesisService;
     }
 
     // --- role helpers ---
@@ -211,8 +235,11 @@ public class DentalCareAiTools {
                 + " (" + dur + " min, " + chair + ")";
         CreateAppointmentRequest req = new CreateAppointmentRequest(
                 UUID.fromString(patientId), providerId, chair, start, end, notes);
-        String code = pendingActions.register(PendingActionService.Type.CREATE,
-                currentProviderId(), req, null, null, summary);
+        String code = pendingActions.register("CREATE_APPOINTMENT", currentProviderId(), summary,
+                () -> {
+                    UUID id = appointmentService.create(req);
+                    return "Appuntamento creato (id " + id + "). " + summary;
+                });
 
         return "ANTEPRIMA — nessuna modifica salvata.\n"
                 + summary + "\n"
@@ -307,8 +334,12 @@ public class DentalCareAiTools {
 
         String summary = "Spostamento appuntamento al " + date + " alle " + time
                 + " (" + dur + " min, " + chair + providerNote + ")";
-        String code = pendingActions.register(PendingActionService.Type.RESCHEDULE,
-                currentProviderId(), null, apptId, req, summary);
+        String code = pendingActions.register("RESCHEDULE_APPOINTMENT", currentProviderId(), summary,
+                () -> {
+                    log.info("confirmAction RESCHEDULE: apptId={} req={}", apptId, req);
+                    appointmentService.reschedule(apptId, req);
+                    return "Fatto. " + summary;
+                });
         log.info("rescheduleAppointment preview ok: apptId={} chair='{}' newProvider={} code={}",
                 apptId, chair, newProviderId, code);
 
@@ -325,8 +356,11 @@ public class DentalCareAiTools {
         catch (Exception e) { return "Errore: id appuntamento non valido."; }
 
         String summary = "Annullamento dell'appuntamento selezionato";
-        String code = pendingActions.register(PendingActionService.Type.CANCEL,
-                currentProviderId(), null, apptId, null, summary);
+        String code = pendingActions.register("CANCEL_APPOINTMENT", currentProviderId(), summary,
+                () -> {
+                    boolean ok = appointmentService.cancel(apptId);
+                    return ok ? "Appuntamento annullato." : "Appuntamento non trovato o già annullato.";
+                });
 
         return "ANTEPRIMA — nessuna modifica salvata.\n"
                 + summary + ".\n"
@@ -367,30 +401,15 @@ public class DentalCareAiTools {
             log.warn("confirmAction: scope mismatch scope={} caller={}",
                     p.providerScope(), providerId);
             String result = "Azione non valida per questo utente.";
-            auditService.log(providerId, p.type().name(), null, p.summary(), result);
+            auditService.log(providerId, p.actionType(), null, p.summary(), result);
             return result;
         }
         String result;
         try {
-            switch (p.type()) {
-                case CREATE -> {
-                    UUID id = appointmentService.create(p.create());
-                    result = "Appuntamento creato (id " + id + "). " + p.summary();
-                }
-                case RESCHEDULE -> {
-                    log.info("confirmAction RESCHEDULE: apptId={} req={}", p.appointmentId(), p.reschedule());
-                    appointmentService.reschedule(p.appointmentId(), p.reschedule());
-                    result = "Fatto. " + p.summary();
-                }
-                case CANCEL -> {
-                    boolean ok = appointmentService.cancel(p.appointmentId());
-                    result = ok ? "Appuntamento annullato." : "Appuntamento non trovato o già annullato.";
-                }
-                default -> result = "Azione non riconosciuta.";
-            }
+            result = p.action().get();
         } catch (ResourceNotFoundException nf) {
-            log.warn("confirmAction RESCHEDULE not found: {}", nf.getMessage());
-            result = "Appuntamento non trovato.";
+            log.warn("confirmAction not found: {}", nf.getMessage());
+            result = "Elemento non trovato.";
         } catch (AppointmentConflictException ce) {
             log.warn("confirmAction conflict: {}", ce.getMessage());
             result = "Operazione non possibile: " + ce.getMessage();
@@ -398,7 +417,7 @@ public class DentalCareAiTools {
             log.error("confirmAction error", e);
             result = "Errore nell'esecuzione: " + e.getMessage();
         }
-        auditService.log(providerId, p.type().name(), null, p.summary(), result);
+        auditService.log(providerId, p.actionType(), null, p.summary(), result);
         return result;
     }
 
@@ -422,6 +441,436 @@ public class DentalCareAiTools {
 
         return new DailyBriefingDto(today, total, confirmed, completed, cancelled,
                 overdueRecalls, overdueInvoices, pendingEstimates);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // --- nuovi tool di LETTURA ---
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Tool(description = "Get the treatment plans (piani di cura) of a patient, with item counts by status.")
+    public List<TreatmentPlanSummaryDto> getTreatmentPlans(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId) {
+        return treatmentPlanService.findByPatient(UUID.fromString(patientId));
+    }
+
+    @Tool(description = "Get the odontogram (tooth conditions) of a patient, including conditions detected by AI radiograph analysis (source='ai') and manual entries (source='manual'). Medical staff only.")
+    public Object getOdontogram(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId) {
+        if (!isMedical()) return "Funzione riservata al personale medico.";
+        return odontogramService.findByPatient(UUID.fromString(patientId));
+    }
+
+    @Tool(description = "Get anamnesis alerts for a patient: allergies, ongoing therapies (anticoagulants, bisphosphonates, etc.) and other clinical alert items. Medical staff only.")
+    public Object getAnamnesisAlerts(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId) {
+        if (!isMedical()) return "Funzione riservata al personale medico.";
+        return anamnesisService.getPatientAnamnesis(UUID.fromString(patientId)).stream()
+                .map(cat -> new java.util.LinkedHashMap<String, Object>() {{
+                    put("category", cat.name());
+                    put("alerts", cat.items().stream()
+                            .filter(AnamnesisItemDto::selected)
+                            .map(i -> i.isAlert() ? "⚠ " + i.label() : i.label())
+                            .toList());
+                }})
+                .filter(m -> !((List<?>) m.get("alerts")).isEmpty())
+                .toList();
+    }
+
+    @Tool(description = "Get the service catalog (listino prestazioni) optionally filtered by name/code. Returns name, category, default price and duration.")
+    public List<ServiceDto> getServiceCatalog(
+            @ToolParam(description = "Optional search text to filter by name or code. Leave blank for the full catalog.") String query) {
+        List<ServiceDto> all = serviceCatalogService.findAll();
+        if (query == null || query.isBlank()) return all;
+        String q = query.toLowerCase().trim();
+        return all.stream()
+                .filter(s -> (s.name() != null && s.name().toLowerCase().contains(q))
+                        || (s.code() != null && s.code().toLowerCase().contains(q))
+                        || (s.category() != null && s.category().toLowerCase().contains(q)))
+                .toList();
+    }
+
+    @Tool(description = "Get warehouse products (magazzino) optionally filtered by name/SKU. Returns current stock and stock status.")
+    public List<ProductDto> getInventory(
+            @ToolParam(description = "Optional search text to filter by product name or SKU. Leave blank for all active products.") String query) {
+        List<ProductDto> all = productService.findAll(false);
+        if (query == null || query.isBlank()) return all;
+        String q = query.toLowerCase().trim();
+        return all.stream()
+                .filter(p -> (p.name() != null && p.name().toLowerCase().contains(q))
+                        || (p.sku() != null && p.sku().toLowerCase().contains(q)))
+                .toList();
+    }
+
+    @Tool(description = "Get warehouse products with low or critical stock level (sotto scorta), to flag reordering needs.")
+    public List<ProductDto> getLowStock() {
+        return productService.findAll(true);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // --- nuovi tool di SCRITTURA (preview, confirm-gated via confirmAction) ---
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // ── Preventivi ───────────────────────────────────────────────────────────
+
+    @Tool(description = "Prepare creation of a new estimate (preventivo) for a patient and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewCreateEstimate(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Estimate title (optional, default 'Preventivo').") String title,
+            @ToolParam(description = "Optional notes.") String notes,
+            @ToolParam(description = "Optional treatment plan UUID this estimate refers to.") String treatmentPlanId,
+            @ToolParam(description = "Optional expiry date YYYY-MM-DD.") String validUntil) {
+        UUID pid;
+        try { pid = UUID.fromString(patientId); } catch (Exception e) { return "Errore: id paziente non valido."; }
+        UUID planId = parseUuidOrNull(treatmentPlanId);
+        LocalDate validUntilDate = parseDateOrNull(validUntil);
+
+        String patientName = patientName(patientId);
+        String summary = "Nuovo preventivo per " + patientName
+                + (title != null && !title.isBlank() ? " (" + title + ")" : "");
+        CreateEstimateRequest req = new CreateEstimateRequest(pid, planId, currentProviderId(), title, notes, validUntilDate);
+        String code = pendingActions.register("CREATE_ESTIMATE", currentProviderId(), summary,
+                () -> {
+                    UUID id = estimateService.create(req);
+                    return "Preventivo creato (id " + id + "). " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare adding a line item (prestazione) to an existing estimate and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewAddEstimateLine(
+            @ToolParam(description = "Estimate UUID from getEstimates.") String estimateId,
+            @ToolParam(description = "Service UUID from getServiceCatalog.") String serviceId,
+            @ToolParam(description = "Quantity (default 1).") java.math.BigDecimal quantity,
+            @ToolParam(description = "Unit price override (optional, defaults to the service's catalog price).") java.math.BigDecimal unitPrice,
+            @ToolParam(description = "Discount amount (optional).") java.math.BigDecimal discountAmount,
+            @ToolParam(description = "VAT rate (optional).") java.math.BigDecimal vatRate,
+            @ToolParam(description = "Tooth number/FDI this line refers to (optional).") String toothSnapshot) {
+        UUID eid, sid;
+        try { eid = UUID.fromString(estimateId); sid = UUID.fromString(serviceId); }
+        catch (Exception e) { return "Errore: id preventivo o servizio non valido."; }
+
+        String summary = "Aggiunta riga al preventivo selezionato (servizio " + serviceId + ")";
+        AddEstimateLineRequest req = new AddEstimateLineRequest(
+                sid, null, null, toothSnapshot, quantity, unitPrice, discountAmount, vatRate, null);
+        String code = pendingActions.register("ADD_ESTIMATE_LINE", currentProviderId(), summary,
+                () -> {
+                    UUID lineId = estimateService.addLine(eid, req);
+                    return "Riga aggiunta al preventivo (id " + lineId + ").";
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare a status change for an estimate (preventivo) and return a PREVIEW plus a confirmation code. Status values: draft, sent, accepted, rejected, expired, cancelled. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewUpdateEstimateStatus(
+            @ToolParam(description = "Estimate UUID from getEstimates.") String estimateId,
+            @ToolParam(description = "New status: draft, sent, accepted, rejected, expired, cancelled.") String status) {
+        UUID eid;
+        try { eid = UUID.fromString(estimateId); } catch (Exception e) { return "Errore: id preventivo non valido."; }
+        if (status == null || status.isBlank()) return "Errore: indica il nuovo stato del preventivo.";
+
+        String summary = "Cambio stato preventivo a '" + status + "'";
+        String code = pendingActions.register("UPDATE_ESTIMATE_STATUS", currentProviderId(), summary,
+                () -> {
+                    estimateService.updateStatus(eid, status);
+                    return "Fatto. " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    // ── Richiami ─────────────────────────────────────────────────────────────
+
+    @Tool(description = "Prepare creation of a new recall (richiamo) for a patient and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewCreateRecall(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Recall type/reason, e.g. 'Controllo periodico'.") String recallType,
+            @ToolParam(description = "Due date YYYY-MM-DD.") String dueDate,
+            @ToolParam(description = "Priority: alta, media, bassa (optional, auto-computed from due date if omitted).") String priority,
+            @ToolParam(description = "Optional notes.") String notes) {
+        UUID pid;
+        try { pid = UUID.fromString(patientId); } catch (Exception e) { return "Errore: id paziente non valido."; }
+        LocalDate due = parseDateOrNull(dueDate);
+        if (due == null) return "Errore: data di scadenza non valida. Usa YYYY-MM-DD.";
+
+        String patientName = patientName(patientId);
+        String summary = "Nuovo richiamo per " + patientName + " (" + recallType + ") entro il " + dueDate;
+        CreateRecallRequest req = new CreateRecallRequest(pid, recallType, due, priority, notes, null);
+        String code = pendingActions.register("CREATE_RECALL", currentProviderId(), summary,
+                () -> {
+                    RecallDto created = recallService.create(req);
+                    return "Richiamo creato (id " + created.recallId() + "). " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare marking a recall (richiamo) as contacted ('contattato') and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewMarkRecallContacted(
+            @ToolParam(description = "Recall UUID from getRecalls.") String recallId,
+            @ToolParam(description = "Optional notes about the contact.") String notes) {
+        UUID rid;
+        try { rid = UUID.fromString(recallId); } catch (Exception e) { return "Errore: id richiamo non valido."; }
+
+        String summary = "Richiamo segnato come 'contattato'";
+        UpdateRecallRequest req = new UpdateRecallRequest("contattato", null, null, null, notes);
+        String code = pendingActions.register("MARK_RECALL_CONTACTED", currentProviderId(), summary,
+                () -> {
+                    recallService.update(rid, req);
+                    return "Fatto. " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare closing a recall (richiamo, status 'chiuso') and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewCloseRecall(
+            @ToolParam(description = "Recall UUID from getRecalls.") String recallId) {
+        UUID rid;
+        try { rid = UUID.fromString(recallId); } catch (Exception e) { return "Errore: id richiamo non valido."; }
+
+        String summary = "Chiusura del richiamo selezionato";
+        UpdateRecallRequest req = new UpdateRecallRequest("chiuso", null, null, null, null);
+        String code = pendingActions.register("CLOSE_RECALL", currentProviderId(), summary,
+                () -> {
+                    recallService.update(rid, req);
+                    return "Fatto. " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    // ── Pazienti ─────────────────────────────────────────────────────────────
+
+    @Tool(description = "Prepare creation of a new patient and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewCreatePatient(
+            @ToolParam(description = "First name.") String firstName,
+            @ToolParam(description = "Last name.") String lastName,
+            @ToolParam(description = "Fiscal code (codice fiscale), optional.") String fiscalCode,
+            @ToolParam(description = "Birth date YYYY-MM-DD, optional.") String birthDate,
+            @ToolParam(description = "Phone number, optional.") String phone,
+            @ToolParam(description = "Email address, optional.") String email,
+            @ToolParam(description = "Address line, optional.") String addressLine1,
+            @ToolParam(description = "City, optional.") String city,
+            @ToolParam(description = "Province code, optional.") String province,
+            @ToolParam(description = "Postal code, optional.") String postalCode,
+            @ToolParam(description = "Notes, optional.") String notes) {
+        if (firstName == null || firstName.isBlank() || lastName == null || lastName.isBlank())
+            return "Errore: nome e cognome sono obbligatori.";
+
+        LocalDate birth = parseDateOrNull(birthDate);
+        String summary = "Nuovo paziente " + firstName + " " + lastName;
+        CreatePatientRequest req = new CreatePatientRequest(
+                firstName, lastName, fiscalCode, birth, phone, email,
+                addressLine1, city, province, postalCode, notes, null);
+        String code = pendingActions.register("CREATE_PATIENT", currentProviderId(), summary,
+                () -> {
+                    UUID id = patientService.create(req);
+                    return "Paziente creato (id " + id + "). " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare updating an existing patient's data and return a PREVIEW plus a confirmation code. Only non-blank fields are considered; provide all fields you want to keep, as this replaces the whole record. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewUpdatePatient(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "First name.") String firstName,
+            @ToolParam(description = "Last name.") String lastName,
+            @ToolParam(description = "Fiscal code (codice fiscale), optional.") String fiscalCode,
+            @ToolParam(description = "Birth date YYYY-MM-DD, optional.") String birthDate,
+            @ToolParam(description = "Phone number, optional.") String phone,
+            @ToolParam(description = "Email address, optional.") String email,
+            @ToolParam(description = "Address line, optional.") String addressLine1,
+            @ToolParam(description = "City, optional.") String city,
+            @ToolParam(description = "Province code, optional.") String province,
+            @ToolParam(description = "Postal code, optional.") String postalCode,
+            @ToolParam(description = "Notes, optional.") String notes) {
+        UUID pid;
+        try { pid = UUID.fromString(patientId); } catch (Exception e) { return "Errore: id paziente non valido."; }
+
+        var existing = patientService.findById(pid, null).orElse(null);
+        if (existing == null) return "Paziente non trovato.";
+
+        String fn = blankToExisting(firstName, existing.firstName());
+        String ln = blankToExisting(lastName, existing.lastName());
+        LocalDate birth = parseDateOrNull(birthDate);
+        if (birth == null) birth = existing.birthDate();
+
+        String summary = "Aggiornamento dati anagrafici di " + existing.fullName();
+        UpdatePatientRequest req = new UpdatePatientRequest(
+                fn, ln,
+                blankToExisting(fiscalCode, existing.fiscalCode()),
+                birth,
+                blankToExisting(phone, existing.phone()),
+                blankToExisting(email, existing.email()),
+                blankToExisting(addressLine1, existing.addressLine1()),
+                blankToExisting(city, existing.city()),
+                blankToExisting(province, existing.province()),
+                blankToExisting(postalCode, existing.postalCode()),
+                blankToExisting(notes, existing.notes()),
+                existing.primaryProviderId());
+        String code = pendingActions.register("UPDATE_PATIENT", currentProviderId(), summary,
+                () -> {
+                    patientService.update(pid, req);
+                    return "Fatto. " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    // ── Piani di cura ────────────────────────────────────────────────────────
+
+    @Tool(description = "Prepare creation of a new treatment plan (piano di cura) for a patient and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewCreatePlan(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Plan name.") String name,
+            @ToolParam(description = "Optional description.") String description) {
+        if (!isMedical()) return "Funzione riservata al personale medico.";
+        UUID pid;
+        try { pid = UUID.fromString(patientId); } catch (Exception e) { return "Errore: id paziente non valido."; }
+        if (name == null || name.isBlank()) return "Errore: indica un nome per il piano di cura.";
+
+        String patientName = patientName(patientId);
+        String summary = "Nuovo piano di cura '" + name + "' per " + patientName;
+        CreateTreatmentPlanRequest req = new CreateTreatmentPlanRequest(pid, name, description);
+        String code = pendingActions.register("CREATE_TREATMENT_PLAN", currentProviderId(), summary,
+                () -> {
+                    UUID id = treatmentPlanService.create(req);
+                    return "Piano di cura creato (id " + id + "). " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare adding an item (prestazione) to an existing treatment plan and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewAddPlanItem(
+            @ToolParam(description = "Treatment plan UUID from getTreatmentPlans.") String planId,
+            @ToolParam(description = "Service UUID from getServiceCatalog.") String serviceId,
+            @ToolParam(description = "Tooth number/FDI, optional.") String toothNumber,
+            @ToolParam(description = "Quadrant 1-4, optional.") Integer quadrant,
+            @ToolParam(description = "Planned price override, optional (defaults to catalog price).") java.math.BigDecimal plannedPrice,
+            @ToolParam(description = "Priority (lower = higher priority), optional.") Integer priority,
+            @ToolParam(description = "Planned date YYYY-MM-DD, optional.") String plannedDate,
+            @ToolParam(description = "Clinical notes, optional.") String clinicalNotes) {
+        if (!isMedical()) return "Funzione riservata al personale medico.";
+        UUID plId, sid;
+        try { plId = UUID.fromString(planId); sid = UUID.fromString(serviceId); }
+        catch (Exception e) { return "Errore: id piano o servizio non valido."; }
+
+        LocalDate planned = parseDateOrNull(plannedDate);
+        String summary = "Aggiunta prestazione al piano di cura selezionato";
+        AddTreatmentPlanItemRequest req = new AddTreatmentPlanItemRequest(
+                sid, currentProviderId(), toothNumber, quadrant, plannedPrice, priority, planned, clinicalNotes);
+        String code = pendingActions.register("ADD_PLAN_ITEM", currentProviderId(), summary,
+                () -> {
+                    UUID id = treatmentPlanService.addItem(plId, req);
+                    return "Prestazione aggiunta al piano di cura (id " + id + ").";
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    // ── Clinico (solo personale medico) ─────────────────────────────────────
+
+    @Tool(description = "Prepare adding a clinical diary entry (diario clinico) for a patient and return a PREVIEW plus a confirmation code. Medical staff only. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewAddDiaryNote(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Clinical notes for the diary entry.") String clinicalNotes,
+            @ToolParam(description = "Entry date YYYY-MM-DD, optional (default today).") String entryDate,
+            @ToolParam(description = "Tooth number/FDI, optional.") String toothNumber,
+            @ToolParam(description = "Service code, optional.") String serviceCode,
+            @ToolParam(description = "Service name, optional.") String serviceName,
+            @ToolParam(description = "Materials used, optional.") String materialsUsed,
+            @ToolParam(description = "Notes for the next visit, optional.") String nextVisitNotes) {
+        if (!isMedical()) return "Funzione riservata al personale medico.";
+        UUID pid;
+        try { pid = UUID.fromString(patientId); } catch (Exception e) { return "Errore: id paziente non valido."; }
+        if (clinicalNotes == null || clinicalNotes.isBlank()) return "Errore: indica il contenuto della nota clinica.";
+
+        LocalDate entry = parseDateOrNull(entryDate);
+        String patientName = patientName(patientId);
+        String summary = "Nuova nota di diario clinico per " + patientName;
+        CreateClinicalHistoryEntryRequest req = new CreateClinicalHistoryEntryRequest(
+                currentProviderId(), entry, toothNumber, serviceCode, serviceName, clinicalNotes, materialsUsed, nextVisitNotes);
+        String code = pendingActions.register("ADD_DIARY_NOTE", currentProviderId(), summary,
+                () -> {
+                    clinicalRecordService.createDiaryEntry(pid, req);
+                    return "Fatto. " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare adding a diagnosis (diagnosi) for a patient and return a PREVIEW plus a confirmation code. Medical staff only. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewAddDiagnosis(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Diagnosis title.") String title,
+            @ToolParam(description = "Tooth number/FDI, optional.") String toothNumber,
+            @ToolParam(description = "Description, optional.") String description,
+            @ToolParam(description = "ICD code, optional.") String icdCode,
+            @ToolParam(description = "Diagnosed date YYYY-MM-DD, optional (default today).") String diagnosedAt) {
+        if (!isMedical()) return "Funzione riservata al personale medico.";
+        UUID pid;
+        try { pid = UUID.fromString(patientId); } catch (Exception e) { return "Errore: id paziente non valido."; }
+        if (title == null || title.isBlank()) return "Errore: indica il titolo della diagnosi.";
+
+        LocalDate diagnosed = parseDateOrNull(diagnosedAt);
+        String patientName = patientName(patientId);
+        String summary = "Nuova diagnosi '" + title + "' per " + patientName;
+        CreateDiagnosiRequest req = new CreateDiagnosiRequest(
+                currentProviderId(), toothNumber, title, description, icdCode, diagnosed);
+        String code = pendingActions.register("ADD_DIAGNOSIS", currentProviderId(), summary,
+                () -> {
+                    diagnosiService.create(pid, req);
+                    return "Fatto. " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    @Tool(description = "Prepare adding a prescription (prescrizione) for a patient and return a PREVIEW plus a confirmation code. Medical staff only. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String previewAddPrescription(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Drug name.") String drugName,
+            @ToolParam(description = "Dosage, optional.") String dosage,
+            @ToolParam(description = "Frequency, optional.") String frequency,
+            @ToolParam(description = "Duration, optional.") String duration,
+            @ToolParam(description = "Notes, optional.") String notes,
+            @ToolParam(description = "Prescribed date YYYY-MM-DD, optional (default today).") String prescribedAt,
+            @ToolParam(description = "Expiry date YYYY-MM-DD, optional.") String expiresAt) {
+        if (!isMedical()) return "Funzione riservata al personale medico.";
+        UUID pid;
+        try { pid = UUID.fromString(patientId); } catch (Exception e) { return "Errore: id paziente non valido."; }
+        if (drugName == null || drugName.isBlank()) return "Errore: indica il nome del farmaco.";
+
+        LocalDate prescribed = parseDateOrNull(prescribedAt);
+        LocalDate expires = parseDateOrNull(expiresAt);
+        String patientName = patientName(patientId);
+        String summary = "Nuova prescrizione '" + drugName + "' per " + patientName;
+        CreatePrescrizioneRequest req = new CreatePrescrizioneRequest(
+                currentProviderId(), drugName, dosage, frequency, duration, notes, prescribed, expires);
+        String code = pendingActions.register("ADD_PRESCRIPTION", currentProviderId(), summary,
+                () -> {
+                    prescrizioneService.create(pid, req);
+                    return "Fatto. " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
     }
 
     // --- private helpers ---
@@ -466,5 +915,20 @@ public class DentalCareAiTools {
                 d.notes(), d.totalAppointments(), d.treatmentPlansCount(),
                 d.openTreatmentItemsCount(), d.photoUrl(),
                 d.primaryProviderId(), d.primaryProviderName());
+    }
+
+    private UUID parseUuidOrNull(String value) {
+        try { return (value == null || value.isBlank()) ? null : UUID.fromString(value.trim()); }
+        catch (Exception e) { return null; }
+    }
+
+    private LocalDate parseDateOrNull(String value) {
+        try { return (value == null || value.isBlank()) ? null : LocalDate.parse(value.trim()); }
+        catch (Exception e) { return null; }
+    }
+
+    /** Ritorna il nuovo valore se non vuoto, altrimenti mantiene quello esistente (per update parziali via chat). */
+    private String blankToExisting(String newValue, String existing) {
+        return (newValue != null && !newValue.isBlank()) ? newValue : existing;
     }
 }
