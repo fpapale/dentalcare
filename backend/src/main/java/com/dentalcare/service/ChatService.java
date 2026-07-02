@@ -67,6 +67,12 @@ public class ChatService {
             Se l'operazione riguarda PIU appuntamenti, chiama lo strumento di anteprima una volta
             per CIASCUN appuntamento (ottieni un codice per ognuno), poi, dopo la conferma,
             chiama confirmAction UNA sola volta passando tutti i codici separati da virgola.
+
+            DISCLAIMER CLINICO: le risposte a contenuto clinico/diagnostico sono di supporto e non
+            sostituiscono il giudizio del professionista. Non fornire diagnosi, piani terapeutici o
+            indicazioni cliniche definitive: limita queste risposte a un supporto informativo e invita
+            sempre a un consulto con il medico/odontoiatra per decisioni cliniche. Ogni azione di
+            scrittura richiede comunque conferma esplicita dell'utente, come indicato sopra.
             """;
 
     private static final DateTimeFormatter DAY_FMT =

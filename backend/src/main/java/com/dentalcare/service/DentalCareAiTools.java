@@ -30,6 +30,7 @@ public class DentalCareAiTools {
     private final DashboardService dashboardService;
     private final ProviderService providerService;
     private final PendingActionService pendingActions;
+    private final AiAuditService auditService;
 
     public DentalCareAiTools(
             AppointmentService appointmentService,
@@ -39,7 +40,8 @@ public class DentalCareAiTools {
             InvoiceService invoiceService,
             DashboardService dashboardService,
             ProviderService providerService,
-            PendingActionService pendingActions) {
+            PendingActionService pendingActions,
+            AiAuditService auditService) {
         this.appointmentService = appointmentService;
         this.patientService = patientService;
         this.estimateService = estimateService;
@@ -48,6 +50,7 @@ public class DentalCareAiTools {
         this.dashboardService = dashboardService;
         this.providerService = providerService;
         this.pendingActions = pendingActions;
+        this.auditService = auditService;
     }
 
     // --- role helpers ---
@@ -359,38 +362,44 @@ public class DentalCareAiTools {
     }
 
     private String execute(PendingActionService.Pending p) {
-        if (!java.util.Objects.equals(p.providerScope(), currentProviderId())) {
+        UUID providerId = currentProviderId();
+        if (!java.util.Objects.equals(p.providerScope(), providerId)) {
             log.warn("confirmAction: scope mismatch scope={} caller={}",
-                    p.providerScope(), currentProviderId());
-            return "Azione non valida per questo utente.";
+                    p.providerScope(), providerId);
+            String result = "Azione non valida per questo utente.";
+            auditService.log(providerId, p.type().name(), null, p.summary(), result);
+            return result;
         }
+        String result;
         try {
             switch (p.type()) {
                 case CREATE -> {
                     UUID id = appointmentService.create(p.create());
-                    return "Appuntamento creato (id " + id + "). " + p.summary();
+                    result = "Appuntamento creato (id " + id + "). " + p.summary();
                 }
                 case RESCHEDULE -> {
                     log.info("confirmAction RESCHEDULE: apptId={} req={}", p.appointmentId(), p.reschedule());
                     appointmentService.reschedule(p.appointmentId(), p.reschedule());
-                    return "Fatto. " + p.summary();
+                    result = "Fatto. " + p.summary();
                 }
                 case CANCEL -> {
                     boolean ok = appointmentService.cancel(p.appointmentId());
-                    return ok ? "Appuntamento annullato." : "Appuntamento non trovato o già annullato.";
+                    result = ok ? "Appuntamento annullato." : "Appuntamento non trovato o già annullato.";
                 }
-                default -> { return "Azione non riconosciuta."; }
+                default -> result = "Azione non riconosciuta.";
             }
         } catch (ResourceNotFoundException nf) {
             log.warn("confirmAction RESCHEDULE not found: {}", nf.getMessage());
-            return "Appuntamento non trovato.";
+            result = "Appuntamento non trovato.";
         } catch (AppointmentConflictException ce) {
             log.warn("confirmAction conflict: {}", ce.getMessage());
-            return "Operazione non possibile: " + ce.getMessage();
+            result = "Operazione non possibile: " + ce.getMessage();
         } catch (Exception e) {
             log.error("confirmAction error", e);
-            return "Errore nell'esecuzione: " + e.getMessage();
+            result = "Errore nell'esecuzione: " + e.getMessage();
         }
+        auditService.log(providerId, p.type().name(), null, p.summary(), result);
+        return result;
     }
 
     @Tool(description = "Get today's operational briefing: appointment counts by status plus overdue recalls, overdue invoices and pending estimates.")

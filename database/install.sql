@@ -377,6 +377,17 @@ CREATE FUNCTION update_recall_on_contact() RETURNS trigger
             END;
             $$;
 
+CREATE TABLE ai_audit_log (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    provider_id uuid,
+    action_type text NOT NULL,
+    tool_name text,
+    args_summary text,
+    result text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE ai_conversations (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     clinic_id uuid NOT NULL,
@@ -1128,6 +1139,9 @@ CREATE VIEW v_patient_estimates_summary AS
    FROM (estimates e
      LEFT JOIN patients p ON (((p.id = e.patient_id) AND (p.clinic_id = e.clinic_id))));
 
+ALTER TABLE ONLY ai_audit_log
+    ADD CONSTRAINT ai_audit_log_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY ai_conversations
     ADD CONSTRAINT ai_conversations_pkey PRIMARY KEY (id);
 
@@ -1312,6 +1326,8 @@ CREATE INDEX idx_patient_prescriptions_active ON patient_prescriptions USING btr
 CREATE INDEX idx_patient_prescriptions_patient ON patient_prescriptions USING btree (clinic_id, patient_id);
 
 CREATE INDEX idx_tooth_conditions_patient ON tooth_conditions USING btree (clinic_id, patient_id);
+
+CREATE INDEX ix_ai_audit_log_clinic_created ON ai_audit_log USING btree (clinic_id, created_at DESC);
 
 CREATE INDEX ix_ai_conversations_clinic ON ai_conversations USING btree (clinic_id);
 
@@ -2132,6 +2148,22 @@ CREATE TABLE dentalcare.tenants (
     active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ai_audit_log; Type: TABLE; Schema: t_9d754153; Owner: -
+--
+
+CREATE TABLE t_9d754153.ai_audit_log (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    provider_id uuid,
+    action_type text NOT NULL,
+    tool_name text,
+    args_summary text,
+    result text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -3513,6 +3545,14 @@ COPY dentalcare.regions (id, state_id, code, name) FROM stdin;
 
 COPY dentalcare.states (id, code, name) FROM stdin;
 00000001-0000-0000-0000-000000000001	IT	Italia
+\.
+
+
+--
+-- Data for Name: ai_audit_log; Type: TABLE DATA; Schema: t_9d754153; Owner: -
+--
+
+COPY t_9d754153.ai_audit_log (id, clinic_id, provider_id, action_type, tool_name, args_summary, result, created_at) FROM stdin;
 \.
 
 
@@ -5440,6 +5480,14 @@ ALTER TABLE ONLY dentalcare.national_holidays
 
 
 --
+-- Name: ai_audit_log ai_audit_log_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.ai_audit_log
+    ADD CONSTRAINT ai_audit_log_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: ai_conversations ai_conversations_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
 --
 
@@ -6012,6 +6060,13 @@ CREATE INDEX idx_patient_prescriptions_patient ON t_9d754153.patient_prescriptio
 --
 
 CREATE INDEX idx_tooth_conditions_patient ON t_9d754153.tooth_conditions USING btree (clinic_id, patient_id);
+
+
+--
+-- Name: ix_ai_audit_log_clinic_created; Type: INDEX; Schema: t_9d754153; Owner: -
+--
+
+CREATE INDEX ix_ai_audit_log_clinic_created ON t_9d754153.ai_audit_log USING btree (clinic_id, created_at DESC);
 
 
 --
