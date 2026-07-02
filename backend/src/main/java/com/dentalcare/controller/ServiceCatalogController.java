@@ -2,6 +2,9 @@ package com.dentalcare.controller;
 
 import com.dentalcare.dto.AddBundleItemRequest;
 import com.dentalcare.dto.ConditionDefaultDto;
+import com.dentalcare.dto.CreateServiceCategoryRequest;
+import com.dentalcare.dto.ServiceCategoryDto;
+import com.dentalcare.dto.UpdateServiceCategoryRequest;
 import com.dentalcare.dto.CreateConditionDefaultRequest;
 import com.dentalcare.dto.CreateServiceRequest;
 import com.dentalcare.dto.ServiceAdminDto;
@@ -104,5 +107,29 @@ public class ServiceCatalogController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteBundleItem(@PathVariable UUID itemId) {
         serviceCatalogService.deleteBundleItem(itemId);
+    }
+
+    // ── Admin: Categorie prestazioni CRUD ────────────────────────────────────
+
+    @GetMapping("/categories")
+    public List<ServiceCategoryDto> listCategories() {
+        return serviceCatalogService.listCategories();
+    }
+
+    @PostMapping("/categories")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ServiceCategoryDto createCategory(@Valid @RequestBody CreateServiceCategoryRequest request) {
+        return serviceCatalogService.createCategory(request);
+    }
+
+    @PutMapping("/categories/{id}")
+    public ServiceCategoryDto updateCategory(@PathVariable UUID id, @Valid @RequestBody UpdateServiceCategoryRequest request) {
+        return serviceCatalogService.updateCategory(id, request);
+    }
+
+    @DeleteMapping("/categories/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCategory(@PathVariable UUID id) {
+        serviceCatalogService.deleteCategory(id);
     }
 }

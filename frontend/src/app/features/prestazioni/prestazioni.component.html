@@ -6,10 +6,16 @@
       <h1 class="font-bold text-slate-800">Prestazioni e Listino</h1>
       <p class="text-xs text-slate-400 mt-0.5">Catalogo prestazioni dello studio e default per condizione dentale</p>
     </div>
-    <button (click)="openNewService()"
-      class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
-      <span class="material-symbols-outlined text-[18px]">add</span> Nuova Prestazione
-    </button>
+    <div class="flex items-center gap-2">
+      <button (click)="showCategoryPanel.set(!showCategoryPanel())"
+        class="flex items-center gap-2 border border-slate-200 text-slate-600 text-sm font-semibold px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">
+        <span class="material-symbols-outlined text-[18px]">category</span> Categorie
+      </button>
+      <button (click)="openNewService()"
+        class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">add</span> Nuova Prestazione
+      </button>
+    </div>
   </div>
 
   <!-- Body -->
@@ -27,6 +33,62 @@
     } @else {
 
       <div class="px-5 py-4 flex flex-col gap-6">
+
+        <!-- CATEGORIE (catalogo) -->
+        @if (showCategoryPanel()) {
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+              <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Categorie prestazioni</h2>
+              <p class="text-xs text-slate-400 mt-0.5">Rinominare una categoria aggiorna anche le prestazioni collegate</p>
+            </div>
+            <div class="p-4 flex flex-col gap-3">
+              @if (categories().length === 0) {
+                <div class="py-6 text-center text-sm text-slate-400">Nessuna categoria</div>
+              } @else {
+                <div class="divide-y divide-slate-100">
+                  @for (cat of categories(); track cat.id) {
+                    <div class="flex items-center gap-2 py-2">
+                      @if (editingCategoryId() === cat.id) {
+                        <input [(ngModel)]="editCategoryName"
+                          class="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        <button (click)="saveCategory(cat)" [disabled]="savingCategory() || !editCategoryName.trim()"
+                          class="text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded px-2.5 py-1.5 disabled:opacity-50">Salva</button>
+                        <button (click)="cancelEditCategory()"
+                          class="text-xs font-semibold text-slate-500 hover:text-slate-700 px-2 py-1.5">Annulla</button>
+                      } @else {
+                        <span class="flex-1 text-sm text-slate-700 font-medium" [class.opacity-50]="!cat.active">{{ cat.name }}</span>
+                        <span class="text-xs text-slate-400">{{ cat.usageCount }} uso/i</span>
+                        @if (!cat.active) { <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">disattiva</span> }
+                        <button (click)="startEditCategory(cat)" title="Rinomina" class="text-slate-400 hover:text-teal-600 p-1">
+                          <span class="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                        @if (confirmDeleteCategoryId() === cat.id) {
+                          <button (click)="confirmDeleteCategory(cat.id)" class="text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded px-2 py-1">Sì</button>
+                          <button (click)="cancelDeleteCategory()" class="text-xs font-semibold text-slate-500 px-1.5 py-1">No</button>
+                        } @else {
+                          <button (click)="askDeleteCategory(cat.id)" title="Elimina" class="text-slate-400 hover:text-red-600 p-1">
+                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              }
+              <div class="flex items-end gap-3 pt-3 border-t border-slate-100">
+                <div class="flex-1">
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Nuova categoria</label>
+                  <input [(ngModel)]="newCategoryName" placeholder="es. Conservativa"
+                    class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+                <button (click)="addCategory()" [disabled]="savingCategory() || !newCategoryName.trim()"
+                  class="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
+                  <span class="material-symbols-outlined text-[16px]">add</span> Aggiungi
+                </button>
+              </div>
+            </div>
+          </div>
+        }
 
         <!-- PRESTAZIONI raggruppate per categoria -->
         @if (services().length === 0) {
@@ -203,8 +265,16 @@
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Categoria</label>
-            <input [(ngModel)]="serviceForm.category" placeholder="es. Conservativa"
-              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            <select [(ngModel)]="serviceForm.category"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+              <option value="">— nessuna —</option>
+              @for (c of activeCategories(); track c.id) {
+                <option [value]="c.name">{{ c.name }}</option>
+              }
+              @if (serviceForm.category && !activeCategories().length) {
+                <option [value]="serviceForm.category">{{ serviceForm.category }}</option>
+              }
+            </select>
           </div>
         </div>
 

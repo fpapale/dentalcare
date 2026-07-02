@@ -7,6 +7,9 @@ import com.dentalcare.dto.CreateServiceRequest;
 import com.dentalcare.dto.ServiceAdminDto;
 import com.dentalcare.dto.ServiceDto;
 import com.dentalcare.dto.UpdateServiceRequest;
+import com.dentalcare.dto.ServiceCategoryDto;
+import com.dentalcare.dto.CreateServiceCategoryRequest;
+import com.dentalcare.dto.UpdateServiceCategoryRequest;
 import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -387,5 +390,136 @@ public class ServiceCatalogService {
         if (rows == 0) {
             throw new ResourceNotFoundException("Bundle item not found: " + itemId);
         }
+    }
+
+    // ── Admin: Categorie prestazioni CRUD ────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<ServiceCategoryDto> listCategories() {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        String sql = """
+            SELECT c.id, c.name, c.sort_order, c.active,
+                   (SELECT count(*) FROM %s.service_catalog sc
+                     WHERE sc.clinic_id = c.clinic_id AND sc.category = c.name) AS usage_count
+            FROM %s.service_categories c
+            WHERE c.clinic_id = :clinicId
+            ORDER BY c.sort_order, c.name
+            """.formatted(s(), s());
+        return jdbc.query(sql,
+                new MapSqlParameterSource().addValue("clinicId", clinicId),
+                (rs, n) -> mapCategoryRow(rs));
+    }
+
+    @Transactional
+    public ServiceCategoryDto createCategory(CreateServiceCategoryRequest r) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+            INSERT INTO %s.service_categories (id, clinic_id, name, sort_order)
+            VALUES (:id, :clinicId, :name, :sortOrder)
+            """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("id", id)
+                        .addValue("clinicId", clinicId)
+                        .addValue("name", r.name())
+                        .addValue("sortOrder", r.sortOrder() != null ? r.sortOrder() : 10));
+        return findCategoryById(id, clinicId);
+    }
+
+    @Transactional
+    public ServiceCategoryDto updateCategory(UUID id, UpdateServiceCategoryRequest r) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<String> oldNames = jdbc.queryForList("""
+            SELECT name FROM %s.service_categories WHERE id = :id AND clinic_id = :clinicId
+            """.formatted(s()),
+                new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId),
+                String.class);
+        if (oldNames.isEmpty()) {
+            throw new ResourceNotFoundException("Category not found: " + id);
+        }
+        String oldName = oldNames.get(0);
+
+        jdbc.update("""
+            UPDATE %s.service_categories
+            SET name = :name, sort_order = :sortOrder, active = :active, updated_at = now()
+            WHERE id = :id AND clinic_id = :clinicId
+            """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("id", id)
+                        .addValue("clinicId", clinicId)
+                        .addValue("name", r.name())
+                        .addValue("sortOrder", r.sortOrder() != null ? r.sortOrder() : 10)
+                        .addValue("active", r.active()));
+
+        if (!oldName.equals(r.name())) {
+            jdbc.update("""
+                UPDATE %s.service_catalog
+                SET category = :newName, updated_at = now()
+                WHERE category = :oldName AND clinic_id = :clinicId
+                """.formatted(s()),
+                    new MapSqlParameterSource()
+                            .addValue("newName", r.name())
+                            .addValue("oldName", oldName)
+                            .addValue("clinicId", clinicId));
+        }
+        return findCategoryById(id, clinicId);
+    }
+
+    @Transactional
+    public void deleteCategory(UUID id) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<String> names = jdbc.queryForList("""
+            SELECT name FROM %s.service_categories WHERE id = :id AND clinic_id = :clinicId
+            """.formatted(s()),
+                new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId),
+                String.class);
+        if (names.isEmpty()) {
+            throw new ResourceNotFoundException("Category not found: " + id);
+        }
+        boolean inUse = Boolean.TRUE.equals(jdbc.queryForObject("""
+            SELECT EXISTS (SELECT 1 FROM %s.service_catalog
+                            WHERE category = :name AND clinic_id = :clinicId)
+            """.formatted(s()),
+                new MapSqlParameterSource().addValue("name", names.get(0)).addValue("clinicId", clinicId),
+                Boolean.class));
+        if (inUse) {
+            jdbc.update("""
+                UPDATE %s.service_categories SET active = false, updated_at = now()
+                WHERE id = :id AND clinic_id = :clinicId
+                """.formatted(s()),
+                    new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId));
+        } else {
+            jdbc.update("""
+                DELETE FROM %s.service_categories WHERE id = :id AND clinic_id = :clinicId
+                """.formatted(s()),
+                    new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId));
+        }
+    }
+
+    private ServiceCategoryDto findCategoryById(UUID id, UUID clinicId) {
+        String sql = """
+            SELECT c.id, c.name, c.sort_order, c.active,
+                   (SELECT count(*) FROM %s.service_catalog sc
+                     WHERE sc.clinic_id = c.clinic_id AND sc.category = c.name) AS usage_count
+            FROM %s.service_categories c
+            WHERE c.id = :id AND c.clinic_id = :clinicId
+            """.formatted(s(), s());
+        List<ServiceCategoryDto> rows = jdbc.query(sql,
+                new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId),
+                (rs, n) -> mapCategoryRow(rs));
+        if (rows.isEmpty()) {
+            throw new ResourceNotFoundException("Category not found: " + id);
+        }
+        return rows.get(0);
+    }
+
+    private ServiceCategoryDto mapCategoryRow(java.sql.ResultSet rs) throws java.sql.SQLException {
+        return new ServiceCategoryDto(
+                rs.getObject("id", UUID.class),
+                rs.getString("name"),
+                rs.getInt("sort_order"),
+                rs.getBoolean("active"),
+                rs.getLong("usage_count")
+        );
     }
 }

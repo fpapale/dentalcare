@@ -7,8 +7,11 @@ import {
   ConditionDefault,
   CreateConditionDefaultRequest,
   CreateServiceRequest,
+  CreateServiceCategoryRequest,
   ServiceAdmin,
+  ServiceCategory,
   ServiceItem,
+  UpdateServiceCategoryRequest,
   UpdateServiceRequest
 } from '../models/service.model';
 
@@ -67,5 +70,21 @@ export class ServiceCatalogService {
 
   deleteBundleItem(itemId: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/bundle/${itemId}`);
+  }
+
+  listCategories(): Observable<ServiceCategory[]> {
+    return this.http.get<ServiceCategory[]>(`${this.base}/categories`);
+  }
+
+  createCategory(req: CreateServiceCategoryRequest): Observable<ServiceCategory> {
+    return this.http.post<ServiceCategory>(`${this.base}/categories`, req);
+  }
+
+  updateCategory(id: string, req: UpdateServiceCategoryRequest): Observable<ServiceCategory> {
+    return this.http.put<ServiceCategory>(`${this.base}/categories/${id}`, req);
+  }
+
+  deleteCategory(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/categories/${id}`);
   }
 }

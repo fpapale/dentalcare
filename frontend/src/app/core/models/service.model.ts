@@ -66,3 +66,22 @@ export interface AddBundleItemRequest {
   childServiceId: string;
   sortOrder?: number;
 }
+
+export interface ServiceCategory {
+  id: string;
+  name: string;
+  sortOrder: number;
+  active: boolean;
+  usageCount: number;
+}
+
+export interface CreateServiceCategoryRequest {
+  name: string;
+  sortOrder?: number;
+}
+
+export interface UpdateServiceCategoryRequest {
+  name: string;
+  sortOrder?: number;
+  active: boolean;
+}

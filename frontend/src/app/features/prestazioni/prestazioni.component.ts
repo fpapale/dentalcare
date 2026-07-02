@@ -8,6 +8,8 @@ import {
   CreateConditionDefaultRequest,
   CreateServiceRequest,
   ServiceAdmin,
+  ServiceCategory,
+  UpdateServiceCategoryRequest,
   UpdateServiceRequest
 } from '../../core/models/service.model';
 
@@ -54,6 +56,15 @@ export class PrestazioniComponent implements OnInit {
 
   services = signal<ServiceAdmin[]>([]);
   conditionDefaults = signal<ConditionDefault[]>([]);
+  categories = signal<ServiceCategory[]>([]);
+  readonly activeCategories = computed(() => this.categories().filter(c => c.active));
+
+  showCategoryPanel = signal(false);
+  savingCategory = signal(false);
+  newCategoryName = '';
+  editingCategoryId = signal<string | null>(null);
+  editCategoryName = '';
+  confirmDeleteCategoryId = signal<string | null>(null);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -94,11 +105,13 @@ export class PrestazioniComponent implements OnInit {
     this.error.set(null);
     forkJoin({
       services: this.catalogService.listAdmin(),
-      conditionDefaults: this.catalogService.listConditionDefaults()
+      conditionDefaults: this.catalogService.listConditionDefaults(),
+      categories: this.catalogService.listCategories()
     }).subscribe({
-      next: ({ services, conditionDefaults }) => {
+      next: ({ services, conditionDefaults, categories }) => {
         this.services.set(services);
         this.conditionDefaults.set(conditionDefaults);
+        this.categories.set(categories);
         this.loading.set(false);
       },
       error: () => {
@@ -279,6 +292,67 @@ export class PrestazioniComponent implements OnInit {
     this.catalogService.deleteConditionDefault(id).subscribe({
       next: () => this.conditionDefaults.update(list => list.filter(c => c.id !== id)),
       error: () => this.error.set('Errore nella rimozione del default per condizione.')
+    });
+  }
+
+  // ── Categorie ────────────────────────────────────────────────────────────
+
+  loadCategories(): void {
+    this.catalogService.listCategories().subscribe({
+      next: list => this.categories.set(list),
+      error: () => this.error.set('Errore nel caricamento delle categorie.')
+    });
+  }
+
+  addCategory(): void {
+    const name = this.newCategoryName.trim();
+    if (!name || this.savingCategory()) return;
+    this.savingCategory.set(true);
+    this.catalogService.createCategory({ name }).subscribe({
+      next: created => {
+        this.savingCategory.set(false);
+        this.categories.update(list => [...list, created]);
+        this.newCategoryName = '';
+      },
+      error: () => { this.savingCategory.set(false); this.error.set('Errore nella creazione della categoria (nome duplicato?).'); }
+    });
+  }
+
+  startEditCategory(cat: ServiceCategory): void {
+    this.editingCategoryId.set(cat.id);
+    this.editCategoryName = cat.name;
+  }
+
+  cancelEditCategory(): void {
+    this.editingCategoryId.set(null);
+    this.editCategoryName = '';
+  }
+
+  saveCategory(cat: ServiceCategory): void {
+    const name = this.editCategoryName.trim();
+    if (!name || this.savingCategory()) return;
+    this.savingCategory.set(true);
+    const req: UpdateServiceCategoryRequest = { name, sortOrder: cat.sortOrder, active: cat.active };
+    this.catalogService.updateCategory(cat.id, req).subscribe({
+      next: () => {
+        this.savingCategory.set(false);
+        this.editingCategoryId.set(null);
+        this.editCategoryName = '';
+        // il rename propaga alle prestazioni -> ricarica categorie e prestazioni
+        this.loadCategories();
+        this.loadServices();
+      },
+      error: () => { this.savingCategory.set(false); this.error.set('Errore nel salvataggio della categoria.'); }
+    });
+  }
+
+  askDeleteCategory(id: string): void { this.confirmDeleteCategoryId.set(id); }
+  cancelDeleteCategory(): void { this.confirmDeleteCategoryId.set(null); }
+
+  confirmDeleteCategory(id: string): void {
+    this.catalogService.deleteCategory(id).subscribe({
+      next: () => { this.confirmDeleteCategoryId.set(null); this.loadCategories(); },
+      error: () => { this.confirmDeleteCategoryId.set(null); this.error.set('Errore nell\'eliminazione della categoria.'); }
     });
   }
 }
