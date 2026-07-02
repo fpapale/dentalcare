@@ -114,6 +114,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/impostazioni/impostazioni.component').then(m => m.ImpostazioniComponent)
   },
 
+  // PRESTAZIONI: admin
+  {
+    path: 'prestazioni',
+    canActivate: [authGuard, roleGuard('admin')],
+    loadComponent: () => import('./features/prestazioni/prestazioni.component').then(m => m.PrestazioniComponent)
+  },
+
   // RICHIAMI: admin + secretary + medical (backend non filtra per admin)
   {
     path: 'richiami',

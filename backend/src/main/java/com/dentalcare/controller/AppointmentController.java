@@ -3,6 +3,8 @@ package com.dentalcare.controller;
 import com.dentalcare.dto.AppointmentDto;
 import com.dentalcare.dto.CreateAppointmentRequest;
 import com.dentalcare.dto.RescheduleAppointmentRequest;
+import com.dentalcare.security.TenantContext;
+import com.dentalcare.service.AppointmentEventService;
 import com.dentalcare.service.AppointmentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -10,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -22,9 +25,20 @@ import java.util.UUID;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
+    private final AppointmentEventService appointmentEventService;
 
-    public AppointmentController(AppointmentService appointmentService) {
+    public AppointmentController(AppointmentService appointmentService,
+                                  AppointmentEventService appointmentEventService) {
         this.appointmentService = appointmentService;
+        this.appointmentEventService = appointmentEventService;
+    }
+
+    // EventSource cannot send headers — clients authenticate this SSE endpoint via ?token=<jwt>
+    // (supported by JwtAuthenticationFilter, stesso meccanismo usato per lo stream della chat AI).
+    @GetMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter stream() {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        return appointmentEventService.subscribe(clinicId);
     }
 
     @GetMapping

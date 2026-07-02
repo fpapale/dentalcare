@@ -29,9 +29,11 @@ import java.util.UUID;
 public class AppointmentService {
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final AppointmentEventService appointmentEventService;
 
-    public AppointmentService(NamedParameterJdbcTemplate jdbc) {
+    public AppointmentService(NamedParameterJdbcTemplate jdbc, AppointmentEventService appointmentEventService) {
         this.jdbc = jdbc;
+        this.appointmentEventService = appointmentEventService;
     }
 
     private static final Set<String> ADMIN_ROLES = Set.of("ROLE_ADMIN", "ROLE_TENANT_ADMIN", "ROLE_SECRETARY");
@@ -177,6 +179,7 @@ public class AppointmentService {
                 .addValue("id", appointmentId)
                 .addValue("clinicId", clinicId)
                 .addValue("status", status));
+        appointmentEventService.publish(clinicId, "changed");
     }
 
     public UUID create(CreateAppointmentRequest request) {
@@ -203,6 +206,7 @@ public class AppointmentService {
                 .addValue("endsAt", request.endsAt())
                 .addValue("notes", request.notes());
         jdbc.update(sql, params);
+        appointmentEventService.publish(clinicId, "changed");
         return id;
     }
 
@@ -338,6 +342,7 @@ public class AppointmentService {
                         .addValue("endsAt",     request.endsAt())
                         .addValue("chairLabel", request.chairLabel())
                         .addValue("providerId", providerId));
+        appointmentEventService.publish(clinicId, "changed");
     }
 
     /**
@@ -436,6 +441,9 @@ public class AppointmentService {
                 new MapSqlParameterSource()
                         .addValue("id", appointmentId)
                         .addValue("clinicId", clinicId));
+        if (rows > 0) {
+            appointmentEventService.publish(clinicId, "changed");
+        }
         return rows > 0;
     }
 

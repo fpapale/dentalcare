@@ -1,10 +1,12 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AppointmentService } from '../../core/services/appointment.service';
 import { UserContextService } from '../../core/services/user-context.service';
 import { HolidayService } from '../../core/services/holiday.service';
 import { Appointment } from '../../core/models/appointment.model';
+import { AuthService } from '../../core/auth/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-agenda',
@@ -13,10 +15,11 @@ import { Appointment } from '../../core/models/appointment.model';
   templateUrl: './agenda.component.html',
   styleUrl: './agenda.component.css'
 })
-export class AgendaComponent {
+export class AgendaComponent implements OnInit, OnDestroy {
   private readonly appointmentService = inject(AppointmentService);
   private readonly userContext = inject(UserContextService);
   private readonly holidayService = inject(HolidayService);
+  private readonly auth = inject(AuthService);
 
   today = new Date();
   selectedDate = signal<Date>(new Date());
@@ -39,6 +42,12 @@ export class AgendaComponent {
   // Holidays (key 'YYYY-MM-DD' → name)
   holidays = signal<Map<string, string>>(new Map());
   private lastHolidayMonth = '';
+
+  // Realtime updates via SSE
+  private refreshTick = signal(0);
+  private eventSource: EventSource | null = null;
+  private sseDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private sseRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly role = this.userContext.role;
 
@@ -125,6 +134,7 @@ export class AgendaComponent {
       const d = this.selectedDate();
       const providerId = this.userContext.providerId();
       this.userContext.role();
+      this.refreshTick();
       if (mode !== 'giorno' && mode !== 'prossimi') return;
       this.loading.set(true);
       this.error.set(null);
@@ -171,6 +181,7 @@ export class AgendaComponent {
       const d = this.selectedDate();
       const providerId = this.userContext.providerId();
       this.userContext.role();
+      this.refreshTick();
 
       let from: Date, to: Date;
       if (mode === 'settimana') {
@@ -223,6 +234,38 @@ export class AgendaComponent {
         this.viewMode.set('prossimi');
       });
     });
+  }
+
+  // ─── Realtime updates (SSE) ───────────────────────────────────────────────
+
+  ngOnInit(): void {
+    this.connectStream();
+  }
+
+  ngOnDestroy(): void {
+    this.eventSource?.close();
+    this.eventSource = null;
+    if (this.sseDebounceTimer) { clearTimeout(this.sseDebounceTimer); this.sseDebounceTimer = null; }
+    if (this.sseRetryTimer) { clearTimeout(this.sseRetryTimer); this.sseRetryTimer = null; }
+  }
+
+  private connectStream(): void {
+    const token = this.auth.getToken();
+    if (!token) return;
+
+    this.eventSource = new EventSource(`${environment.apiBaseUrl}/appointments/stream?token=${encodeURIComponent(token)}`);
+
+    this.eventSource.addEventListener('agenda', () => {
+      if (this.sseDebounceTimer) clearTimeout(this.sseDebounceTimer);
+      this.sseDebounceTimer = setTimeout(() => this.refreshTick.update(v => v + 1), 300);
+    });
+
+    this.eventSource.onerror = () => {
+      this.eventSource?.close();
+      this.eventSource = null;
+      if (this.sseRetryTimer) clearTimeout(this.sseRetryTimer);
+      this.sseRetryTimer = setTimeout(() => this.connectStream(), 5000);
+    };
   }
 
   // ─── Calendar picker ──────────────────────────────────────────────────────

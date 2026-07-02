@@ -1,0 +1,277 @@
+<div class="flex flex-col h-full bg-slate-50">
+
+  <!-- Header -->
+  <div class="bg-white border-b border-slate-200 px-5 py-3 shrink-0 flex items-center justify-between">
+    <div>
+      <h1 class="font-bold text-slate-800">Prestazioni e Listino</h1>
+      <p class="text-xs text-slate-400 mt-0.5">Catalogo prestazioni dello studio e default per condizione dentale</p>
+    </div>
+    <button (click)="openNewService()"
+      class="flex items-center gap-2 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-sm">
+      <span class="material-symbols-outlined text-[18px]">add</span> Nuova Prestazione
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="flex-1 overflow-y-auto">
+
+    @if (loading()) {
+      <div class="flex items-center justify-center h-40">
+        <div class="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    } @else if (error()) {
+      <div class="m-5 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-red-500">error</span>
+        <p class="text-sm text-red-700">{{ error() }}</p>
+      </div>
+    } @else {
+
+      <div class="px-5 py-4 flex flex-col gap-6">
+
+        <!-- PRESTAZIONI raggruppate per categoria -->
+        @if (services().length === 0) {
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm py-16 text-center text-sm text-slate-400">
+            Nessuna prestazione configurata
+          </div>
+        } @else {
+          @for (group of servicesByCategory(); track group.category) {
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">{{ group.category }}</h2>
+              </div>
+              <table class="w-full text-left border-collapse">
+                <thead class="border-b border-slate-200">
+                  <tr>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prestazione</th>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prezzo</th>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">IVA</th>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Durata</th>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Denti</th>
+                    <th class="py-2.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Attiva</th>
+                    <th class="py-2.5 px-4"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  @for (s of group.items; track s.serviceId) {
+                    <tr class="hover:bg-slate-50/80 transition-colors" [class.opacity-50]="!s.active">
+                      <td class="py-3 px-4">
+                        <p class="font-semibold text-sm text-slate-800">{{ s.name }}</p>
+                        <p class="text-xs text-slate-400 font-mono">{{ s.code }}</p>
+                      </td>
+                      <td class="py-3 px-4 text-sm text-slate-700 font-semibold">{{ s.defaultPrice | number:'1.2-2' }} €</td>
+                      <td class="py-3 px-4 text-sm text-slate-600 hidden md:table-cell">{{ s.defaultVatRate != null ? s.defaultVatRate + '%' : '—' }}</td>
+                      <td class="py-3 px-4 text-sm text-slate-600 hidden md:table-cell">{{ s.durationMinutes != null ? s.durationMinutes + ' min' : '—' }}</td>
+                      <td class="py-3 px-4 text-sm text-slate-600 hidden lg:table-cell">
+                        {{ s.minToothDigit != null && s.maxToothDigit != null ? s.minToothDigit + '–' + s.maxToothDigit : '—' }}
+                        @if (s.applicableToDeciduous) {
+                          <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-700">decidui</span>
+                        }
+                      </td>
+                      <td class="py-3 px-4 text-center">
+                        <button (click)="toggleServiceActive(s)"
+                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold transition-colors"
+                          [class]="s.active ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                          {{ s.active ? 'Attiva' : 'Disattiva' }}
+                        </button>
+                      </td>
+                      <td class="py-3 px-4">
+                        @if (confirmDeleteId() === s.serviceId) {
+                          <div class="flex items-center justify-end gap-1.5">
+                            <span class="text-xs text-red-600 font-semibold">Confermi?</span>
+                            <button (click)="confirmDeleteService(s.serviceId)"
+                              class="text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded px-2 py-1 transition-colors">Sì</button>
+                            <button (click)="cancelDeleteService()"
+                              class="text-xs font-bold text-slate-600 hover:text-slate-800 rounded px-2 py-1 transition-colors">No</button>
+                          </div>
+                        } @else {
+                          <div class="flex items-center justify-end gap-1">
+                            <button (click)="openEditService(s)" title="Modifica"
+                              class="text-slate-400 hover:text-teal-600 transition-colors p-1">
+                              <span class="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button (click)="askDeleteService(s.serviceId)" title="Elimina"
+                              class="text-slate-400 hover:text-red-600 transition-colors p-1">
+                              <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </div>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        <!-- DEFAULT PER CONDIZIONE -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+            <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Default per condizione</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Prestazione suggerita automaticamente in base alla condizione del dente in odontogramma</p>
+          </div>
+
+          <div class="p-4 flex flex-col gap-3">
+            @if (conditionDefaults().length === 0) {
+              <div class="py-8 text-center text-sm text-slate-400">Nessun default configurato</div>
+            } @else {
+              <table class="w-full text-left border-collapse">
+                <thead class="border-b border-slate-200">
+                  <tr>
+                    <th class="py-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Condizione</th>
+                    <th class="py-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Prestazione</th>
+                    <th class="py-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Ordine</th>
+                    <th class="py-2 px-3"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  @for (cd of conditionDefaults(); track cd.id) {
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                      <td class="py-2.5 px-3 text-sm text-slate-700">{{ conditionLabel(cd.conditionName) }}</td>
+                      <td class="py-2.5 px-3 text-sm text-slate-700">{{ cd.serviceName }}</td>
+                      <td class="py-2.5 px-3 text-sm text-slate-500">{{ cd.sortOrder }}</td>
+                      <td class="py-2.5 px-3 text-right">
+                        <button (click)="deleteConditionDefault(cd.id)" title="Elimina"
+                          class="text-slate-400 hover:text-red-600 transition-colors p-1">
+                          <span class="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+
+            <!-- Form aggiungi default -->
+            <div class="flex flex-wrap items-end gap-3 pt-3 border-t border-slate-100">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Condizione</label>
+                <select [(ngModel)]="newConditionDefaultForm.conditionName"
+                  class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white min-w-[10rem]">
+                  <option value="">Seleziona...</option>
+                  @for (c of conditionOptions; track c.value) {
+                    <option [value]="c.value">{{ c.label }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Prestazione</label>
+                <select [(ngModel)]="newConditionDefaultForm.serviceId"
+                  class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white min-w-[14rem]">
+                  <option value="">Seleziona...</option>
+                  @for (s of activeServices(); track s.serviceId) {
+                    <option [value]="s.serviceId">{{ s.name }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Ordine</label>
+                <input type="number" [(ngModel)]="newConditionDefaultForm.sortOrder"
+                  class="w-20 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <button (click)="addConditionDefault()" [disabled]="savingConditionDefault()"
+                class="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">add</span>
+                {{ savingConditionDefault() ? 'Aggiunta...' : 'Aggiungi' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Modal Crea/Modifica Prestazione -->
+@if (showServiceForm()) {
+  <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" (click)="closeServiceForm()">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <h2 class="text-base font-bold text-slate-800">{{ editingService() ? 'Modifica Prestazione' : 'Nuova Prestazione' }}</h2>
+        <button (click)="closeServiceForm()" class="text-slate-400 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Codice <span class="text-red-500">*</span></label>
+            <input [(ngModel)]="serviceForm.code" [disabled]="!!editingService()" placeholder="es. CONS01"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 disabled:text-slate-400" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Categoria</label>
+            <input [(ngModel)]="serviceForm.category" placeholder="es. Conservativa"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nome <span class="text-red-500">*</span></label>
+          <input [(ngModel)]="serviceForm.name" placeholder="es. Visita di controllo"
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Descrizione</label>
+          <textarea [(ngModel)]="serviceForm.description" rows="2"
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Prezzo (€) <span class="text-red-500">*</span></label>
+            <input type="number" step="0.01" [(ngModel)]="serviceForm.defaultPrice"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">IVA (%)</label>
+            <input type="number" step="0.01" [(ngModel)]="serviceForm.defaultVatRate"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Durata (min)</label>
+            <input type="number" [(ngModel)]="serviceForm.durationMinutes"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Dente min (FDI)</label>
+            <input type="number" [(ngModel)]="serviceForm.minToothDigit"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Dente max (FDI)</label>
+            <input type="number" [(ngModel)]="serviceForm.maxToothDigit"
+              class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+        </div>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="serviceForm.applicableToDeciduous" class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+          <span class="text-sm text-slate-700">Applicabile a denti decidui</span>
+        </label>
+
+        @if (editingService()) {
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="serviceForm.active" class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+            <span class="text-sm text-slate-700">Prestazione attiva</span>
+          </label>
+        }
+      </div>
+
+      <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3">
+        <button (click)="closeServiceForm()"
+          class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition-colors">Annulla</button>
+        <button (click)="saveService()" [disabled]="saving() || !serviceForm.name || serviceForm.defaultPrice == null || (!editingService() && !serviceForm.code)"
+          class="px-5 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors">
+          {{ saving() ? 'Salvataggio...' : 'Salva' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
