@@ -1,7 +1,7 @@
 # Piano P1 — esecuzione
 
 Interventi P1 dalla roadmap in `proposte-modifiche.md`: **#12.A** (CRUD prestazioni/prezzi), **#1** (SSE agenda), **#10 Fase 0** (governance Copilot), **#13** (Copilot operativo).
-Stato: **Confermato** (in attesa di via). Data: 2026-07-02.
+Stato: **Fatto in dev** (commit a7cce0d, 9a01e3b, 4ec275c; build verdi, backend dev riavviato). Da deployare in prod (incl. patch DB `ai_audit_log`). Data: 2026-07-02.
 
 ## Ordine e dipendenze
 - **Batch 1** (indipendenti, parallelizzabili): A=#12.A · B=#1

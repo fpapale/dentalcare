@@ -10,7 +10,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 
 | # | Titolo | Impatto | Stato |
 |---|--------|---------|-------|
-| 1 | Aggiornamento agenda in tempo reale (SSE) | Medio-basso (~½ giornata) | Proposta |
+| 1 | Aggiornamento agenda in tempo reale (SSE) | Medio-basso (~½ giornata) | Fatta (dev) |
 | 2 | Retell multi-studio: agente per sede/poltrona | Medio (~1 giornata) | Proposta |
 | 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
 | 4 | Documenti paziente: tab CRUD con allegati (MinIO storage) | Medio (~1 giornata) | Fatta |
@@ -22,7 +22,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 10 | Da Segreteria AI a DentalCare AI Copilot (roadmap a fasi) | Alto (~multi-settimana) | Proposta |
 | 11 | Rinomina UI "Segreteria AI" → "Copilot AI" (feature, non ruolo) | Basso (~½ giornata) | Fatta |
 | 12 | CRUD anagrafiche per-tenant (Prestazioni/prezzi, voci anamnesi per studio, categorie magazzino) | Alto (~3-4 giorni) | Proposta |
-| 13 | Copilot operativo: scrittura sui moduli + letture mancanti | Alto (~3-4 giorni) | Proposta |
+| 13 | Copilot operativo: scrittura sui moduli + letture mancanti | Alto (~3-4 giorni) | Fatta (dev) |
 | 14 | Copilot contestuale e proattivo (contesto UI, push SSE, cross-modulo) | Medio-alto (~2-3 giorni) | Proposta |
 | 15 | Copilot: RAG + multimodale + memoria | Alto (~1-2 settimane) | Proposta |
 
@@ -37,6 +37,8 @@ Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non ro
 2. **#1** — SSE agenda realtime: piccolo, migliora la UX agenda e abilita la proattività (#14).
 3. **#10 Fase 0** — Governance Copilot (audit azioni + disclaimer + gating ruolo): enabler piccolo, prerequisito alla scrittura clinica.
 4. **#13** — Copilot operativo (scrittura sui moduli + letture mancanti): salto di valore maggiore; dopo la Fase 0.
+
+> ✅ **P1 completato in dev** (2026-07-02): #12.A (CRUD prestazioni, commit a7cce0d), #1 (SSE agenda, a7cce0d), #10 Fase 0 (audit+disclaimer, 9a01e3b), #13 (Copilot operativo, 4ec275c). Build FE+BE verdi, patch DB `ai_audit_log` applicata a dev. Da deployare in prod. Restano di #12: 12.B (anamnesi per-tenant, richiede decisione), 12.C (categorie prodotto), 12.D (poltrone).
 
 **P2 — Poi (valore medio o dipendente)**
 5. **#12.C** — CRUD categorie prodotto: piccolo, chiude il magazzino.
