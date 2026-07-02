@@ -21,6 +21,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 9 | Segreteria AI: isolamento chat per utente (hardening IDOR sessioni) | Basso (~½ giornata) | Fatta |
 | 10 | Da Segreteria AI a DentalCare AI Copilot (roadmap a fasi) | Alto (~multi-settimana) | Proposta |
 | 11 | Rinomina UI "Segreteria AI" → "Copilot AI" (feature, non ruolo) | Basso (~½ giornata) | Fatta |
+| 12 | CRUD anagrafiche per-tenant (Prestazioni/prezzi, voci anamnesi per studio, categorie magazzino) | Alto (~3-4 giorni) | Proposta |
 
 ---
 
@@ -1211,3 +1212,119 @@ Il **Livello A** (label del menu `Segreteria AI` → `Copilot AI` in `app.ts`) �
 ### Note
 - Nessun cambio di logica/route → rischio minimo; serve solo rebuild frontend.
 - Coerente con la roadmap #10 (il prodotto evolve da "segreteria" reattiva a "copilot").
+
+---
+
+## 12. CRUD anagrafiche per-tenant (Prestazioni/prezzi, voci anamnesi per studio, categorie magazzino)
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-02
+**Impatto:** Alto (~3-4 giorni, incrementale per anagrafica)
+
+### Obiettivo
+Dare a ogni studio (tenant) la gestione autonoma — via UI, senza toccare il DB — di tutte le anagrafiche/master data del programma: **prestazioni e prezzi**, **default prestazione per condizione** (guida "Genera piano"), **bundle prestazioni**, **voci di anamnesi**, **categorie di magazzino**. Colmare i buchi CRUD e portare tutto sotto uno stesso scope per-tenant.
+
+### Censimento anagrafiche e stato attuale
+
+| # | Anagrafica | Tabelle | CRUD backend | UI admin | Scope | Gap |
+|---|-----------|---------|:---:|:---:|-------|-----|
+| a | Voci anamnesi (categorie+voci) | `anamnesis_categories`, `anamnesis_items` | ✅ `/api/admin/anamnesis` | ✅ in `impostazioni` | **GLOBALE** (`dentalcare`) | Condiviso tra TUTTI gli studi: uno studio che modifica cambia a tutti |
+| b | Prestazioni + prezzi | `service_catalog` | ❌ read-only | ❌ nessuna | per-tenant (`clinic_id`) | **CRUD assente** — prezzi/listino non modificabili da UI |
+| c | Default prestazione per condizione | `condition_service_defaults` | ❌ read-only | ❌ nessuna | per-tenant | Admin assente — guida "Genera piano" dall'odontogramma |
+| d | Bundle prestazioni | `service_bundle_items` | ❌ read-only | ❌ nessuna | per-tenant | Admin assente — prestazioni suggerite automatiche |
+| e | Prodotti magazzino | `products` | ✅ | ✅ `magazzino` | per-tenant | ok |
+| f | Fornitori | `suppliers` | ✅ | ✅ `magazzino` | per-tenant | ok |
+| g | Movimenti magazzino | `stock_movements` | ✅ (GET+POST, append-only) | ✅ `magazzino` | per-tenant | ok |
+| h | Categorie prodotto | `product_categories` | ❌ solo GET | parziale | per-tenant | **CRUD assente** (create/update/delete) |
+| i | Operatori/Professionisti | `providers` | ✅ (impostazioni) | ✅ | per-tenant | ok |
+| j | Impostazioni studio/fatturazione/richiami/slot | clinic/app settings | ✅ | ✅ | per-tenant | ok |
+| k | Sedi/Centri | `clinics` | ✅ | ✅ (impostazioni) | per-tenant | ok |
+| l | Poltrone/sedie | — (chairLabel free-text da `appointments`) | — | — | per-tenant | Nessuna anagrafica dedicata (valore libero) — opzionale |
+
+**Gap da colmare (priorità):** b+c+d (Prestazioni/prezzi/default/bundle) → h (categorie prodotto) → a (anamnesi per-tenant) → l (poltrone, opzionale).
+
+---
+
+### 12.A — Prestazioni, prezzi, default-per-condizione, bundle (gap b/c/d) — PRIORITÀ ALTA
+
+Le prestazioni sono già per-tenant (`service_catalog` nello schema tenant, `clinic_id`), ma esposte **solo in lettura**. Serve il CRUD completo + UI, incluse le due tabelle collegate che pilotano la generazione del piano di cura.
+
+#### Backend — estendere `ServiceCatalogController` / `ServiceCatalogService`
+
+Nuovi endpoint (autorizzati admin/medico):
+```
+POST   /api/services                          crea prestazione
+PUT    /api/services/{id}                      modifica (nome, categoria, prezzo, durata, denti applicabili, attivo)
+DELETE /api/services/{id}                      soft-delete (active=false) o hard se non referenziata
+POST   /api/services/{id}/bundle               aggiungi figlio al bundle
+DELETE /api/services/{id}/bundle/{childId}     rimuovi figlio dal bundle
+GET    /api/services/condition-defaults/all    elenco completo mapping condizione→prestazioni
+POST   /api/services/condition-defaults        crea mapping (condition_name, service_id, sort_order)
+DELETE /api/services/condition-defaults/{id}   rimuovi mapping
+```
+DTO: `CreateServiceRequest`, `UpdateServiceRequest`, `ConditionDefaultDto`, `CreateConditionDefaultRequest`, `AddBundleItemRequest`. Campi `service_catalog`: `code, name, category, default_price, duration_minutes, min_tooth_digit, max_tooth_digit, applicable_to_deciduous, active`. Validazione: prezzo ≥ 0, nome obbligatorio, `condition_name` tra i valori odontogramma (`cavity, crown, missing, root_canal, to_extract, bridge_pillar, bridge_pontic, implant, impacted`).
+
+Cancellazione sicura: prima di hard-delete verificare che la prestazione non sia usata in `treatment_plan_items` / `estimate_lines` → altrimenti soft-delete (`active=false`).
+
+#### Frontend — nuova sezione "Prestazioni e Listino"
+Nuova voce in `impostazioni` (o feature dedicata `features/prestazioni/`): tabella prestazioni per categoria con prezzo/durata/denti, form crea/modifica, toggle attivo, gestione bundle (figli suggeriti) e mapping default-per-condizione (quale prestazione proporre per carie, corona, ecc.). Estendere `service-catalog.service.ts` con i nuovi metodi.
+
+**Beneficio:** ogni studio gestisce il proprio listino e la logica "Genera piano" senza intervento DB.
+
+---
+
+### 12.B — Voci di anamnesi per-tenant (gap a) — DECISIONE DI DESIGN
+
+Oggi il catalogo anamnesi (`anamnesis_categories`/`anamnesis_items`) vive nello schema **globale** `dentalcare`: il CRUD in `impostazioni` funziona ma **modifica il catalogo di tutti gli studi**. Le selezioni del paziente (`patient_anamnesis_item_selections`) sono per-tenant e referenziano gli item globali.
+
+Tre opzioni:
+
+- **Opt 1 (consigliata) — Catalogo per-tenant, come `service_catalog`.** Spostare `anamnesis_categories`/`anamnesis_items` nello schema tenant; seedarle in `create_tenant` da un template base; migrare i tenant esistenti (copia righe globali → schema tenant) e ripuntare `patient_anamnesis_item_selections.item_id` agli item del tenant. Coerente col pattern già usato per le prestazioni. Costo: migrazione dati + FK.
+- **Opt 2 (basso rischio) — Base globale + override per-tenant.** Mantenere il catalogo globale in sola lettura e aggiungere `tenant_anamnesis_overrides` (disabilita voce, rinomina, aggiungi voci custom). La lettura fonde base + override. Nessuna migrazione delle selezioni. Più complessa la query di merge.
+- **Opt 3 — `clinic_id` nullable sulle tabelle globali.** `clinic_id IS NULL` = riga condivisa; righe con `clinic_id` = override/aggiunte del tenant. Ibrido tra 1 e 2.
+
+Raccomando **Opt 1** per vera proprietà per-studio e coerenza col resto delle anagrafiche; **Opt 2** se si vuole evitare la migrazione delle selezioni esistenti. **Serve tua scelta prima di implementare.** Il CRUD UI in `impostazioni` resta quasi invariato — cambia solo lo scope (schema tenant invece di `dentalcare`) e `AnamnesisCatalogService`/`AnamnesisService` usano `s()` invece di `dentalcare`.
+
+---
+
+### 12.C — Categorie prodotto magazzino (gap h) — PRIORITÀ MEDIA
+
+`product_categories` ha solo `GET`. Aggiungere in `ProductController`/relativo service:
+```
+POST   /api/product-categories
+PUT    /api/product-categories/{id}
+DELETE /api/product-categories/{id}   (blocca/soft-delete se referenziata da products)
+```
+UI: gestione categorie dentro la sezione Magazzino esistente (`magazzino.component`). Basso costo.
+
+---
+
+### 12.D — Poltrone/sedie (gap l) — OPZIONALE
+
+Oggi `chairLabel` è testo libero negli appuntamenti (`findChairLabels` fa `DISTINCT`). Opzionale: tabella anagrafica `chairs` (label, sede, attivo) per selezione controllata in agenda e per la proposta #2 (Retell per poltrona). Rimandabile.
+
+---
+
+### Superficie UI: sezione unica "Anagrafiche"
+Raggruppare la gestione master data sotto `impostazioni` (o nuova area `Anagrafiche`) con sottosezioni: **Prestazioni e Listino**, **Anamnesi**, **Magazzino** (prodotti/categorie/fornitori), **Operatori**, **Sedi**. Coerenza UX + un solo punto d'accesso admin.
+
+### File coinvolti (per blocco)
+| Blocco | Backend | Frontend | DB |
+|--------|---------|----------|----|
+| 12.A Prestazioni | `ServiceCatalogController`/`Service` (+CRUD), nuovi DTO | nuova sezione/feature Prestazioni, `service-catalog.service.ts` | nessuno (tabelle già esistono) |
+| 12.B Anamnesi per-tenant | `AnamnesisCatalogService`/`AnamnesisService` (schema `s()`), `create_tenant` | invariato (impostazioni) | patch: sposta/duplica tabelle in schema tenant + `install.sql` + migrazione |
+| 12.C Categorie prodotto | `ProductController`/service (+CRUD) | `magazzino.component` | nessuno |
+| 12.D Poltrone | nuovo `ChairController`/service | agenda + impostazioni | nuova tabella `chairs` + `install.sql` + `create_tenant` |
+
+### Ordine implementazione consigliato
+1. **12.A** (Prestazioni/prezzi/default/bundle) — massimo valore, nessun cambio schema, sblocca gestione listino e "Genera piano".
+2. **12.C** (categorie prodotto) — piccolo, chiude il magazzino.
+3. **12.B** (anamnesi per-tenant) — dopo decisione Opt 1/2/3 (comporta migrazione).
+4. **12.D** (poltrone) — opzionale.
+
+### Note
+- 12.A non richiede migrazioni: le tabelle sono già per-tenant, manca solo il CRUD. È il quick-win.
+- La cancellazione delle anagrafiche referenziate (prestazioni in preventivi/piani, categorie con prodotti) deve essere **soft-delete** per non rompere lo storico.
+- Gating per ruolo: gestione anagrafiche riservata ad admin (ed eventualmente medico per il listino).
+- `create_tenant` semina già `service_catalog`/`condition_service_defaults` per i nuovi tenant → il CRUD 12.A opera su dati già presenti.
+- 12.B è l'unico blocco con impatto sullo schema e sui dati esistenti: valutare la scelta di design prima di pianificare la migrazione.
