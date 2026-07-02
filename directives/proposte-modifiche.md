@@ -22,6 +22,33 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 10 | Da Segreteria AI a DentalCare AI Copilot (roadmap a fasi) | Alto (~multi-settimana) | Proposta |
 | 11 | Rinomina UI "Segreteria AI" → "Copilot AI" (feature, non ruolo) | Basso (~½ giornata) | Fatta |
 | 12 | CRUD anagrafiche per-tenant (Prestazioni/prezzi, voci anamnesi per studio, categorie magazzino) | Alto (~3-4 giorni) | Proposta |
+| 13 | Copilot operativo: scrittura sui moduli + letture mancanti | Alto (~3-4 giorni) | Proposta |
+| 14 | Copilot contestuale e proattivo (contesto UI, push SSE, cross-modulo) | Medio-alto (~2-3 giorni) | Proposta |
+| 15 | Copilot: RAG + multimodale + memoria | Alto (~1-2 settimane) | Proposta |
+
+---
+
+## Roadmap prioritaria (consigliata)
+
+Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non rompere i riferimenti). Già **Fatte**: #4, #6, #9, #11. #5 (MinIO) di fatto consegnata con #6. Criteri: valore utente · effort · dipendenze · rischio/compliance.
+
+**P1 — Subito (alto valore, basso rischio, sblocca uso reale)**
+1. **#12.A** — CRUD Prestazioni/prezzi/default/bundle: quick-win, nessuna migrazione, sblocca listino e "Genera piano" per ogni studio.
+2. **#1** — SSE agenda realtime: piccolo, migliora la UX agenda e abilita la proattività (#14).
+3. **#10 Fase 0** — Governance Copilot (audit azioni + disclaimer + gating ruolo): enabler piccolo, prerequisito alla scrittura clinica.
+4. **#13** — Copilot operativo (scrittura sui moduli + letture mancanti): salto di valore maggiore; dopo la Fase 0.
+
+**P2 — Poi (valore medio o dipendente)**
+5. **#12.C** — CRUD categorie prodotto: piccolo, chiude il magazzino.
+6. **#3** — Validazione codice fiscale + flag straniero: qualità dati anagrafici.
+7. **#14** — Copilot contestuale/proattivo (contesto UI + push SSE + cross-modulo): dopo #13 e #1.
+8. **#2** — Retell multi-studio (agente per sede/poltrona): se/quando servono più sedi.
+
+**P3 — Dopo / compliance / oneroso**
+9. **#7** — GDPR cifratura per-tenant: **alza a P1 se vai in vendita/produzione clinica seria** (requisito compliance).
+10. **#12.B** — Anamnesi per-tenant: richiede decisione di design (Opt 1/2/3) + migrazione dati.
+11. **#8** — DICOM nativo nell'AI service: nicchia, dopo #6.
+12. **#15** — Copilot RAG/multimodale/memoria: blocco più oneroso, dopo #13/#14.
 
 ---
 
@@ -1173,6 +1200,7 @@ Memoria long-term per-provider (preferenze, pattern); planner multi-step che con
 - Confirm-gating e audit restano trasversali a tutte le fasi.
 - La scelta del modello (attuale `gpt-4o` via Spring AI) va rivalutata per visione/costi in Fase 5.
 - GDPR/MDR: dati clinici nei prompt richiedono #7 (cifratura) e audit di Fase 0 prima di esporre reasoning clinico in produzione.
+- **Governance (Fase 0) = prerequisito trasversale**: audit log di ogni azione AI (chi/cosa/quando), disclaimer clinici sulle risposte diagnostiche, gating per ruolo sui tool. Va fatta **prima** di abilitare scrittura clinica. Le fasi sono scomposte in proposte concrete: **#13** (copertura scrittura moduli + letture mancanti, ex-Fasi 1-2), **#14** (contesto+proattività+cross-modulo, ex-Fase 3 + parte 2), **#15** (RAG/multimodale/memoria, ex-Fasi 4-6).
 
 ---
 
@@ -1328,3 +1356,120 @@ Raggruppare la gestione master data sotto `impostazioni` (o nuova area `Anagrafi
 - Gating per ruolo: gestione anagrafiche riservata ad admin (ed eventualmente medico per il listino).
 - `create_tenant` semina già `service_catalog`/`condition_service_defaults` per i nuovi tenant → il CRUD 12.A opera su dati già presenti.
 - 12.B è l'unico blocco con impatto sullo schema e sui dati esistenti: valutare la scelta di design prima di pianificare la migrazione.
+
+---
+
+## 13. Copilot operativo: scrittura sui moduli + letture mancanti
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-02
+**Impatto:** Alto (~3-4 giorni)
+**Prerequisito:** #10 Fase 0 (audit + disclaimer + gating ruolo)
+**Scompone:** #10 Fasi 1-2
+
+### Problema
+Il Copilot oggi è **read-only fuori dall'agenda**. Tool attuali (`DentalCareAiTools`): lettura (appuntamenti, ricerca pazienti, dettaglio paziente, preventivi, richiami, fatture, dashboard, provider, slot liberi, briefing giornaliero) + scrittura **solo agenda** (crea/sposta/annulla appuntamento con `preview*`→`confirmAction`). Non può creare un preventivo, chiudere un richiamo, aggiungere una nota clinica, né leggere piani di cura/odontogramma/anamnesi/listino/scorte.
+
+### Obiettivo
+Da assistente di consultazione a **operativo su tutti i moduli**, riusando il pattern `preview → confirmAction` (già multi-codice) e i **service esistenti** (nessuna nuova logica di dominio).
+
+### Blocco 1 — Tool di SCRITTURA (confirm-gated)
+Ogni azione: `previewX` (nessun salvataggio) → codice → `confirmAction` (già gestisce più codici insieme).
+
+| Modulo | Nuovi tool | Service esistente |
+|--------|-----------|-------------------|
+| Preventivi | `previewCreateEstimate`, `previewAddEstimateLine`, `previewUpdateEstimateStatus` | `EstimateService` |
+| Richiami | `previewCreateRecall`, `previewMarkRecallContacted`, `previewCloseRecall` | `RecallService` |
+| Pazienti | `previewCreatePatient`, `previewUpdatePatient` | `PatientService` |
+| Piani di cura | `previewCreatePlan`, `previewAddPlanItem` | `TreatmentPlanService` |
+| Clinico | `previewAddDiaryNote`, `previewAddDiagnosis`, `previewAddPrescription` | `ClinicalRecordService`, `DiagnosiService`, `PrescrizioneService` |
+
+### Blocco 2 — Tool di LETTURA mancanti
+| Tool | Fonte |
+|------|-------|
+| `getTreatmentPlans(patientId)` | `TreatmentPlanService.findByPatient` |
+| `getOdontogram(patientId)` + patologie AI | `OdontogramService` + `patient_document_analyses` (#6) |
+| `getAnamnesisAlerts(patientId)` (allergie, terapie, alert) | `AnamnesisService` |
+| `getServiceCatalog(query)` (listino/prezzi) | `ServiceCatalogService` |
+| `getInventory` / `getLowStock` | `ProductService` / `StockMovementService` |
+
+### Gating per ruolo
+Scrittura clinica (note/diagnosi/prescrizioni/piani) riservata a **medico**; segreteria limitata ad agenda/preventivi/richiami/anagrafica base. Ogni azione confermata → **audit** (Fase 0 #10).
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| Backend | `DentalCareAiTools` (nuovi `@Tool`), riuso service esistenti; system prompt (nuove capacità + disclaimer clinici) |
+| Frontend | Nessuno (chat invariata) |
+| DB | Nessuno (audit table arriva con #10 Fase 0) |
+
+### Note
+- Riusa `preview → confirmAction`: nessun nuovo pattern, nessun nuovo endpoint.
+- Tutti i service esistono già → costo reale = wiring tool + prompt + test.
+- Le letture del Blocco 2 sono a costo basso e alto uso (rispondono a domande cliniche quotidiane) → implementabili anche prima della scrittura.
+
+---
+
+## 14. Copilot contestuale e proattivo
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-02
+**Impatto:** Medio-alto (~2-3 giorni)
+**Prerequisiti:** #1 (SSE realtime), #13 (tool base)
+**Scompone:** #10 Fase 3 (+ intelligenza clinica)
+
+### 14.A Contesto corrente
+Oggi il Copilot non sa quale paziente/schermata è aperta → deve sempre cercare per nome. Iniettare nel `ChatRequest` il **contesto UI** (es. `patientId`, vista corrente): il frontend lo passa, il backend lo aggiunge al system prompt. Effetto: "crea un preventivo a questo paziente" senza ricerca.
+
+### 14.B Proattività push
+`getDailyBriefing` è oggi **pull** (l'utente deve chiedere). Con SSE (#1): **push** di suggerimenti in chat/badge — richiami scaduti, preventivi fermi da N giorni, controlli consigliati. Backend: trigger/job → `publish(clinicId, suggestion)`; frontend: `EventSource` già usato per la chat.
+
+### 14.C Intelligenza cross-modulo
+Tool composti che attraversano i moduli:
+- "genera un preventivo dalle carie rilevate dall'AI" → odontogramma/#6 → `EstimateService`
+- "prepara i richiami del mese" → recall generation
+- cross-reference odontogramma ↔ preventivi ↔ anamnesi in una risposta.
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| Backend | `ChatRequest` (+campo contesto), `ChatService` (prompt + contesto), tool cross-modulo in `DentalCareAiTools`, hook SSE (riuso registry #1) |
+| Frontend | passaggio contesto schermata alla chat; `EventSource` per i suggerimenti proattivi |
+
+### Note
+- Dipende da **#13** (i tool di scrittura sono la base delle azioni proattive) e da **#1** (canale push).
+- La proattività va confirm-gated come le altre scritture: il push **propone**, l'utente conferma.
+
+---
+
+## 15. Copilot: RAG, multimodale, memoria
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-02
+**Impatto:** Alto (~1-2 settimane)
+**Prerequisiti:** #7 (cifratura, per dati clinici nei prompt), #6/#8 (immagini/DICOM)
+**Scompone:** #10 Fasi 4-6
+
+### 15.A RAG (pgvector)
+Ricerca semantica sulla conoscenza dello studio: embeddings su documenti, referti, anamnesi, note cliniche, protocolli → risposte con **citazione della fonte**.
+- DB: estensione `pgvector` + tabella `document_embeddings` (per-tenant).
+- Backend: servizio embeddings (ingest + query), retrieval nel prompt.
+
+### 15.B Multimodale
+Lettura di ortopanoramica e referti PDF **nel contesto della chat** (lega #6 e #8 DICOM): modello con visione + parsing PDF.
+
+### 15.C Memoria + planner
+- Memoria long-term per-provider (preferenze, pattern ricorrenti).
+- Planner multi-step che concatena azioni ("prepara richiamo → invia email → crea appuntamento").
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| DB | `pgvector` + tabelle embeddings/memoria (per-tenant, `install.sql` + `create_tenant`) |
+| Backend | servizio embeddings/retrieval, ingest documenti, provider visione, planner |
+| Frontend | rendering citazioni fonte; upload/anteprima in chat |
+
+### Note
+- La scelta del modello (attuale `gpt-4o` via Spring AI) va rivalutata per **visione e costi**.
+- GDPR/MDR: dati clinici negli embeddings/prompt richiedono **#7** (cifratura) e l'**audit di #10 Fase 0**.
+- Blocco più oneroso e meno urgente: implementare dopo #13/#14 (valore operativo immediato).
