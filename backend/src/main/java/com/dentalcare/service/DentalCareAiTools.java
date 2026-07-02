@@ -15,6 +15,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -90,9 +91,13 @@ public class DentalCareAiTools {
         return UUID.fromString(SecurityContextHolder.getContext().getAuthentication().getName());
     }
 
+    // Ruoli clinici (provider_role nel DB) abilitati a leggere/scrivere dati clinici.
+    // NB: il DB usa 'dentist', non 'doctor'; 'doctor' resta per retrocompatibilità.
+    private static final Set<String> MEDICAL_ROLES =
+            Set.of("dentist", "hygienist", "orthodontist", "surgeon", "doctor");
+
     private boolean isMedical() {
-        String r = currentRole();
-        return "doctor".equals(r) || "hygienist".equals(r);
+        return MEDICAL_ROLES.contains(currentRole());
     }
 
     // --- tools ---
