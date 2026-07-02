@@ -116,7 +116,7 @@ export class App implements OnInit {
       { path: '/fatturazione', icon: 'receipt_long',         label: 'Fatturazione' },
       { path: '/richiami',     icon: 'notifications_active', label: 'Richiami' },
       { path: '/magazzino',    icon: 'inventory_2',          label: 'Magazzino' },
-      ...(r === 'admin' ? [{ path: '/prestazioni', icon: 'medical_services', label: 'Prestazioni' }] : []),
+      ...(['admin', 'doctor'].includes(r) ? [{ path: '/prestazioni', icon: 'medical_services', label: 'Prestazioni' }] : []),
     ];
     return allItems;
   });

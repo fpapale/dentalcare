@@ -114,10 +114,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/impostazioni/impostazioni.component').then(m => m.ImpostazioniComponent)
   },
 
-  // PRESTAZIONI: admin
+  // PRESTAZIONI: admin + medical (dentista può gestire il listino)
   {
     path: 'prestazioni',
-    canActivate: [authGuard, roleGuard('admin')],
+    canActivate: [authGuard, roleGuard('admin', 'medical')],
     loadComponent: () => import('./features/prestazioni/prestazioni.component').then(m => m.PrestazioniComponent)
   },
 
