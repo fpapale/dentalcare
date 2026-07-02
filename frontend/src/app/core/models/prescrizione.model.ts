@@ -22,3 +22,14 @@ export interface CreatePrescrizioneRequest {
   prescribedAt?: string;
   expiresAt?: string;
 }
+
+export interface UpdatePrescrizioneRequest {
+  drugName: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  notes?: string;
+  prescribedAt?: string;
+  expiresAt?: string;
+  active: boolean;
+}

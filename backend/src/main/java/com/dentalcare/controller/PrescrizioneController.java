@@ -2,6 +2,7 @@ package com.dentalcare.controller;
 
 import com.dentalcare.dto.CreatePrescrizioneRequest;
 import com.dentalcare.dto.PrescrizioneDto;
+import com.dentalcare.dto.UpdatePrescrizioneRequest;
 import com.dentalcare.service.PrescrizioneService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,13 @@ public class PrescrizioneController {
     public PrescrizioneDto create(@PathVariable UUID patientId,
                                    @Valid @RequestBody CreatePrescrizioneRequest request) {
         return prescrizioneService.create(patientId, request);
+    }
+
+    @PutMapping("/{prescrizioneId}")
+    public PrescrizioneDto update(@PathVariable UUID patientId,
+                                   @PathVariable UUID prescrizioneId,
+                                   @Valid @RequestBody UpdatePrescrizioneRequest request) {
+        return prescrizioneService.update(patientId, prescrizioneId, request);
     }
 
     @PatchMapping("/{prescrizioneId}/deactivate")

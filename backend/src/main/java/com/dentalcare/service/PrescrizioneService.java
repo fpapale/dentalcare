@@ -2,6 +2,8 @@ package com.dentalcare.service;
 
 import com.dentalcare.dto.CreatePrescrizioneRequest;
 import com.dentalcare.dto.PrescrizioneDto;
+import com.dentalcare.dto.UpdatePrescrizioneRequest;
+import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -74,6 +76,34 @@ public class PrescrizioneService {
                 .addValue("expiresAt", req.expiresAt()));
         return findByPatient(patientId).stream()
                 .filter(p -> p.id().equals(id))
+                .findFirst().orElseThrow();
+    }
+
+    public PrescrizioneDto update(UUID patientId, UUID prescrizioneId, UpdatePrescrizioneRequest req) {
+        String sql = """
+            UPDATE %s.patient_prescriptions
+            SET drug_name = :drugName, dosage = :dosage, frequency = :frequency, duration = :duration,
+                notes = :notes, prescribed_at = :prescribedAt, expires_at = :expiresAt, active = :active,
+                updated_at = now()
+            WHERE id = :id AND clinic_id = :clinicId AND patient_id = :patientId
+            """.formatted(s());
+        int rows = jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("id", prescrizioneId)
+                .addValue("clinicId", clinicId())
+                .addValue("patientId", patientId)
+                .addValue("drugName", req.drugName())
+                .addValue("dosage", req.dosage())
+                .addValue("frequency", req.frequency())
+                .addValue("duration", req.duration())
+                .addValue("notes", req.notes())
+                .addValue("prescribedAt", req.prescribedAt() != null ? req.prescribedAt() : LocalDate.now())
+                .addValue("expiresAt", req.expiresAt())
+                .addValue("active", req.active()));
+        if (rows == 0) {
+            throw new ResourceNotFoundException("Prescrizione non trovata: " + prescrizioneId);
+        }
+        return findByPatient(patientId).stream()
+                .filter(p -> p.id().equals(prescrizioneId))
                 .findFirst().orElseThrow();
     }
 

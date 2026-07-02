@@ -25,6 +25,7 @@ export class PrescrizioniComponent implements OnInit {
   showForm = signal(false);
   saving = signal(false);
   error = signal<string | null>(null);
+  editing = signal<Prescrizione | null>(null);
 
   form = {
     drugName: '',
@@ -52,8 +53,36 @@ export class PrescrizioniComponent implements OnInit {
     });
   }
 
+  startEdit(p: Prescrizione): void {
+    this.editing.set(p);
+    this.error.set(null);
+    this.pendingFile = null;
+    this.form = {
+      drugName: p.drugName,
+      dosage: p.dosage ?? '',
+      frequency: p.frequency ?? '',
+      duration: p.duration ?? '',
+      expiresAt: p.expiresAt ?? '',
+      notes: p.notes ?? ''
+    };
+    this.showForm.set(true);
+  }
+
+  cancelForm(): void {
+    this.showForm.set(false);
+    this.editing.set(null);
+    this.error.set(null);
+    this.pendingFile = null;
+    this.form = { drugName: '', dosage: '', frequency: '', duration: '', expiresAt: '', notes: '' };
+  }
+
   save(): void {
     if (!this.form.drugName.trim() || this.saving()) return;
+    const editing = this.editing();
+    if (editing) {
+      this.updateExisting(editing);
+      return;
+    }
     const providerId = this.userContext.providerId();
     if (!providerId) return;
     this.saving.set(true);
@@ -78,6 +107,23 @@ export class PrescrizioniComponent implements OnInit {
           this.load();
         }
       },
+      error: () => { this.error.set('Errore durante il salvataggio'); this.saving.set(false); }
+    });
+  }
+
+  private updateExisting(p: Prescrizione): void {
+    this.saving.set(true);
+    this.prescrizioneService.update(this.patientId(), p.id, {
+      drugName: this.form.drugName.trim(),
+      dosage: this.form.dosage || undefined,
+      frequency: this.form.frequency || undefined,
+      duration: this.form.duration || undefined,
+      prescribedAt: p.prescribedAt,
+      expiresAt: this.form.expiresAt || undefined,
+      notes: this.form.notes || undefined,
+      active: p.active
+    }).subscribe({
+      next: () => { this.saving.set(false); this.cancelForm(); this.load(); },
       error: () => { this.error.set('Errore durante il salvataggio'); this.saving.set(false); }
     });
   }
