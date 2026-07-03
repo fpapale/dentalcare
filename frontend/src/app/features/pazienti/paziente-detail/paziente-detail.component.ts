@@ -11,6 +11,8 @@ import { UserContextService } from '../../../core/services/user-context.service'
 import { EstimateService } from '../../../core/services/estimate.service';
 import { Estimate } from '../../../core/models/estimate.model';
 import { PatientDetail } from '../../../core/models/patient.model';
+import { fiscalCodeValidator } from '../../../core/validators/fiscal-code.validator';
+import { FormControl, FormGroup } from '@angular/forms';
 import { CartellaClinicalTabComponent } from '../cartella-tab/cartella-tab.component';
 import { AnamnesiTabComponent } from '../anamnesi-tab/anamnesi-tab.component';
 import { OdontogrammaTabComponent } from '../odontogramma-tab/odontogramma-tab.component';
@@ -80,8 +82,11 @@ export class PazienteDetailComponent implements OnInit {
   editForm: UpdatePatientRequest = {
     firstName: '', lastName: '', fiscalCode: '', birthDate: '',
     phone: '', email: '', addressLine1: '', city: '', province: '', postalCode: '', notes: '',
-    primaryProviderId: ''
+    primaryProviderId: '', foreignPatient: false
   };
+
+  pazienteStraniero = signal(false);
+  cfError = signal<'fiscalCodeFormat' | 'fiscalCodeDateMismatch' | null>(null);
 
   constructor(
     private route: ActivatedRoute,
@@ -122,8 +127,11 @@ export class PazienteDetailComponent implements OnInit {
       province: this.paziente.province ?? '',
       postalCode: this.paziente.postalCode ?? '',
       notes: this.paziente.note ?? '',
-      primaryProviderId: this.paziente.primaryProviderId ?? ''
+      primaryProviderId: this.paziente.primaryProviderId ?? '',
+      foreignPatient: this.paziente.foreignPatient ?? false
     };
+    this.pazienteStraniero.set(this.paziente.foreignPatient ?? false);
+    this.cfError.set(null);
     this.saveError.set(null);
     this.editAnagrafica.set(true);
   }
@@ -133,8 +141,37 @@ export class PazienteDetailComponent implements OnInit {
     this.saveError.set(null);
   }
 
+  onPazienteStranieroChange(foreign: boolean): void {
+    this.pazienteStraniero.set(foreign);
+    this.editForm.foreignPatient = foreign;
+    this.validateCf();
+  }
+
+  validateCf(): void {
+    const group = new FormGroup({
+      pazienteStraniero: new FormControl(this.pazienteStraniero()),
+      cf: new FormControl(this.editForm.fiscalCode ?? ''),
+      dataNascita: new FormControl(this.editForm.birthDate ?? '')
+    });
+    const result = fiscalCodeValidator(group);
+    if (result?.['fiscalCodeFormat']) {
+      this.cfError.set('fiscalCodeFormat');
+    } else if (result?.['fiscalCodeDateMismatch']) {
+      this.cfError.set('fiscalCodeDateMismatch');
+    } else {
+      this.cfError.set(null);
+    }
+  }
+
   saveAnagrafica(): void {
     if (this.saving()) return;
+    this.validateCf();
+    if (this.cfError()) return;
+    if (!this.pazienteStraniero() && !(this.editForm.fiscalCode ?? '').trim()) {
+      this.cfError.set(null);
+      this.saveError.set('Codice fiscale obbligatorio');
+      return;
+    }
     this.saving.set(true);
     this.saveError.set(null);
     this.patientService.update(this.paziente.id, this.editForm).subscribe({
@@ -326,6 +363,7 @@ export class PazienteDetailComponent implements OnInit {
       openTreatmentItemsCount: d.openTreatmentItemsCount,
       primaryProviderId: d.primaryProviderId,
       medicoRiferimento: d.primaryProviderName ?? '—',
+      foreignPatient: d.foreignPatient ?? false,
     };
   }
 

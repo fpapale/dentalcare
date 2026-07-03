@@ -5,6 +5,7 @@ import { RouterLink, Router } from '@angular/router';
 import { PatientService } from '../../../core/services/patient.service';
 import { ProviderService } from '../../../core/services/provider.service';
 import { Provider } from '../../../core/models/provider.model';
+import { fiscalCodeValidator } from '../../../core/validators/fiscal-code.validator';
 
 @Component({
   selector: 'app-nuovo-paziente',
@@ -42,13 +43,21 @@ export class NuovoPazienteComponent implements OnInit {
       medicoRiferimento: [''],
       note: [''],
       allergie: [''],
-    });
+      pazienteStraniero: [false],
+    }, { validators: fiscalCodeValidator });
   }
 
   ngOnInit(): void {
     this.providerService.findAll().subscribe({
       next: list => this.providers.set(list),
       error: () => {}
+    });
+
+    this.form.get('pazienteStraniero')!.valueChanges.subscribe((foreign: boolean) => {
+      const cf = this.form.get('cf')!;
+      cf.setValidators(foreign ? [Validators.maxLength(16)]
+                               : [Validators.required, Validators.minLength(16), Validators.maxLength(16)]);
+      cf.updateValueAndValidity();
     });
   }
 
@@ -83,6 +92,7 @@ export class NuovoPazienteComponent implements OnInit {
       postalCode: v.cap || undefined,
       notes: v.note || undefined,
       primaryProviderId: v.medicoRiferimento || undefined,
+      foreignPatient: v.pazienteStraniero,
     }).subscribe({
       next: () => {
         this.saving.set(false);

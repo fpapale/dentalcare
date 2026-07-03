@@ -52,4 +52,5 @@ export interface PatientDetail {
   openTreatmentItemsCount: number;
   primaryProviderId: string | null;
   primaryProviderName: string | null;
+  foreignPatient?: boolean | null;
 }

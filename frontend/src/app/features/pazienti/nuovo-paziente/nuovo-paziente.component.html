@@ -82,10 +82,23 @@
                   <option value="F">Femmina</option>
                 </select>
               </div>
+              <div class="sm:col-span-2 flex items-center gap-2">
+                <input formControlName="pazienteStraniero" type="checkbox" id="pazienteStraniero"
+                  class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"/>
+                <label for="pazienteStraniero" class="text-sm text-slate-600">Paziente straniero (senza CF italiano)</label>
+              </div>
               <div class="sm:col-span-2">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Codice Fiscale *</label>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                  {{ form.get('pazienteStraniero')?.value ? 'Documento identità (opzionale)' : 'Codice Fiscale *' }}
+                </label>
                 <input formControlName="cf" type="text" placeholder="VRDSM N90R54H501Q" maxlength="16"
                   class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow uppercase"/>
+                @if (form.hasError('fiscalCodeFormat')) {
+                  <p class="text-xs text-red-600 mt-1">Codice fiscale non valido — controlla il formato</p>
+                }
+                @if (form.hasError('fiscalCodeDateMismatch')) {
+                  <p class="text-xs text-red-600 mt-1">La data nel codice fiscale non corrisponde alla data di nascita</p>
+                }
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Medico di riferimento</label>

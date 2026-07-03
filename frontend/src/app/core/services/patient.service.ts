@@ -17,6 +17,7 @@ export interface CreatePatientRequest {
   postalCode?: string;
   notes?: string;
   primaryProviderId?: string;
+  foreignPatient?: boolean;
 }
 
 export interface UpdatePatientRequest {
@@ -32,6 +33,7 @@ export interface UpdatePatientRequest {
   postalCode?: string;
   notes?: string;
   primaryProviderId?: string;
+  foreignPatient?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

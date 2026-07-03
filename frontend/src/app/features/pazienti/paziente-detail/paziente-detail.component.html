@@ -321,16 +321,27 @@
                     <input type="text" [(ngModel)]="editForm.lastName" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400" />
                   </div>
                 </div>
+                <div class="flex items-center gap-2">
+                  <input type="checkbox" id="edit-pazienteStraniero" [ngModel]="pazienteStraniero()" (ngModelChange)="onPazienteStranieroChange($event)"
+                    class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                  <label for="edit-pazienteStraniero" class="text-xs text-slate-600">Paziente straniero (senza CF italiano)</label>
+                </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <label class="block text-xs text-slate-400 mb-1">Data di nascita</label>
-                    <input type="date" [(ngModel)]="editForm.birthDate" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                    <input type="date" [(ngModel)]="editForm.birthDate" (ngModelChange)="validateCf()" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400" />
                   </div>
                   <div>
-                    <label class="block text-xs text-slate-400 mb-1">Cod. Fiscale</label>
-                    <input type="text" [(ngModel)]="editForm.fiscalCode" maxlength="16" class="w-full text-sm font-mono border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 uppercase" />
+                    <label class="block text-xs text-slate-400 mb-1">{{ pazienteStraniero() ? 'Documento identità (opzionale)' : 'Cod. Fiscale' }}</label>
+                    <input type="text" [(ngModel)]="editForm.fiscalCode" (ngModelChange)="validateCf()" maxlength="16" class="w-full text-sm font-mono border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 uppercase" />
                   </div>
                 </div>
+                @if (cfError() === 'fiscalCodeFormat') {
+                  <p class="text-xs text-red-600">Codice fiscale non valido — controlla il formato</p>
+                }
+                @if (cfError() === 'fiscalCodeDateMismatch') {
+                  <p class="text-xs text-red-600">La data nel codice fiscale non corrisponde alla data di nascita</p>
+                }
                 <div>
                   <label class="block text-xs text-slate-400 mb-1">Telefono</label>
                   <input type="tel" [(ngModel)]="editForm.phone" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400" />
