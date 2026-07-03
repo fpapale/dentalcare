@@ -1,11 +1,13 @@
 package com.dentalcare.dto;
 
+import com.dentalcare.validation.ValidFiscalCode;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@ValidFiscalCode
 public record UpdatePatientRequest(
         @NotBlank @Size(max = 100) String firstName,
         @NotBlank @Size(max = 100) String lastName,
@@ -18,5 +20,6 @@ public record UpdatePatientRequest(
         @Size(max = 5) String province,
         @Size(max = 10) String postalCode,
         String notes,
-        UUID primaryProviderId
+        UUID primaryProviderId,
+        Boolean foreignPatient
 ) {}

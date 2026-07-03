@@ -1,5 +1,6 @@
 package com.dentalcare.dto;
 
+import com.dentalcare.validation.ValidFiscalCode;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -7,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@ValidFiscalCode
 public record CreatePatientRequest(
 
         @NotBlank
@@ -43,5 +45,7 @@ public record CreatePatientRequest(
 
         String notes,
 
-        UUID primaryProviderId
+        UUID primaryProviderId,
+
+        Boolean foreignPatient
 ) {}

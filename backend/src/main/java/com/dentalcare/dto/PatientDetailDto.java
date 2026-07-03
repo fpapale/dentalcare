@@ -40,5 +40,6 @@ public record PatientDetailDto(
         String photoUrl,
         // Medico di riferimento
         UUID primaryProviderId,
-        String primaryProviderName
+        String primaryProviderName,
+        Boolean foreignPatient
 ) {}

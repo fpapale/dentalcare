@@ -674,7 +674,7 @@ public class DentalCareAiTools {
         String summary = "Nuovo paziente " + firstName + " " + lastName;
         CreatePatientRequest req = new CreatePatientRequest(
                 firstName, lastName, fiscalCode, birth, phone, email,
-                addressLine1, city, province, postalCode, notes, null);
+                addressLine1, city, province, postalCode, notes, null, null);
         String code = pendingActions.register("CREATE_PATIENT", currentProviderId(), summary,
                 () -> {
                     UUID id = patientService.create(req);
@@ -722,7 +722,8 @@ public class DentalCareAiTools {
                 blankToExisting(province, existing.province()),
                 blankToExisting(postalCode, existing.postalCode()),
                 blankToExisting(notes, existing.notes()),
-                existing.primaryProviderId());
+                existing.primaryProviderId(),
+                existing.foreignPatient());
         String code = pendingActions.register("UPDATE_PATIENT", currentProviderId(), summary,
                 () -> {
                     patientService.update(pid, req);

@@ -67,11 +67,11 @@ public class PatientService {
             INSERT INTO %s.patients
                 (id, clinic_id, first_name, last_name, fiscal_code, birth_date,
                  phone, email, address_line1, city, province, postal_code, notes,
-                 primary_provider_id)
+                 primary_provider_id, foreign_patient)
             VALUES
                 (:id, :clinicId, :firstName, :lastName, :fiscalCode, :birthDate,
                  :phone, :email, :addressLine1, :city, :province, :postalCode, :notes,
-                 :primaryProviderId)
+                 :primaryProviderId, :foreignPatient)
             """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", patientId)
@@ -87,7 +87,8 @@ public class PatientService {
                 .addValue("province", request.province())
                 .addValue("postalCode", request.postalCode())
                 .addValue("notes", request.notes())
-                .addValue("primaryProviderId", request.primaryProviderId());
+                .addValue("primaryProviderId", request.primaryProviderId())
+                .addValue("foreignPatient", request.foreignPatient() != null && request.foreignPatient());
         jdbc.update(sql, params);
         return patientId;
     }
@@ -107,7 +108,8 @@ public class PatientService {
                 province      = :province,
                 postal_code   = :postalCode,
                 notes         = :notes,
-                primary_provider_id = :primaryProviderId
+                primary_provider_id = :primaryProviderId,
+                foreign_patient = :foreignPatient
             WHERE id = :id AND clinic_id = :clinicId
             """.formatted(s());
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -123,6 +125,7 @@ public class PatientService {
                 .addValue("postalCode",  request.postalCode())
                 .addValue("notes",       request.notes())
                 .addValue("primaryProviderId", request.primaryProviderId())
+                .addValue("foreignPatient", request.foreignPatient() != null && request.foreignPatient())
                 .addValue("id",          patientId)
                 .addValue("clinicId",    clinicId);
         jdbc.update(sql, params);
@@ -149,7 +152,7 @@ public class PatientService {
                     WHERE tp2.patient_id = p.patient_id AND tpi.clinic_id = p.clinic_id
                       AND tpi.status IN ('planned','accepted','scheduled')) AS open_treatment_items_count,
                    pat.address_line1, pat.postal_code, pat.photo_url,
-                   pat.primary_provider_id,
+                   pat.primary_provider_id, pat.foreign_patient,
                    concat_ws(' ', pp.last_name, pp.first_name) AS primary_provider_name
             FROM %s.v_patient_clinical_card p
             JOIN %s.patients pat ON pat.id = p.patient_id
@@ -276,7 +279,8 @@ public class PatientService {
                 rs.getLong("open_treatment_items_count"),
                 rs.getString("photo_url"),
                 rs.getObject("primary_provider_id", UUID.class),
-                rs.getString("primary_provider_name")
+                rs.getString("primary_provider_name"),
+                rs.getObject("foreign_patient", Boolean.class)
         );
     }
 
