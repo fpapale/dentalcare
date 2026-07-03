@@ -1,5 +1,6 @@
 package com.dentalcare.service;
 
+import com.dentalcare.dto.CreateProductCategoryRequest;
 import com.dentalcare.dto.CreateProductRequest;
 import com.dentalcare.dto.ProductCategoryDto;
 import com.dentalcare.dto.ProductDto;
@@ -59,6 +60,45 @@ public class ProductService {
                 (rs, n) -> new ProductCategoryDto(
                         rs.getObject("id", UUID.class),
                         rs.getString("name")));
+    }
+
+    @Transactional
+    public ProductCategoryDto createCategory(CreateProductCategoryRequest req) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO " + s() + ".product_categories (id, clinic_id, name)"
+                        + " VALUES (:id, :clinicId, :name)",
+                new MapSqlParameterSource().addValue("id", id)
+                        .addValue("clinicId", clinicId).addValue("name", req.name()));
+        return new ProductCategoryDto(id, req.name());
+    }
+
+    @Transactional
+    public ProductCategoryDto updateCategory(UUID id, CreateProductCategoryRequest req) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        int rows = jdbc.update("UPDATE " + s() + ".product_categories SET name = :name"
+                        + " WHERE id = :id AND clinic_id = :clinicId",
+                new MapSqlParameterSource().addValue("id", id)
+                        .addValue("clinicId", clinicId).addValue("name", req.name()));
+        if (rows == 0) throw new ResourceNotFoundException("Product category not found: " + id);
+        return new ProductCategoryDto(id, req.name());
+    }
+
+    @Transactional
+    public void deleteCategory(UUID id) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        Integer refs = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM " + s() + ".products"
+                        + " WHERE category_id = :id AND clinic_id = :clinicId AND is_active = true",
+                new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId),
+                Integer.class);
+        if (refs != null && refs > 0) {
+            throw new IllegalStateException("Categoria referenziata da " + refs + " prodotti attivi");
+        }
+        int rows = jdbc.update("DELETE FROM " + s() + ".product_categories"
+                        + " WHERE id = :id AND clinic_id = :clinicId",
+                new MapSqlParameterSource().addValue("id", id).addValue("clinicId", clinicId));
+        if (rows == 0) throw new ResourceNotFoundException("Product category not found: " + id);
     }
 
     // ── Create ────────────────────────────────────────────────────────────────

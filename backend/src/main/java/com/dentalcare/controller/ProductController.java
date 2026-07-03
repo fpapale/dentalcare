@@ -1,9 +1,11 @@
 package com.dentalcare.controller;
 
+import com.dentalcare.dto.CreateProductCategoryRequest;
 import com.dentalcare.dto.CreateProductRequest;
 import com.dentalcare.dto.ProductCategoryDto;
 import com.dentalcare.dto.ProductDto;
 import com.dentalcare.service.ProductService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +30,24 @@ public class ProductController {
     @GetMapping("/api/product-categories")
     public List<ProductCategoryDto> findCategories() {
         return productService.findCategories();
+    }
+
+    @PostMapping("/api/product-categories")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductCategoryDto createCategory(@Valid @RequestBody CreateProductCategoryRequest request) {
+        return productService.createCategory(request);
+    }
+
+    @PutMapping("/api/product-categories/{id}")
+    public ProductCategoryDto updateCategory(@PathVariable UUID id,
+                                             @Valid @RequestBody CreateProductCategoryRequest request) {
+        return productService.updateCategory(id, request);
+    }
+
+    @DeleteMapping("/api/product-categories/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCategory(@PathVariable UUID id) {
+        productService.deleteCategory(id);
     }
 
     @PostMapping("/api/products")
