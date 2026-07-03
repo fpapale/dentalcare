@@ -89,6 +89,15 @@ public class TenantSchemaRegistry {
         return Optional.ofNullable(clinicToSchema.get(clinicId));
     }
 
+    /**
+     * Snapshot immutabile di tutte le mappature clinic_id -> schema_name note.
+     * Usato dai job schedulati che devono iterare ogni clinica attiva impostando
+     * il TenantContext fuori da una richiesta HTTP (es. CopilotSuggestionScheduler).
+     */
+    public Map<String, String> allMappings() {
+        return Map.copyOf(clinicToSchema);
+    }
+
     /** Called when a new tenant is provisioned at runtime. */
     public void register(String clinicId, String schemaName) {
         clinicToSchema.put(clinicId, schemaName);

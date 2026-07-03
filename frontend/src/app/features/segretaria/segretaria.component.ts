@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,6 +7,8 @@ import { ChatService, ChatSessionDto, ChatMessageDto, ChatUiContext } from '../.
 import { AppSettingsService } from '../../core/services/app-settings.service';
 import { CopilotContextService } from '../../core/services/copilot-context.service';
 import { MarkdownPipe } from '../../shared/pipes/markdown.pipe';
+import { AuthService } from '../../core/auth/auth.service';
+import { environment } from '../../../environments/environment';
 
 interface Message {
   role: 'user' | 'ai';
@@ -22,6 +24,13 @@ interface Call {
   handled: boolean;
 }
 
+/** Suggerimento proattivo del Copilot (#14.B), ricevuto via SSE. Propone soltanto: nessuna scrittura. */
+interface CopilotSuggestion {
+  type: string;
+  message: string;
+  createdAt: string;
+}
+
 @Component({
   selector: 'app-segretaria',
   standalone: true,
@@ -29,12 +38,13 @@ interface Call {
   templateUrl: './segretaria.component.html',
   styleUrl: './segretaria.component.css'
 })
-export class SegretariaComponent implements OnInit {
+export class SegretariaComponent implements OnInit, OnDestroy {
   private readonly chatService = inject(ChatService);
   private readonly appSettingsSvc = inject(AppSettingsService);
   private readonly copilotContext = inject(CopilotContextService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
 
   inputText = '';
   isTyping = signal(false);
@@ -64,6 +74,12 @@ export class SegretariaComponent implements OnInit {
     'Prossimo slot disponibile chirurgia',
   ];
 
+  // Suggerimenti proattivi Copilot ricevuti via SSE (#14.B). Propongono soltanto:
+  // l'utente decide se e come agire, nessuna scrittura viene eseguita da qui.
+  suggestions = signal<CopilotSuggestion[]>([]);
+  private suggestionsEventSource: EventSource | null = null;
+  private suggestionsRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
   private currentTime(): string {
     const now = new Date();
     return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -82,6 +98,53 @@ export class SegretariaComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSessions();
+    this.connectSuggestionsStream();
+  }
+
+  ngOnDestroy(): void {
+    this.suggestionsEventSource?.close();
+    this.suggestionsEventSource = null;
+    if (this.suggestionsRetryTimer) {
+      clearTimeout(this.suggestionsRetryTimer);
+      this.suggestionsRetryTimer = null;
+    }
+  }
+
+  // ─── Suggerimenti proattivi (SSE) ─────────────────────────────────────────
+
+  private connectSuggestionsStream(): void {
+    const token = this.auth.getToken();
+    if (!token) return;
+
+    this.suggestionsEventSource = new EventSource(
+      `${environment.apiBaseUrl}/copilot/suggestions/stream?token=${encodeURIComponent(token)}`
+    );
+
+    this.suggestionsEventSource.addEventListener('suggestion', (ev: MessageEvent) => {
+      try {
+        const suggestion: CopilotSuggestion = JSON.parse(ev.data);
+        this.suggestions.update(list => [suggestion, ...list]);
+      } catch {
+        // payload non valido: ignorato, nessun impatto sulla chat
+      }
+    });
+
+    this.suggestionsEventSource.onerror = () => {
+      this.suggestionsEventSource?.close();
+      this.suggestionsEventSource = null;
+      if (this.suggestionsRetryTimer) clearTimeout(this.suggestionsRetryTimer);
+      this.suggestionsRetryTimer = setTimeout(() => this.connectSuggestionsStream(), 5000);
+    };
+  }
+
+  /** Click su un suggerimento: precompila il messaggio in chat, l'utente resta libero di modificarlo o inviarlo. */
+  useSuggestion(suggestion: CopilotSuggestion): void {
+    this.inputText = suggestion.message;
+    this.dismissSuggestion(suggestion);
+  }
+
+  dismissSuggestion(suggestion: CopilotSuggestion): void {
+    this.suggestions.update(list => list.filter(s => s !== suggestion));
   }
 
   loadSessions(): void {
