@@ -44,10 +44,10 @@ Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non ro
 5. **#12.C** — CRUD categorie prodotto: piccolo, chiude il magazzino.
 6. **#3** — Validazione codice fiscale + flag straniero: qualità dati anagrafici.
 7. **#14** — Copilot contestuale/proattivo (contesto UI + push SSE + cross-modulo): dopo #13 e #1.
-8. **#2** — Retell multi-studio (agente per sede/poltrona): se/quando servono più sedi.
 
 **P3 — Dopo / compliance / oneroso**
-9. **#7** — GDPR cifratura per-tenant: **alza a P1 se vai in vendita/produzione clinica seria** (requisito compliance).
+8. **#7** — GDPR cifratura per-tenant: **alza a P1 se vai in vendita/produzione clinica seria** (requisito compliance).
+9. **#2** — Retell multi-studio (agente per sede/poltrona): se/quando servono più sedi.
 10. **#12.B** — Anamnesi per-tenant: richiede decisione di design (Opt 1/2/3) + migrazione dati.
 11. **#8** — DICOM nativo nell'AI service: nicchia, dopo #6.
 12. **#15** — Copilot RAG/multimodale/memoria: blocco più oneroso, dopo #13/#14.
