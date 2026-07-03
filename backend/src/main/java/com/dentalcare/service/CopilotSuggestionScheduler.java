@@ -42,7 +42,7 @@ public class CopilotSuggestionScheduler {
     }
 
     /** Ogni giorno alle 08:00: un suggerimento per clinica se ci sono richiami scaduti da contattare. */
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 0 8 * * *", zone = "Europe/Rome")
     public void publishOverdueRecallSuggestions() {
         for (Map.Entry<String, String> clinic : schemaRegistry.allMappings().entrySet()) {
             String clinicId = clinic.getKey();

@@ -720,33 +720,10 @@ public class DentalCareAiTools {
 
     // ── Cross-modulo: prepara i richiami del mese ────────────────────────────
 
-    @Tool(description = "Prepare the monthly recalls (richiami del mese): list the recalls already due in the current calendar month and propose generating new periodic-check recalls for patients whose last visit is older than the given interval and who have no open recall. Returns a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    @Tool(description = "Prepare generating periodic-check recalls (richiami del mese): for patients whose last visit is older than the given interval and who have no open recall, propose generating a new recall for each. Returns a PREVIEW plus a confirmation code. This does NOT save anything; the exact number of recalls generated is known only after confirming. Show the preview; when the user confirms, call confirmAction with the returned code.")
     public String prepareMonthlyRecalls(
             @ToolParam(description = "Recall interval in months used to select patients due for a periodic check (default 6).") Integer intervalMonths) {
         int interval = (intervalMonths != null && intervalMonths > 0) ? intervalMonths : 6;
-        LocalDate today = LocalDate.now();
-        LocalDate firstOfMonth = today.withDayOfMonth(1);
-        LocalDate lastOfMonth = today.withDayOfMonth(today.lengthOfMonth());
-
-        // Richiami già dovuti nel mese corrente e ancora aperti (non chiusi/annullati).
-        List<RecallDto> dueThisMonth = recallService.findAll(null, null, null).stream()
-                .filter(r -> r.dueDate() != null
-                        && !r.dueDate().isBefore(firstOfMonth)
-                        && !r.dueDate().isAfter(lastOfMonth)
-                        && !"chiuso".equals(r.status()) && !"annullato".equals(r.status()))
-                .toList();
-
-        StringBuilder preview = new StringBuilder();
-        preview.append("Richiami in scadenza questo mese (").append(dueThisMonth.size()).append("):\n");
-        if (dueThisMonth.isEmpty()) {
-            preview.append("  nessuno\n");
-        } else {
-            dueThisMonth.stream().limit(20).forEach(r -> preview.append("  - ")
-                    .append(r.patientFullName()).append(" — ").append(r.recallType())
-                    .append(" (scad. ").append(r.dueDate()).append(", ").append(r.priority()).append(")\n"));
-            if (dueThisMonth.size() > 20)
-                preview.append("  … e altri ").append(dueThisMonth.size() - 20).append("\n");
-        }
 
         String summary = "Generazione richiami di controllo periodico (intervallo " + interval
                 + " mesi) per i pazienti con ultima visita oltre " + interval
@@ -758,8 +735,9 @@ public class DentalCareAiTools {
                 });
 
         return "ANTEPRIMA — nessuna modifica salvata.\n"
-                + preview
                 + "Azione proposta: " + summary + ".\n"
+                + "Il numero esatto di richiami generati sarà noto solo dopo la conferma "
+                + "(i pazienti che hanno già un richiamo aperto vengono saltati automaticamente).\n"
                 + "Per confermare chiama confirmAction con il codice " + code + ".";
     }
 
