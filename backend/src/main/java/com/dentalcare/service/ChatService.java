@@ -55,7 +55,7 @@ public class ChatService {
     public ChatResponse chat(ChatRequest request) {
         String response = chatClient.prompt()
                 .options(OpenAiChatOptions.builder().model(model).build())
-                .system(buildSystemPrompt(request.locale()))
+                .system(buildSystemPrompt(request.locale(), request.context()))
                 .messages(buildHistory(request.history()))
                 .user(request.message())
                 .tools(tools)
@@ -65,7 +65,7 @@ public class ChatService {
         return new ChatResponse(response != null ? response : "", null);
     }
 
-    private String buildSystemPrompt(String requestLocale) {
+    private String buildSystemPrompt(String requestLocale, ChatRequest.ChatContext ctx) {
         String locale = (requestLocale == null || requestLocale.isBlank()) ? defaultLocale : requestLocale;
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Europe/Rome"));
         DateTimeFormatter dayFmt = "en".equals(locale) ? DAY_FMT_EN : DAY_FMT;
@@ -73,7 +73,22 @@ public class ChatService {
                 "oggi", now.format(dayFmt),
                 "ora", now.format(TIME_FMT));
         String rendered = promptService.render(SYSTEM_PROMPT_KEY, locale, vars);
-        return rendered != null ? rendered : SYSTEM_PROMPT_FALLBACK;
+        String base = rendered != null ? rendered : SYSTEM_PROMPT_FALLBACK;
+
+        if (ctx == null) {
+            return base;
+        }
+        StringBuilder sb = new StringBuilder(base);
+        if (ctx.patientId() != null) {
+            sb.append("\n\n[CONTESTO UI] L'utente sta guardando il paziente ")
+              .append(ctx.patientName() != null ? ctx.patientName() : "")
+              .append(" (patientId=").append(ctx.patientId())
+              .append("). Quando dice \"questo paziente\" usa questo UUID senza ricerca.");
+        }
+        if (ctx.view() != null && !ctx.view().isBlank()) {
+            sb.append("\n[CONTESTO UI] Vista corrente: ").append(ctx.view()).append(".");
+        }
+        return sb.toString();
     }
 
     private List<Message> buildHistory(List<ChatTurnDto> history) {

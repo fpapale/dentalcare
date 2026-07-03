@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -8,6 +8,7 @@ import { Provider } from '../../../core/models/provider.model';
 import { AppointmentService, RescheduleAppointmentRequest } from '../../../core/services/appointment.service';
 import { AppSettingsService } from '../../../core/services/app-settings.service';
 import { UserContextService } from '../../../core/services/user-context.service';
+import { CopilotContextService } from '../../../core/services/copilot-context.service';
 import { EstimateService } from '../../../core/services/estimate.service';
 import { Estimate } from '../../../core/models/estimate.model';
 import { PatientDetail } from '../../../core/models/patient.model';
@@ -27,9 +28,10 @@ import { DocumentiTabComponent } from '../documenti-tab/documenti-tab.component'
   templateUrl: './paziente-detail.component.html',
   styleUrl: './paziente-detail.component.css'
 })
-export class PazienteDetailComponent implements OnInit {
+export class PazienteDetailComponent implements OnInit, OnDestroy {
   private readonly userContext = inject(UserContextService);
   private readonly appSettings = inject(AppSettingsService);
+  private readonly copilotContext = inject(CopilotContextService);
   private readonly router = inject(Router);
 
   readonly role = this.userContext.role;
@@ -110,8 +112,13 @@ export class PazienteDetailComponent implements OnInit {
     if (tab) this.activeTab.set(tab as any);
     if (apptId) this.highlightApptId.set(apptId);
     this.providerService.findAll().subscribe({ next: list => this.providers.set(list), error: () => {} });
+    this.copilotContext.setPatient(id, null);
     this.loadPatient(id);
     this.loadAppointments(id, apptId ?? null);
+  }
+
+  ngOnDestroy(): void {
+    this.copilotContext.clearPatient();
   }
 
   startEditAnagrafica(): void {
@@ -196,6 +203,7 @@ export class PazienteDetailComponent implements OnInit {
     this.patientService.findById(id, providerId).subscribe({
       next: detail => {
         this.paziente = this.mapPaziente(detail);
+        this.copilotContext.setPatient(id, detail.fullName ?? null);
         this.loading.set(false);
         this.cdr.markForCheck();
       },

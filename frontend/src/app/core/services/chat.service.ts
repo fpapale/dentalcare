@@ -14,9 +14,16 @@ export interface ChatStreamEvent {
   data: string;
 }
 
+export interface ChatUiContext {
+  patientId?: string;
+  patientName?: string;
+  view?: string;
+}
+
 export interface ChatRequest {
   message: string;
   history: ChatTurn[];
+  context?: ChatUiContext;
 }
 
 export interface ChatResponse {
@@ -44,15 +51,18 @@ export class ChatService {
   private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiBaseUrl}/chat`;
 
-  send(message: string, history: ChatTurn[], sessionId?: string | null): Observable<ChatResponse> {
-    return this.http.post<ChatResponse>(this.baseUrl, { message, history, sessionId: sessionId ?? null });
+  send(message: string, history: ChatTurn[], sessionId?: string | null,
+       context?: ChatUiContext): Observable<ChatResponse> {
+    return this.http.post<ChatResponse>(this.baseUrl,
+      { message, history, sessionId: sessionId ?? null, context: context ?? null });
   }
 
   /**
    * Streaming SSE via fetch (HttpClient non gestisce stream incrementali).
    * Emette meta (sessionId), token (chunk di testo) e done. Annulla la richiesta su unsubscribe.
    */
-  sendStream(message: string, history: ChatTurn[], sessionId?: string | null): Observable<ChatStreamEvent> {
+  sendStream(message: string, history: ChatTurn[], sessionId?: string | null,
+             context?: ChatUiContext): Observable<ChatStreamEvent> {
     return new Observable<ChatStreamEvent>(subscriber => {
       const controller = new AbortController();
       const token = this.auth.getToken();
@@ -64,7 +74,7 @@ export class ChatService {
           'Accept': 'text/event-stream',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ message, history, sessionId: sessionId ?? null }),
+        body: JSON.stringify({ message, history, sessionId: sessionId ?? null, context: context ?? null }),
         signal: controller.signal
       }).then(async response => {
         if (!response.ok || !response.body) {

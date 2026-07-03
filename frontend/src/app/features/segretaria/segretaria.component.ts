@@ -1,9 +1,11 @@
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ChatService, ChatSessionDto, ChatMessageDto } from '../../core/services/chat.service';
+import { ChatService, ChatSessionDto, ChatMessageDto, ChatUiContext } from '../../core/services/chat.service';
 import { AppSettingsService } from '../../core/services/app-settings.service';
+import { CopilotContextService } from '../../core/services/copilot-context.service';
 import { MarkdownPipe } from '../../shared/pipes/markdown.pipe';
 
 interface Message {
@@ -30,6 +32,8 @@ interface Call {
 export class SegretariaComponent implements OnInit {
   private readonly chatService = inject(ChatService);
   private readonly appSettingsSvc = inject(AppSettingsService);
+  private readonly copilotContext = inject(CopilotContextService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   inputText = '';
@@ -63,6 +67,17 @@ export class SegretariaComponent implements OnInit {
   private currentTime(): string {
     const now = new Date();
     return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  /** Contesto UI corrente (vista + paziente, se l'utente è su una scheda paziente). */
+  private currentUiContext(): ChatUiContext {
+    const context: ChatUiContext = { view: this.router.url };
+    const patientId = this.copilotContext.patientId();
+    if (patientId) {
+      context.patientId = patientId;
+      context.patientName = this.copilotContext.patientName() ?? undefined;
+    }
+    return context;
   }
 
   ngOnInit(): void {
@@ -138,7 +153,7 @@ export class SegretariaComponent implements OnInit {
     this.messages.update(msgs => [...msgs, { role: 'ai', text: '', time: this.currentTime() }]);
     let acc = '';
 
-    this.chatService.sendStream(text, history, this.currentSessionId())
+    this.chatService.sendStream(text, history, this.currentSessionId(), this.currentUiContext())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ev => {
