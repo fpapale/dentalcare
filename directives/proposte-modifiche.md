@@ -1474,4 +1474,34 @@ Lettura di ortopanoramica e referti PDF **nel contesto della chat** (lega #6 e #
 ### Note
 - La scelta del modello (attuale `gpt-4o` via Spring AI) va rivalutata per **visione e costi**.
 - GDPR/MDR: dati clinici negli embeddings/prompt richiedono **#7** (cifratura) e l'**audit di #10 Fase 0**.
+
+---
+
+## 16. Prompt Manager AI: prompt multilingua editabili (tabella chiave-valore)
+
+**Stato:** Fatta (dev) — 2026-07-02. Validato E2E: seed IT/EN, GET admin 200, dentista 403, PUT/GET override/DELETE reset OK, chiave invalida 400, chat usa il prompt da DB.
+**Data proposta:** 2026-07-02
+**Impatto:** Medio
+
+### Obiettivo
+Esternalizzare i prompt AI (oggi hardcoded in `ChatService.SYSTEM_PROMPT`) in una struttura **chiave-valore multilingua**, editabile dall'admin di studio **senza redeploy**. Opzione A (DB + cache) con **override per-tenant** e UI **solo modifica valori** (chiavi definite dagli sviluppatori).
+
+### Design
+- **Default globali**: `dentalcare.ai_prompts(prompt_key, locale, value, description)`. Seed dall'app dalle risorse bundle `ai-prompts/<key>.<locale>.txt` (niente testo prompt nelle patch SQL).
+- **Override per-studio**: `<schema>.ai_prompt_overrides(clinic_id, prompt_key, locale, value)`.
+- **Risoluzione** (locale-first): override tenant+locale → globale+locale → override tenant+base → globale+base → risorsa bundle. Cache in-memory svuotata ad ogni scrittura.
+- **Placeholder** `{{oggi}}`/`{{ora}}` risolti a runtime, formattati per locale.
+- Lingue seed: **IT + EN**. Base locale `it`. `ChatRequest.locale` opzionale (default `app.ai.default-locale=it`).
+
+### File coinvolti
+| Layer | File |
+|-------|------|
+| DB | `patch_ai_prompts.sql`; `install.sql` (tabella globale + template `create_tenant` + demo). Self-provisioning via `EstimateSchemaInitializer` + `PromptService` bootstrap |
+| Backend | `PromptService`, `AiPromptController` (`/api/admin/ai-prompts`), DTO `AiPromptDto`/`AiPromptLocaleDto`/`UpdateAiPromptRequest`, wiring `ChatService`, `SecurityConfig` (`/api/admin/**` → ADMIN/TENANT_ADMIN), risorse `ai-prompts/chat.system.{it,en}.txt` |
+| Frontend | `ai-prompt.model.ts`, `ai-prompt.service.ts`, `AiPromptsComponent`, tab "AI" in `ImpostazioniComponent` |
+
+### Estensioni future
+- Nuove lingue: basta aggiungere `ai-prompts/chat.system.<locale>.txt` + il locale in `PromptService.LOCALES`.
+- Nuove chiavi prompt (es. prompt tool-specifici, email templates): aggiungere a `PromptService.KEYS` + risorse.
+- Derivare il `locale` reale dell'utente (oggi default `it`) da preferenza/Accept-Language.
 - Blocco più oneroso e meno urgente: implementare dopo #13/#14 (valore operativo immediato).

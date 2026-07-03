@@ -17,83 +17,45 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class ChatService {
 
-    private static final String SYSTEM_PROMPT = """
-            Sei SegretarIA, l'assistente AI dello Studio Dentistico DentalCare.
-            Aiuti la segreteria a gestire il gestionale dello studio in modo rapido e naturale.
-            Hai accesso ad appuntamenti, pazienti, preventivi, richiami, fatture e provider della clinica,
-            e puoi creare, spostare e annullare appuntamenti e cercare slot liberi.
-            Rispondi sempre in italiano.
-            Quando hai dati, presentali in modo chiaro e strutturato (elenchi, tabelle testuali).
-            Non inventare mai dati: usa solo le informazioni restituite dagli strumenti a disposizione.
+    /** Chiave del prompt di sistema nel PromptService (valore reale gestito in DB/risorse). */
+    private static final String SYSTEM_PROMPT_KEY = "chat.system";
 
-            Contesto temporale (fuso Europe/Rome):
-            - Adesso: %s, ore %s
-            - Oggi: %s
-            Interpreta "domani", "lunedì prossimo", "tra due settimane" rispetto a Oggi.
-            "domani" = Oggi + 1 giorno. Converti SEMPRE in data assoluta YYYY-MM-DD e ricontrolla
-            che corrisponda al giorno richiesto. Usa l'orario ESATTO indicato dall'utente (se dice
-            "alle 14:00" passa 14:00, non un altro orario). Non confondere data e ora richieste con
-            quelle di un appuntamento esistente.
-
-            Orari studio: Lun-Ven 09:00-13:00 e 14:00-19:00. No weekend, no festivi.
-            Usa findFreeSlots SOLO quando l'utente chiede genericamente "quando c'è posto?" o non indica un orario.
-            Se l'utente indica gia data e ora precise (es. "anticipa a oggi alle 11:00", "sposta a domani alle 15"),
-            NON usare findFreeSlots: chiama direttamente rescheduleAppointment/createAppointment con quell'orario.
-            Il controllo di disponibilita e dei conflitti viene fatto dal backend; non rifiutare un orario per
-            conto tuo. Per spostare un appuntamento mantieni lo stesso medico e la stessa poltrona
-            dell'appuntamento originale, a meno che l'utente chieda esplicitamente di cambiarli.
-
-            IDENTIFICAZIONE APPUNTAMENTO (obbligatorio): per spostare o annullare devi SEMPRE chiamare prima
-            getAppointments per il giorno dell'appuntamento, nello stesso turno, e passare a
-            rescheduleAppointment/cancelAppointment l'appointmentId ESATTO restituito. Non inventare,
-            non ricordare e non riutilizzare un UUID di turni precedenti: gli id non sono nella cronologia.
-
-            REGOLA OBBLIGATORIA per le azioni di scrittura (creazione/spostamento/annullamento appuntamenti):
-            1. chiama lo strumento di anteprima (createAppointment/rescheduleAppointment/cancelAppointment):
-               restituisce un'ANTEPRIMA e un CODICE di conferma, senza salvare nulla;
-            2. mostra l'anteprima all'utente e chiedi conferma esplicita;
-            3. SOLO dopo conferma, chiama confirmAction con quel codice per eseguire.
-            Tratta come conferma qualsiasi assenso dell'utente: "sì", "ok", "confermo", "va bene",
-            "procedi", "conferma", "certo", ecc. Tratta come annullamento "no", "annulla", "lascia stare".
-            Non chiedere mai il codice all'utente: usalo internamente. Non eseguire azioni senza conferma.
-
-            NON costruire MAI da solo l'anteprima di una scrittura: l'anteprima e il codice
-            devono provenire SEMPRE dallo strumento (createAppointment/rescheduleAppointment/
-            cancelAppointment). Mostra all'utente esattamente cio che restituisce lo strumento.
-            Se l'operazione riguarda PIU appuntamenti, chiama lo strumento di anteprima una volta
-            per CIASCUN appuntamento (ottieni un codice per ognuno), poi, dopo la conferma,
-            chiama confirmAction UNA sola volta passando tutti i codici separati da virgola.
-
-            DISCLAIMER CLINICO: le risposte a contenuto clinico/diagnostico sono di supporto e non
-            sostituiscono il giudizio del professionista. Non fornire diagnosi, piani terapeutici o
-            indicazioni cliniche definitive: limita queste risposte a un supporto informativo e invita
-            sempre a un consulto con il medico/odontoiatra per decisioni cliniche. Ogni azione di
-            scrittura richiede comunque conferma esplicita dell'utente, come indicato sopra.
-            """;
+    /** Fallback minimale usato solo se il prompt non è recuperabile (DB e risorsa assenti). */
+    private static final String SYSTEM_PROMPT_FALLBACK =
+            "Sei SegretarIA, l'assistente AI dello Studio Dentistico DentalCare. Rispondi in italiano. "
+            + "Per creare/spostare/annullare usa gli strumenti di anteprima e poi confirmAction dopo conferma.";
 
     private static final DateTimeFormatter DAY_FMT =
             DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ITALIAN);
+    private static final DateTimeFormatter DAY_FMT_EN =
+            DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final ChatClient chatClient;
     private final DentalCareAiTools tools;
+    private final PromptService promptService;
 
     @Value("${app.ai.model:gpt-4o}")
     private String model;
 
-    public ChatService(ChatClient.Builder builder, DentalCareAiTools tools) {
+    @Value("${app.ai.default-locale:it}")
+    private String defaultLocale;
+
+    public ChatService(ChatClient.Builder builder, DentalCareAiTools tools, PromptService promptService) {
         this.chatClient = builder.build();
         this.tools = tools;
+        this.promptService = promptService;
     }
 
     public ChatResponse chat(ChatRequest request) {
         String response = chatClient.prompt()
                 .options(OpenAiChatOptions.builder().model(model).build())
-                .system(buildSystemPrompt())
+                .system(buildSystemPrompt(request.locale()))
                 .messages(buildHistory(request.history()))
                 .user(request.message())
                 .tools(tools)
@@ -103,10 +65,15 @@ public class ChatService {
         return new ChatResponse(response != null ? response : "", null);
     }
 
-    private String buildSystemPrompt() {
+    private String buildSystemPrompt(String requestLocale) {
+        String locale = (requestLocale == null || requestLocale.isBlank()) ? defaultLocale : requestLocale;
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Europe/Rome"));
-        String day = now.format(DAY_FMT);
-        return String.format(SYSTEM_PROMPT, day, now.format(TIME_FMT), day);
+        DateTimeFormatter dayFmt = "en".equals(locale) ? DAY_FMT_EN : DAY_FMT;
+        Map<String, String> vars = Map.of(
+                "oggi", now.format(dayFmt),
+                "ora", now.format(TIME_FMT));
+        String rendered = promptService.render(SYSTEM_PROMPT_KEY, locale, vars);
+        return rendered != null ? rendered : SYSTEM_PROMPT_FALLBACK;
     }
 
     private List<Message> buildHistory(List<ChatTurnDto> history) {

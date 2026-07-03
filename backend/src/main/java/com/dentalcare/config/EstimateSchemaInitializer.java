@@ -144,6 +144,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             runStep(schema, "v_patient_clinical_card",      () -> rebuildPatientClinicalCardView(schema));
             runStep(schema, "v_patient_estimates_summary",  () -> rebuildEstimatesSummaryView(schema));
             runStep(schema, "ai analyses tables",           () -> createAiTables(schema));
+            runStep(schema, "ai_prompt_overrides",          () -> createAiPromptOverrides(schema));
             log.debug("EstimateSchemaInitializer: patched schema {}", schema);
         }
     }
@@ -528,6 +529,16 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         jdbc.execute("ALTER TABLE %1$s.tooth_conditions ADD COLUMN IF NOT EXISTS source varchar(10) NOT NULL DEFAULT 'manual'".formatted(schema));
         jdbc.execute("ALTER TABLE %1$s.tooth_conditions ADD COLUMN IF NOT EXISTS analysis_id uuid".formatted(schema));
         jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_tooth_conditions_conflict ON %1$s.tooth_conditions (clinic_id, patient_id, tooth_fdi, surface)".formatted(schema));
+    }
+
+    /** Tabella override prompt AI per-studio (default globali in dentalcare.ai_prompts). */
+    private void createAiPromptOverrides(String schema) {
+        jdbc.execute(("""
+            CREATE TABLE IF NOT EXISTS %1$s.ai_prompt_overrides (
+                clinic_id uuid NOT NULL, prompt_key text NOT NULL, locale text NOT NULL,
+                value text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now(),
+                PRIMARY KEY (clinic_id, prompt_key, locale))
+            """).formatted(schema));
     }
 
     private void rebuildDashboardView(String schema) {

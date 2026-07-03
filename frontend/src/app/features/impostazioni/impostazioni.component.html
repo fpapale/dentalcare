@@ -1136,6 +1136,13 @@
       </div>
     }
 
+    <!-- AI TAB -->
+    @if (activeTab() === 'ai') {
+      <div class="max-w-3xl">
+        <app-ai-prompts></app-ai-prompts>
+      </div>
+    }
+
     <!-- SISTEMA TAB -->
     @if (activeTab() === 'sistema') {
       <div class="max-w-xl space-y-6">

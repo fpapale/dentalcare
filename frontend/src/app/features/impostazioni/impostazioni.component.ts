@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AiPromptsComponent } from './ai-prompts.component';
 import { ClinicSettingsService } from '../../core/services/clinic-settings.service';
 import { ProviderService } from '../../core/services/provider.service';
 import { AnamnesisCatalogService } from '../../core/services/anamnesis-catalog.service';
@@ -19,11 +20,11 @@ export type { AppSettings };
 @Component({
   selector: 'app-impostazioni',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AiPromptsComponent],
   templateUrl: './impostazioni.component.html'
 })
 export class ImpostazioniComponent implements OnInit {
-  activeTab = signal<'studio' | 'professionisti' | 'anagrafiche' | 'agenda' | 'preventivi' | 'fatturazione' | 'richiami' | 'sistema'>('studio');
+  activeTab = signal<'studio' | 'professionisti' | 'anagrafiche' | 'agenda' | 'preventivi' | 'fatturazione' | 'richiami' | 'ai' | 'sistema'>('studio');
 
   // ── Studio (Clinic) ────────────────────────────────────────────────────────
   clinic = signal<ClinicBilling | null>(null);
@@ -149,6 +150,7 @@ export class ImpostazioniComponent implements OnInit {
     { key: 'preventivi',     icon: 'description',          label: 'Preventivi' },
     { key: 'fatturazione',   icon: 'receipt_long',         label: 'Fatturazione' },
     { key: 'richiami',       icon: 'notifications_active', label: 'Richiami' },
+    { key: 'ai',             icon: 'smart_toy',            label: 'AI' },
     { key: 'sistema',        icon: 'settings',             label: 'Sistema' },
   ] as const;
 
@@ -169,7 +171,7 @@ export class ImpostazioniComponent implements OnInit {
   }
 
   setTab(key: string): void {
-    this.activeTab.set(key as 'studio' | 'professionisti' | 'anagrafiche' | 'agenda' | 'preventivi' | 'fatturazione' | 'richiami' | 'sistema');
+    this.activeTab.set(key as 'studio' | 'professionisti' | 'anagrafiche' | 'agenda' | 'preventivi' | 'fatturazione' | 'richiami' | 'ai' | 'sistema');
     if (key === 'anagrafiche' && this.clinics().length === 0) {
       this.loadClinics();
     }

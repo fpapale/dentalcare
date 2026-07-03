@@ -945,6 +945,15 @@ CREATE TABLE service_categories (
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE ai_prompt_overrides (
+    clinic_id uuid NOT NULL,
+    prompt_key text NOT NULL,
+    locale text NOT NULL,
+    value text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    PRIMARY KEY (clinic_id, prompt_key, locale)
+);
+
 CREATE TABLE tooth_conditions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     clinic_id uuid NOT NULL,
@@ -2034,6 +2043,22 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: ai_prompts; Type: TABLE; Schema: dentalcare; Owner: -
+-- Default globali dei prompt AI (multilingua). Seed eseguito dall'app (PromptService)
+-- dalle risorse bundle; gli override per-studio stanno in <schema>.ai_prompt_overrides.
+--
+
+CREATE TABLE dentalcare.ai_prompts (
+    prompt_key text NOT NULL,
+    locale text NOT NULL,
+    value text NOT NULL,
+    description text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    PRIMARY KEY (prompt_key, locale)
+);
+
+
+--
 -- Name: anamnesis_categories; Type: TABLE; Schema: dentalcare; Owner: -
 --
 
@@ -2942,6 +2967,20 @@ CREATE TABLE t_9d754153.service_categories (
     active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ai_prompt_overrides; Type: TABLE; Schema: t_9d754153; Owner: -
+--
+
+CREATE TABLE t_9d754153.ai_prompt_overrides (
+    clinic_id uuid NOT NULL,
+    prompt_key text NOT NULL,
+    locale text NOT NULL,
+    value text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    PRIMARY KEY (clinic_id, prompt_key, locale)
 );
 
 

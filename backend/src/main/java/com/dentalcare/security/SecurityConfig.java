@@ -43,6 +43,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/internal/**").permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .requestMatchers("/api/tenant-admin/**").hasRole("TENANT_ADMIN")
+                    .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "TENANT_ADMIN")
                     .anyRequest().authenticated())
             .exceptionHandling(ex -> ex
                     .authenticationEntryPoint((req, res, e) -> {
