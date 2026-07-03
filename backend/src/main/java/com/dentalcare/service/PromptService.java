@@ -188,10 +188,12 @@ public class PromptService {
         for (PromptKey pk : KEYS) {
             List<AiPromptLocaleDto> locales = new ArrayList<>();
             for (String locale : LOCALES) {
-                String globalVal = firstNonNull(global(pk.key(), locale), readResource(pk.key(), locale));
+                String factory = readResource(pk.key(), locale);
+                String globalVal = firstNonNull(global(pk.key(), locale), factory);
                 String override = tenantOverride(schema, clinic, pk.key(), locale);
                 String effective = override != null ? override : globalVal;
-                locales.add(new AiPromptLocaleDto(locale, effective, globalVal, override != null));
+                String defaultVal = firstNonNull(factory, globalVal);
+                locales.add(new AiPromptLocaleDto(locale, effective, globalVal, defaultVal, override != null));
             }
             out.add(new AiPromptDto(pk.key(), pk.description(), locales));
         }

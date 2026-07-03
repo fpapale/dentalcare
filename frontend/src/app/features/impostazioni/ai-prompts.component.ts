@@ -75,7 +75,7 @@ import { AiPrompt } from '../../core/models/ai-prompt.model';
                     rows="14"
                     class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-teal-400"></textarea>
 
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <button (click)="save(p.key, loc.locale)"
                       [disabled]="!isDirty(p.key, loc.locale) || saving() === p.key + '|' + loc.locale"
                       class="px-4 py-2 bg-teal-600 text-white text-xs font-semibold rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
@@ -84,13 +84,13 @@ import { AiPrompt } from '../../core/models/ai-prompt.model';
                       }
                       Salva
                     </button>
-                    @if (loc.overridden) {
-                      <button (click)="reset(p.key, loc.locale)"
-                        [disabled]="saving() === p.key + '|' + loc.locale"
-                        class="px-4 py-2 border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition-colors">
-                        Ripristina default
-                      </button>
-                    }
+                    <button (click)="restoreFactory(p.key, loc.locale)"
+                      [disabled]="saving() === p.key + '|' + loc.locale"
+                      title="Riporta il prompt al testo predefinito di fabbrica e rimuove la personalizzazione dello studio"
+                      class="px-4 py-2 border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-[14px]">restart_alt</span>
+                      Ripristina predefinito
+                    </button>
                     @if (savedFlag() === p.key + '|' + loc.locale) {
                       <span class="text-xs text-teal-600 font-semibold flex items-center gap-1">
                         <span class="material-symbols-outlined text-[14px]">check_circle</span> Salvato
@@ -186,17 +186,34 @@ export class AiPromptsComponent implements OnInit {
     });
   }
 
-  reset(key: string, locale: string): void {
-    if (!confirm('Ripristinare il prompt di default per questa lingua? La personalizzazione dello studio verrà rimossa.')) return;
+  /**
+   * Riporta il prompt al testo predefinito di fabbrica (risorsa bundle) per questa lingua e
+   * rimuove l'eventuale personalizzazione dello studio. Recupero da modifiche errate.
+   */
+  restoreFactory(key: string, locale: string): void {
+    const p = this.prompts().find(x => x.key === key);
+    const loc = p?.locales.find(l => l.locale === locale);
+    if (!loc) return;
+    if (!confirm('Ripristinare il prompt predefinito di fabbrica per questa lingua? La personalizzazione dello studio verrà rimossa.')) return;
     const id = key + '|' + locale;
-    this.saving.set(id);
-    this.svc.reset(key, locale).subscribe({
-      next: () => {
-        this.saving.set(null);
-        this.drafts.delete(id);
-        this.load();
-      },
-      error: () => this.saving.set(null)
-    });
+    const factory = loc.defaultValue;
+
+    if (loc.overridden) {
+      this.saving.set(id);
+      this.svc.reset(key, locale).subscribe({
+        next: () => {
+          this.saving.set(null);
+          this.drafts.set(id, factory);
+          this.prompts.update(list => list.map(pr => pr.key !== key ? pr : {
+            ...pr,
+            locales: pr.locales.map(l => l.locale !== locale ? l : { ...l, value: factory, overridden: false })
+          }));
+        },
+        error: () => this.saving.set(null)
+      });
+    } else {
+      // Nessun override: ricarica il testo di fabbrica nell'editor (annulla modifiche non salvate)
+      this.drafts.set(id, factory);
+    }
   }
 }
