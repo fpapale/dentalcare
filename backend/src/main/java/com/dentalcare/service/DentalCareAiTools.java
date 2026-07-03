@@ -8,6 +8,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -588,6 +589,71 @@ public class DentalCareAiTools {
                 + "Per confermare chiama confirmAction con il codice " + code + ".";
     }
 
+    // ── Cross-modulo: preventivo dalle carie dell'odontogramma ───────────────
+
+    @Tool(description = "Prepare a draft estimate (preventivo) built from the caries (carie/'cavity') detected in the patient's odontogram: one filling line per affected tooth, priced with the default service mapped to the 'cavity' condition in the service catalog. Returns a PREVIEW plus a confirmation code. Medical staff only. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String generateEstimateFromOdontogram(
+            @ToolParam(description = "Patient UUID from searchPatients.") String patientId,
+            @ToolParam(description = "Estimate title (optional, default 'Preventivo da odontogramma').") String title) {
+        if (!isMedical()) return "Funzione riservata al personale medico.";
+        UUID pid;
+        try { pid = UUID.fromString(patientId); } catch (Exception e) { return "Errore: id paziente non valido."; }
+
+        // Carie rilevate nell'odontogramma = condizione 'cavity'. Raggruppa per dente (FDI distinto):
+        // una prestazione per dente cariato, non una per superficie.
+        List<Integer> cavityTeeth = odontogramService.findByPatient(pid).stream()
+                .filter(c -> "cavity".equalsIgnoreCase(c.condition()))
+                .map(ToothConditionDto::toothFdi)
+                .distinct()
+                .sorted()
+                .toList();
+
+        String patientName = patientName(patientId);
+        if (cavityTeeth.isEmpty())
+            return "Nessuna carie rilevata nell'odontogramma di " + patientName + ". Nessun preventivo da generare.";
+
+        // Prestazione di default mappata alla condizione 'cavity' (condition_service_defaults, primo per sort_order).
+        List<ServiceDto> defaults = serviceCatalogService.findConditionDefaults("cavity");
+        if (defaults.isEmpty())
+            return "Nessuna prestazione di default configurata per le carie (condizione 'cavity'). "
+                    + "Configura la mappatura condizione→prestazione nel listino prima di procedere.";
+        ServiceDto svc = defaults.get(0);
+        BigDecimal unit = svc.defaultPrice() != null ? svc.defaultPrice() : BigDecimal.ZERO;
+
+        StringBuilder preview = new StringBuilder();
+        preview.append("Preventivo per ").append(patientName)
+               .append(" — carie rilevate su ").append(cavityTeeth.size()).append(" dente/i:\n");
+        BigDecimal total = BigDecimal.ZERO;
+        for (Integer fdi : cavityTeeth) {
+            preview.append("  - Dente ").append(fdi).append(": ").append(svc.name())
+                   .append(" (").append(unit).append(" €)\n");
+            total = total.add(unit);
+        }
+        preview.append("Totale indicativo: ").append(total).append(" € (sconti/IVA esclusi).");
+
+        String estTitle = (title != null && !title.isBlank()) ? title.trim() : "Preventivo da odontogramma";
+        UUID providerId = currentProviderId();
+        String summary = "Nuovo preventivo '" + estTitle + "' per " + patientName
+                + " con " + cavityTeeth.size() + " prestazione/i (" + svc.name() + ")";
+        String code = pendingActions.register("ESTIMATE_FROM_ODONTOGRAM", providerId, summary,
+                () -> {
+                    UUID estimateId = estimateService.create(new CreateEstimateRequest(
+                            pid, null, providerId, estTitle, "Generato dalle carie dell'odontogramma", null));
+                    int lines = 0;
+                    for (Integer fdi : cavityTeeth) {
+                        estimateService.addLine(estimateId, new AddEstimateLineRequest(
+                                svc.serviceId(), null, null, String.valueOf(fdi),
+                                BigDecimal.ONE, null, null, null, null));
+                        lines++;
+                    }
+                    return "Preventivo creato (id " + estimateId + ") con " + lines + " prestazione/i. " + summary;
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n"
+                + preview + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
     // ── Richiami ─────────────────────────────────────────────────────────────
 
     @Tool(description = "Prepare creation of a new recall (richiamo) for a patient and return a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
@@ -649,6 +715,51 @@ public class DentalCareAiTools {
                 });
 
         return "ANTEPRIMA — nessuna modifica salvata.\n" + summary + "\n"
+                + "Per confermare chiama confirmAction con il codice " + code + ".";
+    }
+
+    // ── Cross-modulo: prepara i richiami del mese ────────────────────────────
+
+    @Tool(description = "Prepare the monthly recalls (richiami del mese): list the recalls already due in the current calendar month and propose generating new periodic-check recalls for patients whose last visit is older than the given interval and who have no open recall. Returns a PREVIEW plus a confirmation code. This does NOT save anything. Show the preview; when the user confirms, call confirmAction with the returned code.")
+    public String prepareMonthlyRecalls(
+            @ToolParam(description = "Recall interval in months used to select patients due for a periodic check (default 6).") Integer intervalMonths) {
+        int interval = (intervalMonths != null && intervalMonths > 0) ? intervalMonths : 6;
+        LocalDate today = LocalDate.now();
+        LocalDate firstOfMonth = today.withDayOfMonth(1);
+        LocalDate lastOfMonth = today.withDayOfMonth(today.lengthOfMonth());
+
+        // Richiami già dovuti nel mese corrente e ancora aperti (non chiusi/annullati).
+        List<RecallDto> dueThisMonth = recallService.findAll(null, null, null).stream()
+                .filter(r -> r.dueDate() != null
+                        && !r.dueDate().isBefore(firstOfMonth)
+                        && !r.dueDate().isAfter(lastOfMonth)
+                        && !"chiuso".equals(r.status()) && !"annullato".equals(r.status()))
+                .toList();
+
+        StringBuilder preview = new StringBuilder();
+        preview.append("Richiami in scadenza questo mese (").append(dueThisMonth.size()).append("):\n");
+        if (dueThisMonth.isEmpty()) {
+            preview.append("  nessuno\n");
+        } else {
+            dueThisMonth.stream().limit(20).forEach(r -> preview.append("  - ")
+                    .append(r.patientFullName()).append(" — ").append(r.recallType())
+                    .append(" (scad. ").append(r.dueDate()).append(", ").append(r.priority()).append(")\n"));
+            if (dueThisMonth.size() > 20)
+                preview.append("  … e altri ").append(dueThisMonth.size() - 20).append("\n");
+        }
+
+        String summary = "Generazione richiami di controllo periodico (intervallo " + interval
+                + " mesi) per i pazienti con ultima visita oltre " + interval
+                + " mesi fa e senza richiami aperti";
+        String code = pendingActions.register("GENERATE_MONTHLY_RECALLS", currentProviderId(), summary,
+                () -> {
+                    GenerateRecallsResponse resp = recallService.generateRecalls(interval);
+                    return resp.message();
+                });
+
+        return "ANTEPRIMA — nessuna modifica salvata.\n"
+                + preview
+                + "Azione proposta: " + summary + ".\n"
                 + "Per confermare chiama confirmAction con il codice " + code + ".";
     }
 
