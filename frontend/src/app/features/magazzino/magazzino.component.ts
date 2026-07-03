@@ -1,12 +1,13 @@
 import { Component, AfterViewInit, OnDestroy, OnInit, TemplateRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { LayoutService } from '../../core/services/layout.service';
 import { ProductService } from '../../core/services/product.service';
 import { SupplierService } from '../../core/services/supplier.service';
 import { StockMovementService } from '../../core/services/stock-movement.service';
-import { Product, ProductCategory, CreateProductRequest } from '../../core/models/product.model';
+import { Product, ProductCategory, CreateProductRequest, CreateProductCategoryRequest } from '../../core/models/product.model';
 import { Supplier, CreateSupplierRequest } from '../../core/models/supplier.model';
 import { StockMovement, CreateStockMovementRequest } from '../../core/models/stock-movement.model';
 
@@ -24,7 +25,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly supplierService = inject(SupplierService);
   private readonly movementService = inject(StockMovementService);
 
-  activeTab = signal<'prodotti' | 'movimenti' | 'fornitori'>('prodotti');
+  activeTab = signal<'prodotti' | 'movimenti' | 'fornitori' | 'categorie'>('prodotti');
 
   products = signal<Product[]>([]);
   categories = signal<ProductCategory[]>([]);
@@ -38,6 +39,10 @@ export class MagazzinoComponent implements OnInit, AfterViewInit, OnDestroy {
   showNewProduct = signal(false);
   showNewMovement = signal(false);
   showNewSupplier = signal(false);
+
+  editingCategory = signal<ProductCategory | null>(null);
+  categoryName = signal('');
+  categoryError = signal<string | null>(null);
 
   selectedProduct = signal<Product | null>(null);
   movementType = signal<'carico' | 'scarico'>('carico');
@@ -157,7 +162,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  setTab(tab: 'prodotti' | 'movimenti' | 'fornitori'): void {
+  setTab(tab: 'prodotti' | 'movimenti' | 'fornitori' | 'categorie'): void {
     this.activeTab.set(tab);
     if (tab === 'movimenti' && this.movements().length === 0) {
       this.loadMovements();
@@ -270,6 +275,66 @@ export class MagazzinoComponent implements OnInit, AfterViewInit, OnDestroy {
       next: () => this.loadSuppliers(),
       error: () => this.error.set('Errore nell\'eliminazione fornitore')
     });
+  }
+
+  loadCategories(): void {
+    this.productService.findCategories().subscribe({
+      next: data => this.categories.set(data),
+      error: () => this.categoryError.set('Errore nel caricamento categorie')
+    });
+  }
+
+  startEditCategory(category: ProductCategory): void {
+    this.editingCategory.set(category);
+    this.categoryName.set(category.name);
+    this.categoryError.set(null);
+  }
+
+  cancelCategory(): void {
+    this.editingCategory.set(null);
+    this.categoryName.set('');
+    this.categoryError.set(null);
+  }
+
+  saveCategory(): void {
+    const name = this.categoryName().trim();
+    if (!name) return;
+    this.categoryError.set(null);
+    const request: CreateProductCategoryRequest = { name };
+    const editing = this.editingCategory();
+    const request$ = editing
+      ? this.productService.updateCategory(editing.categoryId, request)
+      : this.productService.createCategory(request);
+    this.saving.set(true);
+    request$.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.cancelCategory();
+        this.loadCategories();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.saving.set(false);
+        this.categoryError.set(this.extractCategoryError(err, 'Errore nel salvataggio categoria'));
+      }
+    });
+  }
+
+  deleteCategory(category: ProductCategory): void {
+    if (!confirm(`Eliminare la categoria "${category.name}"?`)) return;
+    this.categoryError.set(null);
+    this.productService.deleteCategory(category.categoryId).subscribe({
+      next: () => this.loadCategories(),
+      error: (err: HttpErrorResponse) => {
+        this.categoryError.set(this.extractCategoryError(err, 'Errore nell\'eliminazione categoria'));
+      }
+    });
+  }
+
+  private extractCategoryError(err: HttpErrorResponse, fallback: string): string {
+    if (err.status === 409) {
+      return 'Categoria in uso, riassegna i prodotti prima di eliminarla';
+    }
+    return err.error?.message || fallback;
   }
 
   barWidth(product: Product): number {

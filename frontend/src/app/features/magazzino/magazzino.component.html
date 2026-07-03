@@ -80,6 +80,11 @@
       [class]="activeTab() === 'fornitori' ? 'border-teal-600 text-teal-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
       <span class="material-symbols-outlined text-[18px]">local_shipping</span> Fornitori
     </button>
+    <button (click)="setTab('categorie')"
+      class="flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors"
+      [class]="activeTab() === 'categorie' ? 'border-teal-600 text-teal-600' : 'border-transparent text-slate-500 hover:text-slate-700'">
+      <span class="material-symbols-outlined text-[18px]">category</span> Categorie
+    </button>
   </div>
 
   <!-- Body -->
@@ -338,6 +343,69 @@
               }
             </div>
           }
+        </div>
+      }
+
+      <!-- CATEGORIE TAB -->
+      @if (activeTab() === 'categorie') {
+        <div class="px-5 py-4 flex flex-col gap-4 max-w-2xl">
+
+          @if (categoryError()) {
+            <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <span class="material-symbols-outlined text-red-500">error</span>
+              <p class="text-sm text-red-700">{{ categoryError() }}</p>
+            </div>
+          }
+
+          <!-- Form nuova/modifica categoria -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <h2 class="text-sm font-bold text-slate-800 mb-3">
+              {{ editingCategory() ? 'Modifica categoria' : 'Nuova categoria' }}
+            </h2>
+            <div class="flex items-center gap-3">
+              <input [ngModel]="categoryName()" (ngModelChange)="categoryName.set($event)"
+                placeholder="es. Anestetici" (keyup.enter)="saveCategory()"
+                class="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              <button (click)="saveCategory()" [disabled]="saving() || !categoryName().trim()"
+                class="px-4 py-2 text-sm font-bold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0">
+                @if (saving()) {
+                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                }
+                {{ editingCategory() ? 'Aggiorna' : 'Salva' }}
+              </button>
+              @if (editingCategory()) {
+                <button (click)="cancelCategory()"
+                  class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+                  Annulla
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Lista categorie -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            @if (categories().length === 0) {
+              <div class="py-12 text-center text-sm text-slate-400">Nessuna categoria configurata</div>
+            } @else {
+              <ul class="divide-y divide-slate-100">
+                @for (cat of categories(); track cat.categoryId) {
+                  <li class="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors">
+                    <span class="text-sm font-semibold text-slate-800">{{ cat.name }}</span>
+                    <div class="flex items-center gap-1">
+                      <button (click)="startEditCategory(cat)" title="Modifica"
+                        class="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                      </button>
+                      <button (click)="deleteCategory(cat)" title="Elimina"
+                        class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
         </div>
       }
 

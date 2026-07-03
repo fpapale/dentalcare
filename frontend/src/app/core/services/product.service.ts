@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Product, ProductCategory, CreateProductRequest, UpdateProductRequest } from '../models/product.model';
+import { Product, ProductCategory, CreateProductRequest, UpdateProductRequest, CreateProductCategoryRequest } from '../models/product.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
@@ -18,6 +18,18 @@ export class ProductService {
 
   findCategories(): Observable<ProductCategory[]> {
     return this.http.get<ProductCategory[]>(this.categoryBase);
+  }
+
+  createCategory(request: CreateProductCategoryRequest): Observable<ProductCategory> {
+    return this.http.post<ProductCategory>(this.categoryBase, request);
+  }
+
+  updateCategory(id: string, request: CreateProductCategoryRequest): Observable<ProductCategory> {
+    return this.http.put<ProductCategory>(`${this.categoryBase}/${id}`, request);
+  }
+
+  deleteCategory(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.categoryBase}/${id}`);
   }
 
   create(request: CreateProductRequest): Observable<Product> {

@@ -21,6 +21,10 @@ export interface ProductCategory {
   name: string;
 }
 
+export interface CreateProductCategoryRequest {
+  name: string;
+}
+
 export interface CreateProductRequest {
   categoryId?: string;
   supplierId?: string;
