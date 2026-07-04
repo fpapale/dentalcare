@@ -86,7 +86,13 @@ public class TenantProvisioningService {
         // viste aggiornate, ecc.): create_tenant() può restare indietro rispetto all'app tra un
         // deploy e l'altro, e senza questa chiamata il tenant resterebbe disallineato fino al
         // prossimo riavvio del backend (quando gira EstimateSchemaInitializer allo startup).
-        estimateSchemaInitializer.patchSchema(schemaName);
+        try {
+            estimateSchemaInitializer.patchSchema(schemaName);
+        } catch (Exception e) {
+            // Best-effort: lo schema/tenant sono già committati; un errore nel patching non deve
+            // far fallire la registrazione. EstimateSchemaInitializer ripara al prossimo riavvio.
+            log.warn("patchSchema post-provisioning fallito per schema {}: {}", schemaName, e.getMessage());
+        }
 
         final String bucket = minio.bucketFor(schemaName);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
