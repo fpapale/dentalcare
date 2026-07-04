@@ -1,6 +1,7 @@
 package com.dentalcare.service;
 
 import com.dentalcare.security.TenantContext;
+import com.dentalcare.security.crypto.TenantEncryptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +33,12 @@ public class TenantExportService {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper objectMapper;
+    private final TenantEncryptionService enc;
 
-    public TenantExportService(NamedParameterJdbcTemplate jdbc, ObjectMapper objectMapper) {
+    public TenantExportService(NamedParameterJdbcTemplate jdbc, ObjectMapper objectMapper, TenantEncryptionService enc) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.enc = enc;
     }
 
     public void exportClinicToStream(UUID clinicId, OutputStream out) throws IOException {
@@ -53,10 +56,10 @@ public class TenantExportService {
                             "FROM " + schema + ".providers WHERE clinic_id = :clinicId ORDER BY last_name, first_name",
                     new String[]{"id", "first_name", "last_name", "email", "role", "active"}, cidParam));
 
-            rowCounts.put("customers", writeCsvNamed(zip, "data/customers.csv",
-                    "SELECT id, first_name, last_name, fiscal_code, birth_date, phone, city " +
+            rowCounts.put("customers", writeCustomersCsv(zip, schema,
+                    "SELECT id, first_name, last_name, fiscal_code, birth_date_enc, phone, city " +
                             "FROM " + schema + ".patients WHERE clinic_id = :clinicId ORDER BY last_name, first_name",
-                    new String[]{"id", "first_name", "last_name", "fiscal_code", "birth_date", "phone", "city"}, cidParam));
+                    cidParam));
 
             rowCounts.put("appointments", writeCsvNamed(zip, "data/appointments.csv",
                     "SELECT id, patient_id, provider_id, starts_at, ends_at, status::text AS status, notes " +
@@ -125,10 +128,10 @@ public class TenantExportService {
                             "FROM " + schema + ".providers ORDER BY last_name, first_name",
                     new String[]{"id", "first_name", "last_name", "email", "role", "active"}));
 
-            rowCounts.put("customers", writeCsv(zip, "data/customers.csv",
-                    "SELECT id, first_name, last_name, fiscal_code, birth_date, phone, city " +
+            rowCounts.put("customers", writeCustomersCsv(zip, schema,
+                    "SELECT id, first_name, last_name, fiscal_code, birth_date_enc, phone, city " +
                             "FROM " + schema + ".patients ORDER BY last_name, first_name",
-                    new String[]{"id", "first_name", "last_name", "fiscal_code", "birth_date", "phone", "city"}));
+                    new MapSqlParameterSource()));
 
             rowCounts.put("appointments", writeCsv(zip, "data/appointments.csv",
                     "SELECT id, patient_id, provider_id, starts_at, ends_at, status::text AS status, notes " +
@@ -237,6 +240,51 @@ public class TenantExportService {
         writer.flush();
         zip.closeEntry();
         return count[0];
+    }
+
+    /**
+     * Export dedicato per data/customers.csv: birth_date_enc va decifrato riga per riga
+     * (AES-GCM per-tenant), non può passare dal writer generico writeCsvNamed/writeCsv
+     * che scrive i valori colonna così come arrivano dal ResultSet.
+     */
+    private int writeCustomersCsv(ZipOutputStream zip, String schema, String sql,
+                                   MapSqlParameterSource params) throws IOException {
+        zip.putNextEntry(new ZipEntry("data/customers.csv"));
+        PrintWriter writer = new PrintWriter(new OutputStreamWriter(zip, StandardCharsets.UTF_8));
+        writer.println("id,first_name,last_name,fiscal_code,birth_date,phone,city");
+
+        int[] count = {0};
+        jdbc.query(sql, params, rs -> {
+            String birthDate;
+            try {
+                birthDate = enc.decrypt(rs.getString("birth_date_enc"), schema);
+            } catch (SQLException e) {
+                birthDate = null;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(csvEscape(getColumn(rs, "id"))).append(',');
+            sb.append(csvEscape(getColumn(rs, "first_name"))).append(',');
+            sb.append(csvEscape(getColumn(rs, "last_name"))).append(',');
+            sb.append(csvEscape(getColumn(rs, "fiscal_code"))).append(',');
+            sb.append(csvEscape(birthDate)).append(',');
+            sb.append(csvEscape(getColumn(rs, "phone"))).append(',');
+            sb.append(csvEscape(getColumn(rs, "city")));
+            writer.println(sb.toString());
+            count[0]++;
+        });
+
+        writer.flush();
+        zip.closeEntry();
+        return count[0];
+    }
+
+    private Object getColumn(ResultSet rs, String column) {
+        try {
+            return rs.getObject(column);
+        } catch (SQLException e) {
+            return null;
+        }
     }
 
     private Map<String, Object> rowToMap(ResultSet rs) throws SQLException {
