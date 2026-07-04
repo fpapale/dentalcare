@@ -7,6 +7,7 @@ import com.dentalcare.dto.UpdatePatientRequest;
 import com.dentalcare.exception.PatientNotDeletableException;
 import com.dentalcare.exception.ResourceNotFoundException;
 import com.dentalcare.security.TenantContext;
+import com.dentalcare.security.crypto.TenantEncryptionService;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -21,9 +22,11 @@ import java.util.UUID;
 public class PatientService {
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final TenantEncryptionService enc;
 
-    public PatientService(NamedParameterJdbcTemplate jdbc) {
+    public PatientService(NamedParameterJdbcTemplate jdbc, TenantEncryptionService enc) {
         this.jdbc = jdbc;
+        this.enc = enc;
     }
 
     private String s() { return TenantContext.validatedSchema(); }
@@ -65,11 +68,11 @@ public class PatientService {
         UUID patientId = UUID.randomUUID();
         String sql = """
             INSERT INTO %s.patients
-                (id, clinic_id, first_name, last_name, fiscal_code, birth_date,
+                (id, clinic_id, first_name, last_name, fiscal_code, birth_date, birth_date_enc,
                  phone, email, address_line1, city, province, postal_code, notes,
                  primary_provider_id, foreign_patient)
             VALUES
-                (:id, :clinicId, :firstName, :lastName, :fiscalCode, :birthDate,
+                (:id, :clinicId, :firstName, :lastName, :fiscalCode, :birthDate, :birthDateEnc,
                  :phone, :email, :addressLine1, :city, :province, :postalCode, :notes,
                  :primaryProviderId, :foreignPatient)
             """.formatted(s());
@@ -80,6 +83,8 @@ public class PatientService {
                 .addValue("lastName", request.lastName())
                 .addValue("fiscalCode", request.fiscalCode())
                 .addValue("birthDate", request.birthDate())
+                .addValue("birthDateEnc",
+                        enc.encrypt(request.birthDate() != null ? request.birthDate().toString() : null, s()))
                 .addValue("phone", request.phone())
                 .addValue("email", request.email())
                 .addValue("addressLine1", request.addressLine1())
@@ -101,6 +106,7 @@ public class PatientService {
                 last_name     = :lastName,
                 fiscal_code   = :fiscalCode,
                 birth_date    = :birthDate,
+                birth_date_enc = :birthDateEnc,
                 phone         = :phone,
                 email         = :email,
                 address_line1 = :addressLine1,
@@ -117,6 +123,8 @@ public class PatientService {
                 .addValue("lastName",    request.lastName())
                 .addValue("fiscalCode",  request.fiscalCode())
                 .addValue("birthDate",   request.birthDate())
+                .addValue("birthDateEnc",
+                        enc.encrypt(request.birthDate() != null ? request.birthDate().toString() : null, s()))
                 .addValue("phone",       request.phone())
                 .addValue("email",       request.email())
                 .addValue("addressLine1",request.addressLine1())

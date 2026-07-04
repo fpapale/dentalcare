@@ -762,6 +762,7 @@ CREATE TABLE patients (
     email text,
     active boolean DEFAULT true NOT NULL,
     foreign_patient boolean DEFAULT false NOT NULL,
+    birth_date_enc text,
     primary_provider_id uuid,
     CONSTRAINT patients_first_name_not_empty CHECK ((length(TRIM(BOTH FROM first_name)) > 0)),
     CONSTRAINT patients_last_name_not_empty CHECK ((length(TRIM(BOTH FROM last_name)) > 0))
@@ -2737,6 +2738,7 @@ CREATE TABLE t_9d754153.patients (
     email text,
     active boolean DEFAULT true NOT NULL,
     foreign_patient boolean DEFAULT false NOT NULL,
+    birth_date_enc text,
     primary_provider_id uuid,
     CONSTRAINT patients_first_name_not_empty CHECK ((length(TRIM(BOTH FROM first_name)) > 0)),
     CONSTRAINT patients_last_name_not_empty CHECK ((length(TRIM(BOTH FROM last_name)) > 0))

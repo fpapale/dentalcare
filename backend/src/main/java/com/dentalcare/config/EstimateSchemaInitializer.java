@@ -145,6 +145,8 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             runStep(schema, "v_patient_estimates_summary",  () -> rebuildEstimatesSummaryView(schema));
             runStep(schema, "ai analyses tables",           () -> createAiTables(schema));
             runStep(schema, "ai_prompt_overrides",          () -> createAiPromptOverrides(schema));
+            runStep(schema, "patients birth_date_enc", () ->
+                    jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS birth_date_enc text"));
             log.debug("EstimateSchemaInitializer: patched schema {}", schema);
         }
     }
