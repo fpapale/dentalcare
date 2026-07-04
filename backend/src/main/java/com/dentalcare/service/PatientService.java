@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,13 +40,13 @@ public class PatientService {
                 : "";
         String sql = """
             SELECT v.patient_id, v.patient_first_name, v.patient_last_name, v.patient_full_name,
-                   v.fiscal_code, v.birth_date, v.age_years, v.phone, v.email, v.city, v.province,
+                   v.fiscal_code, v.phone, v.email, v.city, v.province,
                    v.treatment_plans_count, v.open_treatment_items_count,
                    v.accepted_estimates_amount,
                    v.active,
                    (SELECT COUNT(*) FROM %s.appointments a
                     WHERE a.patient_id = v.patient_id AND a.clinic_id = v.clinic_id) AS total_appointments,
-                   pat.photo_url
+                   pat.photo_url, pat.birth_date_enc
             FROM %s.v_patient_dashboard v
             JOIN %s.patients pat ON pat.id = v.patient_id
             WHERE v.clinic_id = :clinicId
@@ -82,7 +84,7 @@ public class PatientService {
                 .addValue("firstName", request.firstName())
                 .addValue("lastName", request.lastName())
                 .addValue("fiscalCode", request.fiscalCode())
-                .addValue("birthDate", request.birthDate())
+                .addValue("birthDate", null)   // plaintext non più scritto; solo birth_date_enc
                 .addValue("birthDateEnc",
                         enc.encrypt(request.birthDate() != null ? request.birthDate().toString() : null, s()))
                 .addValue("phone", request.phone())
@@ -122,7 +124,7 @@ public class PatientService {
                 .addValue("firstName",   request.firstName())
                 .addValue("lastName",    request.lastName())
                 .addValue("fiscalCode",  request.fiscalCode())
-                .addValue("birthDate",   request.birthDate())
+                .addValue("birthDate",   null)   // plaintext non più scritto; solo birth_date_enc
                 .addValue("birthDateEnc",
                         enc.encrypt(request.birthDate() != null ? request.birthDate().toString() : null, s()))
                 .addValue("phone",       request.phone())
@@ -146,7 +148,7 @@ public class PatientService {
                 : "";
         String sql = """
             SELECT p.patient_id, p.first_name, p.last_name, p.full_name,
-                   p.fiscal_code, p.birth_date, p.age_years, p.phone, p.email,
+                   p.fiscal_code, p.phone, p.email,
                    p.city, p.province, p.patient_notes,
                    p.blood_type, p.smoker, p.hypertension, p.diabetes, p.heart_disease,
                    p.taking_anticoagulants, p.taking_bisphosphonates,
@@ -159,7 +161,7 @@ public class PatientService {
                     JOIN %s.treatment_plans tp2 ON tp2.id = tpi.treatment_plan_id AND tp2.clinic_id = tpi.clinic_id
                     WHERE tp2.patient_id = p.patient_id AND tpi.clinic_id = p.clinic_id
                       AND tpi.status IN ('planned','accepted','scheduled')) AS open_treatment_items_count,
-                   pat.address_line1, pat.postal_code, pat.photo_url,
+                   pat.address_line1, pat.postal_code, pat.photo_url, pat.birth_date_enc,
                    pat.primary_provider_id, pat.foreign_patient,
                    concat_ws(' ', pp.last_name, pp.first_name) AS primary_provider_name
             FROM %s.v_patient_clinical_card p
@@ -231,14 +233,15 @@ public class PatientService {
     }
 
     private PatientListDto mapListRow(ResultSet rs) throws SQLException {
+        LocalDate birth = decodeBirthDate(rs.getString("birth_date_enc"));
         return new PatientListDto(
                 rs.getObject("patient_id", UUID.class),
                 rs.getString("patient_full_name"),
                 rs.getString("patient_first_name"),
                 rs.getString("patient_last_name"),
                 rs.getString("fiscal_code"),
-                rs.getDate("birth_date") != null ? rs.getDate("birth_date").toLocalDate() : null,
-                rs.getObject("age_years", Integer.class),
+                birth,
+                birth != null ? Period.between(birth, LocalDate.now()).getYears() : null,
                 rs.getString("phone"),
                 rs.getString("email"),
                 rs.getString("city"),
@@ -253,14 +256,15 @@ public class PatientService {
     }
 
     private PatientDetailDto mapDetailRow(ResultSet rs) throws SQLException {
+        LocalDate birth = decodeBirthDate(rs.getString("birth_date_enc"));
         return new PatientDetailDto(
                 rs.getObject("patient_id", UUID.class),
                 rs.getString("first_name"),
                 rs.getString("last_name"),
                 rs.getString("full_name"),
                 rs.getString("fiscal_code"),
-                rs.getDate("birth_date") != null ? rs.getDate("birth_date").toLocalDate() : null,
-                rs.getObject("age_years", Integer.class),
+                birth,
+                birth != null ? Period.between(birth, LocalDate.now()).getYears() : null,
                 rs.getString("phone"),
                 rs.getString("email"),
                 rs.getString("city"),
@@ -290,6 +294,11 @@ public class PatientService {
                 rs.getString("primary_provider_name"),
                 rs.getObject("foreign_patient", Boolean.class)
         );
+    }
+
+    private LocalDate decodeBirthDate(String enc) {
+        String s = this.enc.decrypt(enc, s());
+        return s != null ? LocalDate.parse(s) : null;
     }
 
     public void updatePhoto(UUID patientId, String photoDataUrl) {

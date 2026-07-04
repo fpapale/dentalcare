@@ -1075,11 +1075,6 @@ CREATE VIEW v_patient_clinical_card AS
     p.first_name,
     p.last_name,
     concat_ws(' '::text, p.last_name, p.first_name) AS full_name,
-    p.birth_date,
-        CASE
-            WHEN (p.birth_date IS NULL) THEN NULL::integer
-            ELSE (date_part('year'::text, age((CURRENT_DATE)::timestamp with time zone, (p.birth_date)::timestamp with time zone)))::integer
-        END AS age_years,
     p.fiscal_code,
     p.phone,
     p.email,
@@ -1114,11 +1109,6 @@ CREATE VIEW v_patient_dashboard AS
     p.last_name AS patient_last_name,
     concat_ws(' '::text, p.last_name, p.first_name) AS patient_full_name,
     p.fiscal_code,
-    p.birth_date,
-        CASE
-            WHEN (p.birth_date IS NULL) THEN NULL::integer
-            ELSE (date_part('year'::text, age((CURRENT_DATE)::timestamp with time zone, (p.birth_date)::timestamp with time zone)))::integer
-        END AS age_years,
     p.phone,
     p.email,
     p.city,
@@ -1131,7 +1121,7 @@ CREATE VIEW v_patient_dashboard AS
      LEFT JOIN treatment_plans tp ON (((tp.patient_id = p.id) AND (tp.clinic_id = p.clinic_id))))
      LEFT JOIN treatment_plan_items tpi ON (((tpi.treatment_plan_id = tp.id) AND (tpi.clinic_id = p.clinic_id))))
      LEFT JOIN estimates e ON (((e.patient_id = p.id) AND (e.clinic_id = p.clinic_id))))
-  GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code, p.birth_date, p.phone, p.email, p.city, p.province, p.active;
+  GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code, p.phone, p.email, p.city, p.province, p.active;
 
 CREATE VIEW v_patient_estimates_summary AS
  SELECT e.id AS estimate_id,
@@ -3136,11 +3126,6 @@ CREATE VIEW t_9d754153.v_patient_clinical_card AS
     p.first_name,
     p.last_name,
     concat_ws(' '::text, p.last_name, p.first_name) AS full_name,
-    p.birth_date,
-        CASE
-            WHEN (p.birth_date IS NULL) THEN NULL::integer
-            ELSE (date_part('year'::text, age((CURRENT_DATE)::timestamp with time zone, (p.birth_date)::timestamp with time zone)))::integer
-        END AS age_years,
     p.fiscal_code,
     p.phone,
     p.email,
@@ -3180,11 +3165,6 @@ CREATE VIEW t_9d754153.v_patient_dashboard AS
     p.last_name AS patient_last_name,
     concat_ws(' '::text, p.last_name, p.first_name) AS patient_full_name,
     p.fiscal_code,
-    p.birth_date,
-        CASE
-            WHEN (p.birth_date IS NULL) THEN NULL::integer
-            ELSE (date_part('year'::text, age((CURRENT_DATE)::timestamp with time zone, (p.birth_date)::timestamp with time zone)))::integer
-        END AS age_years,
     p.phone,
     p.email,
     p.city,
@@ -3197,7 +3177,7 @@ CREATE VIEW t_9d754153.v_patient_dashboard AS
      LEFT JOIN t_9d754153.treatment_plans tp ON (((tp.patient_id = p.id) AND (tp.clinic_id = p.clinic_id))))
      LEFT JOIN t_9d754153.treatment_plan_items tpi ON (((tpi.treatment_plan_id = tp.id) AND (tpi.clinic_id = p.clinic_id))))
      LEFT JOIN t_9d754153.estimates e ON (((e.patient_id = p.id) AND (e.clinic_id = p.clinic_id))))
-  GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code, p.birth_date, p.phone, p.email, p.city, p.province, p.active;
+  GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code, p.phone, p.email, p.city, p.province, p.active;
 
 
 --

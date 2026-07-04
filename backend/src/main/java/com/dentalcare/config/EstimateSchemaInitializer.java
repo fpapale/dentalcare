@@ -431,9 +431,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  p.first_name AS patient_first_name," +
             "  p.last_name  AS patient_last_name," +
             "  concat_ws(' ', p.last_name, p.first_name) AS patient_full_name," +
-            "  p.fiscal_code, p.birth_date," +
-            "  CASE WHEN p.birth_date IS NULL THEN NULL" +
-            "       ELSE date_part('year', age(CURRENT_DATE, p.birth_date))::int END AS age_years," +
+            "  p.fiscal_code," +
             "  p.phone, p.email, p.city, p.province, p.active," +
             "  COUNT(DISTINCT tp.id) FILTER (WHERE tp.status NOT IN ('rejected','archived')) AS treatment_plans_count," +
             "  COUNT(DISTINCT tpi.id) FILTER (WHERE tpi.status IN ('planned','accepted','scheduled')) AS open_treatment_items_count," +
@@ -443,7 +441,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.treatment_plan_id = tp.id AND tpi.clinic_id = p.clinic_id" +
             " LEFT JOIN " + schema + ".estimates e ON e.patient_id = p.id AND e.clinic_id = p.clinic_id" +
             " GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code," +
-            "          p.birth_date, p.phone, p.email, p.city, p.province, p.active"
+            "          p.phone, p.email, p.city, p.province, p.active"
         );
     }
 
@@ -454,9 +452,6 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "SELECT p.id AS patient_id, p.clinic_id," +
             "  p.first_name, p.last_name," +
             "  concat_ws(' ', p.last_name, p.first_name) AS full_name," +
-            "  p.birth_date," +
-            "  CASE WHEN p.birth_date IS NULL THEN NULL" +
-            "       ELSE date_part('year', age(CURRENT_DATE, p.birth_date))::int END AS age_years," +
             "  p.fiscal_code, p.phone, p.email, p.city, p.province," +
             "  p.notes AS patient_notes, p.active," +
             "  pa.blood_type, pa.smoker, pa.hypertension, pa.diabetes, pa.heart_disease," +
