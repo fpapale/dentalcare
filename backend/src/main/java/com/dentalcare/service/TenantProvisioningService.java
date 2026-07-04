@@ -1,5 +1,6 @@
 package com.dentalcare.service;
 
+import com.dentalcare.config.EstimateSchemaInitializer;
 import com.dentalcare.dto.RegistrationRequest;
 import com.dentalcare.dto.TenantProvisioningResult;
 import com.dentalcare.security.TenantSchemaRegistry;
@@ -32,6 +33,7 @@ public class TenantProvisioningService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final MinioStorageService minio;
+    private final EstimateSchemaInitializer estimateSchemaInitializer;
 
     @Value("${app.frontend.base-url:http://localhost:4200}")
     private String frontendBaseUrl;
@@ -40,12 +42,14 @@ public class TenantProvisioningService {
                                      TenantSchemaRegistry registry,
                                      PasswordEncoder passwordEncoder,
                                      EmailService emailService,
-                                     MinioStorageService minio) {
+                                     MinioStorageService minio,
+                                     EstimateSchemaInitializer estimateSchemaInitializer) {
         this.jdbc = jdbc;
         this.registry = registry;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.minio = minio;
+        this.estimateSchemaInitializer = estimateSchemaInitializer;
     }
 
     public TenantProvisioningResult provision(RegistrationRequest req) {
@@ -77,6 +81,12 @@ public class TenantProvisioningService {
         registry.register(clinicId.toString(), schemaName);
         log.info("Tenant provisioned: schema={} clinicId={} tenantId={} adminId={}",
                 schemaName, clinicId, tenantId, adminId);
+
+        // Allinea subito lo schema appena creato alle patch correnti (birth_date_enc, foreign_patient,
+        // viste aggiornate, ecc.): create_tenant() può restare indietro rispetto all'app tra un
+        // deploy e l'altro, e senza questa chiamata il tenant resterebbe disallineato fino al
+        // prossimo riavvio del backend (quando gira EstimateSchemaInitializer allo startup).
+        estimateSchemaInitializer.patchSchema(schemaName);
 
         final String bucket = minio.bucketFor(schemaName);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {

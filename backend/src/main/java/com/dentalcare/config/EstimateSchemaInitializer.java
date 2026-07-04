@@ -91,64 +91,75 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         }
 
         for (String schema : schemas) {
-            Integer exists = jdbc.queryForObject(
-                    "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?",
-                    Integer.class, schema);
-            if (exists == null || exists == 0) {
-                log.warn("EstimateSchemaInitializer: schema {} registered but does not exist — skipping", schema);
-                continue;
-            }
-            runStep(schema, "clinics/patients/providers columns", () -> {
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS email TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS legal_name TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS vat_number TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS fiscal_code TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS phone TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS address_line1 TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS address_line2 TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS city TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS province TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS postal_code TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS country TEXT NOT NULL DEFAULT 'IT'");
-                jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()");
-                jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true");
-                jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS photo_url TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS photo_url TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS vat_number TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS fiscal_code TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS professional_register TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS register_number TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_address_street TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_address_zip TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_address_city TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_address_province TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_pec TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_iban TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_sdi_code TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS invoice_prefix TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS password_temporary BOOLEAN NOT NULL DEFAULT false");
-            });
-            runStep(schema, "providers/role+phone", () -> {
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS phone TEXT");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()");
-                jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS role dentalcare.provider_role NOT NULL DEFAULT 'dentist'");
-            });
-            runStep(schema, "estimates+lines",  () -> patchEstimatesAndLinesSchema(schema));
-            runStep(schema, "treatment_plan_items app-names", () -> patchTreatmentItemColumns(schema));
-            runStep(schema, "app columns",      () -> patchAppColumns(schema));
-            runStep(schema, "recalls",          () -> patchRecallsSchema(schema));
-            runStep(schema, "products",         () -> patchProductsSchema(schema));
-            runStep(schema, "v_clinic_dashboard",           () -> rebuildDashboardView(schema));
-            runStep(schema, "v_agenda_daily",               () -> rebuildAgendaView(schema));
-            runStep(schema, "v_patient_dashboard",          () -> rebuildPatientDashboardView(schema));
-            runStep(schema, "v_patient_clinical_card",      () -> rebuildPatientClinicalCardView(schema));
-            runStep(schema, "v_patient_estimates_summary",  () -> rebuildEstimatesSummaryView(schema));
-            runStep(schema, "ai analyses tables",           () -> createAiTables(schema));
-            runStep(schema, "ai_prompt_overrides",          () -> createAiPromptOverrides(schema));
-            runStep(schema, "patients birth_date_enc", () ->
-                    jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS birth_date_enc text"));
-            log.debug("EstimateSchemaInitializer: patched schema {}", schema);
+            patchSchema(schema);
         }
+    }
+
+    /**
+     * Applica tutte le patch idempotenti a un singolo schema tenant.
+     * Chiamata sia dal loop di startup ({@link #applyTenantOperationalPatches()}) sia
+     * subito dopo il provisioning di un nuovo tenant, così uno schema appena creato
+     * risulta immediatamente allineato (birth_date_enc, foreign_patient, viste aggiornate)
+     * senza dover attendere il prossimo riavvio del backend.
+     */
+    public void patchSchema(String schema) {
+        Integer exists = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?",
+                Integer.class, schema);
+        if (exists == null || exists == 0) {
+            log.warn("EstimateSchemaInitializer: schema {} registered but does not exist — skipping", schema);
+            return;
+        }
+        runStep(schema, "clinics/patients/providers columns", () -> {
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS email TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS legal_name TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS vat_number TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS fiscal_code TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS phone TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS address_line1 TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS address_line2 TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS city TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS province TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS postal_code TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS country TEXT NOT NULL DEFAULT 'IT'");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()");
+            jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true");
+            jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS photo_url TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS photo_url TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS vat_number TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS fiscal_code TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS professional_register TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS register_number TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_address_street TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_address_zip TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_address_city TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_address_province TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_pec TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_iban TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS billing_sdi_code TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS invoice_prefix TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS password_temporary BOOLEAN NOT NULL DEFAULT false");
+        });
+        runStep(schema, "providers/role+phone", () -> {
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS phone TEXT");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()");
+            jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS role dentalcare.provider_role NOT NULL DEFAULT 'dentist'");
+        });
+        runStep(schema, "estimates+lines",  () -> patchEstimatesAndLinesSchema(schema));
+        runStep(schema, "treatment_plan_items app-names", () -> patchTreatmentItemColumns(schema));
+        runStep(schema, "app columns",      () -> patchAppColumns(schema));
+        runStep(schema, "recalls",          () -> patchRecallsSchema(schema));
+        runStep(schema, "products",         () -> patchProductsSchema(schema));
+        runStep(schema, "v_clinic_dashboard",           () -> rebuildDashboardView(schema));
+        runStep(schema, "v_agenda_daily",               () -> rebuildAgendaView(schema));
+        runStep(schema, "v_patient_dashboard",          () -> rebuildPatientDashboardView(schema));
+        runStep(schema, "v_patient_clinical_card",      () -> rebuildPatientClinicalCardView(schema));
+        runStep(schema, "v_patient_estimates_summary",  () -> rebuildEstimatesSummaryView(schema));
+        runStep(schema, "ai analyses tables",           () -> createAiTables(schema));
+        runStep(schema, "ai_prompt_overrides",          () -> createAiPromptOverrides(schema));
+        runStep(schema, "patients birth_date_enc", () ->
+                jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS birth_date_enc text"));
+        log.debug("EstimateSchemaInitializer: patched schema {}", schema);
     }
 
     private void patchEstimatesAndLinesSchema(String schema) {
