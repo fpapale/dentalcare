@@ -30,8 +30,21 @@ tenant_idx_key = HKDF(master_key, salt=tenant_schema, info="dental-idx-v1", len=
 - Schema diverso → chiave diversa → isolamento tenant garantito matematicamente.
 - Nessuna tabella `tenant_keys` da proteggere.
 
+### Sorgente master key: `MasterKeyProvider` (seam per Vault futuro)
+La master key **non** viene letta direttamente da `@Value` dentro il service. È fornita da un'astrazione, così da poter passare a **HashiCorp Vault in seguito senza toccare il service o i domini**:
+
+```java
+public interface MasterKeyProvider {
+    byte[] masterKey(); // 32 byte; deve fallire se assente/malformata
+}
+```
+
+- **Iterazione 1 — `ConfigMasterKeyProvider`** (unica impl ora): legge l'hex da `app.encryption.master-key`, decodifica a 32 byte, valida la lunghezza. Bean attivo di default.
+- **Futuro — `VaultMasterKeyProvider`** (non implementato ora): legge la chiave da Vault (es. Spring Cloud Vault, KV v2 su un path dedicato). Selezione via `app.encryption.key-source=config|vault` (default `config`) o profilo Spring.
+- `TenantEncryptionService` dipende **solo** dall'interfaccia `MasterKeyProvider` e invoca `masterKey()` una volta all'init (fail-fast). Passare a Vault domani = aggiungere `VaultMasterKeyProvider` + dipendenza/config Spring Cloud Vault + `key-source=vault`; **nessuna modifica** a `TenantEncryptionService` né ai service di dominio.
+
 ### `TenantEncryptionService`
-Nuovo service singleton. Responsabilità uniche: derivare/cachare le chiavi per schema, cifrare, decifrare, calcolare blind index.
+Nuovo service singleton. Responsabilità uniche: derivare/cachare le chiavi per schema, cifrare, decifrare, calcolare blind index. Dipende da `MasterKeyProvider`.
 
 - **HKDF** (`hkdfSha256(masterKey, salt, info, 32)`): extract (`HMAC(salt, masterKey)`) + expand (RFC 5869). ~30 righe su `javax.crypto.Mac` con `HmacSHA256`. Nessuna dipendenza esterna.
 - **encrypt(plaintext, schema)**: `AES/GCM/NoPadding`, IV random 12 byte, tag 128 bit. Output = `Base64(iv || ciphertext || tag)`. `null` → `null`.
@@ -104,10 +117,11 @@ Lo `schema` passato al service è sempre `TenantContext.validatedSchema()` (serv
 
 ## Key management
 
-- `app.encryption.master-key` (hex 32 byte) in `backend/config/application.properties` (dev) e `config/application-prod.properties` (prod) — **gitignored**, secondo il pattern di precedenza config già in uso.
+- **Iterazione 1 (`ConfigMasterKeyProvider`)**: `app.encryption.master-key` (hex 32 byte) in `backend/config/application.properties` (dev) e `config/application-prod.properties` (prod) — **gitignored**, secondo il pattern di precedenza config già in uso. `app.encryption.key-source=config` (default).
 - **Chiavi diverse dev e prod.** Generazione una-tantum: `openssl rand -hex 32`.
-- **Perdita chiave = dati irrecuperabili.** La master key va conservata in un secret store sicuro (password manager/vault), non solo nel file sul server. Documentato nel runbook.
-- **Rotazione**: fuori scope iterazione 1; l'interfaccia del service (cache invalidabile, `info` versionata `-v1`) è predisposta per un runner di re-encryption futuro.
+- **Perdita chiave = dati irrecuperabili.** Finché non si usa Vault, la master key va conservata in un secret store sicuro (password manager), non solo nel file sul server. Documentato nel runbook.
+- **Vault (futuro, già predisposto)**: il secret store target è **HashiCorp Vault**. Con l'astrazione `MasterKeyProvider` il passaggio è additivo: `VaultMasterKeyProvider` + Spring Cloud Vault + `key-source=vault`, senza toccare cifratura o domini. Vedi Architettura → `MasterKeyProvider`.
+- **Rotazione**: fuori scope iterazione 1; l'interfaccia del service (cache invalidabile, `info` versionata `-v1`) e l'astrazione `MasterKeyProvider` sono predisposte per un runner di re-encryption e per la rotazione gestita da Vault in futuro.
 
 ## Error handling
 
@@ -127,6 +141,7 @@ Lo `schema` passato al service è sempre `TenantContext.validatedSchema()` (serv
 - Cifratura di anamnesi, cartelle cliniche, prescrizioni, note appuntamenti (iterazioni future, stesso pattern).
 - MinIO Server-Side Encryption per i file (ortopanoramiche/PDF) — track separato, zero modifiche codice.
 - Runner di rotazione master key.
+- Integrazione HashiCorp **Vault** (`VaultMasterKeyProvider` + Spring Cloud Vault): la seam `MasterKeyProvider` è pronta, l'implementazione è iterazione futura.
 - `DROP COLUMN` delle colonne plaintext (step successivo, dopo verifica in produzione).
 - Cifratura di `first_name`/`last_name` (richiederebbe motore di ricerca tokenizzato separato).
 
