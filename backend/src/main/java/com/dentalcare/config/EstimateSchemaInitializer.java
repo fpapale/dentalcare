@@ -159,6 +159,8 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         runStep(schema, "ai_prompt_overrides",          () -> createAiPromptOverrides(schema));
         runStep(schema, "patients birth_date_enc", () ->
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS birth_date_enc text"));
+        runStep(schema, "patients foreign_patient", () ->
+                jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS foreign_patient boolean NOT NULL DEFAULT false"));
         log.debug("EstimateSchemaInitializer: patched schema {}", schema);
     }
 
