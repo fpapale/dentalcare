@@ -669,6 +669,11 @@ Ordine obbligatorio in produzione (dati clinici — irreversibile):
 6. **Deploy cutover** (Task 5): l'avvio ricostruisce le viste senza `birth_date`/`age_years`; il service legge dal cifrato + età in Java. Da qui il plaintext non è più scritto.
 7. **(Step futuro, fuori Slice 1)** `UPDATE patients SET birth_date = NULL` sulle righe migrate, poi `DROP COLUMN birth_date` dopo verifica.
 
+### Note operative aggiuntive (da review finale)
+- **Verifica pre-cutover per-tenant** (runbook step 5): `SELECT count(*) FROM <schema>.patients WHERE birth_date IS NOT NULL AND birth_date_enc IS NULL` deve essere **0** prima di deployare il cutover — garantisce che ogni riga legacy sia migrata.
+- **Fresh install / tenant demo**: `install.sql` semina `t_9d754153.patients` con `birth_date` in chiaro ma **senza** `birth_date_enc` (il ciphertext dipende dalla master key dell'ambiente, non può stare nel dump). Su un'installazione nuova che gira già il codice di cutover, i pazienti demo mostrano età/nascita null finché non si esegue `POST /api/admin/encryption/migrate` **anche per lo schema demo**. Documentare/eseguire questo step post-install.
+- **`create_tenant()` stale (follow-up, non Slice 1)**: la funzione DB `dentalcare.create_tenant()` (installata da Flyway) NON contiene `birth_date_enc` né le viste aggiornate — come già accade per `foreign_patient` (#3). I tenant auto-provisionati a runtime tra due riavvii ricevono lo schema stale finché `EstimateSchemaInitializer` non li patcha al successivo restart. Fix proprio: migrazione `V26` che rigenera `create_tenant()` dal template canonico (chiude insieme `birth_date_enc` **e** `foreign_patient`), oppure invocare il patcher schema al termine di `TenantProvisioningService.provision()`. Richiede DB per il test.
+
 ---
 
 ## Self-Review

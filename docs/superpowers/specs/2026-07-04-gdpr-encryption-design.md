@@ -9,9 +9,30 @@
 
 Cifrare a riposo i campi sensibili dei pazienti (art. 32 GDPR) con cifratura campo-per-campo e **chiavi derivate per-tenant**, così che un breach del solo database non esponga i dati in chiaro. Prima iterazione limitata alla tabella `patients` per validare l'intero pattern (deriva chiave → encrypt/decrypt → blind index → ricerca → migrazione → error handling) end-to-end prima di estenderlo alle altre tabelle.
 
+## Decomposizione rivista (blast radius scoperto in fase di plan)
+
+Investigando il codice reale è emerso che i campi sensibili di `patients` si propagano molto oltre PatientService:
+
+| Campo | Consumatori (oltre PatientService) |
+|-------|-------------------------------------|
+| `fiscal_code` | EstimateService, InvoiceService (+ snapshot in `invoices`), viste preventivi |
+| `phone` | AppointmentService (agenda), RecallService, EstimateService |
+| `email` | InvoiceService |
+| `address_line1` | InvoiceService |
+| `birth_date` | **solo PatientService** (viste `v_patient_clinical_card` + `v_patient_dashboard`) |
+
+Le viste coinvolte sono definite in **3 sedi**: `install.sql` (template `create_tenant` + demo `t_9d754153`) e a runtime in `EstimateSchemaInitializer`. Cifrare un campo obbliga ogni consumatore a decifrare in Java nello stesso commit (altrimenti legge `null`).
+
+**Conseguenza:** cifrare `fiscal_code`/`phone`/`email` è inevitabilmente cross-modulo (5 service + ~5 viste ×3 sedi). `birth_date` è l'unico campo contenuto. Si divide quindi l'iterazione in due slice:
+
+- **Slice 1 (questo piano) — `birth_date`.** Prova l'intera macchina crypto end-to-end a basso rischio: `TenantEncryptionService` + HKDF + `MasterKeyProvider` (seam Vault) + migrazione idempotente + config + fail-fast + error handling, **più** il cambiamento strutturale più difficile: ricreazione delle 2 viste pazienti senza `age_years` e calcolo età in Java. Contenuto a PatientService + 2 viste + `EstimateSchemaInitializer`. `birth_date` non è ricercabile → nessun blind index in questo slice.
+- **Slice 2 (piano successivo) — `fiscal_code` + `phone` + `email` + `address_line1`.** Aggiunge il blind index + ricerca esatta e il decrypt cross-modulo nei 5 service, su core crypto già provato.
+
+Iterazioni ulteriori: anamnesi, cartelle cliniche, prescrizioni, note appuntamenti.
+
 ## Decisioni (dal brainstorming)
 
-1. **Scope iterazione 1 = solo `patients`** (vertical slice). Le altre tabelle (anamnesi, cartelle cliniche, prescrizioni, note appuntamenti) sono iterazioni future, fuori scope qui.
+1. **Tabella target = `patients`** (vertical slice). Divisa in Slice 1 (`birth_date`) + Slice 2 (campi ricercabili/cross-modulo) — vedi sopra. Le altre tabelle sono iterazioni future.
 2. **`birth_date` cifrato**, con il calcolo dell'età **spostato da SQL a Java** (la vista `v_patient_clinical_card` non può più calcolare `age_years` da un valore cifrato).
 3. **`fiscal_code`/`phone`/`email` cifrati con blind index → ricerca solo per valore esatto.** Si perde il match parziale `ILIKE` su questi tre campi; la ricerca per nome (non cifrato) resta parziale.
 4. **HKDF self-implementato** (RFC 5869 su `javax.crypto.Mac`), **nessuna dipendenza BouncyCastle**.
