@@ -451,7 +451,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  p.first_name AS patient_first_name," +
             "  p.last_name  AS patient_last_name," +
             "  concat_ws(' ', p.last_name, p.first_name) AS patient_full_name," +
-            "  p.fiscal_code," +
+            "  p.fiscal_code_enc, p.fiscal_code_idx," +
             "  p.phone, p.email, p.city, p.province, p.active," +
             "  COUNT(DISTINCT tp.id) FILTER (WHERE tp.status NOT IN ('rejected','archived')) AS treatment_plans_count," +
             "  COUNT(DISTINCT tpi.id) FILTER (WHERE tpi.status IN ('planned','accepted','scheduled')) AS open_treatment_items_count," +
@@ -460,7 +460,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             " LEFT JOIN " + schema + ".treatment_plans tp ON tp.patient_id = p.id AND tp.clinic_id = p.clinic_id" +
             " LEFT JOIN " + schema + ".treatment_plan_items tpi ON tpi.treatment_plan_id = tp.id AND tpi.clinic_id = p.clinic_id" +
             " LEFT JOIN " + schema + ".estimates e ON e.patient_id = p.id AND e.clinic_id = p.clinic_id" +
-            " GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code," +
+            " GROUP BY p.id, p.clinic_id, p.first_name, p.last_name, p.fiscal_code_enc, p.fiscal_code_idx," +
             "          p.phone, p.email, p.city, p.province, p.active"
         );
     }
@@ -472,7 +472,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "SELECT p.id AS patient_id, p.clinic_id," +
             "  p.first_name, p.last_name," +
             "  concat_ws(' ', p.last_name, p.first_name) AS full_name," +
-            "  p.fiscal_code, p.phone, p.email, p.city, p.province," +
+            "  p.fiscal_code_enc, p.phone, p.email, p.city, p.province," +
             "  p.notes AS patient_notes, p.active," +
             "  pa.blood_type, pa.smoker, pa.hypertension, pa.diabetes, pa.heart_disease," +
             "  pa.taking_anticoagulants, pa.taking_bisphosphonates," +
@@ -504,7 +504,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  e.vat_amount," +
             "  e.total_amount," +
             "  concat_ws(' ', p.last_name, p.first_name) AS patient_full_name," +
-            "  p.fiscal_code AS patient_fiscal_code," +
+            "  p.fiscal_code_enc AS patient_fiscal_code_enc," +
             "  p.phone       AS patient_phone," +
             "  e.issued_at, e.sent_at, e.valid_until, e.accepted_at, e.rejected_at," +
             "  e.created_at  AS estimate_created_at" +
