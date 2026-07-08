@@ -2,6 +2,7 @@ package com.dentalcare.service;
 
 import com.dentalcare.dto.*;
 import com.dentalcare.security.TenantContext;
+import com.dentalcare.security.crypto.TenantEncryptionService;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -19,9 +20,11 @@ import java.util.UUID;
 public class EstimateService {
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final TenantEncryptionService enc;
 
-    public EstimateService(NamedParameterJdbcTemplate jdbc) {
+    public EstimateService(NamedParameterJdbcTemplate jdbc, TenantEncryptionService enc) {
         this.jdbc = jdbc;
+        this.enc = enc;
     }
 
     private String s() { return TenantContext.validatedSchema(); }
@@ -46,7 +49,7 @@ public class EstimateService {
         String sql = "SELECT estimate_id, estimate_number, version, estimate_status, estimate_title,"
                 + " currency, subtotal_amount, discount_amount, taxable_amount,"
                 + " vat_amount, total_amount,"
-                + " patient_id, patient_full_name, patient_fiscal_code, patient_phone,"
+                + " patient_id, patient_full_name, patient_fiscal_code_enc, patient_phone,"
                 + " issued_at, sent_at, valid_until, accepted_at, rejected_at, estimate_created_at,"
                 + " created_by_provider_id"
                 + " FROM " + s() + ".v_patient_estimates_summary"
@@ -62,7 +65,7 @@ public class EstimateService {
             SELECT estimate_id, estimate_number, version, estimate_status, estimate_title,
                    currency, subtotal_amount, discount_amount, taxable_amount,
                    vat_amount, total_amount,
-                   patient_id, patient_full_name, patient_fiscal_code, patient_phone,
+                   patient_id, patient_full_name, patient_fiscal_code_enc, patient_phone,
                    issued_at, sent_at, valid_until, accepted_at, rejected_at, estimate_created_at,
                    created_by_provider_id
             FROM %s.v_patient_estimates_summary
@@ -87,7 +90,7 @@ public class EstimateService {
                    e.vat_amount, e.total_amount,
                    e.patient_id,
                    concat_ws(' ', p.last_name, p.first_name) AS patient_full_name,
-                   NULL::text         AS patient_fiscal_code,
+                   NULL::text         AS patient_fiscal_code_enc,
                    NULL::text         AS patient_phone,
                    e.issued_at, e.sent_at, e.valid_until, e.accepted_at, e.rejected_at,
                    e.created_at       AS estimate_created_at,
@@ -391,7 +394,7 @@ public class EstimateService {
                 rs.getBigDecimal("total_amount"),
                 rs.getObject("patient_id", UUID.class),
                 rs.getString("patient_full_name"),
-                rs.getString("patient_fiscal_code"),
+                enc.decrypt(rs.getString("patient_fiscal_code_enc"), s()),
                 rs.getString("patient_phone"),
                 rs.getTimestamp("issued_at") != null ? rs.getTimestamp("issued_at").toInstant().atOffset(ZoneOffset.UTC) : null,
                 rs.getTimestamp("sent_at") != null ? rs.getTimestamp("sent_at").toInstant().atOffset(ZoneOffset.UTC) : null,

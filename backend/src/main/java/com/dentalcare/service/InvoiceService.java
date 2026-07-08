@@ -2,6 +2,7 @@ package com.dentalcare.service;
 
 import com.dentalcare.dto.*;
 import com.dentalcare.security.TenantContext;
+import com.dentalcare.security.crypto.TenantEncryptionService;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
@@ -22,9 +23,11 @@ import java.util.UUID;
 public class InvoiceService {
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final TenantEncryptionService enc;
 
-    public InvoiceService(NamedParameterJdbcTemplate jdbc) {
+    public InvoiceService(NamedParameterJdbcTemplate jdbc, TenantEncryptionService enc) {
         this.jdbc = jdbc;
+        this.enc = enc;
     }
 
     private static final Set<String> ADMIN_ROLES = Set.of("ROLE_ADMIN", "ROLE_TENANT_ADMIN", "ROLE_SECRETARY");
@@ -105,7 +108,7 @@ public class InvoiceService {
                    i.currency,
                    i.issuer_name, i.issuer_vat_number, i.issuer_fiscal_code, i.issuer_address,
                    i.issuer_email, i.issuer_pec, i.issuer_sdi_code, i.issuer_iban,
-                   i.patient_fiscal_code, i.patient_address, i.patient_email,
+                   i.patient_fiscal_code_enc, i.patient_address, i.patient_email,
                    i.notes, i.payment_method, i.paid_at, i.issued_at, i.created_at
             FROM %s.invoices i
             LEFT JOIN %s.providers p ON p.id = i.provider_id AND p.clinic_id = i.clinic_id
@@ -280,7 +283,7 @@ public class InvoiceService {
                         .addValue("issuerSdiCode", issuerSdiCode)
                         .addValue("issuerIban", issuerIban)
                         .addValue("patientFullName", est.get("patient_full_name"))
-                        .addValue("patientFiscalCode", est.get("patient_fiscal_code"))
+                        .addValue("patientFiscalCode", null)
                         .addValue("patientFiscalCodeEnc", est.get("patient_fiscal_code_enc"))
                         .addValue("patientAddress", est.get("patient_address"))
                         .addValue("patientEmail", est.get("patient_email"))
@@ -530,7 +533,7 @@ public class InvoiceService {
                 rs.getString("issuer_pec"),
                 rs.getString("issuer_sdi_code"),
                 rs.getString("issuer_iban"),
-                rs.getString("patient_fiscal_code"),
+                enc.decrypt(rs.getString("patient_fiscal_code_enc"), s()),
                 rs.getString("patient_address"),
                 rs.getString("patient_email"),
                 rs.getString("notes"),
