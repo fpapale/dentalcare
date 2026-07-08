@@ -19,6 +19,8 @@ public class EncryptionMigrationController {
 
     @PostMapping("/migrate")
     public Map<String, Integer> migrate() {
-        return Map.of("migrated", migrationService.migrateBirthDate());
+        return Map.of(
+                "birthDate", migrationService.migrateBirthDate(),
+                "fiscalCode", migrationService.migrateFiscalCode());
     }
 }

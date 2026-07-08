@@ -43,5 +43,36 @@ public class EncryptionMigrationService {
         return migrated;
     }
 
+    /** Migrazione idempotente: cifra fiscal_code dei pazienti (+ blind index) e lo snapshot storico in invoices. */
+    @Transactional
+    public int migrateFiscalCode() {
+        String schema = s();
+        // pazienti: cifra fiscal_code + calcola blind index
+        List<Object[]> pats = jdbc.query(
+                "SELECT id, fiscal_code FROM " + schema + ".patients"
+                        + " WHERE fiscal_code_enc IS NULL AND fiscal_code IS NOT NULL",
+                (rs, n) -> new Object[]{ rs.getObject("id", UUID.class), rs.getString("fiscal_code") });
+        for (Object[] p : pats) {
+            String cf = (String) p[1];
+            jdbc.update("UPDATE " + schema + ".patients SET fiscal_code_enc = :enc, fiscal_code_idx = :idx WHERE id = :id",
+                    new MapSqlParameterSource()
+                            .addValue("enc", enc.encrypt(cf, schema))
+                            .addValue("idx", enc.blindIndex(cf, schema))
+                            .addValue("id", p[0]));
+        }
+        // snapshot invoices: cifra il valore storico di ciascuna fattura
+        List<Object[]> invs = jdbc.query(
+                "SELECT id, patient_fiscal_code FROM " + schema + ".invoices"
+                        + " WHERE patient_fiscal_code_enc IS NULL AND patient_fiscal_code IS NOT NULL",
+                (rs, n) -> new Object[]{ rs.getObject("id", UUID.class), rs.getString("patient_fiscal_code") });
+        for (Object[] iv : invs) {
+            jdbc.update("UPDATE " + schema + ".invoices SET patient_fiscal_code_enc = :enc WHERE id = :id",
+                    new MapSqlParameterSource()
+                            .addValue("enc", enc.encrypt((String) iv[1], schema))
+                            .addValue("id", iv[0]));
+        }
+        return pats.size();
+    }
+
     private record Row(UUID id, LocalDate birthDate) {}
 }

@@ -111,4 +111,74 @@ class EncryptionMigrationServiceTest {
         verifyNoInteractions(enc);
         verify(jdbc, never()).update(anyString(), any(MapSqlParameterSource.class));
     }
+
+    /**
+     * Stubs the two distinct jdbc.query calls issued by migrateFiscalCode (patients, then
+     * invoices) by inspecting the SQL argument captured in the RowMapper invocation and routing
+     * to the matching set of mocked ResultSet rows.
+     */
+    @SuppressWarnings("unchecked")
+    private void stubFiscalCodeRows(List<UUID> patientIds, List<String> patientFiscalCodes,
+                                     List<UUID> invoiceIds, List<String> invoiceFiscalCodes) throws Exception {
+        ResultSet[] patientRs = new ResultSet[patientIds.size()];
+        for (int i = 0; i < patientIds.size(); i++) {
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getObject("id", UUID.class)).thenReturn(patientIds.get(i));
+            when(rs.getString("fiscal_code")).thenReturn(patientFiscalCodes.get(i));
+            patientRs[i] = rs;
+        }
+
+        ResultSet[] invoiceRs = new ResultSet[invoiceIds.size()];
+        for (int i = 0; i < invoiceIds.size(); i++) {
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getObject("id", UUID.class)).thenReturn(invoiceIds.get(i));
+            when(rs.getString("patient_fiscal_code")).thenReturn(invoiceFiscalCodes.get(i));
+            invoiceRs[i] = rs;
+        }
+
+        when(jdbc.query(anyString(), any(RowMapper.class))).thenAnswer(invocation -> {
+            String sql = invocation.getArgument(0);
+            RowMapper<?> mapper = invocation.getArgument(1);
+            ResultSet[] rows = sql.contains(".patients") ? patientRs : invoiceRs;
+            List<Object> mapped = new java.util.ArrayList<>();
+            for (int i = 0; i < rows.length; i++) {
+                mapped.add(mapper.mapRow(rows[i], i));
+            }
+            return mapped;
+        });
+    }
+
+    @Test
+    void migrateFiscalCodeEncryptsIndexesAndInvoices() throws Exception {
+        UUID invoiceId1 = UUID.fromString("00000000-0000-0000-0000-000000000020");
+        stubFiscalCodeRows(
+                List.of(patientId1, patientId2), List.of("RSSMRA80A01H501U", "VRDLGI85M02H501Z"),
+                List.of(invoiceId1), List.of("BNCGLI90B41H501Y"));
+        when(enc.encrypt(anyString(), anyString())).thenReturn("ct");
+        when(enc.blindIndex(anyString(), anyString())).thenReturn("idxhex");
+        when(jdbc.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        int migrated = service.migrateFiscalCode();
+
+        assertThat(migrated).isEqualTo(2);
+
+        verify(enc, times(2)).blindIndex(anyString(), eq("t_abcd1234"));
+        verify(enc, atLeast(3)).encrypt(anyString(), eq("t_abcd1234"));
+
+        verify(jdbc, times(2)).update(
+                contains("UPDATE t_abcd1234.patients SET fiscal_code_enc"), any(MapSqlParameterSource.class));
+        verify(jdbc, times(1)).update(
+                contains("UPDATE t_abcd1234.invoices SET patient_fiscal_code_enc"), any(MapSqlParameterSource.class));
+    }
+
+    @Test
+    void migrateFiscalCodeSecondRunZero() throws Exception {
+        stubFiscalCodeRows(List.of(), List.of(), List.of(), List.of());
+
+        int migrated = service.migrateFiscalCode();
+
+        assertThat(migrated).isZero();
+        verifyNoInteractions(enc);
+        verify(jdbc, never()).update(anyString(), any(MapSqlParameterSource.class));
+    }
 }
