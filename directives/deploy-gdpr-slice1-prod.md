@@ -77,7 +77,9 @@ docker logs dentalcarepro-backend 2>&1 | grep -iE "patched schema|schema OK"
 # atteso: "patched schema t_9d754153" + "schema OK"
 ```
 
-### 4. Migrazione (cifra i birth_date esistenti) — subito dopo l'avvio
+### 4. Migrazione (cifra birth_date + fiscal_code esistenti) — subito dopo l'avvio
+Nota: da Slice 2a l'endpoint `/migrate` cifra sia `birth_date` sia `fiscal_code`
+(pazienti) + lo snapshot `patient_fiscal_code` delle fatture. Idempotente cumulativo.
 ```bash
 # Login demo (unico tenant): ottieni il JWT
 TOKEN=$(curl -s -X POST http://192.168.0.72:8181/api/public/login \
@@ -85,26 +87,30 @@ TOKEN=$(curl -s -X POST http://192.168.0.72:8181/api/public/login \
   -d '{"email":"demo@demo.dentalcare.it","password":"DemoAdmin1!"}' \
   | grep -o '"token":"[^"]*"' | head -1 | sed 's/"token":"//;s/"//')
 
-# Migrazione idempotente (popola solo birth_date_enc, plaintext intatto)
+# Migrazione idempotente (popola *_enc/_idx, plaintext intatto)
 curl -s -X POST http://192.168.0.72:8181/api/admin/encryption/migrate \
   -H "Authorization: Bearer $TOKEN"
-# atteso: {"migrated":22}
+# atteso (primo run): {"birthDate":22,"fiscalCode":22}
 
 # Re-run per conferma idempotenza
 curl -s -X POST http://192.168.0.72:8181/api/admin/encryption/migrate \
   -H "Authorization: Bearer $TOKEN"
-# atteso: {"migrated":0}
+# atteso: {"birthDate":0,"fiscalCode":0}
 ```
 
 ### 5. Verifica
 ```bash
 PSQL="PGPASSWORD=<pwd> psql -h 192.168.0.173 -U postgres -d dentalcare_prod -At"
-# pending (deve essere 0): birth_date valorizzato ma birth_date_enc nullo
+# pending birth_date (deve essere 0)
 $PSQL -c "select count(*) from t_9d754153.patients where birth_date is not null and birth_date_enc is null;"
-# enc popolati
-$PSQL -c "select count(*) from t_9d754153.patients where birth_date_enc is not null;"
+# pending fiscal_code (deve essere 0)
+$PSQL -c "select count(*) from t_9d754153.patients where fiscal_code is not null and fiscal_code_enc is null;"
+# enc popolati (birth_date_enc, fiscal_code_enc/idx)
+$PSQL -c "select count(birth_date_enc)||'/'||count(fiscal_code_enc)||'/'||count(fiscal_code_idx) from t_9d754153.patients;"
 ```
-Poi in app: aprire un paziente → `birthDate` ed età devono comparire corretti.
+Poi in app: aprire un paziente → `birthDate`, età e `fiscalCode` corretti; ricerca per
+CF esatto trova il paziente (parziale no: match esatto via blind index); dettaglio
+fattura → `patientFiscalCode` corretto.
 
 ---
 
