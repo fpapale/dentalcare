@@ -150,6 +150,16 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         runStep(schema, "app columns",      () -> patchAppColumns(schema));
         runStep(schema, "recalls",          () -> patchRecallsSchema(schema));
         runStep(schema, "products",         () -> patchProductsSchema(schema));
+        // Le colonne cifrate DEVONO esistere prima di ricostruire le viste che le referenziano
+        // (le viste pazienti/preventivi ora espongono fiscal_code_enc/idx): altrimenti il CREATE VIEW
+        // fallisce dopo il DROP e la vista resta cancellata fino al riavvio successivo.
+        runStep(schema, "patients fiscal_code_enc/idx", () -> {
+            jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS fiscal_code_enc text");
+            jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS fiscal_code_idx text");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_patients_fiscal_code_idx ON " + schema + ".patients (fiscal_code_idx)");
+        });
+        runStep(schema, "invoices patient_fiscal_code_enc", () ->
+                jdbc.execute("ALTER TABLE " + schema + ".invoices ADD COLUMN IF NOT EXISTS patient_fiscal_code_enc text"));
         runStep(schema, "v_clinic_dashboard",           () -> rebuildDashboardView(schema));
         runStep(schema, "v_agenda_daily",               () -> rebuildAgendaView(schema));
         runStep(schema, "v_patient_dashboard",          () -> rebuildPatientDashboardView(schema));
@@ -161,13 +171,6 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS birth_date_enc text"));
         runStep(schema, "patients foreign_patient", () ->
                 jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS foreign_patient boolean NOT NULL DEFAULT false"));
-        runStep(schema, "patients fiscal_code_enc/idx", () -> {
-            jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS fiscal_code_enc text");
-            jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS fiscal_code_idx text");
-            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_patients_fiscal_code_idx ON " + schema + ".patients (fiscal_code_idx)");
-        });
-        runStep(schema, "invoices patient_fiscal_code_enc", () ->
-                jdbc.execute("ALTER TABLE " + schema + ".invoices ADD COLUMN IF NOT EXISTS patient_fiscal_code_enc text"));
         log.debug("EstimateSchemaInitializer: patched schema {}", schema);
     }
 
