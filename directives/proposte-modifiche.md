@@ -25,6 +25,8 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 13 | Copilot operativo: scrittura sui moduli + letture mancanti | Alto (~3-4 giorni) | Fatta (dev) |
 | 14 | Copilot contestuale e proattivo (contesto UI, push SSE, cross-modulo) | Medio-alto (~2-3 giorni) | Proposta |
 | 15 | Copilot: RAG + multimodale + memoria | Alto (~1-2 settimane) | Proposta |
+| 16 | Wiki LLM: OCR → GPT-4o → MinIO con versionamento per paziente | Alto (~3-5 giorni) | Proposta |
+| 17 | Prompt Manager AI: prompt multilingua editabili (tabella chiave-valore) | Medio | Fatta (dev) |
 
 ---
 
@@ -48,9 +50,10 @@ Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non ro
 **P3 — Dopo / compliance / oneroso**
 8. **#7** — GDPR cifratura per-tenant: **alza a P1 se vai in vendita/produzione clinica seria** (requisito compliance).
 9. **#2** — Retell multi-studio (agente per sede/poltrona): se/quando servono più sedi.
-10. **#12.B** — Anamnesi per-tenant: richiede decisione di design (Opt 1/2/3) + migrazione dati.
-11. **#8** — DICOM nativo nell'AI service: nicchia, dopo #6.
-12. **#15** — Copilot RAG/multimodale/memoria: blocco più oneroso, dopo #13/#14.
+10. **#16** — Wiki LLM: OCR + GPT-4o + MinIO multitenant: sblocca Knowledge Base clinica (RAG per #15); dipendente da #7 (GDPR) e #8 (DICOM) se esteso a radiografie.
+11. **#12.B** — Anamnesi per-tenant: richiede decisione di design (Opt 1/2/3) + migrazione dati.
+12. **#8** — DICOM nativo nell'AI service: nicchia, dopo #6.
+13. **#15** — Copilot RAG/multimodale/memoria: blocco più oneroso, dopo #13/#14.
 
 ---
 
@@ -1477,7 +1480,91 @@ Lettura di ortopanoramica e referti PDF **nel contesto della chat** (lega #6 e #
 
 ---
 
-## 16. Prompt Manager AI: prompt multilingua editabili (tabella chiave-valore)
+## 16. Wiki LLM: OCR → GPT-4o → MinIO con versionamento per paziente
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-03
+**Impatto:** Alto (~3-5 giorni)
+
+### Problema
+I documenti medici grezzi (PDF referti, radiografie scansionate, ricette, consensi) caricati in MinIO per il paziente rimangono "dati grezzi" — non vengono estratti, indicizzati, o correlati al database clinico. Non c'è una Knowledge Base strutturata per supportare successivamente RAG e Copilot contestuale.
+
+### Soluzione
+Implementare una **pipeline OCR → LLM → Wiki** che:
+1. **Monitora** nuovi documenti in `patients/{patient_id}/documents/{doc_id}/source/` (MinIO)
+2. **Estrae** testo via OCR (PyMuPDF nativo, Docling + Tesseract per scansioni)
+3. **Elabora** con GPT-4o due task in parallelo:
+   - **Task A:** JSON strutturato → sincronizza SQL (`PatientDocument`, `clinical_finding`)
+   - **Task B:** Markdown formattato → salva come Wiki in MinIO (`patients/{patient_id}/wiki/{doc_id}.md`)
+4. **Salva wiki** in MinIO con versionamento, metadata, audit trail
+5. **Sincronizza SQL** con dati estratti (tipo esame, data, summary, findings)
+6. **Supporta radiografie** — AI Service esegue inferenza (Dentex), genera ulteriore wiki-ai-summary
+
+### Architettura
+- **Python Worker** (service separato): MinIO listener + OCR + LLM calls + wiki upload
+- **Backend Spring Boot**: WikiStorageService (extends MinioStorageService), WikiLlmService, callback sync SQL
+- **MinIO Multitenant**: bucket `dc-<schema>` con sotto-cartelle wiki per ogni paziente
+- **Database**: Estensione `PatientDocument` + nuove tabelle `clinical_finding_ai`, `wiki_metadata`
+
+### Output Wiki (Markdown)
+```markdown
+# Dr Smith - 2025-03-15 (Visita)
+
+## Summary
+Paziente lamenta dolore acuto al dente 2.6...
+
+## Clinical Findings
+- Tooth 2.6: Carie profonda, interessamento camera pulpare
+- Radiografia: conferma carie mesiale-distale
+
+## Plan
+1. Terapia endodontica entro 7 gg
+2. Recall radiografico post-terapia
+3. Prossimo controllo: 2025-04-15
+
+## Raw Data
+[Original PDF Link]
+```
+
+### File coinvolti
+| Layer | File | Dettagli |
+|-------|------|----------|
+| **Architettura** | `directives/wiki_llm_minio_architecture.md` | Design completo: struttura MinIO, flusso, diagrammi Mermaid, SQL schema |
+| **DB** | Patch SQL per `patient_document` + `clinical_finding_ai` + `wiki_metadata` + view summary | Versionamento wiki, audit, isolamento tenant |
+| **Backend Java** | `WikiStorageService`, `WikiLlmService`, `WikiOcrService`, `PatientDocumentService` (extend) | OCR dispatch, LLM dual-task, MinIO save, DB sync |
+| **Backend Config** | `application.properties` + secrets (OpenAI API key) | OCR engines, LLM model, MinIO endpoint, callback URL |
+| **Python Worker** | New service: `wiki-worker` container (FastAPI) | Event listener, OCR/LLM pipeline, error handling, retry |
+| **Python Config** | `.env.wiki` template + `wiki_worker.py` entry point | 80+ env vars per OCR, LLM, MinIO, security |
+| **Docker Compose** | Extension: `wiki-worker` service (port 8001) | Webhook endpoint, health check, resource limits |
+
+### Dipendenze e Prerequisiti
+- **OpenAI API key** (GPT-4o accesso): da mettere in secrets/env
+- **#7 GDPR** (se clinica seria): OCR + LLM elaborano PHI → richiede cifratura per-tenant
+- **#8 DICOM** (facoltativo): se il worker deve gestire radiografie DICOM nativi, estendere OCR engine
+- **#15 Copilot RAG** (dipendente): Wiki LLM fornisce Knowledge Base strutturata per successiva indicizzazione Elasticsearch
+
+### Roadmap di implementazione
+1. **Fase 1** (~1 giorno): Backend schema (DB + service skeleton)
+2. **Fase 2** (~1.5 giorni): Python worker (OCR + LLM pipeline, error handling)
+3. **Fase 3** (~0.5 giorni): Backend callback + SQL sync
+4. **Fase 4** (~0.5 giorni): Testing, deployment (dev), dead-letter handling
+5. **Fase 5** (facoltativo): Dashboard wiki (admin visualizza/revisiona doc processuati)
+
+### Benefici
+- **Strutturazione dati**: referti sparsi → database clinico organizzato
+- **RAG-ready**: wiki markdown → embedding per Copilot #15
+- **Audit trail**: versionamento wiki per compliance clinica
+- **Multitenant safe**: isolamento per schema + crittografia (con #7)
+- **Auto-sync SQL**: nessun manual data-entry dopo caricamento doc
+
+### Caveat
+- **Costi LLM**: ~$0.01-0.05 per documento (GPT-4o); tenere monitorato nei log
+- **Tesseract OCR**: fallback per scansioni; accuratezza 85-95% (richiedere review se bassa)
+- **PHI in LLM**: durante il call a GPT-4o i dati clinici passano su OpenAI API → compliance risk → bloccare da GDPR upgrade
+
+---
+
+## 17. Prompt Manager AI: prompt multilingua editabili (tabella chiave-valore)
 
 **Stato:** Fatta (dev) — 2026-07-02. Validato E2E: seed IT/EN, GET admin 200, dentista 403, PUT/GET override/DELETE reset OK, chiave invalida 400, chat usa il prompt da DB.
 **Data proposta:** 2026-07-02
