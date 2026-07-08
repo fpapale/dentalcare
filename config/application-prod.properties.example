@@ -23,6 +23,16 @@ app.demo.enabled=true
 app.demo.email=demo@demo.dentalcare.it
 app.demo.password=DemoAdmin1!
 
+# ---- GDPR field encryption (#7) — OBBLIGATORIO ----
+# Master key per cifratura per-tenant (HKDF+AES-256-GCM). Genera con:
+#   openssl rand -hex 32
+# Deve essere 64 caratteri esadecimali. Chiave prod DIVERSA da dev.
+# ATTENZIONE: se la chiave va persa, i dati cifrati (birth_date_enc) sono
+# IRRECUPERABILI. Conservala in un secret store sicuro (in futuro: Vault).
+# Senza questa chiave valida il backend NON si avvia (fail-fast).
+app.encryption.key-source=config
+app.encryption.master-key=REPLACE_WITH_OPENSSL_RAND_HEX_32
+
 # ---- n8n service account ----
 app.n8n.service-key=REPLACE_WITH_N8N_SERVICE_KEY
 
