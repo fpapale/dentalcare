@@ -577,6 +577,7 @@ CREATE TABLE invoices (
     issuer_iban text,
     patient_full_name text,
     patient_fiscal_code text,
+    patient_fiscal_code_enc text,
     patient_address text,
     patient_email text,
     subtotal_amount numeric(12,2) DEFAULT 0 NOT NULL,
@@ -763,6 +764,8 @@ CREATE TABLE patients (
     active boolean DEFAULT true NOT NULL,
     foreign_patient boolean DEFAULT false NOT NULL,
     birth_date_enc text,
+    fiscal_code_enc text,
+    fiscal_code_idx text,
     primary_provider_id uuid,
     CONSTRAINT patients_first_name_not_empty CHECK ((length(TRIM(BOTH FROM first_name)) > 0)),
     CONSTRAINT patients_last_name_not_empty CHECK ((length(TRIM(BOTH FROM last_name)) > 0))
@@ -2445,6 +2448,7 @@ CREATE TABLE t_9d754153.invoices (
     issuer_iban text,
     patient_full_name text,
     patient_fiscal_code text,
+    patient_fiscal_code_enc text,
     patient_address text,
     patient_email text,
     subtotal_amount numeric(12,2) DEFAULT 0 NOT NULL,
@@ -2729,6 +2733,8 @@ CREATE TABLE t_9d754153.patients (
     active boolean DEFAULT true NOT NULL,
     foreign_patient boolean DEFAULT false NOT NULL,
     birth_date_enc text,
+    fiscal_code_enc text,
+    fiscal_code_idx text,
     primary_provider_id uuid,
     CONSTRAINT patients_first_name_not_empty CHECK ((length(TRIM(BOTH FROM first_name)) > 0)),
     CONSTRAINT patients_last_name_not_empty CHECK ((length(TRIM(BOTH FROM last_name)) > 0))
