@@ -1,5 +1,6 @@
 package com.dentalcare.service;
 
+import com.dentalcare.exception.EncryptionException;
 import com.dentalcare.security.TenantContext;
 import com.dentalcare.security.crypto.TenantEncryptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -258,7 +259,11 @@ public class TenantExportService {
             String birthDate;
             try {
                 birthDate = enc.decrypt(rs.getString("birth_date_enc"), schema);
-            } catch (SQLException e) {
+            } catch (SQLException | EncryptionException e) {
+                // Riga con cifratura corrotta/non decifrabile: la saltiamo (birth_date vuoto)
+                // invece di far abortire l'intero export. enc.decrypt lancia EncryptionException
+                // (unchecked), che senza questo catch propagherebbe fuori dalla jdbc.query.
+                log.warn("Export customers.csv: birth_date non decifrabile per una riga (schema={}), campo lasciato vuoto", schema);
                 birthDate = null;
             }
 

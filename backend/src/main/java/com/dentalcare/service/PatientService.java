@@ -16,12 +16,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class PatientService {
+
+    /** L'età va calcolata nel fuso della clinica (Italia), non nel default della JVM. */
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Europe/Rome");
 
     private final NamedParameterJdbcTemplate jdbc;
     private final TenantEncryptionService enc;
@@ -193,7 +197,7 @@ public class PatientService {
 
         String[] tables = {
             "appointments", "estimates", "invoices", "treatment_plans",
-            "clinical_history_entries", "recalls", "patient_documents",
+            "clinical_history_entries", "patient_recalls", "patient_documents",
             "patient_prescriptions", "patient_anamnesis", "patient_diagnoses",
             "odontogram_teeth"
         };
@@ -241,7 +245,7 @@ public class PatientService {
                 rs.getString("patient_last_name"),
                 rs.getString("fiscal_code"),
                 birth,
-                birth != null ? Period.between(birth, LocalDate.now()).getYears() : null,
+                birth != null ? Period.between(birth, LocalDate.now(CLINIC_ZONE)).getYears() : null,
                 rs.getString("phone"),
                 rs.getString("email"),
                 rs.getString("city"),
@@ -264,7 +268,7 @@ public class PatientService {
                 rs.getString("full_name"),
                 rs.getString("fiscal_code"),
                 birth,
-                birth != null ? Period.between(birth, LocalDate.now()).getYears() : null,
+                birth != null ? Period.between(birth, LocalDate.now(CLINIC_ZONE)).getYears() : null,
                 rs.getString("phone"),
                 rs.getString("email"),
                 rs.getString("city"),
