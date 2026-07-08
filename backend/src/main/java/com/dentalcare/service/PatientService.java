@@ -74,11 +74,13 @@ public class PatientService {
         UUID patientId = UUID.randomUUID();
         String sql = """
             INSERT INTO %s.patients
-                (id, clinic_id, first_name, last_name, fiscal_code, birth_date, birth_date_enc,
+                (id, clinic_id, first_name, last_name, fiscal_code, fiscal_code_enc, fiscal_code_idx,
+                 birth_date, birth_date_enc,
                  phone, email, address_line1, city, province, postal_code, notes,
                  primary_provider_id, foreign_patient)
             VALUES
-                (:id, :clinicId, :firstName, :lastName, :fiscalCode, :birthDate, :birthDateEnc,
+                (:id, :clinicId, :firstName, :lastName, :fiscalCode, :fiscalCodeEnc, :fiscalCodeIdx,
+                 :birthDate, :birthDateEnc,
                  :phone, :email, :addressLine1, :city, :province, :postalCode, :notes,
                  :primaryProviderId, :foreignPatient)
             """.formatted(s());
@@ -88,6 +90,8 @@ public class PatientService {
                 .addValue("firstName", request.firstName())
                 .addValue("lastName", request.lastName())
                 .addValue("fiscalCode", request.fiscalCode())
+                .addValue("fiscalCodeEnc", enc.encrypt(request.fiscalCode(), s()))
+                .addValue("fiscalCodeIdx", enc.blindIndex(request.fiscalCode(), s()))
                 .addValue("birthDate", null)   // plaintext non più scritto; solo birth_date_enc
                 .addValue("birthDateEnc",
                         enc.encrypt(request.birthDate() != null ? request.birthDate().toString() : null, s()))
@@ -111,6 +115,8 @@ public class PatientService {
             SET first_name    = :firstName,
                 last_name     = :lastName,
                 fiscal_code   = :fiscalCode,
+                fiscal_code_enc = :fiscalCodeEnc,
+                fiscal_code_idx = :fiscalCodeIdx,
                 birth_date    = :birthDate,
                 birth_date_enc = :birthDateEnc,
                 phone         = :phone,
@@ -128,6 +134,8 @@ public class PatientService {
                 .addValue("firstName",   request.firstName())
                 .addValue("lastName",    request.lastName())
                 .addValue("fiscalCode",  request.fiscalCode())
+                .addValue("fiscalCodeEnc", enc.encrypt(request.fiscalCode(), s()))
+                .addValue("fiscalCodeIdx", enc.blindIndex(request.fiscalCode(), s()))
                 .addValue("birthDate",   null)   // plaintext non più scritto; solo birth_date_enc
                 .addValue("birthDateEnc",
                         enc.encrypt(request.birthDate() != null ? request.birthDate().toString() : null, s()))

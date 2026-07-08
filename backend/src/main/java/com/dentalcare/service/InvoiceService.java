@@ -157,6 +157,7 @@ public class InvoiceService {
                    e.subtotal_amount, e.discount_amount, e.taxable_amount, e.vat_amount, e.total_amount,
                    concat_ws(' ', pat.last_name, pat.first_name) AS patient_full_name,
                    pat.fiscal_code::text AS patient_fiscal_code,
+                   pat.fiscal_code_enc AS patient_fiscal_code_enc,
                    pat.email::text AS patient_email,
                    concat_ws(', ', pat.address_line1, pat.city) AS patient_address
             FROM %s.estimates e
@@ -244,7 +245,7 @@ public class InvoiceService {
             + " status, issuer_type, provider_id, patient_id, estimate_id,"
             + " issuer_name, issuer_vat_number, issuer_fiscal_code, issuer_address,"
             + " issuer_email, issuer_pec, issuer_sdi_code, issuer_iban,"
-            + " patient_full_name, patient_fiscal_code, patient_address, patient_email,"
+            + " patient_full_name, patient_fiscal_code, patient_fiscal_code_enc, patient_address, patient_email,"
             + " subtotal_amount, discount_amount, taxable_amount, vat_amount, total_amount,"
             + " currency, notes, payment_method"
             + ") VALUES ("
@@ -256,7 +257,7 @@ public class InvoiceService {
             + " :providerId, :patientId, :estimateId,"
             + " :issuerName, :issuerVatNumber, :issuerFiscalCode, :issuerAddress,"
             + " :issuerEmail, :issuerPec, :issuerSdiCode, :issuerIban,"
-            + " :patientFullName, :patientFiscalCode, :patientAddress, :patientEmail,"
+            + " :patientFullName, :patientFiscalCode, :patientFiscalCodeEnc, :patientAddress, :patientEmail,"
             + " :subtotalAmount, :discountAmount, :taxableAmount, :vatAmount, :totalAmount,"
             + " :currency, :notes, :paymentMethod"
             + ")",
@@ -280,6 +281,7 @@ public class InvoiceService {
                         .addValue("issuerIban", issuerIban)
                         .addValue("patientFullName", est.get("patient_full_name"))
                         .addValue("patientFiscalCode", est.get("patient_fiscal_code"))
+                        .addValue("patientFiscalCodeEnc", est.get("patient_fiscal_code_enc"))
                         .addValue("patientAddress", est.get("patient_address"))
                         .addValue("patientEmail", est.get("patient_email"))
                         .addValue("subtotalAmount", est.get("subtotal_amount"))
