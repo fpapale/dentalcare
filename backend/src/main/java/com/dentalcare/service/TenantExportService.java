@@ -58,7 +58,7 @@ public class TenantExportService {
                     new String[]{"id", "first_name", "last_name", "email", "role", "active"}, cidParam));
 
             rowCounts.put("customers", writeCustomersCsv(zip, schema,
-                    "SELECT id, first_name, last_name, fiscal_code, birth_date_enc, phone, city " +
+                    "SELECT id, first_name, last_name, fiscal_code_enc, birth_date_enc, phone, city " +
                             "FROM " + schema + ".patients WHERE clinic_id = :clinicId ORDER BY last_name, first_name",
                     cidParam));
 
@@ -130,7 +130,7 @@ public class TenantExportService {
                     new String[]{"id", "first_name", "last_name", "email", "role", "active"}));
 
             rowCounts.put("customers", writeCustomersCsv(zip, schema,
-                    "SELECT id, first_name, last_name, fiscal_code, birth_date_enc, phone, city " +
+                    "SELECT id, first_name, last_name, fiscal_code_enc, birth_date_enc, phone, city " +
                             "FROM " + schema + ".patients ORDER BY last_name, first_name",
                     new MapSqlParameterSource()));
 
@@ -267,11 +267,19 @@ public class TenantExportService {
                 birthDate = null;
             }
 
+            String fiscalCode;
+            try {
+                fiscalCode = enc.decrypt(rs.getString("fiscal_code_enc"), schema);
+            } catch (SQLException | EncryptionException e) {
+                log.warn("Export customers.csv: fiscal_code non decifrabile per una riga (schema={}), campo lasciato vuoto", schema);
+                fiscalCode = null;
+            }
+
             StringBuilder sb = new StringBuilder();
             sb.append(csvEscape(getColumn(rs, "id"))).append(',');
             sb.append(csvEscape(getColumn(rs, "first_name"))).append(',');
             sb.append(csvEscape(getColumn(rs, "last_name"))).append(',');
-            sb.append(csvEscape(getColumn(rs, "fiscal_code"))).append(',');
+            sb.append(csvEscape(fiscalCode)).append(',');
             sb.append(csvEscape(birthDate)).append(',');
             sb.append(csvEscape(getColumn(rs, "phone"))).append(',');
             sb.append(csvEscape(getColumn(rs, "city")));

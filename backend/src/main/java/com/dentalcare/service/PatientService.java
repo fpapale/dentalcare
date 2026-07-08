@@ -44,7 +44,7 @@ public class PatientService {
                 : "";
         String sql = """
             SELECT v.patient_id, v.patient_first_name, v.patient_last_name, v.patient_full_name,
-                   v.fiscal_code, v.phone, v.email, v.city, v.province,
+                   v.fiscal_code_enc, v.fiscal_code_idx, v.phone, v.email, v.city, v.province,
                    v.treatment_plans_count, v.open_treatment_items_count,
                    v.accepted_estimates_amount,
                    v.active,
@@ -56,7 +56,7 @@ public class PatientService {
             WHERE v.clinic_id = :clinicId
               AND (CAST(:search AS text) IS NULL
                    OR v.patient_full_name ILIKE '%%' || CAST(:search AS text) || '%%'
-                   OR v.fiscal_code ILIKE '%%' || CAST(:search AS text) || '%%'
+                   OR v.fiscal_code_idx = :searchIdx
                    OR v.phone ILIKE '%%' || CAST(:search AS text) || '%%'
                    OR v.email ILIKE '%%' || CAST(:search AS text) || '%%')
             """.formatted(s(), s(), s()) + providerFilter + """
@@ -64,7 +64,8 @@ public class PatientService {
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
-                .addValue("search", (search == null || search.isBlank()) ? null : search.trim());
+                .addValue("search", (search == null || search.isBlank()) ? null : search.trim())
+                .addValue("searchIdx", (search == null || search.isBlank()) ? null : enc.blindIndex(search.trim(), s()));
         if (providerId != null) params.addValue("providerId", providerId);
         return jdbc.query(sql, params, (rs, n) -> mapListRow(rs));
     }
@@ -89,7 +90,7 @@ public class PatientService {
                 .addValue("clinicId", clinicId)
                 .addValue("firstName", request.firstName())
                 .addValue("lastName", request.lastName())
-                .addValue("fiscalCode", request.fiscalCode())
+                .addValue("fiscalCode", null)   // plaintext non più scritto; solo fiscal_code_enc
                 .addValue("fiscalCodeEnc", enc.encrypt(request.fiscalCode(), s()))
                 .addValue("fiscalCodeIdx", enc.blindIndex(request.fiscalCode(), s()))
                 .addValue("birthDate", null)   // plaintext non più scritto; solo birth_date_enc
@@ -133,7 +134,7 @@ public class PatientService {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("firstName",   request.firstName())
                 .addValue("lastName",    request.lastName())
-                .addValue("fiscalCode",  request.fiscalCode())
+                .addValue("fiscalCode",  null)   // plaintext non più scritto; solo fiscal_code_enc
                 .addValue("fiscalCodeEnc", enc.encrypt(request.fiscalCode(), s()))
                 .addValue("fiscalCodeIdx", enc.blindIndex(request.fiscalCode(), s()))
                 .addValue("birthDate",   null)   // plaintext non più scritto; solo birth_date_enc
@@ -160,7 +161,7 @@ public class PatientService {
                 : "";
         String sql = """
             SELECT p.patient_id, p.first_name, p.last_name, p.full_name,
-                   p.fiscal_code, p.phone, p.email,
+                   p.fiscal_code_enc, p.phone, p.email,
                    p.city, p.province, p.patient_notes,
                    p.blood_type, p.smoker, p.hypertension, p.diabetes, p.heart_disease,
                    p.taking_anticoagulants, p.taking_bisphosphonates,
@@ -251,7 +252,7 @@ public class PatientService {
                 rs.getString("patient_full_name"),
                 rs.getString("patient_first_name"),
                 rs.getString("patient_last_name"),
-                rs.getString("fiscal_code"),
+                enc.decrypt(rs.getString("fiscal_code_enc"), s()),
                 birth,
                 birth != null ? Period.between(birth, LocalDate.now(CLINIC_ZONE)).getYears() : null,
                 rs.getString("phone"),
@@ -274,7 +275,7 @@ public class PatientService {
                 rs.getString("first_name"),
                 rs.getString("last_name"),
                 rs.getString("full_name"),
-                rs.getString("fiscal_code"),
+                enc.decrypt(rs.getString("fiscal_code_enc"), s()),
                 birth,
                 birth != null ? Period.between(birth, LocalDate.now(CLINIC_ZONE)).getYears() : null,
                 rs.getString("phone"),
