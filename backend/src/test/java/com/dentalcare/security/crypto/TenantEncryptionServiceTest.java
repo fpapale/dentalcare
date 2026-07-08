@@ -46,4 +46,30 @@ class TenantEncryptionServiceTest {
         String tampered = c.substring(0, c.length() - 2) + (c.endsWith("A") ? "B" : "A");
         assertThrows(EncryptionException.class, () -> enc.decrypt(tampered, "t_9d754153"));
     }
+
+    @Test
+    void blindIndexIsDeterministicAndCaseInsensitive() {
+        String a = enc.blindIndex("RSSMRA80A01H501U", "t_9d754153");
+        String b = enc.blindIndex(" rssmra80a01h501u ", "t_9d754153");
+        assertEquals(a, b);
+        assertFalse(a.isBlank());
+    }
+
+    @Test
+    void blindIndexIsSchemaBound() {
+        String a = enc.blindIndex("RSSMRA80A01H501U", "t_9d754153");
+        String b = enc.blindIndex("RSSMRA80A01H501U", "t_abcdef12");
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    void blindIndexDiffersFromEncKeyOutput() {
+        String idx = enc.blindIndex("RSSMRA80A01H501U", "t_9d754153");
+        assertTrue(idx.matches("^[0-9a-f]{64}$"));
+    }
+
+    @Test
+    void blindIndexNullReturnsNull() {
+        assertNull(enc.blindIndex(null, "t_9d754153"));
+    }
 }

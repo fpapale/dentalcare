@@ -23,12 +23,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TenantEncryptionService {
 
     private static final String INFO_ENC = "dental-enc-v1";
+    private static final String INFO_IDX = "dental-blind-idx-v1";
     private static final int GCM_IV_BYTES = 12;
     private static final int GCM_TAG_BITS = 128;
 
     private final byte[] masterKey;
     private final SecureRandom random = new SecureRandom();
     private final Map<String, SecretKeySpec> encKeyCache = new ConcurrentHashMap<>();
+    private final Map<String, SecretKeySpec> idxKeyCache = new ConcurrentHashMap<>();
 
     public TenantEncryptionService(MasterKeyProvider keyProvider) {
         this.masterKey = keyProvider.masterKey(); // fail-fast già nel provider
@@ -66,10 +68,34 @@ public class TenantEncryptionService {
         }
     }
 
+    /**
+     * Blind index deterministico per ricerca esatta su campi cifrati.
+     * idx_key = HKDF-SHA256(masterKey, salt=schema, info="dental-blind-idx-v1", 32).
+     * Output = HMAC-SHA256(idx_key, normalize(value)) in esadecimale minuscolo.
+     */
+    public String blindIndex(String value, String schema) {
+        if (value == null) return null;
+        try {
+            String normalized = value.trim().toUpperCase(java.util.Locale.ROOT);
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(idxKey(schema));
+            byte[] out = mac.doFinal(normalized.getBytes(StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(out);
+        } catch (Exception e) {
+            throw new EncryptionException("blind index failed for schema " + schema, e);
+        }
+    }
+
     private SecretKeySpec encKey(String schema) {
         return encKeyCache.computeIfAbsent(schema,
                 s -> new SecretKeySpec(hkdfSha256(masterKey, s.getBytes(StandardCharsets.UTF_8),
                         INFO_ENC.getBytes(StandardCharsets.UTF_8), 32), "AES"));
+    }
+
+    private SecretKeySpec idxKey(String schema) {
+        return idxKeyCache.computeIfAbsent(schema,
+                s -> new SecretKeySpec(hkdfSha256(masterKey, s.getBytes(StandardCharsets.UTF_8),
+                        INFO_IDX.getBytes(StandardCharsets.UTF_8), 32), "HmacSHA256"));
     }
 
     // HKDF-SHA256 (RFC 5869): extract + expand
