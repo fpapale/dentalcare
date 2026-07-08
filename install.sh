@@ -49,7 +49,12 @@ if [ "${1:-}" != "--update" ]; then
   if [ ! -f "$CONFIG_FILE" ]; then
     cp "$DEPLOY_DIR/config/application-prod.properties.example" "$CONFIG_FILE"
     log "Creato config/application-prod.properties da template (già puntato a dentalcare_prod)."
-    warn "Verifica password DB e app.jwt.secret in: $CONFIG_FILE"
+    warn "Configura in $CONFIG_FILE prima di procedere:"
+    warn "  - spring.datasource.password (password DB)"
+    warn "  - app.jwt.secret (openssl rand -base64 48)"
+    warn "  - app.encryption.master-key (openssl rand -hex 32, 64 hex) — OBBLIGATORIO:"
+    warn "    senza una chiave valida il backend NON si avvia (fail-fast) e resta crash-loop."
+    warn "    Perdere la chiave = dati cifrati (birth_date/fiscal_code) IRRECUPERABILI."
   else
     log "config/application-prod.properties già presente."
   fi

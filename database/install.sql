@@ -1399,6 +1399,8 @@ CREATE INDEX ix_patients_clinic_phone ON patients USING btree (clinic_id, phone)
 
 CREATE INDEX ix_patients_primary_provider ON patients USING btree (clinic_id, primary_provider_id) WHERE (primary_provider_id IS NOT NULL);
 
+CREATE INDEX idx_patients_fiscal_code_idx ON patients USING btree (fiscal_code_idx);
+
 CREATE INDEX ix_products_category ON products USING btree (clinic_id, category_id);
 
 CREATE INDEX ix_products_clinic ON products USING btree (clinic_id) WHERE (is_active = true);
@@ -6337,6 +6339,8 @@ CREATE INDEX ix_patients_clinic_phone ON t_9d754153.patients USING btree (clinic
 --
 
 CREATE INDEX ix_patients_primary_provider ON t_9d754153.patients USING btree (clinic_id, primary_provider_id) WHERE (primary_provider_id IS NOT NULL);
+
+CREATE INDEX idx_patients_fiscal_code_idx ON t_9d754153.patients USING btree (fiscal_code_idx);
 
 
 --
