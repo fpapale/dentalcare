@@ -3,11 +3,14 @@
 Runbook operativo per portare in produzione la cifratura `birth_date`.
 Prod: Docker su `192.168.0.72` (`~/docker/dentalcarepro`), profilo `prod`, DB
 `dentalcare_prod` su `192.168.0.173`. Backend NON esposto sull'host: le API si
-raggiungono via nginx frontend, **in HTTP sulla porta host `FRONTEND_PORT`** (in
-`.env`; attualmente **8081**, verificare con `docker compose ps` →
-`0.0.0.0:<porta>->4200/tcp`). Eseguire i comandi migrate DAL server usando
-`http://127.0.0.1:<porta>/api/...`. NB: la porta 8181 esterna è un servizio TLS
-diverso, non il frontend.
+raggiungono via nginx frontend. Due vie verso lo stesso frontend:
+- **Pubblico (utenti/browser)**: `https://paaplef.duckdns.org:8181` — HTTPS,
+  TLS terminata da un reverse proxy davanti al container.
+- **Diretto sul server (script/curl)**: porta host `FRONTEND_PORT` in `.env`,
+  **HTTP**, attualmente **8081** (`docker compose ps` → `0.0.0.0:8081->4200/tcp`).
+
+Eseguire i comandi migrate DAL server sulla via diretta HTTP
+`http://127.0.0.1:8081/api/...` (evita il reverse proxy TLS).
 
 **Stato prod al momento della stesura:** 1 solo tenant `t_9d754153` (23 pazienti,
 22 con `birth_date`), colonna `birth_date_enc` ancora assente. Migrazione = 1 tenant.
