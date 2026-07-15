@@ -6,11 +6,12 @@ Prod: Docker su `192.168.0.72` (`~/docker/dentalcarepro`), profilo `prod`, DB
 raggiungono via nginx frontend. Due vie verso lo stesso frontend:
 - **Pubblico (utenti/browser)**: `https://paaplef.duckdns.org:8181` — HTTPS,
   TLS terminata da un reverse proxy davanti al container.
-- **Diretto sul server (script/curl)**: porta host `FRONTEND_PORT` in `.env`,
-  **HTTP**, attualmente **8081** (`docker compose ps` → `0.0.0.0:8081->4200/tcp`).
+- **Diretto (script/curl, da server o LAN)**: `http://192.168.0.72:8081` —
+  porta host `FRONTEND_PORT` in `.env`, **HTTP**, bindata `0.0.0.0`
+  (`docker compose ps` → `0.0.0.0:8081->4200/tcp`).
 
-Eseguire i comandi migrate DAL server sulla via diretta HTTP
-`http://127.0.0.1:8081/api/...` (evita il reverse proxy TLS).
+Eseguire i comandi migrate sulla via diretta HTTP `http://192.168.0.72:8081/api/...`
+(evita il reverse proxy TLS pubblico).
 
 **Stato prod al momento della stesura:** 1 solo tenant `t_9d754153` (23 pazienti,
 22 con `birth_date`), colonna `birth_date_enc` ancora assente. Migrazione = 1 tenant.
@@ -89,18 +90,18 @@ Nota: da Slice 2a l'endpoint `/migrate` cifra sia `birth_date` sia `fiscal_code`
 (pazienti) + lo snapshot `patient_fiscal_code` delle fatture. Idempotente cumulativo.
 ```bash
 # Login demo (unico tenant): ottieni il JWT
-TOKEN=$(curl -s -X POST http://127.0.0.1:8081/api/public/login \
+TOKEN=$(curl -s -X POST http://192.168.0.72:8081/api/public/login \
   -H "Content-Type: application/json" \
   -d '{"email":"demo@demo.dentalcare.it","password":"DemoAdmin1!"}' \
   | grep -o '"token":"[^"]*"' | head -1 | sed 's/"token":"//;s/"//')
 
 # Migrazione idempotente (popola *_enc/_idx, plaintext intatto)
-curl -s -X POST http://127.0.0.1:8081/api/admin/encryption/migrate \
+curl -s -X POST http://192.168.0.72:8081/api/admin/encryption/migrate \
   -H "Authorization: Bearer $TOKEN"
 # atteso (primo run): {"birthDate":22,"fiscalCode":22}
 
 # Re-run per conferma idempotenza
-curl -s -X POST http://127.0.0.1:8081/api/admin/encryption/migrate \
+curl -s -X POST http://192.168.0.72:8081/api/admin/encryption/migrate \
   -H "Authorization: Bearer $TOKEN"
 # atteso: {"birthDate":0,"fiscalCode":0}
 ```
