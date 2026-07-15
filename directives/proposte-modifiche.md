@@ -16,7 +16,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 4 | Documenti paziente: tab CRUD con allegati (MinIO storage) | Medio (~1 giornata) | Fatta |
 | 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
 | 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Fatta |
-| 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Proposta |
+| 7 | GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM) | Alto (~2 giorni) | Slice 1+2a Fatta (prod) · Slice 2b Proposta |
 | 8 | AI Service: supporto nativo DICOM (formato sorgente radiografico) | Medio (~1 giorno) | Proposta |
 | 9 | Segreteria AI: isolamento chat per utente (hardening IDOR sessioni) | Basso (~½ giornata) | Fatta |
 | 10 | Da Segreteria AI a DentalCare AI Copilot (roadmap a fasi) | Alto (~multi-settimana) | Proposta |
@@ -32,7 +32,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 
 ## Roadmap prioritaria (consigliata)
 
-Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non rompere i riferimenti). Già **Fatte**: #4, #6, #9, #11. #5 (MinIO) di fatto consegnata con #6. Criteri: valore utente · effort · dipendenze · rischio/compliance.
+Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non rompere i riferimenti). Già **Fatte**: #4, #6, #9, #11. #7 parziale (Slice 1+2a LIVE prod, resta 2b). #5 (MinIO) di fatto consegnata con #6. Criteri: valore utente · effort · dipendenze · rischio/compliance.
 
 **P1 — Subito (alto valore, basso rischio, sblocca uso reale)**
 1. **#12.A** — CRUD Prestazioni/prezzi/default/bundle: quick-win, nessuna migrazione, sblocca listino e "Genera piano" per ogni studio.
@@ -48,7 +48,7 @@ Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non ro
 7. **#14** — Copilot contestuale/proattivo (contesto UI + push SSE + cross-modulo): dopo #13 e #1.
 
 **P3 — Dopo / compliance / oneroso**
-8. **#7** — GDPR cifratura per-tenant: **alza a P1 se vai in vendita/produzione clinica seria** (requisito compliance).
+8. **#7** — GDPR cifratura per-tenant: **Slice 1 (birth_date) + 2a (fiscal_code) FATTE e LIVE in prod** (2026-07-15). Resta **Slice 2b** (phone/email/address, ~½ giornata) + valutazione TDE. Era P3 "compliance": di fatto anticipato per produzione clinica.
 9. **#2** — Retell multi-studio (agente per sede/poltrona): se/quando servono più sedi.
 10. **#16** — Wiki LLM: OCR + GPT-4o + MinIO multitenant: sblocca Knowledge Base clinica (RAG per #15); dipendente da #7 (GDPR) e #8 (DICOM) se esteso a radiografie.
 11. **#12.B** — Anamnesi per-tenant: richiede decisione di design (Opt 1/2/3) + migrazione dati.
@@ -810,9 +810,38 @@ Suite backend verde (36 test). Merge su `master` in FF; branch `feat/ai-yolo-ser
 
 ## 7. GDPR: cifratura campo-per-campo con chiavi per tenant (HKDF + AES-256-GCM)
 
-**Stato:** Proposta
+**Stato:** Slice 1 + Slice 2a **Fatta** (LIVE in prod) · Slice 2b **Proposta**
 **Data proposta:** 2026-06-25
 **Impatto:** Alto (~2 giorni)
+
+### Stato per slice
+
+Realizzato per **slice** incrementali (dual-write → migrate → cutover per campo).
+
+| Slice | Campi | Stato | Riferimenti |
+|-------|-------|-------|-------------|
+| **1** | `patients.birth_date` → `birth_date_enc` (età in Java, TZ Europe/Rome) | **Fatta — LIVE prod** (migrata 2026-07-15) | runbook `deploy-gdpr-slice1-prod.md` |
+| **2a** | `patients.fiscal_code` → `fiscal_code_enc` + `fiscal_code_idx` (blind index) + snapshot `invoices.patient_fiscal_code_enc` | **Fatta — LIVE prod** (migrata 2026-07-15) | spec/plan `docs/superpowers/{specs,plans}/2026-07-08-gdpr-slice2a-fiscalcode*` |
+| **2b** | `patients.phone` / `email` / `address` → `_enc` (+ `_idx` per phone/email, normalizzazione dedicata: phone solo cifre, email lowercase) | **Proposta** | vedi §Slice 2b sotto |
+
+**Infrastruttura comune (Fatta):** `TenantEncryptionService` (HKDF-SHA256 → AES-256-GCM + blind index HMAC), `MasterKeyProvider` (seam Vault, `ConfigMasterKeyProvider` fail-fast), endpoint idempotente `POST /api/admin/encryption/migrate` (tenant-scoped), colonne plaintext mantenute (DROP rimandato).
+
+**Fuori scope attuale / decisione aperta:** cifratura `first_name`/`last_name` (rompe ricerca parziale → resta in chiaro, misure compensative) e `TDE`/disk-encryption per il dato a riposo su disco/backup. Motivazioni complete in doc repo `DentalCare-Documentation` → `04-Architecture-Handbook/11-Data-Encryption.md`.
+
+> Nota: la spec originale (#7 sotto) elencava anche `anamnesis`/`clinical_records`/`prescriptions`/`appointments.notes`. Non ancora affrontati — da valutare in uno slice successivo (2c) se richiesto.
+
+### Slice 2b — contatti paziente (phone / email / address)
+
+**Stato:** Proposta · **Impatto:** ~½-¾ giornata (infra già pronta, solo nuovi campi)
+
+Applica il pattern consolidato di Slice 2a ai contatti:
+- `patients.phone` → `phone_enc` + `phone_idx` (blind index su **sole cifre**: `replaceAll("\\D","")`).
+- `patients.email` → `email_enc` + `email_idx` (blind index su **lowercase** `trim().toLowerCase`).
+- `patients.address` (line1) → `address_enc` (no blind index: nessuna ricerca esatta su indirizzo).
+
+Passi: patchSchema colonne PRIMA delle viste (regola ordering nota) → dual-write in `PatientService` create/update → `migrateContacts()` in `EncryptionMigrationService` (endpoint `/migrate` ritorna anche `contacts:N`) → cutover read decrypt in mapRow + ricerca via `_idx`. Viste `v_patient_*` espongono `_enc`/`_idx`. Aggiornare `install.sql` (2 copie) + `TenantExportService` (CSV) + test.
+
+**Caveat:** verificare ogni punto UI/export/n8n che filtra o mostra phone/email (ricerca per telefono in rubrica, notifiche email) — passare da match plaintext a blind index esatto.
 
 ### Problema
 I dati sanitari e anagrafici dei pazienti (codice fiscale, data di nascita, note cliniche, anamnesi, ecc.) sono salvati in chiaro nel DB. In caso di breach del database, tutti i dati sono leggibili. Il GDPR art. 32 richiede misure tecniche adeguate — la cifratura campo-per-campo con chiavi per-tenant è la soluzione più robusta.
