@@ -27,6 +27,9 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 15 | Copilot: RAG + multimodale + memoria | Alto (~1-2 settimane) | Proposta |
 | 16 | Wiki LLM: OCR → GPT-4o → MinIO con versionamento per paziente | Alto (~3-5 giorni) | Proposta |
 | 17 | Prompt Manager AI: prompt multilingua editabili (tabella chiave-valore) | Medio | Fatta (dev) |
+| 18 | Cartella clinica — valore probatorio: audit clinico, finalizzazione/addendum, consensi, encounter | Alto (~multi-settimana) | Proposta |
+| 19 | Conformità EU AI Act (perimetro non-MDR): gate no-clinical radiologia + governance AI | Medio-alto (~2-3 settimane) | Proposta |
+| 20 | Copilot: fallback `confirmAction` conferma tutte le anteprime invece dell'ultima | Basso (~1-2 ore) | Proposta |
 
 ---
 
@@ -1031,6 +1034,122 @@ openssl rand -hex 32
 - Il campo `first_name` / `last_name` non viene cifrato per non rompere la ricerca anagrafica: se richiesto in futuro, serve un motore di ricerca tokenizzato separato (es. pg_trgm cifrato o ElasticSearch)
 - I file in MinIO (ortopanoramine, PDF) sono cifrati separatamente con **MinIO Server-Side Encryption** (SSE-S3 o SSE-C) — zero modifiche al codice applicativo
 - Audit log: ogni accesso a dato cifrato loggato con `actor_id` + `resource` (senza loggare il plaintext)
+
+---
+
+## 18. Cartella clinica — valore probatorio (audit, finalizzazione, consensi, encounter)
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-16
+**Impatto:** Alto (~multi-settimana, a fasi)
+
+Gap analysis completa in **`directives/gap-analysis-cartella-clinica.md`** (verificata su codice + DB reale, non su doc).
+
+**Sintesi:** dei 15 requisiti P0 della guida alla digitalizzazione, 4 coperti, 6 parziali, **5 assenti**. Il nucleo dati è buono; manca il livello "prova".
+
+**I 3 gap critici:**
+1. **Nessuna finalizzazione/immutabilità** delle note (`clinical_history_entries` senza `status`/`version`/`hash`/addendum → UPDATE silenzioso per sempre).
+2. **Nessun audit trail clinico** (solo `ai_audit_log` per le tool call; nessun log di lettura/download/stampa).
+3. **Nessuna gestione consensi** (solo un `document_type`, niente template versionato/firma/revoca).
+
+Più: encounter assente, merge duplicati assente, odontogramma senza storicità (`tooth_conditions` è snapshot), anamnesi senza tri-stato, documenti senza `sha256`/malware scan, cancellazione fisica invece di soft delete, MFA assente.
+
+**Piano a fasi** (dettaglio nel doc): A) valore probatorio (audit → finalizzazione → segregazione segreteria server-side → soft delete); B) modello clinico (encounter, odontogramma temporale, anamnesi tri-stato, consensi); C) identità/integrità; D) accessi (MFA, break glass, relazione di cura); E) P1 (conservazione, DICOMweb, FHIR, FSE, portale).
+
+**Da verificare subito:** la segreteria non deve vedere anamnesi/diagnosi/odontogramma/note — il filtro va confermato **server-side** (criterio §26.2 della guida).
+
+---
+
+## 19. Conformità EU AI Act (perimetro non-MDR)
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-16
+**Impatto:** Medio-alto (~2-3 settimane per il P0)
+**Scadenza esterna:** **2 agosto 2026** (trasparenza art. 50 + grosso dell'AI Act)
+
+Roadmap completa in **`directives/roadmap_certificazione.md`**.
+
+**Decisione di perimetro:** niente percorso MDR/CE. **Conseguenza:** il modulo radiologico (ONNX FDI+disease) è probabile MDSW classe IIa → senza CE **non può essere usato su pazienti reali**. La conformità si ottiene **estraendolo dall'uso clinico**, non documentandolo.
+
+**Già a favore (verificato):** versione modello tracciata (`patient_document_analyses.model_fdi/model_disease`), revisione umana persistita (`review_status`, `reviewed_by`), output AI distinto dal manuale (`tooth_conditions.source` + `analysis_id`), segregazione tenant + cifratura. La catena `analysis → review → tooth_condition.source` è già l'ossatura giusta.
+
+**P0 entro il 2 ago 2026:** gate no-clinical (feature flag radiologia, default OFF in prod) · disclosure Giulia + fallback umano · limiti operativi Giulia (no triage/diagnosi) · Registro AI · AI Use Policy · AI literacy (**già scaduta dal 2 feb 2025**) · informativa paziente AI (L. 132/2025) · registro claim · avvio DPIA · incident intake · kill switch.
+
+**Poi:** 30gg governance/RACI/classificazione · 60gg DPIA chiusa + DPA/SCC/TIA fornitori (Retell, OpenAI) + SOP no-retraining + logging AI esteso · 90gg MFA, pen test, audit interno.
+
+**Rischio residuo accettato:** il modulo radiologico resta non commercializzabile clinicamente. Diventa **non conformità grave** se usato/presentato con finalità mediche senza CE. **Il gate tecnico è il controllo che regge tutta la posizione.**
+
+---
+
+## 20. Copilot: il fallback di `confirmAction` conferma tutte le anteprime invece dell'ultima
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-16
+**Impatto:** Basso (~1-2 ore) — ma tocca la supervisione umana, quindi rilevante per [#19](#19-conformità-eu-ai-act-perimetro-non-mdr)
+**Origine:** analisi del grafo graphify su `DentalCareAiTools` (nodo a betweenness più alta del progetto: 68 archi, 17 service iniettati)
+
+### Contesto — cosa funziona già (non toccare)
+
+Il gate di conferma delle scritture del Copilot è **solido e strutturale**, non prompt-based. Verificato sul codice:
+
+- **Zero scritture dirette**: tutti i 19 punti di mutazione in `DentalCareAiTools` (1029 righe, 35 `@Tool`) stanno dentro una lambda passata a `pendingActions.register(...)`, seguita da `return "ANTEPRIMA — nessuna modifica salvata."` + codice a 4 cifre. I nomi ingannano: `createAppointment` **non crea**, registra soltanto. L'unico tool che scrive è `confirmAction`.
+- **La closure blinda il payload**: la request è catturata server-side; il modello trasporta solo 4 cifre. L'azione confermata è **identica per costruzione** a quella mostrata in anteprima — l'LLM non può alterarla né allucinare parametri fra i turni.
+- **Il controllo di scope regge**: `PendingActionService.consume(code)` non verifica lo scope, ma `DentalCareAiTools.execute()` (L404-412) sì — mismatch → azione rifiutata, `log.warn` + riga di audit. Vale anche cross-tenant (provider UUID diverso).
+- TTL 600s, `purge()` a ogni accesso, `SecureRandom`, codici univoci globali.
+
+Questo soddisfa §19.3 e §16.3 del piano AI Act ed è **evidenza difendibile**: non va rifatto.
+
+### Problema
+
+Divergenza fra javadoc e codice in `PendingActionService.consumeAllForScope()` (L61-76):
+
+```java
+/** Rimuove e ritorna tutte le azioni in sospeso per lo scope indicato, più recenti prima.
+ *  Serve a confermare l'ULTIMA anteprima quando il modello non riporta il codice tra i turni. */
+public List<Pending> consumeAllForScope(UUID scope)   // ← ritorna TUTTE, non l'ultima
+```
+
+Il commento dichiara *l'ultima*; il metodo ordina per recenza e poi le restituisce **tutte**. `DentalCareAiTools.confirmAction()` (L393-396) le esegue in ciclo quando il modello non riporta il codice — cosa che **succede regolarmente**, come ammette il commento stesso nel codice.
+
+**Non è un problema di sicurezza** (lo scope regge: sono comunque solo le pending dell'utente). È un problema di **qualità del consenso**:
+
+- entro la finestra TTL di 10 minuti un `confirmAction("ok")` generico esegue **tutte** le anteprime accumulate;
+- l'audit registra il `summary` di ciascuna → *cosa* è stato fatto è tracciato, ma non c'è prova che l'utente abbia rivisto **ogni singola** proposta;
+- lo scope è il **provider**, non la sessione di chat: due conversazioni parallele dello stesso medico condividono il pool di pending;
+- coinvolge anche i tool clinici (`previewAddDiagnosis`, `previewAddPrescription`, `previewAddDiaryNote`) → scritture in cartella clinica.
+
+Rispetto al piano AI Act tocca **§16.2** ("nessuna conferma pre-selezionata"), non §33.8 (non ci sono azioni autonome). Severità: **media**.
+
+### Soluzione proposta
+
+Allineare il codice al javadoc: quando manca il codice, confermare **solo la più recente**, lasciando le altre in attesa.
+
+```java
+// PendingActionService — nuovo metodo accanto a consumeAllForScope (o sostituirlo)
+/** Rimuove e ritorna la SOLA anteprima più recente per lo scope indicato. */
+public Optional<Pending> consumeLatestForScope(UUID scope) {
+    purge();
+    return store.entrySet().stream()
+            .filter(e -> Objects.equals(e.getValue().providerScope(), scope))
+            .max(Comparator.comparing(e -> e.getValue().expiresAt()))
+            .filter(e -> store.remove(e.getKey()) != null)
+            .map(Map.Entry::getValue);
+}
+```
+
+In `confirmAction`, il ramo di fallback usa `consumeLatestForScope(...)` e, se restano altre pending, lo dice all'utente (es. *"Confermata l'ultima anteprima. Ne restano N in attesa: richiedile per codice."*).
+
+**Alternativa scartata:** eliminare del tutto il fallback → l'UX si rompe (il modello perde il codice fra i turni, vedi memoria `chat_reschedule_confirm`), l'utente resta bloccato.
+
+### File coinvolti
+| Layer | File |
+|---|---|
+| Backend | `PendingActionService.java` (nuovo `consumeLatestForScope`), `DentalCareAiTools.java` (ramo fallback in `confirmAction`, L393-396) |
+| Test | test su: fallback con 1 pending → esegue; con N pending → esegue solo la più recente e le altre restano; scope mismatch → rifiuto + audit |
+
+### Note
+- `store` è in-memory (`ConcurrentHashMap`): pending perse al restart e **non funziona multi-istanza**. Prod = container singolo → ok oggi; stesso limite del registry SSE (#1). Da rivedere se si scala.
+- Il `summary` finisce in audit sia in caso di successo sia di scope mismatch: buona base per il logging AI esteso richiesto da #19.
 
 ---
 
