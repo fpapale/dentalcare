@@ -56,7 +56,7 @@ export class AgendaComponent implements OnInit, OnDestroy {
 
   // ─── Computed ─────────────────────────────────────────────────────────────
 
-  apptStatusFilter    = signal<string[]>(['confirmed', 'presente']);
+  apptStatusFilter    = signal<string[]>(['scheduled', 'confirmed', 'presente']);
   dayStatusFilter     = signal<string[]>(['scheduled', 'confirmed', 'presente']);
 
   readonly upcomingAppointments = computed(() => {
