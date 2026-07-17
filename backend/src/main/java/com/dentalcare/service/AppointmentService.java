@@ -168,17 +168,39 @@ public class AppointmentService {
         return jdbc.query(sql, params, (rs, n) -> mapRow(rs));
     }
 
+    /** Stati ammessi, allineati all'enum dentalcare.appointment_status. */
+    private static final Set<String> APPOINTMENT_STATUSES = Set.of(
+            "scheduled", "confirmed", "presente", "in_progress", "completed", "cancelled", "no_show");
+
+    /**
+     * Cambia lo stato di un appuntamento.
+     *
+     * Verifica le righe toccate: senza questo controllo un id inesistente (o di un altro
+     * tenant) aggiornava zero righe e il chiamante riceveva comunque 204, credendo che
+     * l'operazione fosse riuscita. Per l'assistente vocale significa dire al paziente
+     * "appuntamento cancellato" mentre l'appuntamento e' ancora in agenda.
+     *
+     * Nota: con zero righe PostgreSQL non valuta nemmeno il CAST, quindi anche uno stato
+     * inesistente passava in silenzio. Da qui la validazione esplicita.
+     */
     public void updateStatus(UUID appointmentId, String status) {
+        if (status == null || !APPOINTMENT_STATUSES.contains(status)) {
+            throw new IllegalArgumentException(
+                    "Stato non valido: " + status + ". Ammessi: " + APPOINTMENT_STATUSES);
+        }
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
             UPDATE %s.appointments
             SET status = CAST(:status AS dentalcare.appointment_status)
             WHERE id = :id AND clinic_id = :clinicId
             """.formatted(s());
-        jdbc.update(sql, new MapSqlParameterSource()
+        int rows = jdbc.update(sql, new MapSqlParameterSource()
                 .addValue("id", appointmentId)
                 .addValue("clinicId", clinicId)
                 .addValue("status", status));
+        if (rows == 0) {
+            throw new ResourceNotFoundException("Appuntamento non trovato: " + appointmentId);
+        }
         appointmentEventService.publish(clinicId, "changed");
     }
 
