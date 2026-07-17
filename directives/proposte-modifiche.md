@@ -32,6 +32,11 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 20 | Copilot: fallback `confirmAction` conferma tutte le anteprime invece dell'ultima | Basso (~1-2 ore) | Proposta |
 | 21 | Cartella clinica — **GAP P1**: firma, conservazione, terminologia, FHIR, portale, FSE | Alto (~multi-mese, dopo Fase 1) | Proposta |
 | 22 | Cartella clinica — **GAP P2**: AI certificata, secondary use, EHDS, federazione, mobile offline | Alto (~Fase 2 / non pianificato) | Proposta |
+| 23 | Ruotare la password demo: è pubblica su GitHub e non è cancellabile dalla storia | Basso (~1 ora) | **Proposta — aperta** |
+| 24 | `?providerId=` è un filtro deciso dal client, non un'autorizzazione | Medio (~1 giornata) | Proposta |
+| 25 | Menu persona demo: cambia la UI ma non il JWT — non dimostra la segregazione | Basso (~½ giornata) | Proposta |
+| 26 | CF obbligatorio all'emissione della fattura (seconda metà di 09dc68b) | Basso (~½ giornata) | Proposta |
+| 27 | n8n opera come l'utente demo: manca un'utenza di servizio propria | Medio (~1 giornata) | Proposta |
 
 ---
 
@@ -1972,3 +1977,125 @@ Esternalizzare i prompt AI (oggi hardcoded in `ChatService.SYSTEM_PROMPT`) in un
 - Nuove chiavi prompt (es. prompt tool-specifici, email templates): aggiungere a `PromptService.KEYS` + risorse.
 - Derivare il `locale` reale dell'utente (oggi default `it`) da preferenza/Accept-Language.
 - Blocco più oneroso e meno urgente: implementare dopo #13/#14 (valore operativo immediato).
+
+---
+
+## 23. Ruotare la password demo: è pubblica su GitHub
+
+**Stato:** Proposta — **aperta, azione richiesta**
+**Data proposta:** 2026-07-17
+**Impatto:** Basso (~1 ora) · **Rischio: la password di un'utenza admin funzionante è pubblica**
+
+La password delle utenze demo è committata in chiaro in **7 file tracciati** del repo `fpapale/dentalcare`, che è **PUBLIC** (non la ripeto qui: `git grep` sui file sotto la trova, ed è il punto):
+
+```
+README.md
+backend/src/main/resources/application.properties
+config/application-prod.properties.example
+directives/deploy-gdpr-slice1-prod.md
+directives/deploy-procedures.md
+directives/manuale-installazione-prod.md
+install.sh
+```
+
+Ed è nella **storia git** almeno da `fe58b78`.
+
+### Perché toglierla dai file non basta
+
+La storia git è pubblica e già clonata. Una `git rm` di oggi non annulla ciò che è stato leggibile per mesi: chi l'ha presa, l'ha. Riscrivere la storia (`filter-repo`) su un repo pubblico già clonato è teatro, non bonifica.
+
+**L'unica misura efficace è ruotare la password sulle 4 utenze demo** (`demo@`, `admin@`, `segreteria@`, `medico@` `.dentalcare.it`), che oggi condividono lo stesso hash bcrypt.
+
+### Perché conta adesso
+
+Il 17/07 abbiamo chiuso `GET /api/public/demo-config`, che regalava la password via API. Ma prod è raggiungibile da Internet (`papalef.duckdns.org`, vedi commit `41fc350`) e **quelle credenziali funzionano ancora**: chi le legge su GitHub entra come admin del tenant demo. Abbiamo chiuso una porta e lasciata aperta la finestra.
+
+Mitigante: dopo la bonifica del 17/07 il tenant demo contiene **solo dati fittizi**. Il danno oggi è la fiducia, non i dati.
+
+### Da fare
+1. Ruotare la password delle 4 utenze demo (bcrypt, valore nuovo).
+2. Aggiornare `config/application-prod.properties` sul server (`app.demo.password`, `app.n8n.admin-password`) e riavviare il backend.
+3. Sostituire il valore nei 7 file con un placeholder — **non** per bonifica, ma perché il prossimo lettore non lo prenda per buono.
+4. Valutare se il tenant demo debba stare su Internet.
+
+> **Regola da adottare:** nessuna credenziale funzionante in un repo pubblico, nemmeno "di demo". Se serve un accesso dimostrativo, va rilasciato a richiesta, non pubblicato.
+
+---
+
+## 24. `?providerId=` è un filtro deciso dal client, non un'autorizzazione
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-17
+**Impatto:** Medio (~1 giornata)
+**Origine:** analisi durante il fix `d7cefe5`
+
+```java
+// PatientService.findAll / findById
+String providerFilter = providerId != null
+        ? "AND (pat.primary_provider_id = :providerId OR EXISTS (SELECT 1 FROM appointments a WHERE ...))"
+        : "";   // ← parametro assente = NESSUN filtro
+```
+
+`providerId` è `@RequestParam(required = false)` e arriva **dal client**. Chi omette `?providerId=` vede l'intero tenant, qualunque sia il suo ruolo. Non è un controllo di autorizzazione: è una **vista** che il chiamante sceglie da sé.
+
+Oggi non è una falla di riservatezza fra tenant — lo schema resta isolato dal JWT — ma è esattamente il gap **3.6** della gap analysis (§11.1 della guida: "pazienti assegnati o per i quali esiste una relazione di cura"). La colonna `primary_provider_id` esiste ed è usata **solo** come filtro cosmetico.
+
+**Da fare:** derivare l'ambito dal JWT lato server (come già fa `DentalCareAiTools.isMedical()`), non dal parametro. Il parametro resta al massimo come *restringimento* di ciò che il ruolo già consente, mai come ampliamento. Tracciato anche come intervento 14 del [piano di intervento](#piano-di-intervento--cartella-clinica-gap-p0--gap-p1).
+
+---
+
+## 25. Menu persona demo: cambia la UI, non il JWT
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-17
+**Impatto:** Basso (~½ giornata)
+
+Il selettore in alto (visibile solo sul tenant demo, `@if (isDemoUser())`) cambia `userContext.role()`, che `role.guard.ts:29` usa per le rotte. Ma **il JWT resta quello del login**: `user-context.service.ts:11` lo dice esplicito — *"JWT role — set once on login, never changed by context switch"*.
+
+Conseguenza: scegliere "Segreteria" nasconde i tab clinici e blocca le rotte, **ma l'API risponde ancora come admin**. È una tenda, non un muro.
+
+**Non è una falla** (serve già un login valido e resta dentro il proprio tenant), ma è una **trappola in demo**: se al dentista si mostra il menu persona come prova che "la segretaria non vede la cartella", si promette un controllo che non c'è. La prova onesta è un **login reale** con `segreteria@demo.dentalcare.it`.
+
+**Da fare:** rinominare l'affordance in modo che dichiari cosa è (es. "Anteprima ruolo (demo)") e documentare che non è un confine di sicurezza. Il confine vero è l'intervento 3 del piano (segregazione server-side + test).
+
+---
+
+## 26. CF obbligatorio all'emissione della fattura
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-17
+**Impatto:** Basso (~½ giornata)
+**Origine:** seconda metà della decisione presa con `09dc68b`
+
+`09dc68b` ha reso il codice fiscale **opzionale alla creazione** del paziente, perché l'assistente vocale ha il divieto di chiederlo (§19 del prompt) e senza quella modifica nessun paziente nuovo poteva prenotare per telefono.
+
+La decisione completa era *"CF opzionale, obbligatorio in fattura"*: **la seconda metà non è implementata.** Oggi `InvoiceService` non verifica affatto il CF, si limita allo snapshot — quindi `09dc68b` non ha introdotto regressioni, ma il controllo non esiste né prima né dopo.
+
+**Da fare:** all'emissione, se il paziente non è `foreign_patient` e non ha CF → rifiutare con un errore che dica di completare la scheda. Attenzione: i pazienti stranieri senza CF italiano devono restare fatturabili.
+
+---
+
+## 27. n8n opera come l'utente demo
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-17
+**Impatto:** Medio (~1 giornata)
+
+```java
+@Value("${app.n8n.admin-email:${app.demo.email:}}")     // ← ripiega sulle credenziali demo
+@Value("${app.n8n.admin-password:${app.demo.password:}}")
+
+public ServiceTokenResponse serviceToken(String providedKey) {
+    if (n8nServiceKey.isBlank() || !n8nServiceKey.equals(providedKey)) throw new AccessDeniedException(...);
+    LoginPreflightRequest req = new LoginPreflightRequest(n8nAdminEmail, n8nAdminPassword);
+    ...
+}
+```
+
+n8n presenta `X-N8N-Key` e il backend gli rilascia un JWT **facendo login come utente demo**. Tre conseguenze:
+
+1. **Nell'audit n8n è indistinguibile dall'utente demo**: ogni prenotazione telefonica risulta fatta da quell'utenza. Con l'audit clinico della Fase 1 questo diventa un problema di attribuzione: *chi* ha creato la scheda?
+2. **Il legame è invisibile**: la sola configurazione non lo mostra, è un default annidato nel codice. Reso esplicito nel `.example` il 17/07 (#23).
+3. **Un tenant, uno solo**: `app.n8n.admin-email` è globale, quindi n8n può operare su un tenant solo. Blocca lo scenario multi-studio di [#2](#2-retell-multi-studio-agente-per-sedepoltrona).
+
+**Da fare:** utenza di servizio dedicata, con ruolo proprio (non `admin`) e riconoscibile nell'audit; per il multi-studio, credenziali per tenant risolte dall'`agent_id` come già previsto in #2.

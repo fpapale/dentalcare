@@ -17,7 +17,13 @@ Predisporre/aggiornare il deploy Docker di produzione sulla macchina
    - Hardening prod: `server.error.include-message=never`,
      `server.error.include-binding-errors=never`, `logging.level.root=WARN`,
      `logging.level.com.dentalcare=INFO`.
-   - Demo mode resta abilitato (`app.demo.enabled=true`).
+   - **Demo mode SPENTO in prod (`app.demo.enabled=false`).** Con `true`,
+     `GET /api/public/demo-config` è `permitAll` e restituisce **email e
+     password in chiaro senza autenticazione** a chiunque raggiunga l'app.
+     Spegnerlo non rompe il menu persona: `demoSchema` resta esposto comunque
+     (`AuthService.demoConfig()`), si perde solo il prefill del login.
+     *Questa riga prescriveva `true` fino al 17/07/2026: era la causa della
+     divergenza fra repo e server.*
 
 2. **`docker-compose.yml`** (file UNICO, niente override prod):
    - `backend`: profilo `prod` (`SPRING_PROFILES_ACTIVE=prod`), **non esposto**
@@ -33,7 +39,14 @@ Predisporre/aggiornare il deploy Docker di produzione sulla macchina
 
 4. **`config/`** (flat, non più `config/backend` o `config/frontend`):
    - `config/application-prod.properties.example` → puntato a `dentalcare_prod`
-     (DB, creds, `app.jwt.secret` da cambiare, demo on, errori non esposti).
+     (DB, creds, **demo off**, errori non esposti). Tutti i segreti sono
+     placeholder che **non funzionano**: `app.jwt.secret=REPLACE_ME` è corto di
+     proposito, così JJWT lo rifiuta e il backend non parte finché non ne metti
+     uno vero (`openssl rand -base64 48`). Prima ospitava un valore di comodo
+     lungo abbastanza da funzionare: chi non lo cambiava firmava i JWT con una
+     chiave pubblica su GitHub, **senza accorgersene**.
+   - `app.n8n.admin-email`/`admin-password` sono ora espliciti: se omessi
+     ripiegano su `app.demo.*` e n8n opera come l'utente demo.
    - `config/.gitignore` ignora il file reale `application-prod.properties`.
    - nginx è bundled nell'immagine: nessun mount frontend.
 

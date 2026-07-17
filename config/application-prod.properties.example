@@ -14,14 +14,25 @@ spring.datasource.hikari.maximum-pool-size=10
 spring.datasource.hikari.minimum-idle=2
 spring.datasource.hikari.connection-timeout=20000
 
-# ---- JWT (generare un secret reale: openssl rand -base64 48) ----
-app.jwt.secret=dentalcare-prod-secret-key-min-32-chars-change-me
+# ---- JWT — OBBLIGATORIO ----
+# Genera con: openssl rand -base64 48
+# Il placeholder e' volutamente CORTO: sotto i 32 byte JJWT rifiuta la chiave e
+# il backend non parte. E' voluto. Un valore di comodo lungo abbastanza da
+# funzionare (com'era prima qui) parte in silenzio e firma i token con una
+# chiave che sta su GitHub: chiunque l'abbia puo' forgiare un token con
+# qualsiasi clinicId, schemaName e role, senza passare dal login.
+app.jwt.secret=REPLACE_ME
 app.jwt.expiration-ms=86400000
 
 # ---- Demo mode ----
-app.demo.enabled=true
+# In produzione TENERE false. Con enabled=true l'endpoint pubblico
+# GET /api/public/demo-config restituisce email e password IN CHIARO, senza
+# autenticazione, a chiunque raggiunga l'applicazione.
+app.demo.enabled=false
+# email/password restano valorizzate anche a demo spenta: il service account
+# n8n vi ripiega (vedi sotto). Sono le credenziali con cui n8n opera sul tenant.
 app.demo.email=demo@demo.dentalcare.it
-app.demo.password=DemoAdmin1!
+app.demo.password=REPLACE_WITH_DEMO_PASSWORD
 
 # ---- GDPR field encryption (#7) — OBBLIGATORIO ----
 # Master key per cifratura per-tenant (HKDF+AES-256-GCM). Genera con:
@@ -34,7 +45,14 @@ app.encryption.key-source=config
 app.encryption.master-key=REPLACE_WITH_OPENSSL_RAND_HEX_32
 
 # ---- n8n service account ----
+# Chiave che n8n presenta in X-N8N-Key su POST /api/public/service-token per
+# farsi rilasciare un JWT.
 app.n8n.service-key=REPLACE_WITH_N8N_SERVICE_KEY
+# Utenza con cui n8n opera sul tenant. Se omesse ripiegano su
+# app.demo.email/password: esplicitate qui perche' la dipendenza sia visibile e
+# perche' n8n possa avere un'utenza propria invece di riusare quella demo.
+app.n8n.admin-email=demo@demo.dentalcare.it
+app.n8n.admin-password=REPLACE_WITH_DEMO_PASSWORD
 
 # ---- Mail (SMTP) ----
 spring.mail.host=192.168.0.68
