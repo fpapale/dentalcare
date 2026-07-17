@@ -32,7 +32,11 @@ Con il target "primo studio pagante entro 6 mesi", quell'evento è previsto per 
 
 Questo è il secondo effetto, ed è il più importante per pianificare.
 
-Il progetto ha un rapporto di compressione misurato di **~50-100x** sulle ore umane (vedi metriche storiche: 68 commit / ~29k righe / ~7-8h umane nei primi 7 giorni). Alla velocità reale di questo progetto, **tutto il debito tecnico della Fase 1 vale ~65-100 ore agente** — cioè settimane, non mesi.
+Il progetto ha un rapporto di compressione misurato di **~50-100x** sulle ore umane (vedi metriche storiche: 68 commit / ~29k righe / ~7-8h umane nei primi 7 giorni). Alla velocità reale di questo progetto, **tutto il debito tecnico della Fase 1 vale ~85-120 ore agente** — cioè settimane, non mesi.
+
+> **Correzione 17/07/2026.** Qui c'era *"~65-100 ore agente"*: era sbagliato già alla stesura — gli sprint del §4 sommavano a 80-114h. Con l'intervento *admin tecnico + break glass* aggiunto allo Sprint 3 si arriva a **84-117h**, arrotondato a ~85-120h. Somma verificata: Sprint 0 (10-14) + Sprint 1 (20-25) + Sprint 2 (20-30) + Sprint 3 (24-33) + Sprint 4 (10-15).
+>
+> **Non cambia la conclusione, la rafforza:** anche a 120h il codice resta **settimane** contro i **mesi** di DPIA/DPA/contratti/pen test. Una stima tecnica sbagliata del 40% non sposta il percorso critico — e questo è esattamente il punto del paragrafo.
 
 Il lavoro **non comprimibile** è l'altro:
 
@@ -110,13 +114,18 @@ Il blocco che trasforma "database di dati clinici" in "cartella clinica". Da `ga
 3. **Odontogramma temporale** (`certainty`, `encounter_id`, `supersedes_id`, storico);
 4. **Anamnesi tri-stato** (presente/assente/non noto) + fonte.
 
-### Sprint 3 — Identità e accessi (ottobre–novembre 2026) · ~20-30h agente
+### Sprint 3 — Identità e accessi (ottobre–novembre 2026) · ~24-33h agente
 
-1. **MFA** per professionisti e admin;
-2. **Merge duplicati** + `patients.status`;
-3. **`sha256` + malware scan** sugli upload + verifica paziente↔immagine;
-4. **Export paziente completo** (art. 15 GDPR);
-5. **Relazione di cura** come filtro di autorizzazione (`primary_provider_id`).
+Riordinato: **prima le voci del gate** (§5), poi il resto.
+
+1. **MFA** per professionisti e admin — *gate*;
+2. **Export paziente completo** (art. 15 GDPR) + report accessi — *gate*;
+3. **Admin tecnico senza accesso clinico ordinario** + **break glass** tracciato — *gate* (voce aggiunta il 17/07/2026: §11.1, §11.3, errore §28.18);
+4. **Merge duplicati** + `patients.status`;
+5. **`sha256` + MIME reale + malware scan** sugli upload + verifica paziente↔immagine;
+6. **Relazione di cura** come filtro di autorizzazione (`primary_provider_id`).
+
+> Dettaglio, dipendenze ed effort per intervento: *Piano di intervento — cartella clinica*, Blocco 3, in `proposte-modifiche.md`.
 
 ### Binario parallelo — Governance (settembre–dicembre 2026) · dipende dal DPO
 
@@ -150,6 +159,7 @@ Nessun paziente reale prima che **tutte** siano verde:
 - [ ] note finalizzabili, non modificabili dopo la firma, addendum funzionante
 - [ ] consensi versionati collegati ai piani
 - [ ] segreteria **non** vede anamnesi/diagnosi/odontogramma/note (verificato server-side)
+- [ ] **amministratore tecnico non accede ai contenuti clinici in chiaro**; ogni accesso straordinario passa da **break glass** tracciato (motivazione obbligatoria + audit + notifica)
 - [ ] MFA attiva
 - [ ] DPIA approvata dal DPO
 - [ ] informative aggiornate (privacy + uso AI)
@@ -160,6 +170,12 @@ Nessun paziente reale prima che **tutte** siano verde:
 - [ ] restore testato almeno una volta
 - [ ] pen test eseguito e remediation chiusa
 - [ ] export paziente (art. 15) funzionante
+
+> **Voce aggiunta il 17/07/2026 — amministratore tecnico.** Il gate copriva la segregazione della **segreteria** ma non quella dell'**admin tecnico**, che §11.1 della guida vieta e che `gap-analysis-cartella-clinica.md` §8 marca già come errore **§28.18 ❌ presente**. Senza questa voce il gate sarebbe passato **con una non conformità nota e attiva** — l'unica cosa peggiore di un controllo mancante è un controllo che dichiara verde ciò che è rosso.
+>
+> Consegnata dallo **Sprint 3**; tracciata come intervento 11 del *Piano di intervento* in `proposte-modifiche.md`.
+
+> **Regola del gate.** Ogni voce qui dev'essere consegnata da uno sprint del §4 e verificabile da un terzo. Una voce senza sprint è un'intenzione; uno sprint senza voce nel gate è lavoro che non blocca il go-live. Se aggiungi una voce, aggiungi anche chi la consegna.
 
 ---
 

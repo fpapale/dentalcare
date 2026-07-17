@@ -27,13 +27,28 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 15 | Copilot: RAG + multimodale + memoria | Alto (~1-2 settimane) | Proposta |
 | 16 | Wiki LLM: OCR → GPT-4o → MinIO con versionamento per paziente | Alto (~3-5 giorni) | Proposta |
 | 17 | Prompt Manager AI: prompt multilingua editabili (tabella chiave-valore) | Medio | Fatta (dev) |
-| 18 | Cartella clinica — valore probatorio: audit clinico, finalizzazione/addendum, consensi, encounter | Alto (~multi-settimana) | Proposta |
+| 18 | Cartella clinica — **GAP P0**: valore probatorio (audit clinico, finalizzazione/addendum, consensi, encounter) | Alto (~66-90h agente, 3 blocchi) | Proposta |
 | 19 | Conformità EU AI Act (perimetro non-MDR): gate no-clinical radiologia + governance AI | Medio-alto (~2-3 settimane) | Proposta |
 | 20 | Copilot: fallback `confirmAction` conferma tutte le anteprime invece dell'ultima | Basso (~1-2 ore) | Proposta |
+| 21 | Cartella clinica — **GAP P1**: firma, conservazione, terminologia, FHIR, portale, FSE | Alto (~multi-mese, dopo Fase 1) | Proposta |
+| 22 | Cartella clinica — **GAP P2**: AI certificata, secondary use, EHDS, federazione, mobile offline | Alto (~Fase 2 / non pianificato) | Proposta |
 
 ---
 
-## Roadmap prioritaria (consigliata)
+> ### ⚠️ Due significati di "P1" — non confonderli
+>
+> | Sigla | Dove | Significa |
+> |---|---|---|
+> | **P1 / P2 / P3** | *Roadmap prioritaria* qui sotto | bucket di priorità **delle proposte** → *quando* farle |
+> | **GAP P0 / P1 / P2** | `gap-analysis-cartella-clinica.md` §3/§4/§5 → proposte #18 / #21 / #22 | livelli di requisito **della guida alla digitalizzazione** (§25.1/25.2/25.3) → *quanto è bloccante il requisito* |
+>
+> Non c'è corrispondenza tra le due scale. Scrivere sempre **`GAP P1`** (con prefisso) quando si intende il livello di requisito.
+
+## Roadmap prioritaria (consigliata) — solo funzionalità di prodotto
+
+> **Perimetro ridotto.** Questa roadmap ordina le proposte **di prodotto** (#1-#17). Il percorso **cartella clinica + compliance** (#18, #19, #20, #21, #22) è governato dal *Piano di intervento* qui sotto e da `piano-lungo-termine.md`, che ha la precedenza in caso di conflitto: quel percorso è vincolato dal **gate di go-live**, non dal valore utente.
+>
+> Conseguenza pratica: nessuna delle proposte in questa roadmap va in produzione **su pazienti reali** prima che il gate di go-live sia verde.
 
 Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non rompere i riferimenti). Già **Fatte**: #4, #6, #9, #11. #7 parziale (Slice 1+2a LIVE prod, resta 2b). #5 (MinIO) di fatto consegnata con #6. Criteri: valore utente · effort · dipendenze · rischio/compliance.
 
@@ -57,6 +72,90 @@ Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non ro
 11. **#12.B** — Anamnesi per-tenant: richiede decisione di design (Opt 1/2/3) + migrazione dati.
 12. **#8** — DICOM nativo nell'AI service: nicchia, dopo #6.
 13. **#15** — Copilot RAG/multimodale/memoria: blocco più oneroso, dopo #13/#14.
+
+---
+
+## Piano di intervento — cartella clinica (GAP P0 → GAP P1)
+
+**Fonti:** `gap-analysis-cartella-clinica.md` (gap verificati su codice + DB reale) · `piano-lungo-termine.md` (sequenza, sprint, date, gate) · `roadmap_certificazione.md` (perimetro AI).
+**Copre:** GAP P0 (#18) e GAP P1 (#21). GAP P2 (#22) è fuori piano — vedi §Fase 2 in `piano-lungo-termine.md`.
+
+Ordine per **priorità tecnica** (dipendenze prima) e **rilascio in produzione Fase 1** (voci del gate prima). La colonna **Gate** indica se l'intervento è nella lista *"nessun paziente reale prima che sia verde"* (`piano-lungo-termine.md` §5).
+
+> **Perché quest'ordine.** L'audit è primo non perché sia il gap più grave — il più grave è la finalizzazione — ma perché è l'unico **abilitante**: report accessi, diritti del paziente, KPI di qualità e le domande da controllo (§24.2) dipendono tutti da lui, e la segregazione della segreteria richiede di *negare **e registrare***. L'encounter è il secondo perno: senza `encounter_id` l'odontogramma temporale e FHIR non hanno su cosa agganciarsi.
+
+### Blocco 1 — Valore probatorio · GAP P0 · Fase 1 / Sprint 1 · ~20-26h agente
+
+| # | Intervento | Gap | Dipende da | Gate | Effort |
+|--:|---|---|---|:-:|--:|
+| 1 | **Audit trail clinico** append-only: tabella `audit_event` separata dal log applicativo, no UPDATE/DELETE (revoca privilegi + trigger), eventi e campi §12, retention + esportabilità | 3.2 ❌ | — | ✅ | ~8-10h |
+| 2 | **Finalizzazione + addendum + hash** su `clinical_history_entries`: stati §6.1, blocco UPDATE dopo `final` (service **e** trigger DB), SHA-256 alla finalizzazione, `version`, entità addendum | 3.1 ❌ | 1 (l'audit deve registrare finalize/addendum/annullamento) | ✅ | ~7-9h |
+| 3 | **Segregazione segreteria server-side** + test automatico §26.2 | 3.6 🟡 | 1 (il criterio richiede *negata **e registrata***) | ✅ | ~3-4h |
+| 4 | **Soft delete** (`deleted_at`/`status`) al posto della cancellazione fisica; purge come procedura eccezionale documentata | 3.11 🟡 | — | — | ~2-3h |
+
+### Blocco 2 — Modello clinico · GAP P0 · Fase 1 / Sprint 2 · ~22-31h agente
+
+| # | Intervento | Gap | Dipende da | Gate | Effort |
+|--:|---|---|---|:-:|--:|
+| 5 | **Encounter** (`planned`/`in-progress`/`finished`, sede, professionista, motivo) + FK `encounter_id` su clinical entries, diagnosi, documenti, `tooth_conditions` | 3.4 ❌ | 1 | — | ~8-12h |
+| 6 | **Consensi versionati**: `consent_template` (testo/lingua/versione/efficacia) + `consent` (firmatario, revoca, allegati, rappresentanza), immutabile dopo firma, **collegato al piano** | 3.3 ❌ | 5 (il consenso si lega a procedura/piano dell'episodio) | ✅ | ~6-8h |
+| 7 | **Odontogramma temporale**: `certainty`, `encounter_id`, `onset_date`, `recorded_by`, `supersedes_id`, `void_reason`, `status` → storico + confronto tra date | 3.7 🟡 | 5 | — | ~5-7h |
+| 8 | **Anamnesi tri-stato** (presente / assente-negato / non noto) + fonte, data rilevazione, data risoluzione | 3.8 🟡 | — | — | ~3-4h |
+
+> **Nota su 7.** `tooth_conditions.source` + `analysis_id` **è già la cosa giusta** (§17.1: output AI conservato come proposta distinta). Va **esteso, non rifatto**.
+
+### Blocco 3 — Identità e accessi · GAP P0 · Fase 1 / Sprint 3 · ~24-33h agente
+
+Riordinato rispetto a `piano-lungo-termine.md` §4 Sprint 3: **prima le voci del gate**.
+
+| # | Intervento | Gap | Dipende da | Gate | Effort |
+|--:|---|---|---|:-:|--:|
+| 9 | **MFA** per professionisti e admin | 3.6 🟡 (§11.2) | — | ✅ | ~5-6h |
+| 10 | **Export paziente completo** (art. 15) + copia integrale documentazione + **report accessi** + registrazione richieste/tempi | 3.10 🟡 | 1 | ✅ | ~4-6h |
+| 11 | **Admin tecnico senza accesso clinico ordinario** + **break glass** tracciato (motivazione obbligatoria, audit, notifica) | 3.6 🟡 (§11.1, §11.3, §28.18) | 1 | ⚠️ **assente dal gate — vedi sotto** | ~3-4h |
+| 12 | **Merge duplicati** + `patients.status` (attivo/deceduto/duplicato/archiviato), match esatto via blind index CF + fuzzy nome+data, approvazione + audit + reversibilità | 3.5 ❌ | 1 | — | ~5-7h |
+| 13 | **`sha256`** (obbligatorio §30) + verifica **MIME reale** + malware scan/quarantena + coerenza paziente↔immagine | 3.9 🟡 | — | — | ~4-6h |
+| 14 | **Relazione di cura** come filtro di autorizzazione (`primary_provider_id` esiste ma non è usato) | 3.6 🟡 (§11.1) | — | — | ~3-4h |
+
+> **⚠️ Buco nel gate di go-live — da decidere.**
+> Il gate (`piano-lungo-termine.md` §5) verifica che la **segreteria** non veda i contenuti clinici, ma **non dice nulla sull'`admin` tecnico**. La gap analysis §8 marca l'errore §28.18 *"amministratori tecnici che leggono tutto"* come **❌ presente**, e §11.1 lo vieta esplicitamente.
+> Allo stato attuale il gate passerebbe **con una non conformità nota attiva**. Proposta: aggiungere al gate la voce *"l'amministratore tecnico non accede ai contenuti clinici in chiaro; ogni accesso straordinario passa da break glass tracciato"*, e promuovere l'intervento 11 a bloccante.
+> Stessa logica del gate no-clinical (#19): il controllo che regge la posizione deve stare **nel gate**, non nelle buone intenzioni.
+>
+> Effetto sullo sprint: Sprint 3 passa da ~20-30h a **~24-33h** (l'intervento 11 non era nel piano originale).
+
+### Blocco 4 — GAP P1 · **dopo** il go-live di Fase 1 · vedi #21
+
+`piano-lungo-termine.md` §4 esclude i GAP P1 dalla Fase 1: *"servono per crescere, non per il primo studio"*. Ordine per dipendenza tecnica, non per valore.
+
+Effort in taglie (S ≤ 1 settimana agente · M ≤ 1 mese · L > 1 mese) — **non derivato da analisi di dettaglio**, indicativo. Dove il costo è dominato da terzi (fornitore, accreditamento) l'effort agente è irrilevante e lo dico.
+
+| # | Intervento | Gap P1 | Dipende da | Effort | Perché qui |
+|--:|---|---|---|:-:|---|
+| 15 | **Analytics qualità / KPI §23** | Analytics 🟡 | 1, 6, 12 | S | Il più economico dei P1: i KPI §23.1 (*piani con consenso collegato*, *duplicati per 1.000 pazienti*) diventano **misurabili da soli** appena esistono audit + consensi + merge. Raccolta di frutti già maturi. |
+| 16 | **Politica di conservazione + massimario + politica di firma** (§9.2, §9.4) | Conservazione ❌ | — | **non-codice** (DPO/legale) | Prerequisito di 17 e 20. Va fatto **mentre il DPO è già ingaggiato** per la DPIA: costa poco in aggiunta, molto da soli. |
+| 17 | **Firma avanzata/qualificata (PAdES)** | Firma ❌ | 2, 16 | M + fornitore | La finalizzazione (2) è il **livello 2** di §9.2; PAdES è il **livello 3**. Senza 2 non c'è nulla da firmare. |
+| 18 | **Terminology service**: code system + versione su `service_code` / `condition` (oggi stringhe libere) | Terminology ❌ | — | M | **Gate tecnico di FHIR e FSE**: senza codifica governata non c'è scambio, solo export. Indipendente da tutto il resto → si può anticipare. |
+| 19 | **Esame obiettivo strutturato** (extraorale, mucose, ATM, occlusione, endodonzia) + **charting parodontale** (sondaggio, recessioni, mobilità, placca/sanguinamento) | Parodontale ❌ + §5.4 | 5 | M | Profondità clinica, indipendente dall'interoperabilità. Oggi tutto in `clinical_notes` testo libero. **È l'unico P1 che un odontoiatra nota come funzione mancante** → candidato ad anticipazione se richiesto dal mercato. |
+| 20 | **Conservazione a norma** | Conservazione ❌ | 16, 17 | dominato da fornitore/accreditamento | Oggi MinIO + `pg_dump` = **backup**, non conservazione (§9.3, errore §28.7). Distinzione non negoziabile. |
+| 21 | **FHIR API** (adapter, **non** modello interno) | FHIR ❌ | 5, 6, 18 | M-L | La strategia duale §14.1 è **già corretta**: il modello interno non va rimodellato, si aggiunge un adapter. Serve encounter (5), consensi (6) e terminologia (18) o l'adapter mappa il vuoto. |
+| 22 | **DICOMweb** → proposta **#8** | DICOMweb ❌ | — | S-M (#8) | Indipendente da tutto il resto: si può fare quando serve. |
+| 23 | **Portale paziente** | Portale ❌ | 1, 6, 10 | L | Espone al paziente esattamente ciò che 1/6/10 rendono esponibile. Prima di quelli non ha contenuto da mostrare. |
+| 24 | **Connettore FSE 2.0** | FSE ❌ | 17, 18, 20, 21 | dominato da accreditamento | **Ultimo per costruzione**: richiede CDA2 + PAdES + conservazione + accreditamento regionale. Ogni sua dipendenza è un altro P1. |
+
+> **Report accessi** (§25.2) non compare qui: è **chiuso dall'intervento 10** in Fase 1, perché dipende dall'audit (1) e serve al diritto del paziente. È l'unico GAP P1 che entra in Fase 1 — e ci entra come effetto collaterale, non per scelta.
+
+### Sintesi per rilascio
+
+| Rilascio | Blocchi | Interventi | Effort agente | Vincolo reale |
+|---|---|---|--:|---|
+| **Fase 1 — go-live gennaio 2027** | 1 + 2 + 3 | 1-14 (+ report accessi) | **~66-90h** (solo #18) | **non il codice**: DPIA/DPA/contratti/pen test → ingaggio DPO entro **fine agosto 2026** |
+| **Post-Fase 1** | 4 | 15-24 | mesi | mercato (19, 22) · terzi (16, 17, 20, 24) |
+| **Fase 2 — CE 2029** | — | vedi #22 | ~24 mesi | apertura solo se la Fase 1 vende (`piano-lungo-termine.md` §6.1) |
+
+> **✅ Allineato il 17/07/2026.** Il §2 di `piano-lungo-termine.md` dichiarava *"~65-100 ore agente"* per tutto il debito tecnico di Fase 1, ma i suoi stessi sprint sommavano a 80-114h. Corretto a **~85-120h agente** (= #18 ~66-90h + #19 Sprint 0 ~10-14h + hardening ~10-15h), e il gate §5 ha ora la voce sull'admin tecnico, consegnata dallo Sprint 3.
+>
+> La conclusione non cambia — si rafforza: anche a 120h **il codice resta settimane contro i mesi di DPIA/DPA/pen test**. Una stima tecnica sbagliata del 40% non sposta il percorso critico. **Il collo di bottiglia non è il codice: sono le firme.**
 
 ---
 
@@ -1037,26 +1136,37 @@ openssl rand -hex 32
 
 ---
 
-## 18. Cartella clinica — valore probatorio (audit, finalizzazione, consensi, encounter)
+## 18. Cartella clinica — GAP P0: valore probatorio (audit, finalizzazione, consensi, encounter)
 
 **Stato:** Proposta
 **Data proposta:** 2026-07-16
-**Impatto:** Alto (~multi-settimana, a fasi)
+**Impatto:** Alto (~66-90h agente, 3 blocchi)
+**Livello:** **GAP P0** = requisiti §25.1 della guida (bloccanti). GAP P1 → [#21](#21-cartella-clinica--gap-p1-firma-conservazione-terminologia-fhir-portale) · GAP P2 → [#22](#22-cartella-clinica--gap-p2-ai-certificata-secondary-use-ehds-federazione-mobile-offline)
+**Piano ordinato:** [Piano di intervento — cartella clinica](#piano-di-intervento--cartella-clinica-gap-p0--gap-p1), Blocchi 1-3
+**Rilascio:** **Fase 1** — tutti e 3 i blocchi prima del primo paziente reale (`piano-lungo-termine.md` §5)
 
 Gap analysis completa in **`directives/gap-analysis-cartella-clinica.md`** (verificata su codice + DB reale, non su doc).
 
-**Sintesi:** dei 15 requisiti P0 della guida alla digitalizzazione, 4 coperti, 6 parziali, **5 assenti**. Il nucleo dati è buono; manca il livello "prova".
+**Sintesi:** dei 15 requisiti GAP P0 della guida, 4 coperti, 6 parziali, **5 assenti**. Il nucleo dati è buono; manca il livello "prova".
 
 **I 3 gap critici:**
 1. **Nessuna finalizzazione/immutabilità** delle note (`clinical_history_entries` senza `status`/`version`/`hash`/addendum → UPDATE silenzioso per sempre).
 2. **Nessun audit trail clinico** (solo `ai_audit_log` per le tool call; nessun log di lettura/download/stampa).
 3. **Nessuna gestione consensi** (solo un `document_type`, niente template versionato/firma/revoca).
 
-Più: encounter assente, merge duplicati assente, odontogramma senza storicità (`tooth_conditions` è snapshot), anamnesi senza tri-stato, documenti senza `sha256`/malware scan, cancellazione fisica invece di soft delete, MFA assente.
-
-**Piano a fasi** (dettaglio nel doc): A) valore probatorio (audit → finalizzazione → segregazione segreteria server-side → soft delete); B) modello clinico (encounter, odontogramma temporale, anamnesi tri-stato, consensi); C) identità/integrità; D) accessi (MFA, break glass, relazione di cura); E) P1 (conservazione, DICOMweb, FHIR, FSE, portale).
+Più: encounter assente, merge duplicati assente, odontogramma senza storicità (`tooth_conditions` è snapshot), anamnesi senza tri-stato, documenti senza `sha256`/malware scan, cancellazione fisica invece di soft delete, MFA assente, admin tecnico che legge i contenuti clinici.
 
 **Da verificare subito:** la segreteria non deve vedere anamnesi/diagnosi/odontogramma/note — il filtro va confermato **server-side** (criterio §26.2 della guida).
+
+**Da decidere:** il gate di go-live non copre l'`admin` tecnico (§28.18, marcato ❌ presente) — vedi il riquadro nel Blocco 3 del piano.
+
+### Rapporto con le altre proposte
+
+| | |
+|---|---|
+| **#19** (AI Act) | Complementare, non sovrapposta: #19 mette in sicurezza il **perimetro AI**, #18 il **valore probatorio della cartella**. Entrambe alimentano lo stesso gate di go-live. L'audit di #18 è il logging AI esteso che #19 chiede a 60gg → **farlo una volta sola**. |
+| **#20** (fallback `confirmAction`) | Le scritture cliniche del Copilot (`previewAddDiagnosis`, `previewAddPrescription`, `previewAddDiaryNote`) finiscono in cartella. Quando esiste la finalizzazione (2), una scrittura AI confermata alla cieca diventa una **nota firmata**. Fixare #20 **prima** dell'intervento 2. |
+| **#7** (cifratura) | Indipendente. La cifratura protegge il dato **a riposo**; #18 ne protegge il **valore probatorio**. Nessuna delle due sostituisce l'altra. |
 
 ---
 
@@ -1150,6 +1260,128 @@ In `confirmAction`, il ramo di fallback usa `consumeLatestForScope(...)` e, se r
 ### Note
 - `store` è in-memory (`ConcurrentHashMap`): pending perse al restart e **non funziona multi-istanza**. Prod = container singolo → ok oggi; stesso limite del registry SSE (#1). Da rivedere se si scala.
 - Il `summary` finisce in audit sia in caso di successo sia di scope mismatch: buona base per il logging AI esteso richiesto da #19.
+
+---
+
+## 21. Cartella clinica — GAP P1: firma, conservazione, terminologia, FHIR, portale, FSE
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-17
+**Impatto:** Alto (~multi-mese) — **dopo** il go-live di Fase 1
+**Livello:** **GAP P1** = requisiti §25.2 della guida (crescita, non blocco). GAP P0 → [#18](#18-cartella-clinica--gap-p0-valore-probatorio-audit-finalizzazione-consensi-encounter) · GAP P2 → [#22](#22-cartella-clinica--gap-p2-ai-certificata-secondary-use-ehds-federazione-mobile-offline)
+**Piano ordinato:** [Piano di intervento — cartella clinica](#piano-di-intervento--cartella-clinica-gap-p0--gap-p1), Blocco 4 (interventi 15-24)
+
+### Decisione di perimetro
+
+`piano-lungo-termine.md` §4 esclude i GAP P1 dalla Fase 1: *"servono per crescere, non per il primo studio"*. Questa proposta li **registra e ordina** senza pianificarli: si aprono dopo il go-live, per pressione di mercato o di gara.
+
+**Eccezione:** il **report accessi** è un GAP P1 che entra comunque in Fase 1, perché è chiuso dall'export art. 15 (intervento 10 di #18). Non è una scelta strategica: è un effetto collaterale della dipendenza dall'audit.
+
+### Stato dei 10 requisiti §25.2
+
+| Requisito | Stato | Dove sta oggi | Nota |
+|---|:-:|---|---|
+| **Report accessi** | ❌ | — | **→ chiuso in Fase 1** dall'intervento 10 di #18: dipende dall'audit e serve al diritto del paziente (§10.3) |
+| **Analytics qualità** | 🟡 | nessun KPI §23 implementato | Il più economico: diventa misurabile **da solo** dopo audit + consensi + merge. Frutto già maturo |
+| **Firma avanzata/qualificata (PAdES)** | ❌ | — | Oggi manca perfino la **finalizzazione clinica** = livello 2 di §9.2. PAdES è il livello 3: senza il 2 non c'è nulla da firmare |
+| **Conservazione a norma** | ❌ | MinIO + `pg_dump` | **Backup ≠ conservazione** (§9.3, errore §28.7). Nessun massimario né politica di retention approvata. Distinzione non negoziabile |
+| **Terminology service** | ❌ | `service_code` / `condition` = stringhe libere, senza code system né versione | §14.3, §22.2. **Gate tecnico di FHIR e FSE**: senza codifica governata c'è export, non scambio |
+| **FHIR API** | ❌ | — | Il modello interno **è già compatibile come base**: §14.1 (strategia duale) è stata applicata correttamente per caso o per scelta. Serve un **adapter**, non un rimodellamento |
+| **DICOMweb** | ❌ | solo PNG/JPEG | Già tracciato come **#8**. Indipendente da tutto il resto |
+| **Portale paziente** | ❌ | — | Espone ciò che audit + consensi + export rendono esponibile. Prima di quelli non ha contenuto |
+| **Connettore FSE 2.0** | ❌ | — | CDA2 + PAdES + conservazione + accreditamento regionale: **ogni sua dipendenza è un altro GAP P1**. Ultimo per costruzione |
+| **Moduli parodontali avanzati** | ❌ | — | Nessun charting parodontale (sondaggio, recessioni, mobilità, placca/sanguinamento) — §5.4 |
+
+Assente anche l'**esame obiettivo strutturato** (extraorale, mucose, ATM, occlusione, stato endodontico): oggi confluisce in `clinical_notes` testo libero. Non è nell'elenco §25.2 ma sta allo stesso livello.
+
+### Le due catene di dipendenza
+
+Tutto il GAP P1 si riduce a due catene. Fuori da queste, solo voci indipendenti (analytics, DICOMweb, parodontale).
+
+```text
+catena "prova → conservazione"
+  finalizzazione (#18 int. 2)  →  politica firma+conservazione (16)  →  PAdES (17)  →  conservazione a norma (20)  ─┐
+                                                                                                                     │
+catena "semantica → scambio"                                                                                         ├─→  FSE 2.0 (24)
+  terminology service (18)  →  FHIR API (21)  ────────────────────────────────────────────────────────────────────┘
+        encounter (#18 int. 5) ┘        └ consensi (#18 int. 6)
+```
+
+**Lettura:** il FSE non è un progetto — è il **punto di arrivo di due catene** che partono entrambe dentro la Fase 1. Chi promette il FSE senza aver fatto finalizzazione, terminologia ed encounter sta promettendo la punta di un iceberg.
+
+### Candidati ad anticipazione (se il mercato lo chiede)
+
+Due voci si possono spostare in Fase 1 senza rompere il gate:
+
+| Voce | Perché anticipabile | Costo dell'anticipo |
+|---|---|---|
+| **Esame obiettivo + charting parodontale** (19) | È **l'unico GAP P1 che un odontoiatra nota come funzione mancante**. Gli altri sono invisibili all'utente finale | M agente, dipende solo dall'encounter |
+| **Politica conservazione + firma** (16) | È lavoro **DPO/legale, non codice** → gira in parallelo, non consuma sprint. E il DPO è già ingaggiato per la DPIA | ~zero marginale se fatto insieme alla DPIA |
+
+La 16 è il vero affare: **costa poco farla mentre il DPO è già al lavoro, costa un progetto a sé farla dopo.** Stessa logica della data governance del dataset in #22.
+
+### Note
+
+- Le taglie di effort nel piano (S/M/L) **non sono derivate da un'analisi di dettaglio**: sono indicative. Per 16, 20 e 24 l'effort agente è irrilevante — il costo è tempo di terzi.
+- Nessun intervento di questa proposta va aperto prima che il gate di go-live sia verde: sarebbe costruire il piano alto di una casa senza il livello della prova sotto (§34 della guida).
+
+---
+
+## 22. Cartella clinica — GAP P2: AI certificata, secondary use, EHDS, federazione, mobile offline
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-17
+**Impatto:** Alto (Fase 2 / non pianificato)
+**Livello:** **GAP P2** = requisiti §25.3 della guida (orizzonte lungo). GAP P0 → [#18](#18-cartella-clinica--gap-p0-valore-probatorio-audit-finalizzazione-consensi-encounter) · GAP P1 → [#21](#21-cartella-clinica--gap-p1-firma-conservazione-terminologia-fhir-portale)
+**Fuori dal piano di intervento** (che si ferma a GAP P1). Riferimento: `piano-lungo-termine.md` §6.
+
+### Stato dei 7 requisiti §25.3
+
+| Requisito | Stato | Dove sta | Azione |
+|---|:-:|---|---|
+| **AI radiologica certificata** | ❌ | il modulo **esiste e funziona** (ONNX FDI+disease), ma non è certificato | **Fase 2** → `piano-lungo-termine.md` §6 · perimetro attuale → **#19**. CE realistica: **2029** |
+| **Ricerca e secondary use** | ❌ | nessuna base giuridica né de-identificazione | ⚠️ **unica voce P2 con un'azione obbligatoria in Fase 1** — vedi sotto |
+| **Dettatura e summarization controllata** | ❌ | parzialmente coperto da **#15** (Copilot multimodale) | ⚠️ **verificare il perimetro AI Act prima di costruirla** — vedi sotto |
+| **EHDS readiness** | ❌ | — | Dopo FHIR (#21 int. 21). Non ha senso prima |
+| **Federazione tra reti** | ❌ | — | Nessuna proposta. Presuppone FHIR + terminologia + identità federata |
+| **Integrazione laboratori e dispositivi** | ❌ | — | Nessuna proposta |
+| **Mobile offline** | ❌ | — | ⚠️ **conflitto architetturale** — vedi sotto |
+
+### ⚠️ La trappola: il dataset non è retro-adattabile
+
+`piano-lungo-termine.md` §6.3, ripetuto qui perché è **l'unico punto in cui un GAP P2 impone un'azione in Fase 1**:
+
+> La validazione clinica di Fase 2 richiede dati annotati con **provenienza, licenza e base giuridica** tracciate. Le label già raccolte in `patient_document_labels` durante le demo **non sono utilizzabili**: non hanno base giuridica per il training, e la pseudonimizzazione non le rende anonime. **Non si retro-adatta una base giuridica a dati già raccolti.**
+
+Quindi la decisione **"Fase 2 sì o no"** va presa **in Fase 1**, non nel 2028:
+
+| Decisione | Conseguenza operativa in Fase 1 |
+|---|---|
+| **Fase 2 = sì** | Con il DPO già ingaggiato: base giuridica sviluppo/ricerca separata dall'assistenziale · informativa che la copra · SOP di annotazione (qualifiche, doppia lettura, adjudication, inter-rater) · dataset card + provenance · separazione ambienti clinico/ricerca. **Costa poco ora, costa un anno nel 2028.** |
+| **Fase 2 = no** | **Smettere di raccogliere label** e togliere il modulo radiologico dal prodotto: mantenerlo funzionante ha un costo di manutenzione che non ripaga un asset invendibile. |
+
+Non decidere **è** decidere: si continuano a raccogliere label inutilizzabili pagandone la manutenzione.
+
+### ⚠️ Dettatura e summarization: sposta il perimetro AI Act
+
+Questa voce **non è una feature come le altre**. #19 tiene DentalCare fuori dal perimetro high-risk sulla base che Copilot e Giulia siano AI **amministrative**. Una summarization che produce **contenuto clinico** (sintesi anamnestica, riassunto di visita che finisce in cartella) è candidata a spostare la classificazione — potenzialmente MDSW, come il modulo radiologico.
+
+**Regola:** prima di costruirla, passare da #19 e `roadmap_certificazione.md` per riclassificare. Non è un problema di prompt: è un problema di **destinazione d'uso dichiarata**. Vale anche per la parte multimodale di **#15**.
+
+### ⚠️ Mobile offline: conflitto con il valore probatorio
+
+L'offline è in tensione diretta con ciò che #18 costruisce:
+
+- **audit append-only** vs. eventi generati offline e sincronizzati dopo (l'ordine e il timestamp reali non sono più garantiti dal server);
+- **finalizzazione + hash** vs. note finalizzate su un dispositivo e sincronizzate in ritardo (quale versione è clinicamente valida durante la finestra di divergenza?);
+- **encounter** vs. episodi aperti da due dispositivi.
+
+Non è irrisolvibile, ma **si progetta insieme a #18, non sopra #18 a cose fatte**. Se l'offline è nel futuro del prodotto, dirlo prima dell'intervento 1 — non dopo.
+
+### Note
+
+- Nessuna stima di effort: a questo livello sarebbero numeri inventati. Il costo dominante è **organismo notificato + validazione clinica** (AI certificata) o **accreditamento** (EHDS/federazione), non lo sviluppo.
+- Trigger di apertura della Fase 2 (basta uno): N studi paganti chiedono l'AI radiologica come funzione clinica · una gara la richiede · un investitore la finanzia. Fino ad allora il modulo resta un **asset dimostrativo**: utile in demo, spento in clinica.
 
 ---
 

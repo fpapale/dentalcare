@@ -204,6 +204,15 @@ La guida chiede prima del codice (§3.2, §10.4, §21.1):
 
 ## 7. Piano consigliato
 
+> **⚠️ Questo paragrafo non è più il piano operativo.** Il piano vigente è **`proposte-modifiche.md` → *Piano di intervento — cartella clinica (GAP P0 → GAP P1)*** (Blocchi 1-4, con dipendenze, gate di go-live ed effort), sequenziato secondo `piano-lungo-termine.md`.
+>
+> Le fasi A-E qui sotto restano come **razionale di rischio** (perché quest'ordine), ma differiscono dal piano vigente su tre punti:
+> 1. **Fase B** — i consensi salgono da 4° a 2° posto: sono nel gate di go-live, l'odontogramma temporale no;
+> 2. **Fase C+D** — fuse nel Blocco 3, riordinate mettendo prima le voci del gate (MFA, export art. 15);
+> 3. **§3.6** — aggiunto l'intervento *admin tecnico senza accesso clinico + break glass*, che nessuno dei due piani precedenti copriva pur essendo l'errore §28.18 marcato ❌ presente in §8.
+>
+> In caso di conflitto vale il piano in `proposte-modifiche.md`.
+
 Ordine guidato dal rischio, non dalla difficoltà.
 
 ### Fase A — Valore probatorio (il minimo per essere una cartella clinica)
@@ -254,4 +263,13 @@ Autovalutazione onesta sui 20 errori elencati dalla guida:
 
 ---
 
-**Prossimo passo suggerito:** aprire una proposta in `proposte-modifiche.md` per la **Fase A** (audit + finalizzazione), che è il blocco a valore probatorio più alto e a rischio più basso di regressione.
+**Stato del tracking** (aggiornato 17 luglio 2026) — i gap di questo documento sono registrati in `proposte-modifiche.md`:
+
+| Livello | Qui | Proposta | Rilascio |
+|---|---|---|---|
+| **GAP P0** | §3 (bloccanti) | **#18** | Fase 1 — Blocchi 1-3 del piano di intervento |
+| **GAP P1** | §4 | **#21** | dopo il go-live — Blocco 4 (eccetto *report accessi*, chiuso in Fase 1) |
+| **GAP P2** | §5 | **#22** | Fase 2 / non pianificato — ma la **data governance del dataset va decisa in Fase 1** |
+| Governance | §6 | `piano-lungo-termine.md` §4 (binario parallelo) | dipende dall'ingaggio del DPO — **percorso critico** |
+
+**Prossimo passo:** Blocco 1, intervento 1 (**audit trail clinico**) — valore probatorio più alto, rischio di regressione più basso, e abilita tutto il resto.
