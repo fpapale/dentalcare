@@ -199,7 +199,7 @@ export class PazienteDetailComponent implements OnInit, OnDestroy {
   }
 
   private loadPatient(id: string): void {
-    const providerId = this.userContext.providerId();
+    const providerId = this.userContext.filterProviderId();
     this.patientService.findById(id, providerId).subscribe({
       next: detail => {
         this.paziente = this.mapPaziente(detail);
@@ -215,8 +215,7 @@ export class PazienteDetailComponent implements OnInit, OnDestroy {
   }
 
   private loadAppointments(id: string, highlightId: string | null = null): void {
-    const role = this.userContext.role();
-    const providerId = role === 'doctor' || role === 'hygienist' ? this.userContext.providerId() : null;
+    const providerId = this.userContext.filterProviderId();
     this.appointmentService.findByPatient(id, providerId).subscribe({
       next: data => {
         this.appuntamenti = data.map(a => ({

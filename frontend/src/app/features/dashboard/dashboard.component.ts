@@ -36,8 +36,7 @@ export class DashboardComponent {
   private readonly trigger$ = new Subject<string | null>();
 
   private effectivePid(): string | null {
-    const r = this.userContext.role();
-    return (r === 'secretary' || r === 'admin') ? null : this.userContext.providerId();
+    return this.userContext.filterProviderId();
   }
 
   /** Re-fetch the dashboard (used by the error panel retry button). */

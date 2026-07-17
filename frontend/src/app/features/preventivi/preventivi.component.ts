@@ -42,10 +42,7 @@ export class PreventiviComponent implements OnInit {
   loadEstimates(): void {
     this.loading.set(true);
     const status = this.activeFilter() === 'tutti' ? undefined : this.activeFilter();
-    const role = this.userContext.role();
-    const providerId = (role === 'doctor' || role === 'hygienist')
-      ? (this.userContext.providerId() ?? undefined)
-      : undefined;
+    const providerId = this.userContext.filterProviderId() ?? undefined;
     this.estimateService.findAll(status, providerId).subscribe({
       next: data => { this.estimates.set(data); this.loading.set(false); },
       error: () => { this.error.set('Errore nel caricamento preventivi'); this.loading.set(false); }

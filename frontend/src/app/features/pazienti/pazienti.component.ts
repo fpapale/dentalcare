@@ -25,8 +25,7 @@ export class PazientiComponent {
 
   constructor() {
     effect(() => {
-      const providerId = this.userContext.providerId();
-      this.userContext.role(); // track secretary switch
+      const providerId = this.userContext.filterProviderId();
       this.loadPatients(providerId);
     });
   }
@@ -41,7 +40,7 @@ export class PazientiComponent {
   }
 
   onSearch(): void {
-    this.loadPatients(this.userContext.providerId());
+    this.loadPatients(this.userContext.filterProviderId());
   }
 
   get filteredPatients(): PatientListItem[] {
@@ -78,7 +77,7 @@ export class PazientiComponent {
       return;
     }
     this.patientService.delete(p.patientId).subscribe({
-      next: () => this.loadPatients(this.userContext.providerId()),
+      next: () => this.loadPatients(this.userContext.filterProviderId()),
       error: (err: { error?: { message?: string } }) => {
         const msg = err.error?.message ?? 'Impossibile eliminare il paziente.';
         alert(msg);
@@ -89,14 +88,14 @@ export class PazientiComponent {
   archivePatient(p: PatientListItem): void {
     if (!confirm(`Archiviare ${p.patientFullName}? Il paziente non apparirà più nella lista attivi.`)) return;
     this.patientService.archive(p.patientId).subscribe({
-      next: () => this.loadPatients(this.userContext.providerId()),
+      next: () => this.loadPatients(this.userContext.filterProviderId()),
       error: () => alert('Impossibile archiviare il paziente.')
     });
   }
 
   restorePatient(p: PatientListItem): void {
     this.patientService.restore(p.patientId).subscribe({
-      next: () => this.loadPatients(this.userContext.providerId()),
+      next: () => this.loadPatients(this.userContext.filterProviderId()),
       error: () => alert('Impossibile ripristinare il paziente.')
     });
   }

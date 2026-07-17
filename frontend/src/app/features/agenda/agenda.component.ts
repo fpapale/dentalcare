@@ -132,8 +132,7 @@ export class AgendaComponent implements OnInit, OnDestroy {
     effect(() => {
       const mode = this.viewMode();
       const d = this.selectedDate();
-      const providerId = this.userContext.providerId();
-      this.userContext.role();
+      const providerId = this.userContext.filterProviderId();
       this.refreshTick();
       if (mode !== 'giorno' && mode !== 'prossimi') return;
       this.loading.set(true);
@@ -179,8 +178,7 @@ export class AgendaComponent implements OnInit, OnDestroy {
     effect(() => {
       const mode = this.viewMode();
       const d = this.selectedDate();
-      const providerId = this.userContext.providerId();
-      this.userContext.role();
+      const providerId = this.userContext.filterProviderId();
       this.refreshTick();
 
       let from: Date, to: Date;
