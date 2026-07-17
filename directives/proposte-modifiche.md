@@ -37,6 +37,23 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 25 | Menu persona demo: cambia la UI ma non il JWT — non dimostra la segregazione | Basso (~½ giornata) | Proposta |
 | 26 | CF obbligatorio all'emissione della fattura (seconda metà di 09dc68b) | Basso (~½ giornata) | Proposta |
 | 27 | n8n opera come l'utente demo: manca un'utenza di servizio propria | Medio (~1 giornata) | Proposta |
+| 28 | `getDemoConfig()` inghiotte l'errore: un 502 di un attimo disattiva il menu persona per tutta la sessione | Basso (~1 ora) | Proposta |
+| 29 | `install.sql` non rispecchia più la prod: utenze demo divergenti | Basso (~½ giornata) | Proposta |
+
+---
+
+## Fix trovate e chiuse il 17/07/2026
+
+Registrate qui perché nate fuori dal flusso delle proposte: emerse tutte mentre si preparava il manuale utente, e chiuse in giornata.
+
+| Commit | Bug | Come si manifestava | Perché era sfuggito |
+|---|---|---|---|
+| `d7cefe5` | `initFromAuth()` assegnava `providerId` a ogni ruolo; i componenti lo passavano all'API come filtro | **La segretaria vedeva 0 pazienti e agenda vuota.** Non è il provider di nessun paziente → il filtro non trovava nulla | Il tenant demo lo mascherava: con login admin, `app.ts` forza la persona `__secretary__` → `providerId=null` → nessun filtro. Su un tenant reale il menu persona non esiste e la segretaria non aveva via d'uscita |
+| `0864ae4` | `apptStatusFilter` partiva senza `'scheduled'`, e la vista "Prossimi" non aveva il chip per riattivarlo | **Un appuntamento appena prenotato spariva dall'agenda.** Vista di default vuota | La vista "Giorno" faceva già la cosa giusta: il difetto era solo in "Prossimi" |
+| `09dc68b` | CF obbligatorio alla creazione del paziente + messaggio d'errore perso per i vincoli di classe | **Nessun paziente nuovo poteva prenotare per telefono** (400). L'agente ritentava identico perché riceveva solo "Dati non validi" | Conflitto fra due regole entrambe difendibili: il prompt di Giulia **vieta** di chiedere il CF (§19), l'API lo **pretendeva** |
+| `23d091e` | `.example` prescriveva `demo=on` e una chiave JWT funzionante e pubblica | Ogni installazione nuova avrebbe riesposto la password e adottato in silenzio una chiave di firma pubblica | Il fix a mano sul server non sopravviveva: `install.sh` ricrea la config dal `.example`. **La causa era nel repo, non sul server** |
+
+**Il filo comune:** tre difetti su quattro erano invisibili *proprio* perché li si guardava dall'ambiente demo, che si comporta diversamente dalla produzione reale (persona forzata, config divergente). L'ambiente costruito per dimostrare il prodotto è lo stesso che ne nascondeva i difetti.
 
 ---
 
@@ -77,6 +94,43 @@ Ordine consigliato tra le proposte **aperte** (le #ID restano stabili per non ro
 11. **#12.B** — Anamnesi per-tenant: richiede decisione di design (Opt 1/2/3) + migrazione dati.
 12. **#8** — DICOM nativo nell'AI service: nicchia, dopo #6.
 13. **#15** — Copilot RAG/multimodale/memoria: blocco più oneroso, dopo #13/#14.
+
+---
+
+## Fix da fare — raccolta al 17/07/2026
+
+Tutto ciò che è aperto, in un posto solo. Ordinato per **rischio**, non per costo.
+
+### 🔴 Sicurezza — aperte
+
+| # | Cosa | Perché adesso | Effort |
+|---|---|---|--:|
+| **23** | **Ruotare la password demo** | È in chiaro nel repo **pubblico** (7 file) e nella storia git da `fe58b78`. Toglierla dai file **non serve**: la storia è già clonata. Le utenze funzionano e prod è su Internet. Unica misura efficace: cambiarla. Script pronto: `database/rotate_demo_password.py` | ~1h |
+| **24** | `?providerId=` non è autorizzazione | È `required=false` e arriva dal client: ometterlo = vedere tutto il tenant, con qualsiasi ruolo. È il gap 3.6 (§11.1 della guida) con il meccanismo esatto | ~1g |
+| **27** | n8n opera come l'utente demo | Nell'audit è indistinguibile dall'utenza demo; con l'audit clinico di Fase 1 diventa un problema di attribuzione. E blocca il multi-studio di #2 | ~1g |
+
+### 🟡 Correttezza — aperte
+
+| # | Cosa | Perché | Effort |
+|---|---|---|--:|
+| **26** | CF obbligatorio in fattura | È la **seconda metà** della decisione presa con `09dc68b`: il CF è ora opzionale alla creazione, ma nessun controllo lo pretende dove serve davvero | ~½g |
+| **25** | Menu persona: dichiarare che non è un confine | Cambia la UI, non il JWT. In demo promette una segregazione che non c'è | ~½g |
+| **28** | `getDemoConfig()`: niente `catch` vuoto | Un 502 di un attimo al riavvio disattiva il menu persona per tutta la sessione, in silenzio | ~1h |
+| **29** | Rigenerare il seed di `install.sql` | Diverge dalla prod: `medico@` non esiste, le utenze sono 7 non 4. Ogni runbook che le cita è già sbagliato | ~½g |
+
+### ⚪ Igiene — da valutare
+
+- **Macchina prod chiamata `dev`** (`fpapale@dev` ospita `~/docker/dentalcarepro` e `dentalcare_prod`). Il nome dice l'opposto di ciò che la macchina fa. *Confermato voluto dal committente il 17/07 — annotato, non da correggere.*
+- **`server.error.include-message=never`** in prod: giusto come hardening, ma con #28 e simili rende ogni diagnosi cieca. Valutare un canale di errore strutturato (codice stabile + `fields`, come prescrive CLAUDE.md §10.2) invece del messaggio libero.
+
+### Rapporto con il resto
+
+Queste fix sono **indipendenti** dal piano della cartella clinica (#18/#21/#22): sono difetti dell'esistente, non nuove funzioni. Ma tre confluiscono lì:
+- **#24** → intervento 14 (relazione di cura come autorizzazione)
+- **#25** → intervento 3 (segregazione server-side + test)
+- **#27** → attribuzione nell'audit, intervento 1
+
+**Nessuna di queste è nel gate di go-live.** La #23 dovrebbe esserci: una credenziale pubblica e funzionante su un sistema esposto è una condizione d'ingresso, non un miglioramento.
 
 ---
 
@@ -2099,3 +2153,49 @@ n8n presenta `X-N8N-Key` e il backend gli rilascia un JWT **facendo login come u
 3. **Un tenant, uno solo**: `app.n8n.admin-email` è globale, quindi n8n può operare su un tenant solo. Blocca lo scenario multi-studio di [#2](#2-retell-multi-studio-agente-per-sedepoltrona).
 
 **Da fare:** utenza di servizio dedicata, con ruolo proprio (non `admin`) e riconoscibile nell'audit; per il multi-studio, credenziali per tenant risolte dall'`agent_id` come già previsto in #2.
+
+---
+
+## 28. `getDemoConfig()` inghiotte l'errore e disattiva il menu persona
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-17
+**Impatto:** Basso (~1 ora) — solo tenant demo, ma è il tipo di difetto che genera "a me non funziona"
+
+```typescript
+// app.ts
+this.authService.getDemoConfig().subscribe({
+  next: res => { this.demoEnabled.set(res.enabled); this.demoSchema.set(res.schema ?? null); },
+  error: () => {}          // ← errore inghiottito, nessun retry
+});
+```
+
+Osservato dal vivo il 17/07: subito dopo `docker compose up -d --build`, il frontend risponde prima che il backend sia pronto. `GET /api/public/demo-config` → **502** → `demoSchema` resta `null` → `isDemoUser()` è `false` → **il menu persona sparisce per tutta la sessione**. Un reload lo fa tornare, ma nulla lo suggerisce all'utente.
+
+Stessa sorte per `GET /api/settings/clinic` e `GET /api/providers`, chiamati nello stesso momento.
+
+**Perché conta più di quanto sembri:** è la finestra fra `frontend` up e `backend` healthy. Il compose ha `depends_on: backend healthy` per l'avvio del container, ma non impedisce a un browser già aperto di ricaricare durante il riavvio. In una demo dal vivo, un riavvio nel momento sbagliato mostra un'app monca senza spiegazione.
+
+**Da fare:** retry con backoff sulle chiamate di bootstrap, o almeno un log e uno stato di errore visibile invece di `() => {}`. Vale la regola generale: nessun `catch` vuoto su una chiamata che decide cosa l'utente vede (CLAUDE.md §27 — *"nascondere errori con catch generici"*).
+
+---
+
+## 29. `install.sql` non rispecchia più la produzione
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-17
+**Impatto:** Basso (~½ giornata)
+
+Emerso dal dry-run di `rotate_demo_password.py` (#23) sul tenant demo di prod:
+
+| | `database/install.sql` (seed) | Prod reale |
+|---|---|---|
+| Utenze demo | 4 | **7** |
+| Utenza medico | `medico@demo.dentalcare.it` | **non esiste** → è `ferretti@` |
+| Altri | — | `amato@`, `gentili@`, `marchetti@` |
+
+Chi installa da zero ottiene un tenant demo **diverso da quello che si dimostra**: credenziali che non esistono, medici che mancano. Ogni runbook, tutorial o manuale che cita `medico@demo.dentalcare.it` è già sbagliato.
+
+Viola la regola già data: *"install.sql deve rispecchiare il DB — rigenerarlo a ogni modifica di schema"*. La regola parlava di schema; qui a divergere sono i **dati di seed**, che nessuno rigenera.
+
+**Da fare:** rigenerare la sezione seed del tenant demo da prod (`pg_dump --data-only` dello schema demo, con la password sostituita da un placeholder — vedi #23), e decidere se il seed è la fonte di verità o se lo è la prod. Oggi non lo è nessuno dei due.
