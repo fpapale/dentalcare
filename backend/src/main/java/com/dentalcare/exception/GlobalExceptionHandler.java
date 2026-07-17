@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.stream.Stream;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -54,8 +56,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidation(MethodArgumentNotValidException ex) {
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+        // I vincoli di classe (es. @ValidFiscalCode su CreatePatientRequest) non producono un
+        // FieldError ma un errore globale: senza i global errors il chiamante riceve solo
+        // "Dati non validi" e non ha modo di sapere cosa correggere.
+        String message = Stream.concat(
+                        ex.getBindingResult().getFieldErrors().stream()
+                                .map(e -> e.getField() + ": " + e.getDefaultMessage()),
+                        ex.getBindingResult().getGlobalErrors().stream()
+                                .map(e -> e.getDefaultMessage()))
                 .findFirst()
                 .orElse("Dati non validi");
         return new ErrorResponse("VALIDATION_ERROR", message);

@@ -28,9 +28,17 @@ public class FiscalCodeValidator implements ConstraintValidator<ValidFiscalCode,
         return true;
     }
 
+    /**
+     * Il codice fiscale è opzionale alla creazione: può mancare, essere errato o cambiare
+     * (guida §5.1) e non è la chiave del paziente. I canali che non possono raccoglierlo —
+     * l'assistente vocale ha il divieto esplicito di chiederlo, per minimizzazione — devono
+     * poter registrare il paziente con nome e recapito, e lo studio lo completa allo sportello.
+     *
+     * Quando è presente viene validato: formato e coerenza con la data di nascita.
+     */
     private boolean check(Boolean foreign, String fiscalCode, LocalDate birthDate) {
-        if (Boolean.TRUE.equals(foreign)) return true;          // straniero: skip
-        if (fiscalCode == null || fiscalCode.isBlank()) return false; // italiano: obbligatorio
+        if (Boolean.TRUE.equals(foreign)) return true;          // straniero: qualsiasi identificativo
+        if (fiscalCode == null || fiscalCode.isBlank()) return true; // assente: si completa dopo
         String cf = fiscalCode.trim().toUpperCase();
         if (!CF.matcher(cf).matches()) return false;
         if (birthDate == null) return true;                     // formato ok, niente cross-check

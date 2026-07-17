@@ -21,9 +21,11 @@ class FiscalCodeValidatorTest {
     }
 
     @Test
-    void italianRequiresFiscalCode() {
-        assertFalse(validator.isValid(req(null, LocalDate.of(1980,1,1), false), null));
-        assertFalse(validator.isValid(req("  ", LocalDate.of(1980,1,1), false), null));
+    void missingFiscalCodeIsAllowed() {
+        // Il CF e' opzionale: i canali che non possono raccoglierlo (assistente vocale, per
+        // minimizzazione) devono poter registrare il paziente. Si completa allo sportello.
+        assertTrue(validator.isValid(req(null, LocalDate.of(1980,1,1), false), null));
+        assertTrue(validator.isValid(req("  ", LocalDate.of(1980,1,1), false), null));
     }
 
     @Test
@@ -44,7 +46,15 @@ class FiscalCodeValidatorTest {
     }
 
     @Test
-    void nullForeignTreatedAsItalian() {
-        assertFalse(validator.isValid(req(null, LocalDate.of(1980,1,1), null), null));
+    void nullForeignWithoutFiscalCodeIsAllowed() {
+        // e' il payload reale dell'assistente vocale: nome, cognome, recapito e nient'altro
+        assertTrue(validator.isValid(req(null, LocalDate.of(1980,1,1), null), null));
+    }
+
+    @Test
+    void presentFiscalCodeIsStillValidatedWhenForeignIsNull() {
+        // opzionale non vuol dire non validato: se c'e', deve essere corretto
+        assertFalse(validator.isValid(req("NOTAVALIDCF1234", LocalDate.of(1980,1,1), null), null));
+        assertTrue(validator.isValid(req("RSSMRA80A01H501U", LocalDate.of(1980,1,1), null), null));
     }
 }
