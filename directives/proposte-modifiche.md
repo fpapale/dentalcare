@@ -137,6 +137,8 @@ Tutto ciò che è aperto, in un posto solo. Ordinato per **rischio**, non per co
 - ~~**[#30] Segretaria che è anche provider → persona filtrante auto-selezionata.**~~ **Fatta (dev) 18/07** — `app.ts`: su tenant demo il menu persona parte da "Segreteria" per ogni login non clinico, e `mapRole('secretary')→'secretary'` (non più `doctor`). Meccanismo esatto e verifica: §Fix chiuse il 18/07/2026. Restava legata a [#25] (dichiarare che il menu persona non è un confine): quella resta aperta.
 - **[demo-data] Due convenzioni poltrone insieme** (`Studio 1-4` + `Poltrona 1-4`): l'agenda creava **8 colonne** e sembrava vuota (gli appuntamenti erano nelle colonne scrollate fuori). Normalizzato a `Studio 1-4` il 17/07 sul tenant demo per gli screenshot. Origine della deriva: il seed usa "Studio", ma le prenotazioni via Giulia sceglievano la prima poltrona in ordine alfabetico ("Poltrona 1"). Dopo la normalizzazione `findChairLabels()` ritorna solo `Studio 1-4`, quindi Giulia sceglie "Studio 1" e la deriva si ferma. Va allineato anche nel seed di `install.sql` (vedi [#29]).
 
+- **[leak-topologia] `rotate_demo_password.py` esponeva la rete interna sul repo pubblico** (IP DB `192.168.0.173`, server app `192.168.0.72`, utente SSH, path docker). **Scrubbato il 18/07** (`--host` obbligatorio, hint ssh/config generici). Come #23 la storia git resta — già fuori: da chiudere col push. Regola: nessuno script ops committato deve hardcodare topologia interna (host/IP/utenti/percorsi) — passarli da CLI o config locale.
+
 ### Rapporto con il resto
 
 Queste fix sono **indipendenti** dal piano della cartella clinica (#18/#21/#22): sono difetti dell'esistente, non nuove funzioni. Ma tre confluiscono lì:

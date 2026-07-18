@@ -9,11 +9,13 @@ Aggiorna SOLO il database. La configurazione del server va allineata a mano
 subito dopo, altrimenti n8n smette di autenticarsi: lo script stampa i comandi.
 
 Uso:
-    python rotate_demo_password.py --db dentalcare_prod                 # dry-run
-    python rotate_demo_password.py --db dentalcare_prod --apply
-    python rotate_demo_password.py --db dentalcare_prod --apply --password 'Scelta1!'
+    python rotate_demo_password.py --host <db-host> --db dentalcare_prod                 # dry-run
+    python rotate_demo_password.py --host <db-host> --db dentalcare_prod --apply
+    python rotate_demo_password.py --host <db-host> --db dentalcare_prod --apply --password 'Scelta1!'
 
 Default: dry-run. Senza --apply non scrive nulla.
+Host, schema e coordinate del server NON sono hardcoded: passali da riga di
+comando / config locale (il repo e' pubblico, niente topologia interna nei file).
 """
 
 import argparse
@@ -41,7 +43,7 @@ def generate_password(length: int = 20) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--host", default="192.168.0.173")
+    ap.add_argument("--host", required=True, help="host del DB Postgres (non hardcoded: repo pubblico)")
     ap.add_argument("--db", required=True, help="dentalcare_prod | dentalcarepro")
     ap.add_argument("--user", default="postgres")
     ap.add_argument("--schema", default="t_9d754153", help="schema del tenant demo")
@@ -94,8 +96,8 @@ def main() -> int:
     print(f"\nNUOVA PASSWORD: {new_password}")
     print("Annotala ora: non e' recuperabile dall'hash.\n")
     print("Allinea SUBITO la config del server, o n8n smette di autenticarsi:")
-    print("  ssh fpapale@192.168.0.72")
-    print("  cd ~/docker/dentalcarepro")
+    print("  ssh <utente>@<server-app>")
+    print("  cd <dir-docker-compose>")
     print("  # in config/application-prod.properties, aggiorna:")
     print(f"  #   app.demo.password={new_password}")
     print(f"  #   app.n8n.admin-password={new_password}   (se presente)")
