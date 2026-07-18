@@ -2,7 +2,8 @@ import { Component, computed, effect, HostListener, inject, OnInit, signal, untr
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { filter } from 'rxjs/operators';
-import { UserContextService, UserRole } from './core/services/user-context.service';
+import { retry } from 'rxjs';
+import { UserContextService, UserRole, MEDICAL_JWT_ROLES } from './core/services/user-context.service';
 import { ProviderService } from './core/services/provider.service';
 import { Provider } from './core/models/provider.model';
 import { LayoutService } from './core/services/layout.service';
@@ -52,9 +53,15 @@ export class App implements OnInit {
   });
 
   constructor() {
-    this.authService.getDemoConfig().subscribe({
+    // Al riavvio (docker compose up) il frontend risponde prima che il backend sia
+    // pronto: un 502 transitorio lasciava demoSchema=null → il menu persona demo
+    // spariva per tutta la sessione, in silenzio (#28). Ritenta durante il warm-up
+    // e, se davvero irraggiungibile, logga invece di ingoiare l'errore.
+    this.authService.getDemoConfig().pipe(
+      retry({ count: 5, delay: 1500 })
+    ).subscribe({
       next: res => { this.demoEnabled.set(res.enabled); this.demoSchema.set(res.schema ?? null); },
-      error: () => {}
+      error: err => console.warn('demo-config non raggiungibile: menu persona demo disattivato per questa sessione', err)
     });
 
     // Sync the displayed identity whenever the *logged-in* user changes (new login),
@@ -64,7 +71,13 @@ export class App implements OnInit {
       if (u && u.providerId !== this.lastAuthProviderId) {
         this.lastAuthProviderId = u.providerId;
         this.userContext.initFromAuth(u);
-        if (this.demoSchema() && u.schemaName === this.demoSchema() && u.role === 'admin') {
+        // Tenant demo: il menu persona parte da "Segreteria" (non clinica) per ogni
+        // login non clinico (admin, secretary, tenant_admin). Una persona provider
+        // filtra le viste sui pazienti di quel provider; segreteria/admin non ne hanno,
+        // quindi le liste risulterebbero vuote. In particolare una segretaria che è
+        // anche un record provider non deve auto-selezionare quel record (#30).
+        const isClinicalLogin = (MEDICAL_JWT_ROLES as readonly string[]).includes(u.role);
+        if (this.demoSchema() && u.schemaName === this.demoSchema() && !isClinicalLogin) {
           this.selectedKey.set('__secretary__');
           this.userContext.setRole('secretary');
         } else {
@@ -168,6 +181,7 @@ export class App implements OnInit {
     const r = role.toLowerCase();
     if (r.includes('igien') || r.includes('hygien')) return 'hygienist';
     if (r.includes('admin')) return 'admin';
+    if (r.includes('segret') || r.includes('secret')) return 'secretary';
     return 'doctor';
   }
 }

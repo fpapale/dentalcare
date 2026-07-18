@@ -37,8 +37,9 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 25 | Menu persona demo: cambia la UI ma non il JWT — non dimostra la segregazione | Basso (~½ giornata) | Proposta |
 | 26 | CF obbligatorio all'emissione della fattura (seconda metà di 09dc68b) | Basso (~½ giornata) | Proposta |
 | 27 | n8n opera come l'utente demo: manca un'utenza di servizio propria | Medio (~1 giornata) | Proposta |
-| 28 | `getDemoConfig()` inghiotte l'errore: un 502 di un attimo disattiva il menu persona per tutta la sessione | Basso (~1 ora) | Proposta |
+| 28 | `getDemoConfig()` inghiotte l'errore: un 502 di un attimo disattiva il menu persona per tutta la sessione | Basso (~1 ora) | **Fatta (dev) — 18/07** |
 | 29 | `install.sql` non rispecchia più la prod: utenze demo divergenti | Basso (~½ giornata) | Proposta |
+| 30 | Menu persona demo auto-seleziona la segretaria-provider → lista pazienti a 0 | Basso (~1 ora) | **Fatta (dev) — 18/07** |
 
 ---
 
@@ -54,6 +55,17 @@ Registrate qui perché nate fuori dal flusso delle proposte: emerse tutte mentre
 | `23d091e` | `.example` prescriveva `demo=on` e una chiave JWT funzionante e pubblica | Ogni installazione nuova avrebbe riesposto la password e adottato in silenzio una chiave di firma pubblica | Il fix a mano sul server non sopravviveva: `install.sh` ricrea la config dal `.example`. **La causa era nel repo, non sul server** |
 
 **Il filo comune:** tre difetti su quattro erano invisibili *proprio* perché li si guardava dall'ambiente demo, che si comporta diversamente dalla produzione reale (persona forzata, config divergente). L'ambiente costruito per dimostrare il prodotto è lo stesso che ne nascondeva i difetti.
+
+## Fix chiuse il 18/07/2026
+
+Proseguendo sui punti aperti del 17/07. Entrambe in `app.ts`, entrambe modi di rottura *dal vivo* del menu persona demo.
+
+| Fix | Come si manifestava | Perché ora |
+|---|---|---|
+| **#30** — su tenant demo il menu persona parte da "Segreteria" per ogni login **non clinico** (admin / secretary / tenant_admin); `mapRole` ora mappa `secretary`→`secretary` invece di cadere sul default `doctor` | `segreteria@demo` (Maria Rossi) è anche un record `providers`: il menu la auto-selezionava come **provider** e, se ri-scelta, `mapRole('secretary')→'doctor'` la rendeva un medico filtrante → **lista pazienti a 0**. Solo i ruoli clinici (dentist/hygienist) restano agganciati al proprio provider | Rischio in presentazione: chi fa login come `segreteria@` vedeva 0 pazienti finché non sceglieva a mano "Segreteria" |
+| **#28** — `getDemoConfig()` con `retry({count:5, delay:1500})` + `console.warn` invece di `catch` vuoto | Un 502 transitorio al riavvio (`docker compose up`: il frontend risponde prima che il backend sia pronto) lasciava `demoSchema=null` → menu persona demo sparito **per tutta la sessione**, in silenzio | Bastava un riavvio poco prima della presentazione per perdere il menu persona senza alcun segnale |
+
+> Verifica: build FE verde (exit 0). Da deployare in prod insieme al resto.
 
 ---
 
@@ -105,7 +117,7 @@ Tutto ciò che è aperto, in un posto solo. Ordinato per **rischio**, non per co
 
 | # | Cosa | Perché adesso | Effort |
 |---|---|---|--:|
-| **23** | **Ruotare la password demo** | È in chiaro nel repo **pubblico** (7 file) e nella storia git da `fe58b78`. Toglierla dai file **non serve**: la storia è già clonata. Le utenze funzionano e prod è su Internet. Unica misura efficace: cambiarla. Script pronto: `database/rotate_demo_password.py` | ~1h |
+| **23** | **Ruotare la password demo** | È in chiaro nel repo **pubblico** (7 file) e nella storia git da `fe58b78`. Toglierla dai file **non serve**: la storia è già clonata. Le utenze funzionano e prod è su Internet. Unica misura efficace: cambiarla. Script `database/rotate_demo_password.py` **validato + dry-run dev OK il 18/07**; resta l'esecuzione su prod (`--apply`, write bloccata al classifier per l'agente) + scelta password + allineamento config server (`app.demo.password`, `app.n8n.admin-password`) | ~1h |
 | **24** | `?providerId=` non è autorizzazione | È `required=false` e arriva dal client: ometterlo = vedere tutto il tenant, con qualsiasi ruolo. È il gap 3.6 (§11.1 della guida) con il meccanismo esatto | ~1g |
 | **27** | n8n opera come l'utente demo | Nell'audit è indistinguibile dall'utenza demo; con l'audit clinico di Fase 1 diventa un problema di attribuzione. E blocca il multi-studio di #2 | ~1g |
 
@@ -115,14 +127,14 @@ Tutto ciò che è aperto, in un posto solo. Ordinato per **rischio**, non per co
 |---|---|---|--:|
 | **26** | CF obbligatorio in fattura | È la **seconda metà** della decisione presa con `09dc68b`: il CF è ora opzionale alla creazione, ma nessun controllo lo pretende dove serve davvero | ~½g |
 | **25** | Menu persona: dichiarare che non è un confine | Cambia la UI, non il JWT. In demo promette una segregazione che non c'è | ~½g |
-| **28** | `getDemoConfig()`: niente `catch` vuoto | Un 502 di un attimo al riavvio disattiva il menu persona per tutta la sessione, in silenzio | ~1h |
-| **29** | Rigenerare il seed di `install.sql` | Diverge dalla prod: `medico@` non esiste, le utenze sono 7 non 4. Ogni runbook che le cita è già sbagliato | ~½g |
+| ~~**28**~~ | ~~`getDemoConfig()`: niente `catch` vuoto~~ | **Fatta (dev) 18/07** — `retry`+`console.warn`, vedi §Fix chiuse il 18/07/2026 | — |
+| **29** | Rigenerare il seed di `install.sql` | Diverge dalla prod: `medico@` non esiste, le utenze sono 7 non 4. Ogni runbook che le cita è già sbagliato. **Mappata il 18/07** (vedi §29) — resta il `pg_dump` prod (write/read prod bloccati al classifier: li lancia il committente) + decisione fonte-di-verità | ~½g |
 
 ### ⚪ Igiene — da valutare
 
 - **Macchina prod chiamata `dev`** (`fpapale@dev` ospita `~/docker/dentalcarepro` e `dentalcare_prod`). Il nome dice l'opposto di ciò che la macchina fa. *Confermato voluto dal committente il 17/07 — annotato, non da correggere.*
 - **`server.error.include-message=never`** in prod: giusto come hardening, ma con #28 e simili rende ogni diagnosi cieca. Valutare un canale di errore strutturato (codice stabile + `fields`, come prescrive CLAUDE.md §10.2) invece del messaggio libero.
-- **[#30] Segretaria che è anche provider → persona filtrante auto-selezionata.** `segreteria@demo` (Maria Rossi) esiste anche come record `providers`: al login il menu persona demo auto-seleziona "Rossi Maria" (provider), che passa il suo `providerId` a `/api/patients` → **lista pazienti a 0** finché non si sceglie a mano la persona "Segreteria". Solo-demo (su un tenant reale non c'è il menu persona → `filterProviderId` resta null → tutti i pazienti). **Rischio in presentazione:** chi fa login come `segreteria@` durante la demo vede 0 pazienti. Workaround: selezionare la persona "Segreteria". Fix: al login su tenant demo, se il ruolo JWT è `secretary`/`admin` selezionare la persona non-clinica corrispondente, non il record provider omonimo. Legato a [#25].
+- ~~**[#30] Segretaria che è anche provider → persona filtrante auto-selezionata.**~~ **Fatta (dev) 18/07** — `app.ts`: su tenant demo il menu persona parte da "Segreteria" per ogni login non clinico, e `mapRole('secretary')→'secretary'` (non più `doctor`). Meccanismo esatto e verifica: §Fix chiuse il 18/07/2026. Restava legata a [#25] (dichiarare che il menu persona non è un confine): quella resta aperta.
 - **[demo-data] Due convenzioni poltrone insieme** (`Studio 1-4` + `Poltrona 1-4`): l'agenda creava **8 colonne** e sembrava vuota (gli appuntamenti erano nelle colonne scrollate fuori). Normalizzato a `Studio 1-4` il 17/07 sul tenant demo per gli screenshot. Origine della deriva: il seed usa "Studio", ma le prenotazioni via Giulia sceglievano la prima poltrona in ordine alfabetico ("Poltrona 1"). Dopo la normalizzazione `findChairLabels()` ritorna solo `Studio 1-4`, quindi Giulia sceglie "Studio 1" e la deriva si ferma. Va allineato anche nel seed di `install.sql` (vedi [#29]).
 
 ### Rapporto con il resto
@@ -2200,4 +2212,9 @@ Chi installa da zero ottiene un tenant demo **diverso da quello che si dimostra*
 
 Viola la regola già data: *"install.sql deve rispecchiare il DB — rigenerarlo a ogni modifica di schema"*. La regola parlava di schema; qui a divergere sono i **dati di seed**, che nessuno rigenera.
 
-**Da fare:** rigenerare la sezione seed del tenant demo da prod (`pg_dump --data-only` dello schema demo, con la password sostituita da un placeholder — vedi #23), e decidere se il seed è la fonte di verità o se lo è la prod. Oggi non lo è nessuno dei due.
+**Aggiornamento 18/07 (mappatura concreta).** Verificato sui file e sul dev DB:
+- `install.sql` (blocco `COPY t_9d754153.providers`, righe ~5164-5169) seed **4** utenze: `admin@`, `segreteria@` (Maria Rossi), `medico@` (Laura Ferretti, email `medico@`), `demo@`. Tutte con lo stesso `password_hash = $2b$10$UbHqgP2xq774oyP29hFhR…` = **hash di `DemoAdmin1!`**.
+- Il **dev DB** (`dentalcarepro`) rispecchia *esattamente* il seed: stesse 4 utenze, stesso `medico@`. Il seed è quindi allineato al **dev**, non alla **prod** (7 utenze, `ferretti@`).
+- **#29 e #23 sono lo stesso blocco:** la riga di seed che diverge dalla prod è anche quella che pubblica la password. Rigenerare il seed **dopo** aver ruotato (#23) e con l'hash sostituito da un placeholder chiude entrambi.
+
+**Da fare (ordine):** 1) ruotare la password (#23) → 2) `pg_dump --data-only` dello schema demo di prod con l'hash → placeholder → 3) sostituire il blocco seed in `install.sql`. Passi 2-3 richiedono l'accesso al DB prod (read/write **bloccati al classifier per l'agente**: li lancia il committente). Resta la decisione: **seed o prod come fonte di verità?** Oggi non lo è nessuno dei due.
