@@ -60,7 +60,7 @@
           <div class="flex flex-wrap gap-3 mb-12">
             <a routerLink="/registrati"
                class="inline-flex items-center gap-2 bg-[#00448c] hover:bg-[#005BB7] text-white font-semibold px-7 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-900/25 hover:shadow-blue-900/35 hover:-translate-y-0.5">
-              Inizia la prova gratuita
+              Richiedi accesso al pilota
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
               </svg>
@@ -71,19 +71,20 @@
             </button>
           </div>
 
-          <!-- Stats -->
+          <!-- Stato prodotto: fatti verificabili, non metriche di adozione (il primo
+               studio pagante e' previsto per gennaio 2027, vedi business plan). -->
           <div class="flex flex-wrap items-center gap-8 pt-8 border-t border-slate-200">
             <div>
-              <p class="text-2xl font-extrabold text-slate-900">500+</p>
-              <p class="text-xs text-slate-500 font-medium mt-0.5">Studi attivi</p>
+              <p class="text-2xl font-extrabold text-slate-900">Q1 2027</p>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Prime installazioni</p>
             </div>
             <div class="border-l border-slate-200 pl-8">
-              <p class="text-2xl font-extrabold text-slate-900">50k+</p>
-              <p class="text-xs text-slate-500 font-medium mt-0.5">Pazienti gestiti</p>
+              <p class="text-2xl font-extrabold text-slate-900">Pilota</p>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Programma aperto</p>
             </div>
             <div class="border-l border-slate-200 pl-8">
-              <p class="text-2xl font-extrabold text-slate-900">99.9%</p>
-              <p class="text-xs text-slate-500 font-medium mt-0.5">Uptime garantito</p>
+              <p class="text-2xl font-extrabold text-slate-900">Demo</p>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Provabile subito</p>
             </div>
           </div>
         </div>
@@ -484,11 +485,11 @@
                   </svg>
                 </div>
                 <div class="flex-1">
-                  <p class="font-bold text-slate-800 text-sm">Sicurezza Enterprise</p>
+                  <p class="font-bold text-slate-800 text-sm">Dati protetti per progetto</p>
                   <div class="h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
                     <div class="h-full bg-green-500 rounded-full" style="width: 98%"></div>
                   </div>
-                  <p class="text-[10px] text-slate-400 mt-1">GDPR Compliant · 256-bit AES</p>
+                  <p class="text-[10px] text-slate-400 mt-1">Cifratura per studio · Audit trail</p>
                 </div>
               </div>
               <div class="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
@@ -555,7 +556,7 @@
               </div>
               <div>
                 <h3 class="font-bold text-slate-800 mb-1">Sicurezza Enterprise</h3>
-                <p class="text-sm text-slate-500">Dati crittografati con AES-256, GDPR compliant, backup automatici giornalieri su server italiani.</p>
+                <p class="text-sm text-slate-500">Dati identificativi cifrati con AES-256 e chiave dedicata per ogni studio, tracciamento degli accessi e backup automatici. Progettato sui requisiti GDPR: la valutazione d'impatto viene completata prima del rilascio commerciale.</p>
               </div>
             </div>
             <div class="flex items-start gap-4">
@@ -597,153 +598,44 @@
     </div>
   </section>
 
-  <!-- TESTIMONIAL -->
+  <!-- PROGRAMMA PILOTA -->
+  <!-- Sostituisce testimonianze e metriche di adozione: il prodotto non ha ancora
+       studi paganti (primo cliente atteso Q1 2027), quindi qui si racconta lo stato
+       reale del progetto e si raccoglie interesse, senza dichiarare una base
+       installata che non esiste. -->
   <section class="bg-[#f8f9fa] py-20 border-t border-slate-100">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-10 lg:p-14 text-center relative overflow-hidden">
-        <!-- Quote marks decorative -->
-        <div class="absolute top-6 left-8 text-[80px] font-serif text-[#00448c]/8 leading-none select-none">"</div>
-        <div class="absolute bottom-2 right-8 text-[80px] font-serif text-[#00448c]/8 leading-none select-none">"</div>
-
-        <div class="flex justify-center gap-1 mb-6">
-          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-        </div>
-
-        <blockquote class="text-xl lg:text-2xl text-slate-700 font-medium leading-relaxed mb-8 relative z-10">
-          "Passare a DentalCare Pro è stata la decisione migliore per il nostro studio. Il software ha completamente rivoluzionato il flusso di lavoro: risparmio 2 ore al giorno solo nella gestione agenda."
-        </blockquote>
-
-        <div class="flex items-center justify-center gap-4">
-          <img src="https://randomuser.me/api/portraits/men/32.jpg"
-               alt="Dr. Luca Rossi"
-               class="w-14 h-14 rounded-full object-cover border-2 border-[#00448c]/20 shadow-md">
-          <div class="text-left">
-            <p class="font-bold text-slate-800">Dr. Luca Rossi</p>
-            <p class="text-sm text-slate-500">Studio Dentistico Milano Centro</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- TEAM / SOCIAL PROOF -->
-  <section class="bg-white py-20 border-t border-slate-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-14">
-        <span class="text-xs font-semibold text-[#00448c] uppercase tracking-widest">La Comunità</span>
-        <h2 class="text-3xl font-extrabold text-slate-900 mt-2 mb-4">Dentisti che ci hanno scelto</h2>
-        <p class="text-slate-500 max-w-xl mx-auto">Professionisti da tutta Italia si affidano a DentalCare Pro ogni giorno per gestire il loro studio.</p>
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <span class="text-xs font-semibold text-[#00448c] uppercase tracking-widest">Programma pilota</span>
+        <h2 class="text-3xl font-extrabold text-slate-900 mt-2 mb-4">Costruito insieme ai primi studi</h2>
+        <p class="text-slate-500 max-w-2xl mx-auto">
+          DentalCare Pro e' in sviluppo attivo. Stiamo selezionando un numero limitato di studi
+          che vogliono usare il prodotto in anticipo e orientarne le priorita'. Il rilascio
+          commerciale e' previsto per l'inizio del 2027.
+        </p>
       </div>
 
-      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Card 1 -->
-        <div class="bg-gradient-to-br from-slate-50 to-[#f0f6ff] rounded-2xl p-6 border border-blue-100/50 text-center hover:shadow-md transition-shadow">
-          <div class="relative w-20 h-20 mx-auto mb-4">
-            <img src="https://randomuser.me/api/portraits/women/44.jpg"
-                 alt="Dr.ssa Elena Ferretti"
-                 class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md">
-            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#00448c] border-2 border-white flex items-center justify-center">
-              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-          </div>
-          <p class="font-bold text-slate-800 text-sm">Dr.ssa Elena Ferretti</p>
-          <p class="text-xs text-[#00448c] font-medium mt-0.5">Ortodontista</p>
-          <p class="text-xs text-slate-400 mt-1">Roma</p>
-          <div class="flex justify-center gap-0.5 mt-3">
-            @for (s of [1,2,3,4,5]; track s) {
-              <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            }
-          </div>
+      <div class="grid sm:grid-cols-3 gap-6 mb-10">
+        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+          <p class="text-sm font-bold text-slate-800">Accesso anticipato</p>
+          <p class="text-sm text-slate-500 mt-2">Usi la piattaforma sui casi reali dello studio, con affiancamento diretto del team.</p>
         </div>
-
-        <!-- Card 2 -->
-        <div class="bg-gradient-to-br from-slate-50 to-[#f0f6ff] rounded-2xl p-6 border border-blue-100/50 text-center hover:shadow-md transition-shadow">
-          <div class="relative w-20 h-20 mx-auto mb-4">
-            <img src="https://randomuser.me/api/portraits/men/46.jpg"
-                 alt="Dr. Marco Bianchi"
-                 class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md">
-            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#00448c] border-2 border-white flex items-center justify-center">
-              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-          </div>
-          <p class="font-bold text-slate-800 text-sm">Dr. Marco Bianchi</p>
-          <p class="text-xs text-[#00448c] font-medium mt-0.5">Dentista Chirurgo</p>
-          <p class="text-xs text-slate-400 mt-1">Milano</p>
-          <div class="flex justify-center gap-0.5 mt-3">
-            @for (s of [1,2,3,4,5]; track s) {
-              <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            }
-          </div>
+        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+          <p class="text-sm font-bold text-slate-800">Voce sulle priorita'</p>
+          <p class="text-sm text-slate-500 mt-2">Le funzioni che ti servono davvero entrano prima nella roadmap.</p>
         </div>
-
-        <!-- Card 3 -->
-        <div class="bg-gradient-to-br from-slate-50 to-[#f0f6ff] rounded-2xl p-6 border border-blue-100/50 text-center hover:shadow-md transition-shadow">
-          <div class="relative w-20 h-20 mx-auto mb-4">
-            <img src="https://randomuser.me/api/portraits/women/68.jpg"
-                 alt="Dr.ssa Sofia Marini"
-                 class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md">
-            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#00448c] border-2 border-white flex items-center justify-center">
-              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-          </div>
-          <p class="font-bold text-slate-800 text-sm">Dr.ssa Sofia Marini</p>
-          <p class="text-xs text-[#00448c] font-medium mt-0.5">Igienista Dentale</p>
-          <p class="text-xs text-slate-400 mt-1">Torino</p>
-          <div class="flex justify-center gap-0.5 mt-3">
-            @for (s of [1,2,3,4,5]; track s) {
-              <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            }
-          </div>
-        </div>
-
-        <!-- Card 4 -->
-        <div class="bg-gradient-to-br from-slate-50 to-[#f0f6ff] rounded-2xl p-6 border border-blue-100/50 text-center hover:shadow-md transition-shadow">
-          <div class="relative w-20 h-20 mx-auto mb-4">
-            <img src="https://randomuser.me/api/portraits/men/75.jpg"
-                 alt="Dr. Andrea Costa"
-                 class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md">
-            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#00448c] border-2 border-white flex items-center justify-center">
-              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-          </div>
-          <p class="font-bold text-slate-800 text-sm">Dr. Andrea Costa</p>
-          <p class="text-xs text-[#00448c] font-medium mt-0.5">Implantologia</p>
-          <p class="text-xs text-slate-400 mt-1">Napoli</p>
-          <div class="flex justify-center gap-0.5 mt-3">
-            @for (s of [1,2,3,4,5]; track s) {
-              <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            }
-          </div>
+        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+          <p class="text-sm font-bold text-slate-800">Condizioni riservate</p>
+          <p class="text-sm text-slate-500 mt-2">Chi partecipa al pilota mantiene condizioni dedicate al passaggio in produzione.</p>
         </div>
       </div>
 
-      <!-- Bottom strip: stats bar -->
-      <div class="mt-12 bg-gradient-to-r from-[#f0f6ff] to-[#e8f0fe] rounded-2xl border border-blue-100 p-6">
-        <div class="flex flex-wrap justify-around gap-6 text-center">
-          <div>
-            <p class="text-3xl font-extrabold text-[#00448c]">500+</p>
-            <p class="text-sm text-slate-500 mt-1">Studi attivi</p>
-          </div>
-          <div class="border-l border-blue-200 hidden sm:block"></div>
-          <div>
-            <p class="text-3xl font-extrabold text-[#00448c]">20+</p>
-            <p class="text-sm text-slate-500 mt-1">Regioni italiane</p>
-          </div>
-          <div class="border-l border-blue-200 hidden sm:block"></div>
-          <div>
-            <p class="text-3xl font-extrabold text-[#00448c]">50k+</p>
-            <p class="text-sm text-slate-500 mt-1">Pazienti gestiti</p>
-          </div>
-          <div class="border-l border-blue-200 hidden sm:block"></div>
-          <div>
-            <p class="text-3xl font-extrabold text-[#00448c]">4.9★</p>
-            <p class="text-sm text-slate-500 mt-1">Valutazione media</p>
-          </div>
-        </div>
+      <div class="text-center">
+        <a routerLink="/registrati"
+           class="inline-flex items-center gap-2 bg-[#00448c] text-white font-bold px-8 py-4 rounded-xl hover:bg-[#003670] transition-colors">
+          Richiedi accesso al pilota
+        </a>
+        <p class="text-xs text-slate-400 mt-3">Nessun impegno. Ti ricontattiamo per capire se lo studio e' adatto al programma.</p>
       </div>
     </div>
   </section>
@@ -753,133 +645,217 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-14">
         <span class="text-xs font-semibold text-[#00448c] uppercase tracking-widest">Piani e Prezzi</span>
-        <h2 class="text-3xl font-extrabold text-slate-900 mt-2 mb-4">Prezzi Semplici e Trasparenti</h2>
-        <p class="text-slate-500">Nessun costo nascosto. Cancella quando vuoi. Passa da un piano all'altro in qualsiasi momento.</p>
+        <h2 class="text-3xl font-extrabold text-slate-900 mt-2 mb-4">Prezzi semplici e trasparenti</h2>
+        <p class="text-slate-500 max-w-2xl mx-auto">Nessun costo nascosto, si passa da un piano all'altro in qualsiasi momento.
+          Listino indicativo del rilascio commerciale, in validazione con gli studi pilota.</p>
       </div>
 
-      <div class="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
+      <div class="grid lg:grid-cols-4 gap-6 items-stretch">
 
-        <!-- Essenziale -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col hover:shadow-md transition-shadow">
+        <!-- Essential -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-7 flex flex-col hover:shadow-md transition-shadow">
+          <div class="mb-5">
+            <h3 class="font-extrabold text-slate-800 text-lg mb-1">Essential</h3>
+            <p class="text-slate-400 text-sm">Studio monoprofessionale</p>
+          </div>
           <div class="mb-6">
-            <h3 class="font-extrabold text-slate-800 text-xl mb-1">Essenziale</h3>
-            <p class="text-slate-400 text-sm">Per studi mono-sede</p>
-          </div>
-          <div class="mb-8">
-            <span class="text-5xl font-extrabold text-slate-900">€99</span>
+            <span class="text-4xl font-extrabold text-slate-900">&euro;59</span>
             <span class="text-slate-400 text-sm">/mese</span>
+            <p class="text-xs text-slate-400 mt-1">per studio &middot; setup da &euro;300</p>
           </div>
-          <ul class="space-y-3 mb-8 flex-1">
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              1 sede, fino a 2 professionisti
+          <ul class="space-y-2.5 mb-7 flex-1">
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>1 sede, 1-2 professionisti</span>
             </li>
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Agenda & appuntamenti
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Agenda mono-operatore</span>
             </li>
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Cartella clinica pazienti
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Cartella clinica, anamnesi e odontogramma</span>
             </li>
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Preventivi base
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Preventivi e fatture</span>
             </li>
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Supporto email
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Consensi versionati e audit clinico</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>MFA ed export cartella</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Supporto email</span>
             </li>
           </ul>
           <a routerLink="/registrati"
-             class="block text-center border-2 border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold py-3.5 rounded-xl transition-all">
-            Inizia ora
+             class="block text-center border-2 border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold py-3 rounded-xl transition-all">
+            Richiedi accesso
           </a>
         </div>
 
-        <!-- Professionale (highlighted) -->
+        <!-- Professional (evidenziato) -->
         <div class="relative rounded-2xl overflow-hidden flex flex-col shadow-2xl shadow-blue-900/20">
-          <!-- Gradient header -->
-          <div class="bg-gradient-to-br from-[#00448c] to-[#003270] p-8 pb-6">
-            <div class="flex items-start justify-between mb-4">
+          <div class="bg-gradient-to-br from-[#00448c] to-[#003270] p-7 pb-5">
+            <div class="flex items-start justify-between mb-3">
               <div>
-                <h3 class="font-extrabold text-white text-xl mb-1">Professionale</h3>
-                <p class="text-blue-200 text-sm">Il più completo</p>
+                <h3 class="font-extrabold text-white text-lg mb-1">Professional</h3>
+                <p class="text-blue-200 text-sm">Piu&#39; professionisti e segreteria</p>
               </div>
-              <span class="bg-green-400/20 text-green-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-green-400/30 whitespace-nowrap">Demo Attivo</span>
+              <span class="bg-green-400/20 text-green-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-green-400/30 whitespace-nowrap">Demo attiva</span>
             </div>
             <div>
-              <span class="text-5xl font-extrabold text-white">€199</span>
+              <span class="text-4xl font-extrabold text-white">&euro;149</span>
               <span class="text-blue-200 text-sm">/mese</span>
+              <p class="text-xs text-blue-200 mt-1">per sede &middot; setup da &euro;500</p>
             </div>
           </div>
-
-          <!-- Body -->
-          <div class="bg-white p-8 flex-1 flex flex-col border-x-2 border-b-2 border-[#00448c]/20 rounded-b-2xl">
-            <ul class="space-y-3 mb-8 flex-1">
-              <li class="flex items-center gap-2.5 text-sm text-slate-600">
-                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Sedi e professionisti illimitati
+          <div class="bg-white p-7 flex-1 flex flex-col border-x-2 border-b-2 border-[#00448c]/20 rounded-b-2xl">
+            <ul class="space-y-2.5 mb-7 flex-1">
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>1 sede, fino a 5 professionisti</span>
               </li>
-              <li class="flex items-center gap-2.5 text-sm text-slate-600">
-                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Tutto di Essenziale +
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Tutto di Essential, piu&#39;:</span>
               </li>
-              <li class="flex items-center gap-2.5 text-sm font-medium text-[#00448c]">
-                <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                AI-DEN Segretaria Virtuale
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Agenda multi-operatore</span>
               </li>
-              <li class="flex items-center gap-2.5 text-sm text-slate-600">
-                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Magazzino & Richiami avanzati
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Copilot amministrativo incluso</span>
               </li>
-              <li class="flex items-center gap-2.5 text-sm text-slate-600">
-                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Fatturazione elettronica
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Magazzino avanzato e workflow clinici</span>
               </li>
-              <li class="flex items-center gap-2.5 text-sm text-slate-600">
-                <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Supporto prioritario &lt; 4h
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Dashboard produttivita&#39; e reportistica</span>
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Supporto prioritario &lt; 4h</span>
               </li>
             </ul>
             <a routerLink="/registrati"
-               class="block text-center bg-[#00448c] hover:bg-[#005BB7] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-900/20 hover:shadow-blue-900/30">
-              Inizia ora
+               class="block text-center bg-[#00448c] hover:bg-[#005BB7] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-900/20">
+              Richiedi accesso
             </a>
           </div>
         </div>
 
-        <!-- Aziendale -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col hover:shadow-md transition-shadow">
+        <!-- Clinic -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-7 flex flex-col hover:shadow-md transition-shadow">
+          <div class="mb-5">
+            <h3 class="font-extrabold text-slate-800 text-lg mb-1">Clinic</h3>
+            <p class="text-slate-400 text-sm">Cliniche e multi-sede</p>
+          </div>
           <div class="mb-6">
-            <h3 class="font-extrabold text-slate-800 text-xl mb-1">Aziendale</h3>
-            <p class="text-slate-400 text-sm">Per gruppi e reti di studi</p>
+            <span class="text-4xl font-extrabold text-slate-900">&euro;399</span>
+            <span class="text-slate-400 text-sm">/mese</span>
+            <p class="text-xs text-slate-400 mt-1">per sede &middot; dal secondo semestre 2027</p>
           </div>
-          <div class="mb-8">
-            <span class="text-4xl font-extrabold text-slate-900">Custom</span>
-          </div>
-          <ul class="space-y-3 mb-8 flex-1">
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Multi-studio, API access
+          <ul class="space-y-2.5 mb-7 flex-1">
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Multi-sede, professionisti su misura</span>
             </li>
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Integrazioni su misura
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Tutto di Professional, piu&#39;:</span>
             </li>
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              SLA e uptime garantito
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Dashboard consolidate tra sedi</span>
             </li>
-            <li class="flex items-center gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Account manager dedicato
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>SSO e API di integrazione</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>DICOMweb/PACS e FHIR</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>SLA dedicato</span>
             </li>
           </ul>
           <a href="mailto:info@dentalcarepro.it"
-             class="block text-center border-2 border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold py-3.5 rounded-xl transition-all">
+             class="block text-center border-2 border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold py-3 rounded-xl transition-all">
+            Parlane con noi
+          </a>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-7 flex flex-col hover:shadow-md transition-shadow">
+          <div class="mb-5">
+            <h3 class="font-extrabold text-slate-800 text-lg mb-1">Enterprise</h3>
+            <p class="text-slate-400 text-sm">Catene, reti e universita&#39;</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-3xl font-extrabold text-slate-900">Su misura</span>
+            <p class="text-xs text-slate-400 mt-1">progetto dedicato &middot; dal 2028</p>
+          </div>
+          <ul class="space-y-2.5 mb-7 flex-1">
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Catene, ospedali, universita&#39;</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Private cloud opzionale</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Integrazioni e progetti dedicati</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Conservazione e connettore FSE</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Account manager dedicato</span>
+            </li>
+          </ul>
+          <a href="mailto:info@dentalcarepro.it"
+             class="block text-center border-2 border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold py-3 rounded-xl transition-all">
             Contattaci
           </a>
+        </div>
+      </div>
+
+      <!-- Add-on: monetizzano produttivita e integrazione, mai la sicurezza di base -->
+      <div class="mt-12 max-w-5xl mx-auto">
+        <h3 class="text-sm font-bold text-slate-700 mb-1">Add-on disponibili</h3>
+        <p class="text-xs text-slate-400 mb-4">Le funzioni di sicurezza, privacy e integrita&#39; clinica sono incluse in tutti i piani e non sono mai un add-on.</p>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <p class="text-sm font-semibold text-slate-700">Giulia Voice</p>
+            <p class="text-xs text-slate-400 mt-1">da &euro;79/mese + consumo telefonico</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <p class="text-sm font-semibold text-slate-700">Portale paziente</p>
+            <p class="text-xs text-slate-400 mt-1">da &euro;39/mese &middot; H2 2027</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <p class="text-sm font-semibold text-slate-700">Firma e conservazione</p>
+            <p class="text-xs text-slate-400 mt-1">da &euro;49/mese &middot; H2 2027</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <p class="text-sm font-semibold text-slate-700">Analytics avanzati</p>
+            <p class="text-xs text-slate-400 mt-1">da &euro;49/mese &middot; 2027</p>
+          </div>
         </div>
       </div>
     </div>
@@ -893,11 +869,11 @@
     </div>
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
       <h2 class="text-3xl lg:text-4xl font-extrabold text-white mb-4">Pronto a trasformare il tuo studio?</h2>
-      <p class="text-blue-200 text-lg mb-8 leading-relaxed">Unisciti a centinaia di studi dentistici che hanno scelto DentalCare Pro.<br/>30 giorni gratis, nessuna carta di credito richiesta.</p>
+      <p class="text-blue-200 text-lg mb-8 leading-relaxed">Stiamo selezionando gli studi del programma pilota.<br/>Nessun impegno e nessuna carta di credito: prima capiamo se fa al caso tuo.</p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
         <a routerLink="/registrati"
            class="inline-flex items-center justify-center gap-2 bg-white text-[#00448c] hover:bg-blue-50 font-bold px-8 py-4 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5 text-lg">
-          Inizia la prova gratuita di 30 giorni
+          Richiedi accesso al pilota
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
           </svg>
