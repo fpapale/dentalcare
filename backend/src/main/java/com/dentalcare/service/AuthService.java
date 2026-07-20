@@ -91,11 +91,12 @@ public class AuthService {
     }
 
     public DemoConfigResponse demoConfig() {
-        // Schema ed email demo sempre esposti: insieme identificano l'account demo,
-        // l'unico che può impersonare gli altri operatori. La password è invece il
-        // prefill del form di login e resta legata a `enabled`.
+        // Endpoint permitAll: a demo spenta non esce nulla oltre allo schema, né
+        // password né email. Senza email il frontend non riconosce l'account demo
+        // e la combo di impersonazione resta disattivata — che è il comportamento
+        // voluto in produzione. Lo schema resta esposto perché non è un segreto.
         if (!demoEnabled) {
-            return new DemoConfigResponse(false, demoEmail, null, demoSchema);
+            return new DemoConfigResponse(false, null, null, demoSchema);
         }
         return new DemoConfigResponse(true, demoEmail, demoPassword, demoSchema);
     }
