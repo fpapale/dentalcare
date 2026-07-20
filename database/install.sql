@@ -947,7 +947,8 @@ CREATE TABLE service_categories (
     sort_order integer DEFAULT 10 NOT NULL,
     active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    allowed_roles text
 );
 
 CREATE TABLE ai_prompt_overrides (

@@ -4,6 +4,7 @@ public class TenantContext {
 
     private static final ThreadLocal<String> CURRENT_SCHEMA = new ThreadLocal<>();
     private static final ThreadLocal<String> CURRENT_CLINIC_ID = new ThreadLocal<>();
+    private static final ThreadLocal<String> CURRENT_ROLE = new ThreadLocal<>();
 
     public static String getCurrentSchema() {
         return CURRENT_SCHEMA.get();
@@ -19,6 +20,15 @@ public class TenantContext {
 
     public static void setCurrentClinicId(String clinicId) {
         CURRENT_CLINIC_ID.set(clinicId);
+    }
+
+    /** Ruolo JWT dell'utente corrente (valore dell'enum dentalcare.provider_role). */
+    public static String getCurrentRole() {
+        return CURRENT_ROLE.get();
+    }
+
+    public static void setCurrentRole(String role) {
+        CURRENT_ROLE.set(role);
     }
 
     /** Validates schema name against pattern ^t_[0-9a-f]{8}$ to prevent SQL injection. */
@@ -38,5 +48,6 @@ public class TenantContext {
     public static void clear() {
         CURRENT_SCHEMA.remove();
         CURRENT_CLINIC_ID.remove();
+        CURRENT_ROLE.remove();
     }
 }

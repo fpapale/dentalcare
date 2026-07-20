@@ -47,16 +47,44 @@
               } @else {
                 <div class="divide-y divide-slate-100">
                   @for (cat of categories(); track cat.id) {
-                    <div class="flex items-center gap-2 py-2">
+                    <div class="py-2">
                       @if (editingCategoryId() === cat.id) {
-                        <input [(ngModel)]="editCategoryName"
-                          class="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500" />
-                        <button (click)="saveCategory(cat)" [disabled]="savingCategory() || !editCategoryName.trim()"
-                          class="text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded px-2.5 py-1.5 disabled:opacity-50">Salva</button>
-                        <button (click)="cancelEditCategory()"
-                          class="text-xs font-semibold text-slate-500 hover:text-slate-700 px-2 py-1.5">Annulla</button>
+                        <div class="flex items-center gap-2">
+                          <input [(ngModel)]="editCategoryName"
+                            class="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                          <button (click)="saveCategory(cat)" [disabled]="savingCategory() || !editCategoryName.trim()"
+                            class="text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded px-2.5 py-1.5 disabled:opacity-50">Salva</button>
+                          <button (click)="cancelEditCategory()"
+                            class="text-xs font-semibold text-slate-500 hover:text-slate-700 px-2 py-1.5">Annulla</button>
+                        </div>
+                        <div class="mt-2 pl-1">
+                          <p class="text-xs font-semibold text-slate-600 mb-1.5">Ruoli abilitati</p>
+                          <div class="flex flex-wrap gap-1.5">
+                            @for (opt of roleOptions; track opt.value) {
+                              <button type="button" (click)="toggleCategoryRole(opt.value)"
+                                [class]="isCategoryRoleSelected(opt.value)
+                                  ? 'text-xs font-semibold rounded-full px-2.5 py-1 border bg-teal-50 border-teal-500 text-teal-700'
+                                  : 'text-xs font-semibold rounded-full px-2.5 py-1 border bg-white border-slate-200 text-slate-500 hover:border-slate-300'">
+                                {{ opt.label }}
+                              </button>
+                            }
+                          </div>
+                          <p class="text-xs text-slate-400 mt-1.5">
+                            @if (editCategoryRoles().length === 0) {
+                              Nessun ruolo selezionato: la categoria resta selezionabile da tutti.
+                            } @else {
+                              Solo i ruoli selezionati potranno scegliere queste prestazioni. Segreteria e amministrazione vedono sempre tutto.
+                            }
+                          </p>
+                        </div>
                       } @else {
-                        <span class="flex-1 text-sm text-slate-700 font-medium" [class.opacity-50]="!cat.active">{{ cat.name }}</span>
+                        <div class="flex items-center gap-2">
+                        <span class="flex-1 text-sm text-slate-700 font-medium" [class.opacity-50]="!cat.active">
+                          {{ cat.name }}
+                          @if (cat.allowedRoles.length) {
+                            <span class="block text-xs font-normal text-slate-400 mt-0.5">{{ roleLabels(cat.allowedRoles) }}</span>
+                          }
+                        </span>
                         <span class="text-xs text-slate-400">{{ cat.usageCount }} uso/i</span>
                         @if (!cat.active) { <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">disattiva</span> }
                         <button (click)="startEditCategory(cat)" title="Rinomina" class="text-slate-400 hover:text-teal-600 p-1">
@@ -70,6 +98,7 @@
                             <span class="material-symbols-outlined text-[18px]">delete</span>
                           </button>
                         }
+                        </div>
                       }
                     </div>
                   }

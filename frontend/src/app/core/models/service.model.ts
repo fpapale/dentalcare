@@ -73,15 +73,19 @@ export interface ServiceCategory {
   sortOrder: number;
   active: boolean;
   usageCount: number;
+  /** Ruoli abilitati a selezionare le prestazioni della categoria. Vuoto = tutti. */
+  allowedRoles: string[];
 }
 
 export interface CreateServiceCategoryRequest {
   name: string;
   sortOrder?: number;
+  allowedRoles?: string[];
 }
 
 export interface UpdateServiceCategoryRequest {
   name: string;
   sortOrder?: number;
   active: boolean;
+  allowedRoles?: string[];
 }

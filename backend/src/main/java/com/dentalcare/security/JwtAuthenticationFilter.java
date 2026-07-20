@@ -63,6 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             TenantContext.setCurrentClinicId(clinicId);
             TenantContext.setCurrentSchema(schemaName);
+            TenantContext.setCurrentRole(role);
 
             List<SimpleGrantedAuthority> authorities = List.of(
                     new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));

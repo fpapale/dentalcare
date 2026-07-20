@@ -146,6 +146,29 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS invoice_prefix TEXT");
             jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS password_temporary BOOLEAN NOT NULL DEFAULT false");
         });
+        runStep(schema, "service_categories", () -> {
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS %s.service_categories (
+                    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                    clinic_id  uuid NOT NULL,
+                    name       text NOT NULL,
+                    sort_order integer NOT NULL DEFAULT 10,
+                    active     boolean NOT NULL DEFAULT true,
+                    created_at timestamptz NOT NULL DEFAULT now(),
+                    updated_at timestamptz NOT NULL DEFAULT now()
+                )""".formatted(schema));
+            jdbc.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS ux_service_categories_clinic_name
+                    ON %s.service_categories (clinic_id, lower(name))""".formatted(schema));
+            jdbc.execute("""
+                INSERT INTO %s.service_categories (clinic_id, name)
+                    SELECT DISTINCT clinic_id, category FROM %s.service_catalog
+                    WHERE category IS NOT NULL AND btrim(category) <> ''
+                    ON CONFLICT (clinic_id, lower(name)) DO NOTHING""".formatted(schema, schema));
+            // Ruoli abilitati a selezionare le prestazioni della categoria (CSV di
+            // dentalcare.provider_role). Null/vuoto = nessun vincolo, categoria visibile a tutti.
+            jdbc.execute("ALTER TABLE " + schema + ".service_categories ADD COLUMN IF NOT EXISTS allowed_roles TEXT");
+        });
         runStep(schema, "providers/role+phone", () -> {
             jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS phone TEXT");
             jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()");

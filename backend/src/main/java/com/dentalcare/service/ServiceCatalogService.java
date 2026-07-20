@@ -18,8 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ServiceCatalogService {
@@ -31,6 +34,22 @@ public class ServiceCatalogService {
     }
 
     private String s() { return TenantContext.validatedSchema(); }
+
+    /** Ruoli che vedono l'intero listino: non clinici, selezionano per conto di chiunque. */
+    private static final Set<String> UNFILTERED_ROLES = Set.of("secretary", "admin", "tenant_admin");
+
+    /**
+     * Ruolo su cui filtrare il listino, o null se il ruolo corrente non filtra.
+     * Il ruolo arriva dal JWT, mai dal client.
+     */
+    private String filteringRole() {
+        String role = TenantContext.getCurrentRole();
+        if (role == null || role.isBlank()) {
+            return null;
+        }
+        String normalized = role.trim().toLowerCase();
+        return UNFILTERED_ROLES.contains(normalized) ? null : normalized;
+    }
 
     public List<ServiceDto> findAll() {
         return findAll(null);
@@ -53,13 +72,30 @@ public class ServiceCatalogService {
                 """;
         }
 
+        // Filtro per ruolo: una categoria con allowed_roles valorizzato è selezionabile
+        // solo dai ruoli elencati. Categoria assente o senza vincolo = visibile a tutti.
+        String roleFilter = "";
+        String role = filteringRole();
+        if (role != null) {
+            params.addValue("role", role);
+            roleFilter = """
+                AND NOT EXISTS (
+                    SELECT 1 FROM %s.service_categories cat
+                    WHERE cat.clinic_id = sc.clinic_id
+                      AND lower(cat.name) = lower(sc.category)
+                      AND btrim(coalesce(cat.allowed_roles, '')) <> ''
+                      AND :role <> ALL (string_to_array(lower(replace(cat.allowed_roles, ' ', '')), ','))
+                )
+                """.formatted(s());
+        }
+
         String sql = """
-            SELECT id, code, name, category, default_price, duration_minutes
-            FROM %s.service_catalog
-            WHERE clinic_id = :clinicId
-              AND active = true
-            """.formatted(s()) + toothFilter + """
-            ORDER BY category, name
+            SELECT sc.id, sc.code, sc.name, sc.category, sc.default_price, sc.duration_minutes
+            FROM %s.service_catalog sc
+            WHERE sc.clinic_id = :clinicId
+              AND sc.active = true
+            """.formatted(s()) + toothFilter + roleFilter + """
+            ORDER BY sc.category, sc.name
             """;
 
         return jdbc.query(sql, params, (rs, n) -> new ServiceDto(
@@ -398,7 +434,7 @@ public class ServiceCatalogService {
     public List<ServiceCategoryDto> listCategories() {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
-            SELECT c.id, c.name, c.sort_order, c.active,
+            SELECT c.id, c.name, c.sort_order, c.active, c.allowed_roles,
                    (SELECT count(*) FROM %s.service_catalog sc
                      WHERE sc.clinic_id = c.clinic_id AND sc.category = c.name) AS usage_count
             FROM %s.service_categories c
@@ -415,14 +451,15 @@ public class ServiceCatalogService {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         UUID id = UUID.randomUUID();
         jdbc.update("""
-            INSERT INTO %s.service_categories (id, clinic_id, name, sort_order)
-            VALUES (:id, :clinicId, :name, :sortOrder)
+            INSERT INTO %s.service_categories (id, clinic_id, name, sort_order, allowed_roles)
+            VALUES (:id, :clinicId, :name, :sortOrder, :allowedRoles)
             """.formatted(s()),
                 new MapSqlParameterSource()
                         .addValue("id", id)
                         .addValue("clinicId", clinicId)
                         .addValue("name", r.name())
-                        .addValue("sortOrder", r.sortOrder() != null ? r.sortOrder() : 10));
+                        .addValue("sortOrder", r.sortOrder() != null ? r.sortOrder() : 10)
+                        .addValue("allowedRoles", joinRoles(r.allowedRoles()), java.sql.Types.VARCHAR));
         return findCategoryById(id, clinicId);
     }
 
@@ -441,7 +478,8 @@ public class ServiceCatalogService {
 
         jdbc.update("""
             UPDATE %s.service_categories
-            SET name = :name, sort_order = :sortOrder, active = :active, updated_at = now()
+            SET name = :name, sort_order = :sortOrder, active = :active,
+                allowed_roles = :allowedRoles, updated_at = now()
             WHERE id = :id AND clinic_id = :clinicId
             """.formatted(s()),
                 new MapSqlParameterSource()
@@ -449,7 +487,8 @@ public class ServiceCatalogService {
                         .addValue("clinicId", clinicId)
                         .addValue("name", r.name())
                         .addValue("sortOrder", r.sortOrder() != null ? r.sortOrder() : 10)
-                        .addValue("active", r.active()));
+                        .addValue("active", r.active())
+                        .addValue("allowedRoles", joinRoles(r.allowedRoles()), java.sql.Types.VARCHAR));
 
         if (!oldName.equals(r.name())) {
             jdbc.update("""
@@ -498,7 +537,7 @@ public class ServiceCatalogService {
 
     private ServiceCategoryDto findCategoryById(UUID id, UUID clinicId) {
         String sql = """
-            SELECT c.id, c.name, c.sort_order, c.active,
+            SELECT c.id, c.name, c.sort_order, c.active, c.allowed_roles,
                    (SELECT count(*) FROM %s.service_catalog sc
                      WHERE sc.clinic_id = c.clinic_id AND sc.category = c.name) AS usage_count
             FROM %s.service_categories c
@@ -519,7 +558,34 @@ public class ServiceCatalogService {
                 rs.getString("name"),
                 rs.getInt("sort_order"),
                 rs.getBoolean("active"),
-                rs.getLong("usage_count")
+                rs.getLong("usage_count"),
+                splitRoles(rs.getString("allowed_roles"))
         );
+    }
+
+    /** CSV persistito → lista di ruoli normalizzati. Null/vuoto → lista vuota (nessun vincolo). */
+    private static List<String> splitRoles(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(r -> !r.isEmpty())
+                .map(String::toLowerCase)
+                .distinct()
+                .toList();
+    }
+
+    /** Lista di ruoli → CSV normalizzato, o null se nessun vincolo. */
+    private static String joinRoles(List<String> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return null;
+        }
+        String csv = roles.stream()
+                .filter(r -> r != null && !r.isBlank())
+                .map(r -> r.trim().toLowerCase())
+                .distinct()
+                .collect(Collectors.joining(","));
+        return csv.isEmpty() ? null : csv;
     }
 }

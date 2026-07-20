@@ -54,6 +54,18 @@ export class PrestazioniComponent implements OnInit {
     { value: 'impacted',      label: 'Incluso' }
   ];
 
+  /**
+   * Ruoli clinici selezionabili come vincolo di categoria.
+   * Segreteria e amministrazione non compaiono: vedono sempre l'intero listino.
+   */
+  readonly roleOptions: { value: string; label: string }[] = [
+    { value: 'dentist',      label: 'Odontoiatra' },
+    { value: 'hygienist',    label: 'Igienista' },
+    { value: 'orthodontist', label: 'Ortodontista' },
+    { value: 'surgeon',      label: 'Chirurgo' },
+    { value: 'assistant',    label: 'Assistente' }
+  ];
+
   services = signal<ServiceAdmin[]>([]);
   conditionDefaults = signal<ConditionDefault[]>([]);
   categories = signal<ServiceCategory[]>([]);
@@ -64,6 +76,7 @@ export class PrestazioniComponent implements OnInit {
   newCategoryName = '';
   editingCategoryId = signal<string | null>(null);
   editCategoryName = '';
+  editCategoryRoles = signal<string[]>([]);
   confirmDeleteCategoryId = signal<string | null>(null);
 
   loading = signal(true);
@@ -321,23 +334,48 @@ export class PrestazioniComponent implements OnInit {
   startEditCategory(cat: ServiceCategory): void {
     this.editingCategoryId.set(cat.id);
     this.editCategoryName = cat.name;
+    this.editCategoryRoles.set([...(cat.allowedRoles ?? [])]);
   }
 
   cancelEditCategory(): void {
     this.editingCategoryId.set(null);
     this.editCategoryName = '';
+    this.editCategoryRoles.set([]);
+  }
+
+  isCategoryRoleSelected(role: string): boolean {
+    return this.editCategoryRoles().includes(role);
+  }
+
+  toggleCategoryRole(role: string): void {
+    this.editCategoryRoles.update(roles =>
+      roles.includes(role) ? roles.filter(r => r !== role) : [...roles, role]);
+  }
+
+  /** Etichette dei ruoli abilitati, per il riepilogo in sola lettura. */
+  roleLabels(roles: string[]): string {
+    if (!roles.length) return '';
+    return roles
+      .map(r => this.roleOptions.find(o => o.value === r)?.label ?? r)
+      .join(', ');
   }
 
   saveCategory(cat: ServiceCategory): void {
     const name = this.editCategoryName.trim();
     if (!name || this.savingCategory()) return;
     this.savingCategory.set(true);
-    const req: UpdateServiceCategoryRequest = { name, sortOrder: cat.sortOrder, active: cat.active };
+    const req: UpdateServiceCategoryRequest = {
+      name,
+      sortOrder: cat.sortOrder,
+      active: cat.active,
+      allowedRoles: this.editCategoryRoles()
+    };
     this.catalogService.updateCategory(cat.id, req).subscribe({
       next: () => {
         this.savingCategory.set(false);
         this.editingCategoryId.set(null);
         this.editCategoryName = '';
+        this.editCategoryRoles.set([]);
         // il rename propaga alle prestazioni -> ricarica categorie e prestazioni
         this.loadCategories();
         this.loadServices();
