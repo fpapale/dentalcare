@@ -166,7 +166,12 @@ Emersi provando l'app come medico/segretaria. Verificati sul codice reale, non s
 - ✅ **#33** PDF a tutta pagina + **#35** fattura → solo i propri preventivi — commit `272df82`.
 - ✅ **#34** totali preventivo (ricalcolo app-side, indipendente dal trigger DB mancante su schema legacy; 7 test) — commit `dfbe871`.
 - ✅ **#32** odontogramma a due assi (origine AI/manuale + stato clinico via `CONDITION_STATUS`) — commit `0bea0a4`.
-- 🔄 **#31** appuntamento smart: **endpoint BE `availability` in corso** (orari 08–19 config, primo slot libero medico+poltrona, salta weekend); poi il FE auto-compila `nuovo-appuntamento`. Da confermare: **orari studio reali** (default 08–19).
+- ✅ **#31** appuntamento smart, in tre pezzi:
+  - **BE** `GET /api/appointments/availability` — primo slot libero medico+poltrona, calcolo in memoria su una sola query, regola overlap identica a `create` — commit `c768b80`.
+  - **FE** `nuovo-appuntamento` si auto-compila: durata dalla prestazione, medico = sé stesso se clinico (a1) o scelto/proposto per la segreteria (a2), 3 proposte cliccabili, tutto sovrascrivibile — commit `86633ce`.
+  - **Config** orari studio **per tenant** da Impostazioni → Agenda (`clinics.work_start_time/work_end_time/slot_minutes/working_days`), costanti come fallback — commit `7be2e3c`. La UI degli orari **esisteva già ma salvava solo in localStorage**: il backend non l'aveva mai vista.
+
+> Follow-up da #31-config: le 4 colonne orari sono aggiunte via `patchSchema` (come le altre colonne di `clinics`), **non** in `install.sql` — coerente con il meccanismo esistente, ma resta la divergenza tracciata in [#29].
 
 > Follow-up emerso da #34: `queryLines()` usa `INNER JOIN service_catalog` → una riga con `service_id` NULL (servizio cancellato) sparirebbe dal totale. Fuori scope del fix, da valutare.
 
