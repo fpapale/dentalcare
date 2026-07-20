@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.ZoneOffset;
@@ -132,6 +133,29 @@ public class EstimateService {
         if (headers.isEmpty()) return null;
         EstimateDetailDto h = headers.get(0);
 
+        List<EstimateLineDto> rawLines = queryLines(estimateId, clinicId);
+
+        // subtotal/discount/taxable/vat/total di "estimates" sono colonne memorizzate, allineate
+        // dal trigger DB recalc_estimate_totals dopo INSERT/UPDATE/DELETE su estimate_lines. Il
+        // trigger non è garantito su tutti gli schema tenant (schema più vecchi, convergiti da
+        // EstimateSchemaInitializer, possono non averlo mai avuto), quindi qui li ricalcoliamo
+        // sempre sommando le righe correnti: il dettaglio resta coerente anche se la colonna
+        // memorizzata sull'header è rimasta indietro (vedi anche recalcAndPersistHeaderTotals,
+        // invocato da addLine/deleteLine per tenere allineato anche l'header memorizzato).
+        List<EstimateLineDto> lines = recalcLineTotals(rawLines);
+        EstimateTotals totals = sumTotals(lines);
+
+        return new EstimateDetailDto(
+                h.estimateId(), h.estimateNumber(), h.version(), h.status(),
+                h.title(), h.notes(), h.currency(),
+                totals.subtotalAmount(), totals.discountAmount(), totals.taxableAmount(),
+                totals.vatAmount(), totals.totalAmount(),
+                h.patientId(), h.patientFullName(), h.treatmentPlanId(), h.treatmentPlanName(),
+                h.issuedAt(), h.sentAt(), h.validUntil(), h.acceptedAt(), h.rejectedAt(), h.createdAt(),
+                lines);
+    }
+
+    private List<EstimateLineDto> queryLines(UUID estimateId, UUID clinicId) {
         String linesSql = """
             SELECT el.id, el.line_position, el.service_id, sc.name AS service_name,
                    el.treatment_plan_item_id, el.description_snapshot, el.tooth_snapshot,
@@ -142,7 +166,7 @@ public class EstimateService {
             WHERE el.estimate_id = :estimateId AND el.clinic_id = :clinicId
             ORDER BY el.line_position
             """.formatted(s(), s());
-        List<EstimateLineDto> lines = jdbc.query(linesSql,
+        return jdbc.query(linesSql,
                 new MapSqlParameterSource().addValue("estimateId", estimateId).addValue("clinicId", clinicId),
                 (rs, n) -> new EstimateLineDto(
                         rs.getObject("id", UUID.class),
@@ -161,14 +185,6 @@ public class EstimateService {
                         rs.getBigDecimal("line_vat_amount"),
                         rs.getBigDecimal("line_total")
                 ));
-
-        return new EstimateDetailDto(
-                h.estimateId(), h.estimateNumber(), h.version(), h.status(),
-                h.title(), h.notes(), h.currency(),
-                h.subtotalAmount(), h.discountAmount(), h.taxableAmount(), h.vatAmount(), h.totalAmount(),
-                h.patientId(), h.patientFullName(), h.treatmentPlanId(), h.treatmentPlanName(),
-                h.issuedAt(), h.sentAt(), h.validUntil(), h.acceptedAt(), h.rejectedAt(), h.createdAt(),
-                lines);
     }
 
     // ── Create ───────────────────────────────────────────────────────────────
@@ -303,9 +319,11 @@ public class EstimateService {
                         .addValue("unitPrice", unitPrice)
                         .addValue("discount", discount)
                         .addValue("vatRate", vatRate));
+        recalcAndPersistHeaderTotals(estimateId, clinicId);
         return lineId;
     }
 
+    @Transactional
     public void deleteLine(UUID estimateId, UUID lineId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         jdbc.update("""
@@ -315,6 +333,37 @@ public class EstimateService {
                 new MapSqlParameterSource()
                         .addValue("id", lineId)
                         .addValue("estimateId", estimateId)
+                        .addValue("clinicId", clinicId));
+        recalcAndPersistHeaderTotals(estimateId, clinicId);
+    }
+
+    /**
+     * Ricalcola i totali del preventivo dalle righe correnti e li scrive sull'header
+     * (estimates.subtotal_amount/discount_amount/taxable_amount/vat_amount/total_amount).
+     * Invocato nella stessa transazione di addLine/deleteLine così anche le viste/liste
+     * che leggono direttamente le colonne di "estimates" (v_patient_estimates_summary,
+     * v_patient_dashboard) restano coerenti, senza dipendere da un trigger DB non garantito
+     * su tutti gli schema tenant (vedi anche findById, che ricalcola comunque a runtime).
+     */
+    private void recalcAndPersistHeaderTotals(UUID estimateId, UUID clinicId) {
+        EstimateTotals totals = sumTotals(recalcLineTotals(queryLines(estimateId, clinicId)));
+        jdbc.update("""
+            UPDATE %s.estimates
+            SET subtotal_amount = :subtotal,
+                discount_amount = :discount,
+                taxable_amount  = :taxable,
+                vat_amount      = :vat,
+                total_amount    = :total,
+                updated_at      = now()
+            WHERE id = :id AND clinic_id = :clinicId
+            """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("subtotal", totals.subtotalAmount())
+                        .addValue("discount", totals.discountAmount())
+                        .addValue("taxable", totals.taxableAmount())
+                        .addValue("vat", totals.vatAmount())
+                        .addValue("total", totals.totalAmount())
+                        .addValue("id", estimateId)
                         .addValue("clinicId", clinicId));
     }
 
@@ -357,6 +406,80 @@ public class EstimateService {
                         rs.getString("estimate_title"),
                         rs.getString("estimate_status")
                 ));
+    }
+
+    // ── Totals calculation ──────────────────────────────────────────────────────
+    //
+    // line_subtotal/line_taxable/line_vat_amount/line_total (su estimate_lines) e
+    // subtotal_amount/discount_amount/taxable_amount/vat_amount/total_amount (su estimates)
+    // sono colonne memorizzate, pensate per essere mantenute allineate da un trigger
+    // Postgres lato DB. Il trigger non è garantito su ogni schema tenant (schema più vecchi,
+    // convergiti da EstimateSchemaInitializer, possono non averlo mai avuto), quindi li
+    // ricalcoliamo sempre qui in Java, con le stesse formule, sia in lettura (findById) sia
+    // in scrittura (recalcAndPersistHeaderTotals dopo addLine/deleteLine).
+
+    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+    private static final BigDecimal ZERO_2DP = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+    // package-private (non private): permette il test unitario diretto del calcolo,
+    // senza dover mockare NamedParameterJdbcTemplate.
+    record EstimateTotals(
+            BigDecimal subtotalAmount,
+            BigDecimal discountAmount,
+            BigDecimal taxableAmount,
+            BigDecimal vatAmount,
+            BigDecimal totalAmount) {
+    }
+
+    /** Ricalcola subtotal/taxable/vat/total di ogni riga da quantity/unitPrice/discountAmount/vatRate. */
+    static List<EstimateLineDto> recalcLineTotals(List<EstimateLineDto> lines) {
+        return lines.stream().map(EstimateService::recalcLine).toList();
+    }
+
+    private static EstimateLineDto recalcLine(EstimateLineDto l) {
+        BigDecimal qty = nz(l.quantity());
+        BigDecimal unitPrice = nz(l.unitPrice());
+        BigDecimal discount = nz(l.discountAmount());
+        BigDecimal vatRate = nz(l.vatRate());
+
+        BigDecimal gross = qty.multiply(unitPrice);
+        BigDecimal rawTaxable = gross.subtract(discount).max(BigDecimal.ZERO);
+        BigDecimal rawVat = rawTaxable.multiply(vatRate).divide(HUNDRED, 10, RoundingMode.HALF_UP);
+
+        BigDecimal lineSubtotal = round2(gross);
+        BigDecimal lineTaxable = round2(rawTaxable);
+        BigDecimal lineVatAmount = round2(rawVat);
+        BigDecimal lineTotal = round2(rawTaxable.add(rawVat));
+
+        return new EstimateLineDto(
+                l.lineId(), l.linePosition(), l.serviceId(), l.serviceName(), l.treatmentPlanItemId(),
+                l.descriptionSnapshot(), l.toothSnapshot(), l.quantity(), l.unitPrice(), l.discountAmount(),
+                l.vatRate(), lineSubtotal, lineTaxable, lineVatAmount, lineTotal);
+    }
+
+    /** Somma le righe (già ricalcolate da {@link #recalcLineTotals}) nei totali di testata. */
+    static EstimateTotals sumTotals(List<EstimateLineDto> lines) {
+        BigDecimal subtotal = ZERO_2DP;
+        BigDecimal discount = ZERO_2DP;
+        BigDecimal taxable = ZERO_2DP;
+        BigDecimal vat = ZERO_2DP;
+        BigDecimal total = ZERO_2DP;
+        for (EstimateLineDto l : lines) {
+            subtotal = subtotal.add(nz(l.lineSubtotal()));
+            discount = discount.add(nz(l.discountAmount()));
+            taxable = taxable.add(nz(l.lineTaxable()));
+            vat = vat.add(nz(l.lineVatAmount()));
+            total = total.add(nz(l.lineTotal()));
+        }
+        return new EstimateTotals(subtotal, discount, taxable, vat, total);
+    }
+
+    private static BigDecimal nz(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
+    private static BigDecimal round2(BigDecimal v) {
+        return v.setScale(2, RoundingMode.HALF_UP);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
