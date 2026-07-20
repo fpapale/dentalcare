@@ -3,7 +3,8 @@ import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 
-type PlanType = 'essenziale' | 'professionale' | 'aziendale';
+/** Solo Essential e' self-service: gli altri piani passano da un contatto commerciale. */
+type PlanType = 'essential';
 
 interface StudioForm {
   nome: string;
@@ -32,7 +33,7 @@ export class RegistrazioneComponent {
   private readonly router = inject(Router);
 
   readonly step          = signal<number>(1);
-  readonly selectedPlan  = signal<PlanType>('professionale');
+  readonly selectedPlan  = signal<PlanType>('essential');
   readonly submitting    = signal(false);
   readonly error         = signal<string | null>(null);
 
@@ -58,9 +59,7 @@ export class RegistrazioneComponent {
 
   planLabel(plan: PlanType): string {
     const labels: Record<PlanType, string> = {
-      essenziale: 'Essenziale',
-      professionale: 'Professionale',
-      aziendale: 'Aziendale'
+      essential: 'Essential'
     };
     return labels[plan];
   }

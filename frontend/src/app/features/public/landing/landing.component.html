@@ -903,9 +903,10 @@
               <span>Supporto email</span>
             </li>
           </ul>
+          <!-- Unico piano con attivazione autonoma: la registrazione crea un tenant Essential. -->
           <a routerLink="/registrati"
-             class="block text-center border-2 border-slate-200 hover:border-[#00448c] text-slate-700 hover:text-[#00448c] font-semibold py-3 rounded-xl transition-all">
-            Richiedi accesso
+             class="block text-center border-2 border-[#00448c] bg-[#00448c] text-white hover:bg-[#005BB7] font-semibold py-3 rounded-xl transition-all">
+            Attiva ora
           </a>
         </div>
 
@@ -956,9 +957,11 @@
                 <span>Supporto prioritario &lt; 4h</span>
               </li>
             </ul>
-            <a routerLink="/registrati"
+            <!-- Professional non e' self-service: l'attivazione autonoma esiste solo
+                 per Essential, gli altri piani passano da un contatto commerciale. -->
+            <a href="mailto:info@dentalcarepro.it?subject=Piano%20Professional"
                class="block text-center bg-[#00448c] hover:bg-[#005BB7] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-900/20">
-              Richiedi accesso
+              Parlane con noi
             </a>
           </div>
         </div>
