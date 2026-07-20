@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Appointment } from '../models/appointment.model';
+import { Appointment, AvailabilitySlot } from '../models/appointment.model';
 
 export interface CreateAppointmentRequest {
   patientId: string;
@@ -51,6 +51,23 @@ export class AppointmentService {
 
   findChairLabels(): Observable<string[]> {
     return this.http.get<string[]>(`${this.base}/chairs`);
+  }
+
+  /**
+   * Primi slot liberi (medico + poltrona) per una durata data.
+   * providerId assente = il backend sceglie un medico disponibile e lo restituisce.
+   */
+  findAvailability(
+    durationMin: number,
+    providerId?: string | null,
+    fromDate?: string | null,
+    limit?: number
+  ): Observable<AvailabilitySlot[]> {
+    let params = new HttpParams().set('durationMin', durationMin);
+    if (providerId) params = params.set('providerId', providerId);
+    if (fromDate)   params = params.set('fromDate', fromDate);
+    if (limit)      params = params.set('limit', limit);
+    return this.http.get<AvailabilitySlot[]>(`${this.base}/availability`, { params });
   }
 
   create(request: CreateAppointmentRequest): Observable<void> {

@@ -1,3 +1,13 @@
+/** Proposta di slot libero da GET /api/appointments/availability (#31). */
+export interface AvailabilitySlot {
+  date: string;        // "yyyy-MM-dd"
+  startTime: string;   // "HH:mm"
+  endTime: string;     // "HH:mm"
+  chairLabel: string;
+  providerId: string;
+  providerName: string;
+}
+
 export interface Appointment {
   appointmentId: string;
   startsAt: string;

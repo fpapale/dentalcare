@@ -10,9 +10,11 @@ import { ProviderService } from '../../../core/services/provider.service';
 import { ServiceCatalogService } from '../../../core/services/service-catalog.service';
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { TreatmentPlanService } from '../../../core/services/treatment-plan.service';
+import { UserContextService } from '../../../core/services/user-context.service';
 import { PatientListItem } from '../../../core/models/patient.model';
 import { Provider } from '../../../core/models/provider.model';
 import { ServiceItem } from '../../../core/models/service.model';
+import { AvailabilitySlot } from '../../../core/models/appointment.model';
 
 function notWeekendValidator(ctrl: AbstractControl): ValidationErrors | null {
   if (!ctrl.value) return null;
@@ -45,6 +47,11 @@ export class NuovoAppuntamentoComponent implements OnInit {
   services = signal<ServiceItem[]>([]);
   chairLabels = signal<string[]>([]);
 
+  // #31 — proposte di disponibilità (primo slot libero medico + poltrona)
+  slots = signal<AvailabilitySlot[]>([]);
+  slotsLoading = signal(false);
+  slotsSearched = signal(false);
+
   readonly durate = [15, 30, 45, 60, 90, 120];
 
   // Plan linking (from piano-cura-detail)
@@ -61,7 +68,8 @@ export class NuovoAppuntamentoComponent implements OnInit {
     private providerService: ProviderService,
     private serviceCatalogService: ServiceCatalogService,
     private appointmentService: AppointmentService,
-    private treatmentPlanService: TreatmentPlanService
+    private treatmentPlanService: TreatmentPlanService,
+    private userContext: UserContextService
   ) {
     const today = new Date().toISOString().split('T')[0];
     this.form = this.fb.group({
@@ -91,6 +99,21 @@ export class NuovoAppuntamentoComponent implements OnInit {
     ).subscribe(results => {
       this.patientResults.set(results.slice(0, 8));
       this.patientDropdownOpen.set(results.length > 0);
+    });
+
+    // #31 a1 — un medico prenota per sé: si pre-seleziona come medico dell'appuntamento.
+    if (this.isClinician && this.userContext.providerId()) {
+      this.form.patchValue({ providerId: this.userContext.providerId() });
+    }
+
+    // #31 — la durata deriva dalla prestazione scelta; se l'ora non è ancora stata
+    // messa a mano, propone subito il primo slot libero (medico + poltrona).
+    this.form.get('serviceId')!.valueChanges.subscribe(id => {
+      const svc = this.services().find(s => s.serviceId === id);
+      if (svc?.durationMinutes) {
+        this.form.patchValue({ durata: this.snapDuration(svc.durationMinutes) }, { emitEvent: false });
+      }
+      if (id && !this.form.get('ora')?.value) this.proposeSlots();
     });
 
     // Pre-seleziona il paziente se arriva dalla scheda paziente o dal piano di cura
@@ -170,6 +193,61 @@ export class NuovoAppuntamentoComponent implements OnInit {
 
   get dataErrors(): { weekend?: boolean } {
     return (this.form.get('data')?.errors ?? {}) as { weekend?: boolean };
+  }
+
+  // ── #31 Disponibilità ───────────────────────────────────────────────────────
+
+  /** Ruolo clinico: prenota per sé, quindi il medico è già deciso (a1). */
+  get isClinician(): boolean {
+    const r = this.userContext.role();
+    return r === 'doctor' || r === 'hygienist';
+  }
+
+  /** La durata della prestazione va portata sull'opzione più vicina del menu. */
+  private snapDuration(d: number): number {
+    return this.durate.includes(d)
+      ? d
+      : this.durate.reduce((prev, cur) => Math.abs(cur - d) < Math.abs(prev - d) ? cur : prev);
+  }
+
+  /** Chiede al backend i primi slot liberi e applica il primo. */
+  proposeSlots(): void {
+    const durata = Number(this.form.get('durata')?.value) || 30;
+    // Il medico cerca per sé; la segreteria usa quello scelto — se vuoto, lo sceglie il backend (a2).
+    const provider = this.isClinician
+      ? this.userContext.providerId()
+      : (this.form.get('providerId')?.value || null);
+    const fromDate = this.form.get('data')?.value || null;
+
+    this.slotsLoading.set(true);
+    this.slotsSearched.set(true);
+    this.appointmentService.findAvailability(durata, provider, fromDate, 3).subscribe({
+      next: list => {
+        this.slots.set(list);
+        this.slotsLoading.set(false);
+        if (list.length) this.applySlot(list[0]);
+      },
+      error: () => { this.slots.set([]); this.slotsLoading.set(false); }
+    });
+  }
+
+  /** Applica una proposta al form. Resta tutto modificabile a mano: è un default, non un vincolo. */
+  applySlot(slot: AvailabilitySlot): void {
+    this.form.patchValue({
+      data: slot.date,
+      ora: slot.startTime,
+      chairLabel: slot.chairLabel,
+      providerId: slot.providerId,
+    }, { emitEvent: false });
+  }
+
+  isSlotApplied(s: AvailabilitySlot): boolean {
+    return this.form.get('data')?.value === s.date && this.form.get('ora')?.value === s.startTime;
+  }
+
+  slotLabel(s: AvailabilitySlot): string {
+    const d = new Date(s.date + 'T12:00:00');
+    return `${d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' })} · ${s.startTime}`;
   }
 
   save(): void {
