@@ -1,6 +1,13 @@
 # Manuale di installazione — Produzione (Docker)
 
-Guida operativa per portare in produzione (server locale `192.168.0.72` **o** un host cloud) i tre servizi DentalCare:
+> **Segnaposto.** Questo file è versionato su un repository pubblico, quindi non
+> contiene indirizzi né credenziali reali. Sostituire prima dell'uso:
+> `<server-app>` host Docker · `<host-db>` host PostgreSQL · `<utente>` utente SSH ·
+> `<password-db>` password postgres · `<password-demo>` password utenza demo.
+> I valori reali stanno fuori dal repo (`backend/config/`, gestore di password).
+
+
+Guida operativa per portare in produzione (server locale `<server-app>` **o** un host cloud) i tre servizi DentalCare:
 
 1. **DentalCare Pro** — backend Spring Boot + frontend nginx (una sola immagine ciascuno)
 2. **MinIO** — object storage (documenti pazienti, ortopanoramiche, artefatti AI)
@@ -13,18 +20,18 @@ Guida operativa per portare in produzione (server locale `192.168.0.72` **o** un
 ## 0. Architettura e stato dei servizi
 
 ```
-Host Docker (192.168.0.72 o cloud)
+Host Docker (<server-app> o cloud)
 ├── dentalcarepro-backend     (Spring Boot, profilo prod, NON esposto)      :8080 interno
 ├── dentalcarepro-frontend    (nginx, serve SPA + proxy /api → backend)     :8181 → 4200
 ├── dentalcare-ai-service     (FastAPI + ONNX YOLO, NON esposto)            :8000 interno
 └── minio                     (object storage, esterno al compose)          :9000 API / :9001 console
 
-DB PostgreSQL: 192.168.0.173:5432  (dev: dentalcarepro · prod: dentalcare_prod)
+DB PostgreSQL: <host-db>:5432  (dev: dentalcarepro · prod: dentalcare_prod)
 ```
 
 - **backend**, **frontend**, **ai-service** stanno nello **stesso `docker-compose.yml`** (rete `dentalcarepro`, si parlano per nome container).
 - **MinIO è esterno al compose**: gira come container a sé (volume persistente). I servizi lo raggiungono via `host.docker.internal:9000` (`extra_hosts: host-gateway` già nel compose).
-- **Servizi già installati**: su `192.168.0.72` MinIO e `dentalcare-ai-service` sono già attivi. La procedura è **idempotente**: si può installare tutto da zero oppure aggiornare solo alcuni servizi (vedi §7).
+- **Servizi già installati**: su `<server-app>` MinIO e `dentalcare-ai-service` sono già attivi. La procedura è **idempotente**: si può installare tutto da zero oppure aggiornare solo alcuni servizi (vedi §7).
 
 ---
 
@@ -33,7 +40,7 @@ DB PostgreSQL: 192.168.0.173:5432  (dev: dentalcarepro · prod: dentalcare_prod)
 Sull'host di destinazione:
 - **Docker** + **Docker Compose v2** (`docker compose`)
 - **git**
-- accesso di rete al **DB PostgreSQL** (`192.168.0.173:5432` o l'istanza cloud)
+- accesso di rete al **DB PostgreSQL** (`<host-db>:5432` o l'istanza cloud)
 - `psql` (solo se si crea/ricrea il DB dal server)
 - porte libere: **8181** (frontend), **9000/9001** (MinIO, se installato qui)
 
@@ -52,14 +59,14 @@ bash /tmp/setup.sh
 ```
 `setup.sh` prepara `~/docker/dentalcarepro`, fa `git clone`/`git pull` e lancia `install.sh`.
 
-**B. Da `192.168.0.72` (mirror locale):** se il cloud non ha accesso a GitHub, si copia il repo dal server esistente:
+**B. Da `<server-app>` (mirror locale):** se il cloud non ha accesso a GitHub, si copia il repo dal server esistente:
 ```bash
 # sul cloud
-rsync -az fpapale@192.168.0.72:~/docker/dentalcarepro/ ~/docker/dentalcarepro/
-# oppure git pull da un remote interno su 192.168.0.72
+rsync -az <utente>@<server-app>:~/docker/dentalcarepro/ ~/docker/dentalcarepro/
+# oppure git pull da un remote interno su <server-app>
 ```
 
-> ⚠️ **La versione corrente è su `master` locale, avanti rispetto a `origin`.** Prima di deployarla via git bisogna **pushare** `master` (dopo aver eliminato `backup/ai-yolo-prepurge` e verificato la history). In alternativa usare il metodo B (copia diretta da `192.168.0.72`).
+> ⚠️ **La versione corrente è su `master` locale, avanti rispetto a `origin`.** Prima di deployarla via git bisogna **pushare** `master` (dopo aver eliminato `backup/ai-yolo-prepurge` e verificato la history). In alternativa usare il metodo B (copia diretta da `<server-app>`).
 
 I file **con segreti** (`backend/config/`, `dentalcare-ai-service/.env`, `credentials/`) e i **modelli ONNX** sono **gitignored** → non arrivano col clone: vanno copiati/creati a mano sul server (§4, §6).
 
@@ -99,7 +106,7 @@ Tutti i parametri prod si modificano in **pochi file gitignored**. Nessun segret
 Override reali (il committato `src/main/resources/application-prod.properties` ha solo default/placeholder):
 ```properties
 # DB
-spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/dentalcare_prod
+spring.datasource.url=jdbc:postgresql://<host-db>:5432/dentalcare_prod
 spring.datasource.username=postgres
 # password -> credentials/credential.properties
 
@@ -161,7 +168,7 @@ JDK_VERSION=25        # o 21 se l'host non ha JDK 25 disponibile per la build
 
 ## 5. MinIO
 
-### 5.1 Se già installato (caso 192.168.0.72)
+### 5.1 Se già installato (caso <server-app>)
 Non reinstallare. Verificare solo:
 - è raggiungibile su `:9000` dall'host Docker;
 - le credenziali in §4 combaciano con quelle del MinIO esistente;
@@ -190,9 +197,9 @@ dentex_fdi_v1.onnx        (denti FDI, 32 classi)
 dentex_disease_v1.onnx    (patologie, 4 classi)
 ```
 **`install.sh` li copia automaticamente** se assenti, dalla sorgente `MODELS_SRC`
-(default `fpapale@192.168.0.72:~/docker/dentalcarepro/dentalcare-ai-service/models`).
-Su `192.168.0.72` sono già presenti → lo step viene saltato. Su un host cloud la
-copia richiede accesso SSH a `192.168.0.72`; override della sorgente:
+(default `<utente>@<server-app>:~/docker/dentalcarepro/dentalcare-ai-service/models`).
+Su `<server-app>` sono già presenti → lo step viene saltato. Su un host cloud la
+copia richiede accesso SSH a `<server-app>`; override della sorgente:
 ```bash
 MODELS_SRC=user@altro-host:/path/models ./install.sh
 ```
@@ -204,7 +211,7 @@ YOLO('modello.pt').export(format='onnx', imgsz=1024, simplify=True)
 ```
 Verificare che `MODEL_INPUT_SCALE` nel `.env` sia coerente (255 = input 0-1 standard; 1 = normalizzazione `/255` bakata nel grafo).
 
-### 6.2 Se già installato (caso 192.168.0.72)
+### 6.2 Se già installato (caso <server-app>)
 La build fa parte del compose. Per **non** ricostruirlo durante un deploy del solo backend/frontend, usare il deploy selettivo (§7.2).
 
 ---
@@ -232,7 +239,7 @@ cd ~/docker/dentalcarepro
 docker compose up -d --build
 
 # 5. (opz.) creare/ricreare il DB prod
-psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare_prod -f database/install.sql
+psql -U postgres -h <host-db> -d postgres -v dbname=dentalcare_prod -f database/install.sql
 ```
 `install.sh` (via `setup.sh`) automatizza i passi: verifica tool, clone/pull, crea config da `.example` se assenti, chiede se creare il DB, `docker compose up -d --build`, attende l'healthcheck del backend, stampa l'URL.
 
@@ -278,7 +285,7 @@ curl -sI http://127.0.0.1:9000/minio/health/live         # 200
 ```
 Test funzionale AI (dal browser): login → paziente → Documenti → carica `rx_panoramica` → **Analizza con AI** → overlay box + sync odontogramma.
 
-App: `http://<host>:8181/` — login demo `admin@demo.dentalcare.it` / `DemoAdmin1!` (cambiare in prod reale).
+App: `http://<host>:8181/` — login demo `admin@demo.dentalcare.it` / `<password-demo>` (cambiare in prod reale).
 
 ---
 
@@ -311,7 +318,7 @@ App: `http://<host>:8181/` — login demo `admin@demo.dentalcare.it` / `DemoAdmi
 ## 11. Checklist rapida (nuovo host cloud)
 
 - [ ] Docker + compose + git installati; porte 8181 (+9000/9001 se MinIO qui) libere
-- [ ] `master` pushato su GitHub **oppure** repo copiato da `192.168.0.72`
+- [ ] `master` pushato su GitHub **oppure** repo copiato da `<server-app>`
 - [ ] repo in `~/docker/dentalcarepro` (`setup.sh`)
 - [ ] `backend/config/application-prod.properties` creato (DB, MinIO, `app.ai.*`)
 - [ ] `credentials/credential.properties` creato (DB pw, JWT, OpenAI)

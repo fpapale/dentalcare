@@ -108,7 +108,7 @@
   Aggiungere in fondo:
 
   ```properties
-  # MinIO — accesso via SSH tunnel: ssh -L 9000:127.0.0.1:9000 fpapale@192.168.0.72
+  # MinIO — accesso via SSH tunnel: ssh -L 9000:127.0.0.1:9000 <utente>@<server-app>
   app.minio.endpoint=http://127.0.0.1:9000
   app.minio.access-key=fpapale
   app.minio.secret-key=ViaGoceano2021

@@ -1,5 +1,12 @@
 # Procedure deploy — trigger "deploy in produzione" / "lavoriamo in dev"
 
+> **Segnaposto.** Questo file è versionato su un repository pubblico, quindi non
+> contiene indirizzi né credenziali reali. Sostituire prima dell'uso:
+> `<server-app>` host Docker · `<host-db>` host PostgreSQL · `<utente>` utente SSH ·
+> `<password-db>` password postgres · `<password-demo>` password utenza demo.
+> I valori reali stanno fuori dal repo (`backend/config/`, gestore di password).
+
+
 Direttiva operativa. Quando l'utente scrive uno dei due trigger, applicare la
 procedura corrispondente senza richiederne i dettagli.
 
@@ -8,12 +15,12 @@ procedura corrispondente senza richiederne i dettagli.
 ## Trigger: "deploy in produzione"
 
 Predisporre/aggiornare il deploy Docker di produzione sulla macchina
-`192.168.0.72` (cartella `~/docker/dentalcarepro`), DB `dentalcare_prod` su
-`192.168.0.173`. Stato atteso dei file (creare/riallineare se divergono):
+`<server-app>` (cartella `~/docker/dentalcarepro`), DB `dentalcare_prod` su
+`<host-db>`. Stato atteso dei file (creare/riallineare se divergono):
 
 1. **`backend/src/main/resources/application-prod.properties`**
    - Riallineato per struttura ad `application.properties`.
-   - `spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/dentalcare_prod`
+   - `spring.datasource.url=jdbc:postgresql://<host-db>:5432/dentalcare_prod`
    - Hardening prod: `server.error.include-message=never`,
      `server.error.include-binding-errors=never`, `logging.level.root=WARN`,
      `logging.level.com.dentalcare=INFO`.
@@ -75,7 +82,7 @@ Predisporre/aggiornare il deploy Docker di produzione sulla macchina
 7. **`.gitattributes`**: forza `eol=lf` su `*.sh` e `*.sql`.
 
 8. **DB**: creato con lo script parametrico
-   `psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare_prod -f database/install.sql`.
+   `psql -U postgres -h <host-db> -d postgres -v dbname=dentalcare_prod -f database/install.sql`.
 
 Al termine: commit + push su `master`.
 
@@ -99,9 +106,9 @@ cd ~/docker/dentalcarepro
 (repo esistente), poi esegue `install.sh` (che chiede se creare/ricreare il DB).
 In alternativa creare il DB a mano:
 ```bash
-psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare_prod -f database/install.sql
+psql -U postgres -h <host-db> -d postgres -v dbname=dentalcare_prod -f database/install.sql
 ```
-App: `http://192.168.0.72:8181/` — login `admin@demo.dentalcare.it` / `DemoAdmin1!`.
+App: `http://<server-app>:8181/` — login `admin@demo.dentalcare.it` / `<password-demo>`.
 
 ---
 
@@ -111,20 +118,20 @@ Riportare tutto alla configurazione di sviluppo:
 
 1. Backend usa **`application.properties`** (profilo default, NON `prod`).
 2. Datasource punta al DB **`dentalcarepro`**
-   (`jdbc:postgresql://192.168.0.173:5432/dentalcarepro`).
+   (`jdbc:postgresql://<host-db>:5432/dentalcarepro`).
 3. Impostazioni dev: `server.error.include-message=always`,
    `server.error.include-binding-errors=always`,
    `logging.level.com.dentalcare=DEBUG`, demo mode on.
 4. Avvio locale senza Docker prod: backend `mvnw spring-boot:run` (porta 8080),
    frontend `npm start` (porta 4200). Nessun profilo `prod` attivo.
 5. DB dev creato con:
-   `psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcarepro -f database/install.sql`.
+   `psql -U postgres -h <host-db> -d postgres -v dbname=dentalcarepro -f database/install.sql`.
 
 ---
 
 ## Note
 
-- DB dev: `dentalcarepro` (192.168.0.173). DB prod: `dentalcare_prod` (192.168.0.173).
+- DB dev: `dentalcarepro` (<host-db>). DB prod: `dentalcare_prod` (<host-db>).
 - Lo schema globale è `dentalcare`; enum e funzioni globali vivono lì (i cast SQL
   usano `dentalcare.<tipo>`, non lo schema tenant).
 - `database/install.sql` è lo script unico parametrico (`-v dbname=...`) che crea

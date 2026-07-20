@@ -158,7 +158,8 @@ psql -U postgres -d postgres -v dbname=dentalcarepro   -f database/install.sql  
 psql -U postgres -d postgres -v dbname=dentalcare_prod -f database/install.sql   # prod
 ```
 
-Login demo: `admin@demo.dentalcare.it` / `DemoAdmin1!`.
+Login demo: `admin@demo.dentalcare.it`. La password non è pubblicata qui: sta in
+`app.demo.password` (vedi `backend/config/`, fuori dal repo).
 
 Per rigenerare `install.sql` dopo modifiche a schema/seed, fare `pg_dump`
 degli schemi `dentalcare` + tenant demo dal DB di riferimento.
@@ -218,7 +219,7 @@ chmod +x install.sh
 |---|---|
 | 1 | Verifica prerequisiti: `docker`, `git`, `docker compose` |
 | 2 | Prima volta: clona repo; aggiornamento: `git pull origin master` |
-| 3 | Crea `config/application-prod.properties` dal template `.example` se assente (già puntato a `dentalcare_prod` su 192.168.0.173); crea `.env` (FRONTEND_PORT=8181) |
+| 3 | Crea `config/application-prod.properties` dal template `.example` se assente (già puntato a `dentalcare_prod` su <host-db>); crea `.env` (FRONTEND_PORT=8181) |
 | 4 | Esegue `docker compose up -d --build` (file unico `docker-compose.yml`) |
 | 5 | Attende healthcheck backend (max 120s) e stampa URL e stato container |
 

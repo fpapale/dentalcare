@@ -16,12 +16,12 @@
 --
 -- USO:
 --   -- DEV, simulazione (nessuna modifica):
---   psql -h 192.168.0.173 -U postgres -d dentalcarepro \
+--   psql -h <host-db> -U postgres -d dentalcarepro \
 --        -v schema=t_9d754153 -v cutoff=2024-01-01 \
 --        -f database/purge_patients_before.sql
 --
 --   -- PROD, esecuzione reale (salta pazienti con fatture):
---   psql -h 192.168.0.173 -U postgres -d dentalcare_prod \
+--   psql -h <host-db> -U postgres -d dentalcare_prod \
 --        -v schema=t_9d754153 -v cutoff=2024-01-01 -v dry_run=false \
 --        -f database/purge_patients_before.sql
 --

@@ -1,16 +1,23 @@
 # Deploy prod — GDPR Slice 1 (cifratura birth_date, #7)
 
+> **Segnaposto.** Questo file è versionato su un repository pubblico, quindi non
+> contiene indirizzi né credenziali reali. Sostituire prima dell'uso:
+> `<server-app>` host Docker · `<host-db>` host PostgreSQL · `<utente>` utente SSH ·
+> `<password-db>` password postgres · `<password-demo>` password utenza demo.
+> I valori reali stanno fuori dal repo (`backend/config/`, gestore di password).
+
+
 Runbook operativo per portare in produzione la cifratura `birth_date`.
-Prod: Docker su `192.168.0.72` (`~/docker/dentalcarepro`), profilo `prod`, DB
-`dentalcare_prod` su `192.168.0.173`. Backend NON esposto sull'host: le API si
+Prod: Docker su `<server-app>` (`~/docker/dentalcarepro`), profilo `prod`, DB
+`dentalcare_prod` su `<host-db>`. Backend NON esposto sull'host: le API si
 raggiungono via nginx frontend. Due vie verso lo stesso frontend:
 - **Pubblico (utenti/browser)**: `https://paaplef.duckdns.org:8181` — HTTPS,
   TLS terminata da un reverse proxy davanti al container.
-- **Diretto (script/curl, da server o LAN)**: `http://192.168.0.72:8081` —
+- **Diretto (script/curl, da server o LAN)**: `http://<server-app>:8081` —
   porta host `FRONTEND_PORT` in `.env`, **HTTP**, bindata `0.0.0.0`
   (`docker compose ps` → `0.0.0.0:8081->4200/tcp`).
 
-Eseguire i comandi migrate sulla via diretta HTTP `http://192.168.0.72:8081/api/...`
+Eseguire i comandi migrate sulla via diretta HTTP `http://<server-app>:8081/api/...`
 (evita il reverse proxy TLS pubblico).
 
 **Stato prod al momento della stesura:** 1 solo tenant `t_9d754153` (23 pazienti,
@@ -63,7 +70,7 @@ app.encryption.master-key=<64 hex generati sopra>
 
 ### 1. Backup DB (obbligatorio)
 ```bash
-PGPASSWORD=<pwd> pg_dump -h 192.168.0.173 -U postgres -d dentalcare_prod \
+PGPASSWORD=<pwd> pg_dump -h <host-db> -U postgres -d dentalcare_prod \
   -Fc -f ~/dentalcare_prod_pre_gdpr_$(date +%Y%m%d_%H%M).dump
 ```
 
@@ -90,25 +97,25 @@ Nota: da Slice 2a l'endpoint `/migrate` cifra sia `birth_date` sia `fiscal_code`
 (pazienti) + lo snapshot `patient_fiscal_code` delle fatture. Idempotente cumulativo.
 ```bash
 # Login demo (unico tenant): ottieni il JWT
-TOKEN=$(curl -s -X POST http://192.168.0.72:8081/api/public/login \
+TOKEN=$(curl -s -X POST http://<server-app>:8081/api/public/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"demo@demo.dentalcare.it","password":"DemoAdmin1!"}' \
+  -d '{"email":"demo@demo.dentalcare.it","password":"<password-demo>"}' \
   | grep -o '"token":"[^"]*"' | head -1 | sed 's/"token":"//;s/"//')
 
 # Migrazione idempotente (popola *_enc/_idx, plaintext intatto)
-curl -s -X POST http://192.168.0.72:8081/api/admin/encryption/migrate \
+curl -s -X POST http://<server-app>:8081/api/admin/encryption/migrate \
   -H "Authorization: Bearer $TOKEN"
 # atteso (primo run): {"birthDate":22,"fiscalCode":22}
 
 # Re-run per conferma idempotenza
-curl -s -X POST http://192.168.0.72:8081/api/admin/encryption/migrate \
+curl -s -X POST http://<server-app>:8081/api/admin/encryption/migrate \
   -H "Authorization: Bearer $TOKEN"
 # atteso: {"birthDate":0,"fiscalCode":0}
 ```
 
 ### 5. Verifica
 ```bash
-PSQL="PGPASSWORD=<pwd> psql -h 192.168.0.173 -U postgres -d dentalcare_prod -At"
+PSQL="PGPASSWORD=<pwd> psql -h <host-db> -U postgres -d dentalcare_prod -At"
 # pending birth_date (deve essere 0)
 $PSQL -c "select count(*) from t_9d754153.patients where birth_date is not null and birth_date_enc is null;"
 # pending fiscal_code (deve essere 0)
