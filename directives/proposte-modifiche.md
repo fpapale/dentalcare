@@ -150,6 +150,28 @@ Queste fix sono **indipendenti** dal piano della cartella clinica (#18/#21/#22):
 
 ---
 
+## Fix operativi dal collaudo — 20/07/2026 (#31-#35)
+
+Emersi provando l'app come medico/segretaria. Verificati sul codice reale, non solo segnalati.
+
+| # | Cosa | Analisi (dal codice) | Effort | Rischio |
+|---|---|---|--:|---|
+| 31 | **Appuntamento smart** (a1+a2): proporre data/ora + poltrona liberi in base alla **durata della prestazione**, auto-selezionare il medico (self per il medico; scelto o disponibile per la segretaria) e la poltrona | `nuovo-appuntamento.component.ts`: form **tutto manuale** (data/ora/durata/provider/chair a mano), nessun motore di disponibilità; la durata non deriva dalla prestazione. **Greenfield:** serve endpoint BE `availability` (primo slot libero per durata + provider opz. → slot+poltrona) + auto-fill FE | Alto (~1-1.5g: BE ~1g + FE ~½g) | Medio |
+| 32 | **Odontogramma: distinguere AI vs manuale e curato vs da curare** (b) | AI-vs-manuale **già parziale** (`aiTeeth`/`isAi`/badge A, `source==='ai'`). Manca **curato vs non curato**: nessuna dimensione stato-trattamento visibile. Serve check schema `tooth_conditions` (colonna status/treated? lega a intervento 7 odontogramma temporale) + legenda/colori UI a due assi | Medio (~½-1g) | Basso |
+| 33 | **PDF a tutta pagina** (c) | tab Documenti: PDF in viewer vincolato. Overlay fullscreen + chiusura X/Esc | Basso (~2h) | Basso |
+| 34 | **Preventivo: subtotale/totale non si aggiornano** (d) | Il FE ricarica già via `loadEstimate()` dopo `addLine` → causa **backend**: totali non ricalcolati su add/delete riga (colonna memorizzata stantia o DetailDto che non somma le righe) | Basso (~2-4h) | Basso |
+| 35 | **Fattura da medico: solo i propri preventivi** (e) | `EstimateController.findAll(status, providerId)` **già filtra** per provider. Serve: FE creazione fattura usa `filterProviderId` (medico→propri, segretaria→tutti), stesso pattern di #30. Lega a #24/#26 | Basso (~2-4h) | Basso |
+
+**Gruppo di lavoro** (partizione per domini disgiunti → niente conflitti sul working tree; gli agenti implementano+build ma **non committano**, riconcilia il coordinatore). **Stato al 20/07 (tutto in dev):**
+- ✅ **#33** PDF a tutta pagina + **#35** fattura → solo i propri preventivi — commit `272df82`.
+- ✅ **#34** totali preventivo (ricalcolo app-side, indipendente dal trigger DB mancante su schema legacy; 7 test) — commit `dfbe871`.
+- ✅ **#32** odontogramma a due assi (origine AI/manuale + stato clinico via `CONDITION_STATUS`) — commit `0bea0a4`.
+- 🔄 **#31** appuntamento smart: **endpoint BE `availability` in corso** (orari 08–19 config, primo slot libero medico+poltrona, salta weekend); poi il FE auto-compila `nuovo-appuntamento`. Da confermare: **orari studio reali** (default 08–19).
+
+> Follow-up emerso da #34: `queryLines()` usa `INNER JOIN service_catalog` → una riga con `service_id` NULL (servizio cancellato) sparirebbe dal totale. Fuori scope del fix, da valutare.
+
+---
+
 ## Piano di intervento — cartella clinica (GAP P0 → GAP P1)
 
 **Fonti:** `gap-analysis-cartella-clinica.md` (gap verificati su codice + DB reale) · `piano-lungo-termine.md` (sequenza, sprint, date, gate) · `roadmap_certificazione.md` (perimetro AI).
