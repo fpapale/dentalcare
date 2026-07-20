@@ -1,6 +1,7 @@
 package com.dentalcare.controller;
 
 import com.dentalcare.dto.ClinicBillingDto;
+import com.dentalcare.dto.ClinicScheduleDto;
 import com.dentalcare.dto.CreateClinicRequest;
 import com.dentalcare.dto.UpdateClinicBillingRequest;
 import com.dentalcare.service.ClinicSettingsService;
@@ -40,5 +41,17 @@ public class ClinicSettingsController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateClinicBilling(@Valid @RequestBody UpdateClinicBillingRequest request) {
         clinicSettingsService.updateClinicBilling(request);
+    }
+
+    /** Orari studio usati dalla proposta di disponibilità appuntamenti (#31). */
+    @GetMapping("/schedule")
+    public ClinicScheduleDto getSchedule() {
+        return clinicSettingsService.getSchedule();
+    }
+
+    @PutMapping("/schedule")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateSchedule(@RequestBody ClinicScheduleDto request) {
+        clinicSettingsService.updateSchedule(request);
     }
 }

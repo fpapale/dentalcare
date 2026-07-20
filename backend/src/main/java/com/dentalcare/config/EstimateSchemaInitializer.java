@@ -123,6 +123,12 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS postal_code TEXT");
             jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS country TEXT NOT NULL DEFAULT 'IT'");
             jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()");
+            // #31 — orari studio configurabili per tenant. Nullable di proposito:
+            // null = usa i default applicativi (AppointmentService.ScheduleConfig.defaults()).
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS work_start_time TIME");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS work_end_time TIME");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS slot_minutes INTEGER");
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS working_days TEXT");
             jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true");
             jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS photo_url TEXT");
             jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS photo_url TEXT");

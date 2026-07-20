@@ -1,6 +1,7 @@
 package com.dentalcare.service;
 
 import com.dentalcare.dto.ClinicBillingDto;
+import com.dentalcare.dto.ClinicScheduleDto;
 import com.dentalcare.dto.CreateClinicRequest;
 import com.dentalcare.dto.UpdateClinicBillingRequest;
 import com.dentalcare.security.TenantContext;
@@ -9,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Types;
 import java.util.List;
 import java.util.UUID;
 
@@ -143,5 +145,47 @@ public class ClinicSettingsService {
                         .addValue("province", request.province())
                         .addValue("postalCode", request.postalCode())
                         .addValue("country", request.country()));
+    }
+
+    // ── #31 Orari studio, configurabili per tenant ─────────────────────────────
+
+    @Transactional(readOnly = true)
+    public ClinicScheduleDto getSchedule() {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<ClinicScheduleDto> rows = jdbc.query("""
+            SELECT to_char(work_start_time, 'HH24:MI') AS work_start_time,
+                   to_char(work_end_time,   'HH24:MI') AS work_end_time,
+                   slot_minutes, working_days
+            FROM %s.clinics
+            WHERE id = :id
+            """.formatted(s()),
+                new MapSqlParameterSource().addValue("id", clinicId),
+                (rs, n) -> new ClinicScheduleDto(
+                        rs.getString("work_start_time"),
+                        rs.getString("work_end_time"),
+                        (Integer) rs.getObject("slot_minutes"),
+                        rs.getString("working_days")));
+        // Nessuna riga: campi null -> il chiamante applica i default.
+        return rows.isEmpty() ? new ClinicScheduleDto(null, null, null, null) : rows.get(0);
+    }
+
+    @Transactional
+    public void updateSchedule(ClinicScheduleDto request) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update("""
+            UPDATE %s.clinics
+            SET work_start_time = CAST(NULLIF(:workStartTime, '') AS TIME),
+                work_end_time   = CAST(NULLIF(:workEndTime, '')   AS TIME),
+                slot_minutes    = :slotMinutes,
+                working_days    = NULLIF(:workingDays, ''),
+                updated_at      = now()
+            WHERE id = :id
+            """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("id", clinicId)
+                        .addValue("workStartTime", request.workStartTime(), Types.VARCHAR)
+                        .addValue("workEndTime",   request.workEndTime(),   Types.VARCHAR)
+                        .addValue("slotMinutes",   request.slotMinutes(),   Types.INTEGER)
+                        .addValue("workingDays",   request.workingDays(),   Types.VARCHAR));
     }
 }

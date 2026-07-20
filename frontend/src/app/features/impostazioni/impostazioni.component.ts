@@ -110,6 +110,7 @@ export class ImpostazioniComponent implements OnInit {
   // ── App settings ───────────────────────────────────────────────────────────
   appSettings: AppSettings = { ...DEFAULT_SETTINGS };
   appSettingsSaved = signal(false);
+  appSettingsError = signal(false);
   localePendingReload = signal(false);
 
   // ── Lookup data ────────────────────────────────────────────────────────────
@@ -585,12 +586,51 @@ export class ImpostazioniComponent implements OnInit {
   // ── App Settings ───────────────────────────────────────────────────────────
   private loadAppSettings(): void {
     this.appSettings = { ...this.appSettingsSvc.get() };
+    // #31 — gli orari studio vivono sul tenant, non nel browser: il backend è la
+    // fonte di verità. I valori locali restano il fallback finché non è configurato.
+    this.clinicService.getSchedule().subscribe({
+      next: s => {
+        if (s.workStartTime) this.appSettings.workStartTime   = s.workStartTime;
+        if (s.workEndTime)   this.appSettings.workEndTime     = s.workEndTime;
+        if (s.slotMinutes)   this.appSettings.slotDurationMin = s.slotMinutes;
+        if (s.workingDays)   this.appSettings.workDays        = this.isoToWorkDays(s.workingDays);
+      },
+      error: () => { /* tenant senza orari configurati: restano i default locali */ }
+    });
   }
 
   saveAppSettings(): void {
     this.appSettingsSvc.save(this.appSettings);
+    this.appSettingsError.set(false);
+    // #31 — l'orario vale per tutto lo studio (lo usa la proposta di disponibilità
+    // appuntamenti lato server), quindi va persistito sul tenant, non solo in locale.
+    this.clinicService.updateSchedule({
+      workStartTime: this.appSettings.workStartTime || null,
+      workEndTime:   this.appSettings.workEndTime || null,
+      slotMinutes:   this.appSettings.slotDurationMin ?? null,
+      workingDays:   this.workDaysToIso(this.appSettings.workDays),
+    }).subscribe({
+      next: () => {},
+      error: () => this.appSettingsError.set(true)
+    });
+    // Il salvataggio locale è già avvenuto: lo confermiamo subito. Se il sync col
+    // server fallisce lo dice il messaggio d'errore, senza smentire questo.
     this.appSettingsSaved.set(true);
     setTimeout(() => this.appSettingsSaved.set(false), 2500);
+  }
+
+  /** UI (0=Dom … 6=Sab) → ISO backend (1=Lun … 7=Dom). */
+  private workDaysToIso(days: number[]): string {
+    return days.map(d => (d === 0 ? 7 : d)).sort((a, b) => a - b).join(',');
+  }
+
+  /** ISO backend (1=Lun … 7=Dom) → UI (0=Dom … 6=Sab). */
+  private isoToWorkDays(csv: string): number[] {
+    return csv.split(',')
+      .map(p => Number(p.trim()))
+      .filter(n => n >= 1 && n <= 7)
+      .map(n => (n === 7 ? 0 : n))
+      .sort((a, b) => a - b);
   }
 
   saveLocale(): void {

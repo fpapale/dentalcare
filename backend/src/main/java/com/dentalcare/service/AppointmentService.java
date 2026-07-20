@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -23,6 +24,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -588,7 +590,8 @@ public class AppointmentService {
         List<String> chairLabels = findChairLabels();
         List<BusyAppointment> busy = loadBusyAppointments(clinicId, searchFrom, searchTo);
 
-        return computeAvailability(durationMin, searchFrom, effectiveLimit, providers, chairLabels, busy);
+        return computeAvailability(durationMin, searchFrom, effectiveLimit, providers, chairLabels, busy,
+                loadSchedule(clinicId));
     }
 
     /** Medici clinici attivi in scope per la ricerca (uno solo se providerId è indicato). */
@@ -676,6 +679,56 @@ public class AppointmentService {
     // senza dover mockare NamedParameterJdbcTemplate (stesso approccio usato in EstimateService
     // per il ricalcolo dei totali dei preventivi).
 
+    /**
+     * Orari studio effettivi usati dalla ricerca. Ogni campo non configurato dal tenant
+     * ricade sul default (#31): un tenant che non ha mai aperto Impostazioni funziona lo stesso.
+     */
+    record ScheduleConfig(LocalTime workStart, LocalTime workEnd, int slotMinutes, Set<DayOfWeek> workingDays) {
+        static ScheduleConfig defaults() {
+            return new ScheduleConfig(WORK_START, WORK_END, SLOT_MINUTES,
+                    EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                               DayOfWeek.THURSDAY, DayOfWeek.FRIDAY));
+        }
+    }
+
+    /** Orari del tenant da %s.clinics; ogni colonna nulla ricade sul default. */
+    private ScheduleConfig loadSchedule(UUID clinicId) {
+        ScheduleConfig def = ScheduleConfig.defaults();
+        List<ScheduleConfig> rows = jdbc.query("""
+            SELECT work_start_time, work_end_time, slot_minutes, working_days
+            FROM %s.clinics
+            WHERE id = :id
+            """.formatted(s()),
+                new MapSqlParameterSource().addValue("id", clinicId),
+                (rs, n) -> {
+                    Time st = rs.getTime("work_start_time");
+                    Time en = rs.getTime("work_end_time");
+                    int slot = rs.getInt("slot_minutes");
+                    if (rs.wasNull() || slot <= 0) slot = def.slotMinutes();
+                    return new ScheduleConfig(
+                            st != null ? st.toLocalTime() : def.workStart(),
+                            en != null ? en.toLocalTime() : def.workEnd(),
+                            slot,
+                            parseWorkingDays(rs.getString("working_days"), def.workingDays()));
+                });
+        return rows.isEmpty() ? def : rows.get(0);
+    }
+
+    /** "1,2,3,4,5" (ISO: 1=lunedì) -> giorni lavorativi; vuoto o illeggibile -> default. */
+    private static Set<DayOfWeek> parseWorkingDays(String csv, Set<DayOfWeek> fallback) {
+        if (csv == null || csv.isBlank()) return fallback;
+        Set<DayOfWeek> days = EnumSet.noneOf(DayOfWeek.class);
+        for (String part : csv.split(",")) {
+            try {
+                int v = Integer.parseInt(part.trim());
+                if (v >= 1 && v <= 7) days.add(DayOfWeek.of(v));
+            } catch (NumberFormatException ignored) {
+                // voce non numerica: la si salta, il resto resta valido
+            }
+        }
+        return days.isEmpty() ? fallback : days;
+    }
+
     /** Medico candidato in scope (id + nome, per valorizzare AvailabilitySlotDto). */
     record AvailabilityProvider(UUID providerId, String providerName) {}
 
@@ -684,22 +737,30 @@ public class AppointmentService {
 
     private static final DateTimeFormatter AVAILABILITY_TIME = DateTimeFormatter.ofPattern("HH:mm");
 
+    /** Ricerca con gli orari di default (tenant senza configurazione). */
     static List<AvailabilitySlotDto> computeAvailability(
             int durationMin, LocalDate fromDate, int limit,
             List<AvailabilityProvider> providers, List<String> chairLabels, List<BusyAppointment> busy) {
+        return computeAvailability(durationMin, fromDate, limit, providers, chairLabels, busy,
+                ScheduleConfig.defaults());
+    }
+
+    static List<AvailabilitySlotDto> computeAvailability(
+            int durationMin, LocalDate fromDate, int limit,
+            List<AvailabilityProvider> providers, List<String> chairLabels, List<BusyAppointment> busy,
+            ScheduleConfig cfg) {
 
         List<AvailabilitySlotDto> proposals = new ArrayList<>();
         if (durationMin <= 0 || limit <= 0 || providers.isEmpty() || chairLabels.isEmpty()) return proposals;
 
-        int workStartMin = WORK_START.toSecondOfDay() / 60;
-        int workEndMin = WORK_END.toSecondOfDay() / 60;
+        int workStartMin = cfg.workStart().toSecondOfDay() / 60;
+        int workEndMin = cfg.workEnd().toSecondOfDay() / 60;
 
         for (int day = 0; day < SEARCH_DAYS && proposals.size() < limit; day++) {
             LocalDate date = fromDate.plusDays(day);
-            DayOfWeek dow = date.getDayOfWeek();
-            if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) continue;
+            if (!cfg.workingDays().contains(date.getDayOfWeek())) continue;
 
-            for (int m = workStartMin; m + durationMin <= workEndMin && proposals.size() < limit; m += SLOT_MINUTES) {
+            for (int m = workStartMin; m + durationMin <= workEndMin && proposals.size() < limit; m += cfg.slotMinutes()) {
                 LocalTime slotStart = LocalTime.ofSecondOfDay(m * 60L);
                 LocalTime slotEnd = LocalTime.ofSecondOfDay((m + durationMin) * 60L);
                 OffsetDateTime candidateStart = date.atTime(slotStart).atZone(ROME).toOffsetDateTime();
