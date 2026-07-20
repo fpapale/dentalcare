@@ -344,7 +344,7 @@
     </div>
   </section>
 
-  <!-- AI-DEN SECTION -->
+  <!-- GIULIA SECTION -->
   <section class="bg-[#0a1628] py-24 relative overflow-hidden">
     <!-- Background glow effects -->
     <div class="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -359,8 +359,8 @@
 
             <!-- Photo con bordi sfumati nel blu di sfondo -->
             <div class="relative">
-              <img src="/ai-den-secretary.png"
-                   alt="AI-DEN — Segretaria Virtuale DentalCare Pro"
+              <img src="/giulia-secretary.png"
+                   alt="Giulia — Segretaria Virtuale DentalCare Pro"
                    class="w-full object-cover object-center"
                    style="
                      mask-image:
@@ -375,7 +375,7 @@
 
             </div>
 
-            <!-- AI-DEN status bar — sotto l'immagine -->
+            <!-- Giulia status bar — sotto l'immagine -->
             <div class="mt-5 mx-2">
               <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -385,7 +385,7 @@
                     </svg>
                   </div>
                   <div>
-                    <p class="text-white text-sm font-bold tracking-wide">AI·DEN</p>
+                    <p class="text-white text-sm font-bold tracking-wide">Giulia</p>
                     <p class="text-blue-200 text-[11px]">Segretaria Virtuale</p>
                   </div>
                 </div>
@@ -428,7 +428,7 @@
             Incontra la tua<br/>Segretaria AI
           </h2>
           <p class="text-slate-300 text-lg leading-relaxed mb-8">
-            AI-DEN gestisce appuntamenti, risponde alle chiamate e invia promemoria ai pazienti tramite linguaggio naturale. Il tutto in automatico, 24 ore su 24.
+            Giulia gestisce appuntamenti, risponde alle chiamate e invia promemoria ai pazienti tramite linguaggio naturale. Il tutto in automatico, 24 ore su 24.
           </p>
           <ul class="space-y-4 mb-8">
             <li class="flex items-start gap-3">
@@ -447,18 +447,24 @@
               </div>
               <span class="text-slate-300 text-sm leading-relaxed">Gestisce prenotazioni e cancellazioni senza intervento umano</span>
             </li>
+            <!-- Promemoria automatici: non ancora implementati. WhatsApp Business
+                 richiede template approvati e ha costi per conversazione, quindi
+                 resta dichiarato come funzione in arrivo finche' non e' attiva. -->
             <li class="flex items-start gap-3">
-              <div class="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0 mt-0.5">
-                <svg class="w-3 h-3 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              <div class="w-6 h-6 rounded-full bg-white/5 border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/>
                 </svg>
               </div>
-              <span class="text-slate-300 text-sm leading-relaxed">Invia promemoria personalizzati via WhatsApp e email in automatico</span>
+              <span class="text-slate-400 text-sm leading-relaxed">
+                Promemoria automatici via email e WhatsApp
+                <span class="text-[10px] font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 rounded px-1.5 py-0.5 ml-1 whitespace-nowrap">In arrivo</span>
+              </span>
             </li>
           </ul>
           <a routerLink="/registrati"
              class="inline-flex items-center gap-2 bg-white text-[#00448c] hover:bg-blue-50 font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg">
-            Scopri AI-DEN
+            Scopri Giulia
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
             </svg>
@@ -680,13 +686,15 @@
               <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
               <span>Preventivi e fatture</span>
             </li>
-            <li class="flex items-start gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              <span>Consensi versionati e audit clinico</span>
+            <!-- Funzioni di compliance non ancora implementate: marcate come roadmap,
+                 non vanno presentate come disponibili (vedi gate pre-rilascio). -->
+            <li class="flex items-start gap-2.5 text-sm text-slate-400">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Anamnesi e consensi versionati <span class="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 ml-1 whitespace-nowrap">In arrivo</span></span>
             </li>
-            <li class="flex items-start gap-2.5 text-sm text-slate-600">
-              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              <span>MFA ed export cartella</span>
+            <li class="flex items-start gap-2.5 text-sm text-slate-400">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Audit clinico ed export cartella <span class="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 ml-1 whitespace-nowrap">In arrivo</span></span>
             </li>
             <li class="flex items-start gap-2.5 text-sm text-slate-600">
               <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
