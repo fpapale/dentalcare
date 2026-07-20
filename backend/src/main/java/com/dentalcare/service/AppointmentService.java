@@ -1,6 +1,7 @@
 package com.dentalcare.service;
 
 import com.dentalcare.dto.AppointmentDto;
+import com.dentalcare.dto.AvailabilitySlotDto;
 import com.dentalcare.dto.CreateAppointmentRequest;
 import com.dentalcare.dto.RescheduleAppointmentRequest;
 import com.dentalcare.exception.AppointmentConflictException;
@@ -20,6 +21,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +37,20 @@ public class AppointmentService {
         this.jdbc = jdbc;
         this.appointmentEventService = appointmentEventService;
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Orari studio — modificabili. Usati da findAvailability per proporre il primo
+    // slot libero (poltrona + medico) nel form "nuovo appuntamento".
+    // ═══════════════════════════════════════════════════════════════════════
+    private static final LocalTime WORK_START = LocalTime.of(8, 0);
+    private static final LocalTime WORK_END = LocalTime.of(19, 0);
+    private static final int SLOT_MINUTES = 15;
+    private static final int SEARCH_DAYS = 21;
+
+    // Ruoli clinici abilitati alla ricerca disponibilità — mirror di
+    // DentalCareAiTools.MEDICAL_ROLES (mantenere allineati se quel set cambia).
+    private static final Set<String> MEDICAL_ROLES =
+            Set.of("dentist", "hygienist", "orthodontist", "surgeon", "doctor");
 
     private static final Set<String> ADMIN_ROLES = Set.of("ROLE_ADMIN", "ROLE_TENANT_ADMIN", "ROLE_SECRETARY");
 
@@ -552,6 +568,68 @@ public class AppointmentService {
         return free;
     }
 
+    // ── Disponibilità (poltrona + medico) ──────────────────────────────────
+    //
+    // Trova le prime `limit` proposte di slot libero (data + ora + poltrona + medico) per una
+    // prestazione di `durationMin` minuti, a partire da `fromDate`. Se `providerId` è indicato
+    // cerca solo per quel medico; altrimenti considera tutti i medici clinici attivi e propone
+    // il primo che risulta libero. Carica appuntamenti/medici/poltrone in poche query e calcola
+    // gli slot in memoria (vedi computeAvailability) per evitare una query per candidato.
+    public List<AvailabilitySlotDto> findAvailability(int durationMin, UUID providerId, LocalDate fromDate, int limit) {
+        if (durationMin <= 0) {
+            throw new IllegalArgumentException("durationMin deve essere maggiore di zero: " + durationMin);
+        }
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        LocalDate searchFrom = fromDate != null ? fromDate : LocalDate.now(ROME);
+        int effectiveLimit = limit > 0 ? limit : 3;
+        LocalDate searchTo = searchFrom.plusDays(SEARCH_DAYS - 1L);
+
+        List<AvailabilityProvider> providers = loadAvailabilityProviders(clinicId, providerId);
+        List<String> chairLabels = findChairLabels();
+        List<BusyAppointment> busy = loadBusyAppointments(clinicId, searchFrom, searchTo);
+
+        return computeAvailability(durationMin, searchFrom, effectiveLimit, providers, chairLabels, busy);
+    }
+
+    /** Medici clinici attivi in scope per la ricerca (uno solo se providerId è indicato). */
+    private List<AvailabilityProvider> loadAvailabilityProviders(UUID clinicId, UUID providerId) {
+        String sql = """
+            SELECT id, concat_ws(' ', last_name, first_name) AS full_name
+            FROM %s.providers
+            WHERE clinic_id = :clinicId
+              AND active = true
+              AND role::text IN (:roles)
+            """.formatted(s()) + (providerId != null ? "  AND id = :providerId\n" : "") + """
+            ORDER BY last_name, first_name
+            """;
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("clinicId", clinicId)
+                .addValue("roles", MEDICAL_ROLES);
+        if (providerId != null) params.addValue("providerId", providerId);
+        return jdbc.query(sql, params, (rs, n) ->
+                new AvailabilityProvider(rs.getObject("id", UUID.class), rs.getString("full_name")));
+    }
+
+    /** Appuntamenti non cancellati nella finestra di ricerca, proiezione minima per il calcolo. */
+    private List<BusyAppointment> loadBusyAppointments(UUID clinicId, LocalDate from, LocalDate to) {
+        String sql = """
+            SELECT starts_at, ends_at, chair_label, provider_id
+            FROM %s.appointments
+            WHERE clinic_id = :clinicId
+              AND status::text <> 'cancelled'
+              AND starts_at::date BETWEEN :from AND :to
+            """.formatted(s());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("clinicId", clinicId)
+                .addValue("from", from)
+                .addValue("to", to);
+        return jdbc.query(sql, params, (rs, n) -> new BusyAppointment(
+                rs.getTimestamp("starts_at").toInstant().atZone(ROME).toOffsetDateTime(),
+                rs.getTimestamp("ends_at").toInstant().atZone(ROME).toOffsetDateTime(),
+                rs.getString("chair_label"),
+                rs.getObject("provider_id", UUID.class)));
+    }
+
     public List<String> findChairLabels() {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
         String sql = """
@@ -590,6 +668,83 @@ public class AppointmentService {
                 new MapSqlParameterSource().addValue("id", appointmentId).addValue("clinicId", clinicId),
                 UUID.class);
         return ids.isEmpty() ? null : ids.get(0);
+    }
+
+    // ── Ricerca disponibilità — calcolo puro (testabile senza JDBC) ────────────
+    //
+    // package-private (non private): permette il test unitario diretto della ricerca slot,
+    // senza dover mockare NamedParameterJdbcTemplate (stesso approccio usato in EstimateService
+    // per il ricalcolo dei totali dei preventivi).
+
+    /** Medico candidato in scope (id + nome, per valorizzare AvailabilitySlotDto). */
+    record AvailabilityProvider(UUID providerId, String providerName) {}
+
+    /** Appuntamento non cancellato nella finestra di ricerca — proiezione minima per il calcolo. */
+    record BusyAppointment(OffsetDateTime startsAt, OffsetDateTime endsAt, String chairLabel, UUID providerId) {}
+
+    private static final DateTimeFormatter AVAILABILITY_TIME = DateTimeFormatter.ofPattern("HH:mm");
+
+    static List<AvailabilitySlotDto> computeAvailability(
+            int durationMin, LocalDate fromDate, int limit,
+            List<AvailabilityProvider> providers, List<String> chairLabels, List<BusyAppointment> busy) {
+
+        List<AvailabilitySlotDto> proposals = new ArrayList<>();
+        if (durationMin <= 0 || limit <= 0 || providers.isEmpty() || chairLabels.isEmpty()) return proposals;
+
+        int workStartMin = WORK_START.toSecondOfDay() / 60;
+        int workEndMin = WORK_END.toSecondOfDay() / 60;
+
+        for (int day = 0; day < SEARCH_DAYS && proposals.size() < limit; day++) {
+            LocalDate date = fromDate.plusDays(day);
+            DayOfWeek dow = date.getDayOfWeek();
+            if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) continue;
+
+            for (int m = workStartMin; m + durationMin <= workEndMin && proposals.size() < limit; m += SLOT_MINUTES) {
+                LocalTime slotStart = LocalTime.ofSecondOfDay(m * 60L);
+                LocalTime slotEnd = LocalTime.ofSecondOfDay((m + durationMin) * 60L);
+                OffsetDateTime candidateStart = date.atTime(slotStart).atZone(ROME).toOffsetDateTime();
+                OffsetDateTime candidateEnd = date.atTime(slotEnd).atZone(ROME).toOffsetDateTime();
+
+                for (AvailabilityProvider provider : providers) {
+                    if (providerBusy(busy, provider.providerId(), candidateStart, candidateEnd)) continue;
+                    String freeChair = firstFreeChair(busy, chairLabels, candidateStart, candidateEnd);
+                    if (freeChair == null) continue;
+                    proposals.add(new AvailabilitySlotDto(
+                            date, slotStart.format(AVAILABILITY_TIME), slotEnd.format(AVAILABILITY_TIME),
+                            freeChair, provider.providerId(), provider.providerName()));
+                    break; // un solo medico/poltrona per candidato: passa allo slot successivo
+                }
+            }
+        }
+        return proposals;
+    }
+
+    private static boolean providerBusy(List<BusyAppointment> busy, UUID providerId,
+                                         OffsetDateTime candidateStart, OffsetDateTime candidateEnd) {
+        for (BusyAppointment b : busy) {
+            if (providerId.equals(b.providerId()) && overlaps(b, candidateStart, candidateEnd)) return true;
+        }
+        return false;
+    }
+
+    private static String firstFreeChair(List<BusyAppointment> busy, List<String> chairLabels,
+                                          OffsetDateTime candidateStart, OffsetDateTime candidateEnd) {
+        for (String chair : chairLabels) {
+            boolean chairBusy = false;
+            for (BusyAppointment b : busy) {
+                if (chair.equals(b.chairLabel()) && overlaps(b, candidateStart, candidateEnd)) {
+                    chairBusy = true;
+                    break;
+                }
+            }
+            if (!chairBusy) return chair;
+        }
+        return null;
+    }
+
+    /** Stessa regola di overlap di checkChairConflict/checkProviderConflict: start < fine AND fine > inizio. */
+    private static boolean overlaps(BusyAppointment b, OffsetDateTime candidateStart, OffsetDateTime candidateEnd) {
+        return b.startsAt().isBefore(candidateEnd) && b.endsAt().isAfter(candidateStart);
     }
 
     private static final ZoneId ROME = ZoneId.of("Europe/Rome");

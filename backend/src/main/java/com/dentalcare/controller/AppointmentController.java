@@ -1,6 +1,7 @@
 package com.dentalcare.controller;
 
 import com.dentalcare.dto.AppointmentDto;
+import com.dentalcare.dto.AvailabilitySlotDto;
 import com.dentalcare.dto.CreateAppointmentRequest;
 import com.dentalcare.dto.RescheduleAppointmentRequest;
 import com.dentalcare.security.TenantContext;
@@ -79,6 +80,15 @@ public class AppointmentController {
     @GetMapping("/chairs")
     public List<String> findChairLabels() {
         return appointmentService.findChairLabels();
+    }
+
+    @GetMapping("/availability")
+    public List<AvailabilitySlotDto> findAvailability(
+            @RequestParam int durationMin,
+            @RequestParam(required = false) UUID providerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(defaultValue = "3") int limit) {
+        return appointmentService.findAvailability(durationMin, providerId, fromDate, limit);
     }
 
     @PostMapping
