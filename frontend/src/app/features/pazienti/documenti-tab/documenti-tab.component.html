@@ -253,6 +253,13 @@
             <span class="material-symbols-outlined text-[16px]">download</span>
             Scarica
           </button>
+          @if (previewBlobUrl() && isPdf(previewDoc()!.mimeType)) {
+            <button (click)="previewFullscreen.set(true)" title="Apri a tutta pagina"
+              class="flex items-center gap-1 px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors">
+              <span class="material-symbols-outlined text-[16px]">fullscreen</span>
+              Schermo intero
+            </button>
+          }
           <button (click)="closePreview()"
             class="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
             <span class="material-symbols-outlined">close</span>
@@ -281,5 +288,16 @@
         }
       </div>
     </div>
+  </div>
+}
+
+<!-- PDF Fullscreen Overlay -->
+@if (previewFullscreen() && safePdfUrl()) {
+  <div class="fixed inset-0 z-[60] bg-black">
+    <button (click)="previewFullscreen.set(false)" title="Chiudi (Esc)"
+      class="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg p-2 z-10">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <iframe [src]="safePdfUrl()!" class="w-full h-full border-0"></iframe>
   </div>
 }

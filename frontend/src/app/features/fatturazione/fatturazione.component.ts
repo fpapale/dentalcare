@@ -102,7 +102,10 @@ export class FatturazioneComponent implements OnInit {
 
   openNewModal(): void {
     this.showNewModal.set(true);
-    this.estimateService.findAll('accepted').subscribe(data => this.acceptedEstimates.set(data));
+    // Un medico fattura solo i propri preventivi; segreteria/admin li vedono tutti (#35).
+    // filterProviderId è il providerId solo per i ruoli clinici, altrimenti null (come #30).
+    this.estimateService.findAll('accepted', this.userContext.filterProviderId() ?? undefined)
+      .subscribe(data => this.acceptedEstimates.set(data));
     this.providerService.findAll().subscribe(data => this.providers.set(data));
   }
 

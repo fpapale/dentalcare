@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, Input, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -40,6 +40,7 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
   previewDoc = signal<PatientDocumentSummary | null>(null);
   previewBlobUrl = signal<string | null>(null);
   previewLoading = signal(false);
+  previewFullscreen = signal(false);
 
   safePdfUrl = computed((): SafeResourceUrl | null => {
     const url = this.previewBlobUrl();
@@ -104,6 +105,7 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
   openPreview(doc: PatientDocumentSummary): void {
     this.revokeBlobUrl();
     this.previewDoc.set(doc);
+    this.previewFullscreen.set(false);
     this.previewLoading.set(true);
     this.docService.getContent(this.patientId, doc.id).subscribe({
       next: blob => {
@@ -117,6 +119,12 @@ export class DocumentiTabComponent implements OnInit, OnDestroy {
   closePreview(): void {
     this.revokeBlobUrl();
     this.previewDoc.set(null);
+    this.previewFullscreen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.previewFullscreen()) { this.previewFullscreen.set(false); }
   }
 
   downloadDoc(doc: PatientDocumentSummary): void {
