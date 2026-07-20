@@ -24,6 +24,7 @@
 
       <div class="hidden md:flex items-center gap-1 ml-6">
         <button (click)="scrollTo('funzionalita')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Funzionalità</button>
+        <button (click)="scrollTo('roadmap')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Roadmap</button>
         <button (click)="scrollTo('prezzi')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Prezzi</button>
         <button (click)="scrollTo('supporto')" class="text-sm text-slate-600 hover:text-[#00448c] font-medium transition-colors px-3 py-2 rounded-lg hover:bg-blue-50">Supporto</button>
       </div>
@@ -46,16 +47,25 @@
 
         <!-- Left: content -->
         <div>
+          <!-- Posizionamento Fase 1 (Release 1.x): gestionale + AI amministrativa.
+               Nessun claim clinico o diagnostico: quelli appartengono alla Fase 2 e
+               restano fuori dal sito fino alla marcatura CE. -->
           <span class="inline-flex items-center gap-2 text-xs font-semibold text-[#00448c] bg-white border border-blue-100 rounded-full px-3.5 py-1.5 mb-6 shadow-sm">
             <span class="w-1.5 h-1.5 rounded-full bg-[#00448c] animate-pulse"></span>
-            Soluzione Completa per Studi Dentistici
+            Piattaforma AI-native per lo studio odontoiatrico
           </span>
           <h1 class="text-4xl lg:text-5xl xl:text-[3.25rem] font-extrabold text-slate-900 leading-[1.1] mb-6">
-            Modernizza il tuo studio con
-            <span class="text-[#00448c] block mt-1">DentalCare Pro</span>
+            Il lavoro che non è cura,
+            <span class="text-[#00448c] block mt-1">lo fa DentalCare Pro</span>
           </h1>
           <p class="text-lg text-slate-600 mb-8 leading-relaxed max-w-lg">
-            Gestisci pazienti, agenda, preventivi e fatturazione in un'unica piattaforma cloud sicura e intuitiva. Pensata per i dentisti italiani.
+            Agenda, cartella clinica, preventivi e fatturazione in un'unica piattaforma cloud.
+            Con Giulia, l'assistente che risponde al telefono e gestisce le prenotazioni, e un
+            copilota che sbriga il lavoro amministrativo al posto tuo.
+          </p>
+          <p class="text-sm text-slate-500 mb-8 leading-relaxed max-w-lg">
+            L'AI si occupa dell'organizzazione dello studio. Le decisioni cliniche restano
+            interamente tue.
           </p>
           <div class="flex flex-wrap gap-3 mb-12">
             <a routerLink="/registrati"
@@ -643,6 +653,172 @@
         </a>
         <p class="text-xs text-slate-400 mt-3">Nessun impegno. Ti ricontattiamo per capire se lo studio e' adatto al programma.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <!-- Presente e futuro tenuti separati per non promettere cio' che non c'e'.
+       Colonna 1 = perimetro Fase 1 (Release 1.x, gennaio 2027), diviso fra cio'
+       che gia' funziona e cio' che manca al rilascio. Colonna 2 = Fase 2 e oltre.
+       L'analisi radiologica e' un dispositivo medico: descritta come ricerca,
+       mai come funzione disponibile, fino alla marcatura CE. -->
+  <section id="roadmap" class="bg-white py-24 border-t border-slate-100">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <span class="text-xs font-semibold text-[#00448c] uppercase tracking-widest">Funzioni presenti e future</span>
+        <h2 class="text-3xl font-extrabold text-slate-900 mt-2 mb-4">Cosa c&#39;e&#39; adesso, cosa arriva dopo</h2>
+        <p class="text-slate-500 max-w-2xl mx-auto">
+          DentalCare Pro parte come gestionale con AI amministrativa e cresce per gradi.
+          Preferiamo dirti con precisione a che punto siamo, invece di elencare funzioni
+          che non troveresti il primo giorno.
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-8">
+
+        <!-- Presenti: perimetro Fase 1 -->
+        <div class="bg-white rounded-2xl border-2 border-[#00448c]/20 p-8 shadow-sm">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h3 class="font-extrabold text-slate-800 text-xl">Funzioni presenti</h3>
+              <p class="text-sm text-slate-400 mt-0.5">Fase 1 &middot; rilascio gennaio 2027</p>
+            </div>
+            <span class="text-xs font-bold text-white bg-[#00448c] rounded-full px-3 py-1 whitespace-nowrap">Fase 1</span>
+          </div>
+
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Gia&#39; attive, provabili in demo</p>
+          <ul class="space-y-2.5 mb-7">
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Agenda multi-poltrona con quattro viste</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Cartella clinica e odontogramma FDI</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Anamnesi strutturata con alert allergie e farmaci</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Piani di cura, preventivi e fatturazione</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Magazzino, movimenti e richiami pazienti</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Giulia: telefono e prenotazioni in linguaggio naturale</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Copilot amministrativo</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-600">
+              <svg class="w-4 h-4 text-[#006c49] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Dati separati per studio e cifratura dei dati identificativi</span>
+            </li>
+          </ul>
+
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">In completamento per il rilascio</p>
+          <ul class="space-y-2.5">
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Audit trail clinico di ogni accesso e modifica</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Finalizzazione delle note con addendum tracciati</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Consensi versionati con firma e revoca</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Odontogramma temporale e anamnesi con fonte e data</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Autenticazione a due fattori</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Export completo della cartella e report accessi (art. 15 GDPR)</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>Valutazione d&#39;impatto privacy e contratti con i fornitori AI</span>
+            </li>
+          </ul>
+
+          <p class="text-xs text-slate-400 mt-6 pt-5 border-t border-slate-100">
+            Nessuno studio entra in produzione con pazienti reali finche&#39; questo elenco non
+            e&#39; completo: e&#39; il gate che ci siamo dati.
+          </p>
+        </div>
+
+        <!-- Future: Fase 2 e oltre -->
+        <div class="bg-slate-50 rounded-2xl border border-slate-200 p-8">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h3 class="font-extrabold text-slate-700 text-xl">Funzioni future</h3>
+              <p class="text-sm text-slate-400 mt-0.5">Fase 2 e successive &middot; dal 2028</p>
+            </div>
+            <span class="text-xs font-bold text-slate-500 bg-white border border-slate-200 rounded-full px-3 py-1 whitespace-nowrap">Fase 2+</span>
+          </div>
+
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Rimandate di proposito</p>
+          <ul class="space-y-2.5">
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 7l5 5-5 5"/></svg>
+              <span>Conservazione a norma dei documenti</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 7l5 5-5 5"/></svg>
+              <span>Firma elettronica avanzata e qualificata</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 7l5 5-5 5"/></svg>
+              <span>DICOM, DICOMweb e integrazione PACS</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 7l5 5-5 5"/></svg>
+              <span>API FHIR per l&#39;interoperabilita&#39; sanitaria</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 7l5 5-5 5"/></svg>
+              <span>Connettore al Fascicolo Sanitario Elettronico</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 7l5 5-5 5"/></svg>
+              <span>Portale paziente</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 7l5 5-5 5"/></svg>
+              <span>Charting parodontale ed esame obiettivo strutturato</span>
+            </li>
+            <li class="flex items-start gap-2.5 text-sm text-slate-500">
+              <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 7l5 5-5 5"/></svg>
+              <span>Analisi radiologica assistita, in ricerca e sviluppo</span>
+            </li>
+          </ul>
+
+          <p class="text-xs text-slate-400 mt-6 pt-5 border-t border-slate-200">
+            Sono funzioni per crescere, non per il primo studio. L&#39;analisi radiologica e&#39; un
+            dispositivo medico: oggi non e&#39; disponibile ne&#39; utilizzabile a scopo clinico, e lo
+            diventera&#39; solo dopo la marcatura CE.
+          </p>
+        </div>
+      </div>
+
+      <p class="text-center text-xs text-slate-400 mt-10 max-w-3xl mx-auto">
+        Le funzioni non ancora rilasciate sono obiettivi di prodotto, non impegni contrattuali:
+        tempi e contenuti possono cambiare. Cio&#39; che acquisti e&#39; sempre e solo cio&#39; che e&#39;
+        disponibile alla firma.
+      </p>
     </div>
   </section>
 
