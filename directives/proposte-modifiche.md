@@ -137,7 +137,7 @@ Tutto ciò che è aperto, in un posto solo. Ordinato per **rischio**, non per co
 - ~~**[#30] Segretaria che è anche provider → persona filtrante auto-selezionata.**~~ **Fatta (dev) 18/07** — `app.ts`: su tenant demo il menu persona parte da "Segreteria" per ogni login non clinico, e `mapRole('secretary')→'secretary'` (non più `doctor`). Meccanismo esatto e verifica: §Fix chiuse il 18/07/2026. Restava legata a [#25] (dichiarare che il menu persona non è un confine): quella resta aperta.
 - **[demo-data] Due convenzioni poltrone insieme** (`Studio 1-4` + `Poltrona 1-4`): l'agenda creava **8 colonne** e sembrava vuota (gli appuntamenti erano nelle colonne scrollate fuori). Normalizzato a `Studio 1-4` il 17/07 sul tenant demo per gli screenshot. Origine della deriva: il seed usa "Studio", ma le prenotazioni via Giulia sceglievano la prima poltrona in ordine alfabetico ("Poltrona 1"). Dopo la normalizzazione `findChairLabels()` ritorna solo `Studio 1-4`, quindi Giulia sceglie "Studio 1" e la deriva si ferma. Va allineato anche nel seed di `install.sql` (vedi [#29]).
 
-- **[leak-topologia] `rotate_demo_password.py` esponeva la rete interna sul repo pubblico** (IP DB `192.168.0.173`, server app `192.168.0.72`, utente SSH, path docker). **Scrubbato il 18/07** (`--host` obbligatorio, hint ssh/config generici). Come #23 la storia git resta — già fuori: da chiudere col push. Regola: nessuno script ops committato deve hardcodare topologia interna (host/IP/utenti/percorsi) — passarli da CLI o config locale.
+- **[leak-topologia] `rotate_demo_password.py` esponeva la rete interna sul repo pubblico** (IP del DB e del server app, utente SSH, path docker). **Scrubbato il 18/07** (`--host` obbligatorio, hint ssh/config generici). Come #23 la storia git resta — già fuori: da chiudere col push. Regola: nessuno script ops committato deve hardcodare topologia interna (host/IP/utenti/percorsi) — passarli da CLI o config locale. **Vale anche per questo file:** è versionato sullo stesso repo pubblico, quindi indirizzi, credenziali e hash vanno scritti come segnaposto.
 
 ### Rapporto con il resto
 
@@ -867,10 +867,10 @@ GET  /train/status   — stato job corrente
 GET  /models         — lista versioni modello disponibili
 ```
 
-**Deployment: tutto sulla stessa macchina (`192.168.0.72`), stesso `docker-compose.yml`.**
+**Deployment: tutto sulla stessa macchina (`<server-app>`), stesso `docker-compose.yml`.**
 
 ```
-192.168.0.72 — Docker Engine
+<server-app> — Docker Engine
 ├── postgres          (già presente)
 ├── spring-backend    (già presente)
 ├── frontend          (già presente)
@@ -2242,7 +2242,7 @@ Chi installa da zero ottiene un tenant demo **diverso da quello che si dimostra*
 Viola la regola già data: *"install.sql deve rispecchiare il DB — rigenerarlo a ogni modifica di schema"*. La regola parlava di schema; qui a divergere sono i **dati di seed**, che nessuno rigenera.
 
 **Aggiornamento 18/07 (mappatura concreta).** Verificato sui file e sul dev DB:
-- `install.sql` (blocco `COPY t_9d754153.providers`, righe ~5164-5169) seed **4** utenze: `admin@`, `segreteria@` (Maria Rossi), `medico@` (Laura Ferretti, email `medico@`), `demo@`. Tutte con lo stesso `password_hash = $2b$10$UbHqgP2xq774oyP29hFhR…` = **hash di `DemoAdmin1!`**.
+- `install.sql` (blocco `COPY t_9d754153.providers`, righe ~5164-5169) seed **4** utenze: `admin@`, `segreteria@` (Maria Rossi), `medico@` (Laura Ferretti, email `medico@`), `demo@`. Tutte con lo stesso `password_hash`, corrispondente alla password demo pubblica dell'epoca (valore reale fuori da questo file: vedi il seed e le note di rotazione #23).
 - Il **dev DB** (`dentalcarepro`) rispecchia *esattamente* il seed: stesse 4 utenze, stesso `medico@`. Il seed è quindi allineato al **dev**, non alla **prod** (7 utenze, `ferretti@`).
 - **#29 e #23 sono lo stesso blocco:** la riga di seed che diverge dalla prod è anche quella che pubblica la password. Rigenerare il seed **dopo** aver ruotato (#23) e con l'hash sostituito da un placeholder chiude entrambi.
 
