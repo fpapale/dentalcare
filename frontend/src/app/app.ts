@@ -46,10 +46,18 @@ export class App implements OnInit {
 
   readonly demoEnabled = signal(false);
   readonly demoSchema = signal<string | null>(null);
-  // Sessione demo = utente loggato sullo schema del tenant demo (indipendente dal prefill).
+  readonly demoEmail = signal<string | null>(null);
+  /**
+   * Sessione demo = login con l'account demo, non semplicemente un utente del tenant
+   * demo: la combo di impersonazione è un privilegio di quell'account. Filtrare solo
+   * per schema la mostrava anche a medico@ e segreteria@, che devono restare sé stessi.
+   */
   readonly isDemoUser = computed(() => {
     const u = this.authService.currentUser();
-    return !!u && !!this.demoSchema() && u.schemaName === this.demoSchema();
+    const email = this.demoEmail();
+    if (!u || !email || !this.demoSchema()) return false;
+    return u.schemaName === this.demoSchema()
+        && u.email.toLowerCase() === email.toLowerCase();
   });
 
   constructor() {
@@ -60,7 +68,11 @@ export class App implements OnInit {
     this.authService.getDemoConfig().pipe(
       retry({ count: 5, delay: 1500 })
     ).subscribe({
-      next: res => { this.demoEnabled.set(res.enabled); this.demoSchema.set(res.schema ?? null); },
+      next: res => {
+        this.demoEnabled.set(res.enabled);
+        this.demoSchema.set(res.schema ?? null);
+        this.demoEmail.set(res.email ?? null);
+      },
       error: err => console.warn('demo-config non raggiungibile: menu persona demo disattivato per questa sessione', err)
     });
 
@@ -71,13 +83,16 @@ export class App implements OnInit {
       if (u && u.providerId !== this.lastAuthProviderId) {
         this.lastAuthProviderId = u.providerId;
         this.userContext.initFromAuth(u);
-        // Tenant demo: il menu persona parte da "Segreteria" (non clinica) per ogni
-        // login non clinico (admin, secretary, tenant_admin). Una persona provider
-        // filtra le viste sui pazienti di quel provider; segreteria/admin non ne hanno,
-        // quindi le liste risulterebbero vuote. In particolare una segretaria che è
-        // anche un record provider non deve auto-selezionare quel record (#30).
+        // Solo l'account demo parte da "Segreteria": è quello che impersona gli altri,
+        // e una persona provider filtrerebbe le viste sui pazienti di quel provider,
+        // lasciando le liste vuote (#30). Gli altri utenti del tenant demo conservano
+        // la propria identità — initFromAuth ha già mappato ruolo e nome reali.
         const isClinicalLogin = (MEDICAL_JWT_ROLES as readonly string[]).includes(u.role);
-        if (this.demoSchema() && u.schemaName === this.demoSchema() && !isClinicalLogin) {
+        const demoEmail = this.demoEmail();
+        const isDemoAccount = !!demoEmail
+            && u.schemaName === this.demoSchema()
+            && u.email.toLowerCase() === demoEmail.toLowerCase();
+        if (isDemoAccount && !isClinicalLogin) {
           this.selectedKey.set('__secretary__');
           this.userContext.setRole('secretary');
         } else {

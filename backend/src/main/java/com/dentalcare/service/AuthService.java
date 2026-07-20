@@ -91,10 +91,11 @@ public class AuthService {
     }
 
     public DemoConfigResponse demoConfig() {
-        // schema demo sempre esposto: identifica la sessione demo (combo impersonazione)
-        // indipendentemente dal prefill (enabled).
+        // Schema ed email demo sempre esposti: insieme identificano l'account demo,
+        // l'unico che può impersonare gli altri operatori. La password è invece il
+        // prefill del form di login e resta legata a `enabled`.
         if (!demoEnabled) {
-            return new DemoConfigResponse(false, null, null, demoSchema);
+            return new DemoConfigResponse(false, demoEmail, null, demoSchema);
         }
         return new DemoConfigResponse(true, demoEmail, demoPassword, demoSchema);
     }
