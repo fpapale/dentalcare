@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -65,6 +65,43 @@ export const CONDITIONS: Record<string, { label: string; fill: string; border: s
   to_extract:    { label: 'Da estrarre',       fill: '#fca5a5', border: '#991b1b' },
   impacted:      { label: 'Incluso',           fill: '#22d3ee', border: '#0e7490' },
 };
+
+export type ClinicalStatus = 'pathology' | 'treated' | 'absent' | 'healthy';
+
+/**
+ * Categorizzazione clinica delle condizioni odontogramma: cosa è patologia
+ * ancora da curare vs cosa è un trattamento già presente/eseguito. È una
+ * scelta clinica — punto unico da rivedere per riassegnare una condizione
+ * a un gruppo diverso (lo stato-trattamento esplicito è lavoro separato).
+ */
+export const CONDITION_STATUS: Record<string, ClinicalStatus> = {
+  cavity:        'pathology',
+  to_extract:    'pathology',
+  impacted:      'pathology',
+  filling:       'treated',
+  crown:         'treated',
+  implant:       'treated',
+  bridge_pillar: 'treated',
+  bridge_pontic: 'treated',
+  root_canal:    'treated',
+  missing:       'absent',
+  extracted:     'absent',
+  healthy:       'healthy',
+};
+
+const CLINICAL_STATUS_LABELS: Record<ClinicalStatus, string> = {
+  pathology: 'Patologia — da curare',
+  treated:   'Trattamento presente — già curato',
+  absent:    'Assente',
+  healthy:   'Sano',
+};
+
+export const LEGEND_GROUPS: { status: ClinicalStatus; label: string; conditions: string[] }[] =
+  (['pathology', 'treated', 'absent', 'healthy'] as ClinicalStatus[]).map(status => ({
+    status,
+    label: CLINICAL_STATUS_LABELS[status],
+    conditions: Object.keys(CONDITION_STATUS).filter(c => CONDITION_STATUS[c] === status),
+  }));
 
 const SURFACE_CONDITIONS = ['healthy', 'cavity', 'filling'];
 const WHOLE_CONDITIONS   = ['none', 'crown', 'missing', 'extracted', 'implant',
@@ -133,6 +170,7 @@ export class OdontogrammaTabComponent implements OnInit {
   readonly TOOTH_PATHS        = TOOTH_PATHS;
   readonly TOOTH_POS_KEYS     = [1, 2, 3, 4, 5, 6, 7, 8] as const;
   readonly CONDITION_TREATMENT_HINT = CONDITION_TREATMENT_HINT;
+  readonly LEGEND_GROUPS      = LEGEND_GROUPS;
 
   activeArch  = signal<'adult' | 'child'>('adult');
   loading     = signal(true);
@@ -144,6 +182,17 @@ export class OdontogrammaTabComponent implements OnInit {
   conditionMap    = signal<Map<string, string>>(new Map());
   aiTeeth         = signal<Set<number>>(new Set());        // FDI numbers with at least one AI-sourced condition
   aiConditionMap  = signal<Map<string, string>>(new Map()); // `${fdi}_${surface}` -> condition for AI-sourced rows
+
+  // FDI numbers with at least one condition classificata come 'pathology' in CONDITION_STATUS (da curare)
+  pathologyTeeth = computed(() => {
+    const set = new Set<number>();
+    for (const [key, condition] of this.conditionMap().entries()) {
+      if (CONDITION_STATUS[condition] !== 'pathology') continue;
+      set.add(Number(key.slice(0, key.indexOf('_'))));
+    }
+    return set;
+  });
+
   selectedFdi     = signal<number | null>(null);
   selectedSurface = signal<string | null>(null);
   panelX          = signal(0);
@@ -247,9 +296,10 @@ export class OdontogrammaTabComponent implements OnInit {
     return this.conditionMap().get(`${fdi}_WHOLE`) ?? 'none';
   }
 
-  isExtracted(fdi: number): boolean { return this.wholeCondition(fdi) === 'extracted'; }
-  isMissing(fdi: number):   boolean { return this.wholeCondition(fdi) === 'missing';   }
-  isAi(fdi: number):        boolean { return this.aiTeeth().has(fdi); }
+  isExtracted(fdi: number):   boolean { return this.wholeCondition(fdi) === 'extracted'; }
+  isMissing(fdi: number):     boolean { return this.wholeCondition(fdi) === 'missing';   }
+  isAi(fdi: number):          boolean { return this.aiTeeth().has(fdi); }
+  hasPathology(fdi: number):  boolean { return this.pathologyTeeth().has(fdi); }
 
   wholeIndicatorFill(fdi: number): string {
     const c = this.wholeCondition(fdi);
