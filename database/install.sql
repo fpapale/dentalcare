@@ -468,6 +468,10 @@ CREATE TABLE clinics (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     city_id uuid,
     email text,
+    work_start_time time without time zone,
+    work_end_time time without time zone,
+    slot_minutes integer,
+    working_days text,
     CONSTRAINT clinics_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
 );
 
@@ -2318,6 +2322,10 @@ CREATE TABLE t_9d754153.clinics (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     city_id uuid,
     email text,
+    work_start_time time without time zone,
+    work_end_time time without time zone,
+    slot_minutes integer,
+    working_days text,
     CONSTRAINT clinics_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
 );
 
