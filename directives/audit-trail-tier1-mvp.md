@@ -74,6 +74,14 @@ Opzioni:
 - **C2** — chiamata esplicita `auditService.logRead(...)` nei punti clinici (verboso ma preciso).
 - *Da decidere in base a quanti e quali endpoint contano come "consultazione del dossier".*
 
+**Decisione D — modulo interno vs servizio separato (riuso).** Domanda: l'audit come modulo dentro il backend, o come **servizio separato** che DentalCare usa applicativamente e che un altro applicativo medico potrebbe riusare?
+- **D1 (raccomandato per Tier 1)** — **modulo interno dietro un'interfaccia stretta** `AuditService.record(event)`, contratto d'evento stabile. Scrive su `clinical_audit_log` per-tenant. *L'interfaccia È già la cucitura del riuso.*
+- **D2 (Tier 2)** — servizio separato, dominio di sicurezza distinto (auditor ≠ audited, §4 modello). Si ottiene **cambiando l'implementazione dietro l'interfaccia D1**: i ~40 punti di chiamata non si toccano. Precedente identico già in codice: `MasterKeyProvider`/`ConfigMasterKeyProvider` (seam pronto per Vault).
+- **Ponte tra i due — il transactional outbox.** Chiamare un microservizio audit in sincrono crea il *dual-write* (la scrittura clinica committa, l'audit fallisce → si perde la prova; oppure l'audit giù blocca lo studio). Soluzione: l'evento va in tabella **nella stessa transazione** della modifica clinica; un relay lo spedisce dopo, async e ritentabile. **La `clinical_audit_log` del Tier 1 è già quell'outbox:** Tier 2 aggiunge solo il relay, zero rilavoro.
+- **NON generalizzare adesso.** Con un solo applicativo, progettare l'astrazione "servizio audit medico generico" è indovinare i requisiti del secondo (YAGNI / regola del tre). Estrai la generalità quando il secondo caso è reale; l'interfaccia D1 rende l'estrazione economica.
+- **Caveat compliance del riuso:** un servizio audit che ospita dati sanitari di più applicativi diventa **lui stesso** responsabile del trattamento — sua DPIA, suo DPA, sua postura di sicurezza. Il riuso moltiplica il perimetro che il DPO deve coprire; è una decisione di prodotto, non solo tecnica.
+- *Raccomandazione:* **D1 ora**, D2 quando (a) serve la forza probatoria del dominio separato, o (b) il secondo applicativo è reale. In nessun caso far ritardare il gate di gennaio all'ambizione del riuso.
+
 ---
 
 ## 4. Sequenza con l'intervento #3 (versionamento/finalizzazione)
