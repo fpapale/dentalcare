@@ -190,7 +190,7 @@ Ordine di esecuzione (le voci mappano su interventi già dettagliati sotto e neg
 
 | Pr | Cosa | Voce gate / intervento | Effort agente | Nota di sequenza |
 |---:|---|---|--:|---|
-| **1** | **Audit trail clinico** append-only | #18 Blocco 1 · Sprint 1.1 | 4-7h | Fondazione. Abilita tutto il resto (il #2 deve *registrare* i tentativi negati). Trasversale a ogni service clinico → va progettato prima |
+| **1** | **Audit trail clinico** append-only | #18 Blocco 1 · Sprint 1.1 · **scope MVP in [`audit-trail-tier1-mvp.md`](audit-trail-tier1-mvp.md)** | **12-20h** + brainstorm | Fondazione. Abilita tutto il resto (il #2 deve *registrare* i tentativi negati). Il logging delle **letture** (obbligo Garante) è trasversale a ~40 service → alza il pavimento oltre la stima iniziale e **va progettato prima** |
 | **2** | **Enforcement ruoli lato server** (segreteria non vede clinico) | #24 + intervento 3 · Sprint 1.3 | 2-4h | Dipende dal #1 per il log del negato. Oggi `SecurityConfig` protegge solo `/admin` e `/tenant-admin`: le rotte cliniche sono solo `authenticated` |
 | **3** | **Finalizzazione note + addendum** e **consensi versionati** | #18 Blocco 1-2 · Sprint 1.2 / 2.2 | 8-14h | Cuore probatorio. **Non one-shot da agente**: decisioni medico-legali (hash, immutabilità, stati, versioning). Serve `/brainstorming` prima |
 | **4** | **MFA** + **export paziente art. 15** | Sprint 3.1 / 3.2 | 5-8h | Isolate, parallelizzabili mentre si progetta il #3 |
