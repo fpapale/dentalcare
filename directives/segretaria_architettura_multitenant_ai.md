@@ -6,6 +6,7 @@ Questo documento descrive come realizzare il sistema SegretarIA come servizio AI
 
 Il sistema deve integrare:
 
+- Telefonia Twilio (numero/PSTN, trasporto chiamata sotto Retell).
 - Agente telefonico Retell.io.
 - Workflow n8n.
 - Database gestionale PostgreSQL.
@@ -435,6 +436,30 @@ Il backend deve associare la chiamata al tenant non sulla base di un campo non v
 - configurazione Retell agent,
 - webhook secret,
 - mapping agent_id -> tenant_id.
+
+### 14.1 Stack telefonia as-built (Twilio → Retell → n8n)
+
+La telefonia reale **non è** Retell: Retell è il livello *voice AI*, non il carrier.
+Lo stack effettivo di Giulia, dal basso:
+
+```text
+Paziente chiama
+   │
+   ▼
+Twilio            numero/PSTN, trasporto della chiamata (carrier)
+   │
+   ▼
+Retell.io         voce AI: STT + TTS + gestione dei turni sopra la linea Twilio
+   │  webhook
+   ▼
+n8n               orchestratore (webhook → agente LangChain)
+   ├─► OpenAI gpt-4.1-mini    cervello LLM dell'agente vocale
+   ├─► Google Calendar        disponibilità + crea/sposta evento
+   └─► Gmail                  email di conferma
+```
+
+- **Twilio** è configurato **lato Retell** (numero collegato dalla dashboard Retell), non nei workflow n8n: non compare quindi nei JSON versionati nel repo.
+- **Nota as-built:** nei workflow attuali (`Segretaria/Agente Vocale Retell AI*.json`) la prenotazione vocale scrive su **Google Calendar + Gmail**, **non** ancora sull'API appuntamenti DentalCare. Portare la prenotazione sul backend — riusando il service-token n8n → API previsto in §15 — è il passo che chiude questa architettura: finché non è fatto, gli appuntamenti presi al telefono **non entrano** nella tabella `appointments` del gestionale.
 
 ## 15. Integrazione con n8n
 
