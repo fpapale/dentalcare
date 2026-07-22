@@ -1732,7 +1732,8 @@ CREATE TABLE IF NOT EXISTS patient_document_analyses (
     error_message text,
     requested_by_provider_id uuid,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    document_deleted_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS idx_pda_document ON patient_document_analyses (document_id);
 CREATE INDEX IF NOT EXISTS idx_pda_patient  ON patient_document_analyses (patient_id);
@@ -2641,7 +2642,8 @@ CREATE TABLE IF NOT EXISTS t_9d754153.patient_document_analyses (
     error_message text,
     requested_by_provider_id uuid,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    document_deleted_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS idx_pda_document ON t_9d754153.patient_document_analyses (document_id);
 CREATE INDEX IF NOT EXISTS idx_pda_patient  ON t_9d754153.patient_document_analyses (patient_id);

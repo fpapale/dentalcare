@@ -6,6 +6,13 @@ export interface ToothCondition {
   source?: string | null;
 }
 
+/** A tooth/surface whose AI-sourced finding the clinician cleared (judged wrong). */
+export interface ToothRef {
+  toothFdi: number;
+  surface: string;
+}
+
 export interface SaveOdontogramRequest {
   conditions: ToothCondition[];
+  removedAi?: ToothRef[];
 }

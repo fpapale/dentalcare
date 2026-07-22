@@ -357,14 +357,23 @@ export class OdontogrammaTabComponent implements OnInit {
     this.saving.set(true);
     // Skip untouched AI conditions: they stay AI in the DB (don't claim them as manual).
     // Edited AI surfaces differ from aiConditionMap and are sent -> backend upserts them to manual.
-    const aiCond = this.aiConditionMap();
-    const conditions = Array.from(this.conditionMap().entries())
+    const aiCond  = this.aiConditionMap();
+    const current = this.conditionMap();
+    const conditions = Array.from(current.entries())
       .filter(([key, condition]) => aiCond.get(key) !== condition)
       .map(([key, condition]) => {
         const us = key.indexOf('_');
         return { toothFdi: Number(key.slice(0, us)), surface: key.slice(us + 1), condition, notes: null };
       });
-    this.odontogramService.save(this.patientId, { conditions }).subscribe({
+    // AI findings the clinician cleared (present as AI at load, now removed): tell the backend to
+    // delete them. Otherwise the AI row survives (backend only replaces manual rows) and reappears.
+    const removedAi = Array.from(aiCond.keys())
+      .filter(key => !current.has(key))
+      .map(key => {
+        const us = key.indexOf('_');
+        return { toothFdi: Number(key.slice(0, us)), surface: key.slice(us + 1) };
+      });
+    this.odontogramService.save(this.patientId, { conditions, removedAi }).subscribe({
       next: () => {
         this.saving.set(false);
         this.isDirty.set(false);

@@ -55,7 +55,25 @@ public class OdontogramService {
                     .addValue("clinicId", clinicId)
                     .addValue("patientId", patientId));
 
-        if (request.conditions() == null || request.conditions().isEmpty()) return;
+        // AI findings the clinician judged wrong and cleared outright: remove the AI row.
+        // A manual *edit* on an AI tooth is instead handled by the upsert below (it promotes
+        // the row to source='manual'); this branch covers the clear-to-healthy case, which is
+        // otherwise silently ignored because untouched AI rows are never re-sent.
+        // Runs before the early returns so a save that ONLY clears AI findings still applies.
+        for (SaveOdontogramRequest.ToothRef ref : request.removedAi()) {
+            jdbc.update("""
+                DELETE FROM %s.tooth_conditions
+                WHERE clinic_id = :clinicId AND patient_id = :patientId
+                  AND tooth_fdi = :toothFdi AND surface = :surface AND source = 'ai'
+                """.formatted(s()),
+                new MapSqlParameterSource()
+                        .addValue("clinicId", clinicId)
+                        .addValue("patientId", patientId)
+                        .addValue("toothFdi", ref.toothFdi())
+                        .addValue("surface", ref.surface()));
+        }
+
+        if (request.conditions().isEmpty()) return;
 
         List<ToothConditionDto> toSave = request.conditions().stream()
                 .filter(c -> c.condition() != null && !"healthy".equals(c.condition()) && !"none".equals(c.condition()))

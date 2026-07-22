@@ -170,6 +170,12 @@ public class PatientDocumentService {
         if (rows.isEmpty()) throw new ResourceNotFoundException("Document not found: " + docId);
         String objectKey = (String) rows.getFirst().get("file_path");
 
+        // Release any AI findings derived from this document before the source image goes.
+        // The clinical decision must survive the deletion of the evidence image, and the AI
+        // provenance record must not be silently erased by a routine delete (GDPR art.17 erasure
+        // is a separate, explicit flow). See 13-Audit-Trail in the docs.
+        releaseAiArtifacts(patientId, docId, clinic);
+
         // Delete from MinIO first — if this fails, DB row is preserved and caller gets an error.
         // MinIO delete is idempotent: deleting a missing key is a no-op.
         minio.delete(objectKey);
@@ -180,6 +186,59 @@ public class PatientDocumentService {
                         .addValue("id", docId)
                         .addValue("patientId", patientId)
                         .addValue("clinicId", clinic));
+    }
+
+    /**
+     * When a document with AI analyses is deleted (today only rx_panoramica), we:
+     *  - promote its AI-sourced odontogram findings to source='manual' (the clinician now owns them,
+     *    editable and deletable — the AI badge disappears);
+     *  - keep the analysis + labels rows as AI provenance, marking document_deleted_at so it is clear
+     *    the source image is gone but the record stands (audit trail);
+     *  - purge only the AI image derivatives from MinIO (annotated image + result JSON), which embed
+     *    pixels of the deleted radiograph. Findings metadata stays in patient_document_labels.
+     * No-op for documents without analyses.
+     */
+    private void releaseAiArtifacts(UUID patientId, UUID docId, UUID clinic) {
+        List<Map<String, Object>> analyses = jdbc.queryForList("""
+            SELECT id, result_object_key, annotated_object_key
+            FROM %s.patient_document_analyses
+            WHERE document_id = :doc AND clinic_id = :clinicId
+            """.formatted(s()),
+            new MapSqlParameterSource().addValue("doc", docId).addValue("clinicId", clinic));
+        if (analyses.isEmpty()) return;
+
+        List<UUID> analysisIds = analyses.stream().map(a -> (UUID) a.get("id")).toList();
+
+        // Promote AI findings to manual so the clinician can edit/delete them.
+        jdbc.update("""
+            UPDATE %s.tooth_conditions
+            SET source = 'manual', analysis_id = NULL, updated_at = now()
+            WHERE clinic_id = :clinicId AND patient_id = :patientId
+              AND source = 'ai' AND analysis_id IN (:ids)
+            """.formatted(s()),
+            new MapSqlParameterSource()
+                    .addValue("clinicId", clinic)
+                    .addValue("patientId", patientId)
+                    .addValue("ids", analysisIds));
+
+        // Keep the analysis as provenance; record that its source image was removed.
+        jdbc.update("""
+            UPDATE %s.patient_document_analyses
+            SET document_deleted_at = now(), updated_at = now()
+            WHERE document_id = :doc AND clinic_id = :clinicId
+            """.formatted(s()),
+            new MapSqlParameterSource().addValue("doc", docId).addValue("clinicId", clinic));
+
+        // Purge the pixel derivatives (annotated image + result JSON) from object storage.
+        for (Map<String, Object> a : analyses) {
+            deleteQuietly((String) a.get("result_object_key"));
+            deleteQuietly((String) a.get("annotated_object_key"));
+        }
+    }
+
+    private void deleteQuietly(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) return;
+        try { minio.delete(objectKey); } catch (Exception ignored) { /* idempotent best-effort */ }
     }
 
     private String buildObjectKey(UUID patientId, UUID docId, String fileName) {

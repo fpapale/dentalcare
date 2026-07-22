@@ -45,6 +45,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 36 | Prestazioni filtrate per ruolo utente via categorie (`service_categories.allowed_roles`) | Medio (~1 giornata) | **Fatta (dev) — 20/07** |
 | 37 | Combo impersonazione demo legata all'account demo, non allo schema del tenant | Basso (~2 ore) | **Fatta (dev) — 20/07** |
 | — | Landing/area pubblica allineata al business plan (prezzi, roadmap Fase 1/2, Giulia, logo unico, self-service Essential) | Medio | **Fatta (dev) — 20-21/07** |
+| 38 | Odontogramma AI: marcature editabili/eliminabili dal medico + rilascio su delete RX | Medio (~½ giornata) | **Fatta (dev) — 22/07** |
 
 ---
 
@@ -71,6 +72,24 @@ Proseguendo sui punti aperti del 17/07. Entrambe in `app.ts`, entrambe modi di r
 | **#28** — `getDemoConfig()` con `retry({count:5, delay:1500})` + `console.warn` invece di `catch` vuoto | Un 502 transitorio al riavvio (`docker compose up`: il frontend risponde prima che il backend sia pronto) lasciava `demoSchema=null` → menu persona demo sparito **per tutta la sessione**, in silenzio | Bastava un riavvio poco prima della presentazione per perdere il menu persona senza alcun segnale |
 
 > Verifica: build FE verde (exit 0). Da deployare in prod insieme al resto.
+
+---
+
+## Fix odontogramma AI — 22/07/2026
+
+**#38 — Marcature AI dell'odontogramma editabili/eliminabili dal medico + rilascio su delete RX.** Stato: **Fatta (dev)**.
+
+**Problema.** L'AI dell'ortopanoramica valorizza i denti (`tooth_conditions source='ai'`), ma il medico non poteva **eliminare** una marcatura AI errata: `OdontogramService.save()` cancellava solo le righe `manual`, quindi la riga AI sopravviveva e riappariva al reload (la *modifica* invece già la promuoveva a manuale). E cancellando l'ortopanoramica le marcature AI restavano orfane e ancora bloccate come AI.
+
+**Fix.**
+- `OdontogramService.save()` + `SaveOdontogramRequest.removedAi`: il frontend invia le marcature AI che il medico ha azzerato → il backend le elimina. Gira **prima** dei return anticipati, così un save che *solo* rimuove marcature AI funziona. La modifica di una marcatura AI continua a promuoverla a `manual` via upsert.
+- `PatientDocumentService.delete()` su documento con analisi (RX): **promuove** le condizioni AI a `manual` (badge via, editabili/eliminabili), **conserva** analisi + labels come provenienza AI marcandole `document_deleted_at`, **purga** solo i binari MinIO (immagine annotata + JSON result). I metadati dei findings restano nelle labels.
+- Schema: `patient_document_analyses.document_deleted_at` (patchSchema idempotente `ADD COLUMN IF NOT EXISTS` + install.sql, entrambe le occorrenze).
+- Frontend: `odontogramma-tab.save()` calcola `removedAi` (chiavi AI ora assenti); model `ToothRef`.
+
+**Decisioni prodotto.** Q1: *nuova RX = nuova evidenza* — la sync continua wipe+replace di `source='ai'`; le condizioni promosse a manuale non le tocca. Q2 (ottica audit): promuovi condizioni · **conserva** analisi+labels · purga binari · marker `document_deleted_at`; l'erasure GDPR art.17 resta un flusso separato. Motivazione in [DentalCare-Documentation → 13-Audit-Trail].
+
+**Test.** `OdontogramServiceTest` (3, nuovo) + `PatientDocumentServiceTest` (7, incl. `delete_releasesAiArtifacts`). Backend `mvn test` verde (10/10), build FE verde. **Da deployare in prod.**
 
 ---
 

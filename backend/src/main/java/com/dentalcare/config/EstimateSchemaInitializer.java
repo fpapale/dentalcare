@@ -563,6 +563,9 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pda_patient ON %1$s.patient_document_analyses (patient_id)".formatted(schema));
         jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pda_job ON %1$s.patient_document_analyses (job_id)".formatted(schema));
         jdbc.execute("CREATE INDEX IF NOT EXISTS idx_pda_status ON %1$s.patient_document_analyses (status)".formatted(schema));
+        // Set when the source document (RX) is deleted: the analysis is kept as AI provenance
+        // but its image is gone. See PatientDocumentService.releaseAiArtifacts / 13-Audit-Trail.
+        jdbc.execute("ALTER TABLE %1$s.patient_document_analyses ADD COLUMN IF NOT EXISTS document_deleted_at timestamptz".formatted(schema));
         jdbc.execute(("""
             CREATE TABLE IF NOT EXISTS %1$s.patient_document_labels (
                 id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

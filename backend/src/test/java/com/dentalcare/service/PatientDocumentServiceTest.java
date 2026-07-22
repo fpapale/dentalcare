@@ -107,6 +107,9 @@ class PatientDocumentServiceTest {
         String objectKey = "patients/" + patientId + "/" + docId + "/file.jpg";
         when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class)))
                 .thenReturn(List.of(Map.of("file_path", objectKey)));
+        // No AI analyses on this document -> releaseAiArtifacts is a no-op.
+        when(jdbc.queryForList(contains("patient_document_analyses"), any(MapSqlParameterSource.class)))
+                .thenReturn(List.of());
 
         service.delete(patientId, docId);
 
@@ -142,6 +145,8 @@ class PatientDocumentServiceTest {
         String objectKey = "patients/" + patientId + "/" + docId + "/file.jpg";
         when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class)))
                 .thenReturn(List.of(Map.of("file_path", objectKey)));
+        when(jdbc.queryForList(contains("patient_document_analyses"), any(MapSqlParameterSource.class)))
+                .thenReturn(List.of());
 
         // Track call order
         org.mockito.InOrder inOrder = inOrder(minio, jdbc);
@@ -150,5 +155,32 @@ class PatientDocumentServiceTest {
 
         inOrder.verify(minio).delete(objectKey);
         inOrder.verify(jdbc).update(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    @Test
+    void delete_releasesAiArtifacts_whenDocumentHasAnalyses() {
+        String docKey = "patients/" + patientId + "/" + docId + "/rx.jpg";
+        UUID analysisId = UUID.fromString("00000000-0000-0000-0000-0000000000aa");
+        when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class)))
+                .thenReturn(List.of(Map.of("file_path", docKey)));
+        when(jdbc.queryForList(contains("patient_document_analyses"), any(MapSqlParameterSource.class)))
+                .thenReturn(List.of(Map.of(
+                        "id", analysisId,
+                        "result_object_key", "ai/result.json",
+                        "annotated_object_key", "ai/annotated.png")));
+
+        service.delete(patientId, docId);
+
+        // Promote AI conditions to manual + mark analysis document_deleted_at + delete document row.
+        org.mockito.ArgumentCaptor<String> sql = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(jdbc, times(3)).update(sql.capture(), any(MapSqlParameterSource.class));
+        assertThat(sql.getAllValues()).anySatisfy(s -> assertThat(s)
+                .contains("UPDATE").contains("tooth_conditions").contains("'manual'"));
+        assertThat(sql.getAllValues()).anySatisfy(s -> assertThat(s).contains("document_deleted_at"));
+
+        // AI image derivatives purged, plus the RX file itself. Analysis + labels rows are kept.
+        verify(minio).delete("ai/result.json");
+        verify(minio).delete("ai/annotated.png");
+        verify(minio).delete(docKey);
     }
 }
