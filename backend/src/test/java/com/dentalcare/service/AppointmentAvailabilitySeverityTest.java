@@ -51,4 +51,29 @@ class AppointmentAvailabilitySeverityTest {
         assertThat(proposals).hasSize(1);
         assertThat(proposals.get(0).startTime()).isEqualTo("08:00");
     }
+
+    // ── isEndOfDaySlot — vincolo statico usato da checkSeveritySchedulingConstraint in create() ──
+
+    @Test
+    void isEndOfDaySlot_rejectsMidMorningStart_forSeveraPatient() {
+        AppointmentService.ScheduleConfig cfg = new AppointmentService.ScheduleConfig(
+                LocalTime.of(8, 0), LocalTime.of(19, 0), 15,
+                java.util.EnumSet.of(java.time.DayOfWeek.MONDAY));
+
+        boolean endOfDay = AppointmentService.isEndOfDaySlot(LocalTime.of(9, 0), 30, cfg);
+
+        assertThat(endOfDay).isFalse();
+    }
+
+    @Test
+    void isEndOfDaySlot_acceptsLastValidStart() {
+        AppointmentService.ScheduleConfig cfg = new AppointmentService.ScheduleConfig(
+                LocalTime.of(8, 0), LocalTime.of(19, 0), 15,
+                java.util.EnumSet.of(java.time.DayOfWeek.MONDAY));
+
+        // ultimo slot che chiude entro le 19:00 con durata 30min è 18:30
+        boolean endOfDay = AppointmentService.isEndOfDaySlot(LocalTime.of(18, 30), 30, cfg);
+
+        assertThat(endOfDay).isTrue();
+    }
 }

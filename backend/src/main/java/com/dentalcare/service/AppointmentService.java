@@ -6,6 +6,7 @@ import com.dentalcare.dto.CreateAppointmentRequest;
 import com.dentalcare.dto.RescheduleAppointmentRequest;
 import com.dentalcare.exception.AppointmentConflictException;
 import com.dentalcare.exception.ResourceNotFoundException;
+import com.dentalcare.exception.SchedulingConstraintException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -228,6 +229,7 @@ public class AppointmentService {
         checkWorkingDay(clinicId, request);
         checkChairConflict(clinicId, request);
         checkProviderConflict(clinicId, request);
+        checkSeveritySchedulingConstraint(clinicId, request);
 
         UUID id = UUID.randomUUID();
         String sql = """
@@ -342,6 +344,27 @@ public class AppointmentService {
                 "PROVIDER_CONFLICT",
                 "Il medico selezionato ha già un appuntamento in questo orario."
             );
+        }
+    }
+
+    /**
+     * Se il paziente ha severità anamnestica massima 'severa' (vedi {@link #isSevera}), lo slot
+     * richiesto deve essere l'ultimo possibile della giornata (vincolo di sicurezza, non solo di
+     * proposta: {@link #findAvailability} già propone solo end-of-day per questi pazienti, ma la
+     * creazione manuale/AI deve rifiutare esplicitamente uno slot fuori fascia).
+     */
+    private void checkSeveritySchedulingConstraint(UUID clinicId, CreateAppointmentRequest request) {
+        if (!isSevera(clinicId, request.patientId())) return;
+
+        LocalTime requestedStart = request.startsAt().atZoneSameInstant(ROME).toLocalTime();
+        long durationMin = java.time.Duration.between(request.startsAt(), request.endsAt()).toMinutes();
+        ScheduleConfig cfg = loadSchedule(clinicId);
+
+        if (!isEndOfDaySlot(requestedStart, durationMin, cfg)) {
+            LocalTime lastPossibleStart = cfg.workEnd().minusMinutes(durationMin);
+            throw new SchedulingConstraintException("SEVERITY_END_OF_DAY_ONLY",
+                    "Paziente con condizione a rischio infettivo attiva: disponibili solo slot di fine giornata (dalle "
+                            + lastPossibleStart.format(AVAILABILITY_TIME) + ").");
         }
     }
 
@@ -808,6 +831,18 @@ public class AppointmentService {
             }
         }
         return proposals;
+    }
+
+    /**
+     * True se lo slot che inizia a {@code requestedStart} (durata {@code durationMin}) è l'ultimo
+     * possibile della giornata secondo {@code cfg} — cioè non inizia prima di workEnd - durationMin.
+     * Calcolo puro, testabile senza JDBC (stesso pattern di {@link #computeAvailability}): usato sia
+     * per il calcolo delle proposte di disponibilità sia per l'enforcement lato create() sui pazienti
+     * con severità anamnestica massima 'severa'.
+     */
+    static boolean isEndOfDaySlot(LocalTime requestedStart, long durationMin, ScheduleConfig cfg) {
+        LocalTime lastPossibleStart = cfg.workEnd().minusMinutes(durationMin);
+        return !requestedStart.isBefore(lastPossibleStart);
     }
 
     private static boolean providerBusy(List<BusyAppointment> busy, UUID providerId,

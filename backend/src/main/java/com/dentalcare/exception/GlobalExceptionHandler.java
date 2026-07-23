@@ -41,6 +41,12 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(ex.getConflictType(), ex.getMessage());
     }
 
+    @ExceptionHandler(SchedulingConstraintException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleSchedulingConstraint(SchedulingConstraintException ex) {
+        return new ErrorResponse(ex.getCode(), ex.getMessage());
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ErrorResponse handleBadCredentials(BadCredentialsException ex) {
