@@ -122,9 +122,9 @@ export class AnamnesiTabComponent implements OnInit {
 
   alertCountForCategory(cat: AnamnesisCategoryDto): number {
     if (this.editMode()) {
-      return cat.items.filter(i => i.isAlert && this.selectedIds().has(i.id)).length;
+      return cat.items.filter(i => i.severity !== 'normale' && this.selectedIds().has(i.id)).length;
     }
-    return cat.items.filter(i => i.isAlert && i.selected).length;
+    return cat.items.filter(i => i.severity !== 'normale' && i.selected).length;
   }
 
   saveAnamnesis(): void {

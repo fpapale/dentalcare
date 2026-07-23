@@ -99,12 +99,12 @@ export class ImpostazioniComponent implements OnInit {
     name: '', description: '', icon: '', sortOrder: 99, enabled: true
   };
 
-  newItemForm: { code: string; label: string; description: string; isAlert: boolean; sortOrder: number } = {
-    code: '', label: '', description: '', isAlert: false, sortOrder: 99
+  newItemForm: { code: string; label: string; description: string; severity: 'normale' | 'grave' | 'severa'; sortOrder: number } = {
+    code: '', label: '', description: '', severity: 'normale', sortOrder: 99
   };
 
   editItemForm: UpdateCatalogItemRequest & { description: string } = {
-    label: '', description: '', isAlert: false, sortOrder: 99, enabled: true
+    label: '', description: '', severity: 'normale', sortOrder: 99, enabled: true
   };
 
   // ── App settings ───────────────────────────────────────────────────────────
@@ -514,13 +514,13 @@ export class ImpostazioniComponent implements OnInit {
       code: this.newItemForm.code,
       label: this.newItemForm.label,
       description: this.newItemForm.description || undefined,
-      isAlert: this.newItemForm.isAlert ?? false,
+      severity: this.newItemForm.severity ?? 'normale',
       sortOrder: this.newItemForm.sortOrder ?? 99
     }).subscribe({
       next: item => {
         this.savingAnamnesisItem.set(false);
         this.showNewAnamnesisItem.set(false);
-        this.newItemForm = { code: '', label: '', description: '', isAlert: false, sortOrder: 99 };
+        this.newItemForm = { code: '', label: '', description: '', severity: 'normale', sortOrder: 99 };
         this.anamnesisItems.update(list => [...list, item]);
         this.anamnesisCategories.update(list => list.map(c =>
           c.id === cat.id ? { ...c, itemsCount: c.itemsCount + 1 } : c
@@ -535,7 +535,7 @@ export class ImpostazioniComponent implements OnInit {
     const req: UpdateCatalogItemRequest = {
       label: this.editItemForm.label,
       description: this.editItemForm.description || undefined,
-      isAlert: this.editItemForm.isAlert,
+      severity: this.editItemForm.severity,
       sortOrder: this.editItemForm.sortOrder,
       enabled: this.editItemForm.enabled
     };
@@ -547,7 +547,7 @@ export class ImpostazioniComponent implements OnInit {
           ...item,
           label: req.label,
           description: req.description ?? null,
-          isAlert: req.isAlert,
+          severity: req.severity,
           sortOrder: req.sortOrder,
           enabled: req.enabled
         };
@@ -576,7 +576,7 @@ export class ImpostazioniComponent implements OnInit {
     this.editItemForm = {
       label: item.label,
       description: item.description ?? '',
-      isAlert: item.isAlert,
+      severity: item.severity,
       sortOrder: item.sortOrder,
       enabled: item.enabled
     };

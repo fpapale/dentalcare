@@ -3,7 +3,7 @@ export interface AnamnesisItemDto {
   code: string;
   label: string;
   description: string | null;
-  isAlert: boolean;
+  severity: 'normale' | 'grave' | 'severa';
   sortOrder: number;
   selected: boolean;
   selectionNotes: string | null;

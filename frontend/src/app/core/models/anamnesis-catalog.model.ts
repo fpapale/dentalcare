@@ -15,7 +15,7 @@ export interface CatalogItem {
   code: string;
   label: string;
   description: string | null;
-  isAlert: boolean;
+  severity: 'normale' | 'grave' | 'severa';
   sortOrder: number;
   enabled: boolean;
 }
@@ -41,14 +41,14 @@ export interface CreateCatalogItemRequest {
   code: string;
   label: string;
   description?: string;
-  isAlert: boolean;
+  severity: 'normale' | 'grave' | 'severa';
   sortOrder: number;
 }
 
 export interface UpdateCatalogItemRequest {
   label: string;
   description?: string;
-  isAlert: boolean;
+  severity: 'normale' | 'grave' | 'severa';
   sortOrder: number;
   enabled: boolean;
 }
