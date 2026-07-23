@@ -190,6 +190,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         runStep(schema, "invoices patient_fiscal_code_enc", () ->
                 jdbc.execute("ALTER TABLE " + schema + ".invoices ADD COLUMN IF NOT EXISTS patient_fiscal_code_enc text"));
         runStep(schema, "v_clinic_dashboard",           () -> rebuildDashboardView(schema));
+        runStep(schema, "v_patient_max_anamnesis_severity", () -> rebuildPatientMaxAnamnesisSeverityView(schema));
         runStep(schema, "v_agenda_daily",               () -> rebuildAgendaView(schema));
         runStep(schema, "v_patient_dashboard",          () -> rebuildPatientDashboardView(schema));
         runStep(schema, "v_patient_clinical_card",      () -> rebuildPatientClinicalCardView(schema));
@@ -423,6 +424,8 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
 
     private void rebuildAgendaView(String schema) {
         boolean hasAnamnesis = tableExists(schema, "patient_anamnesis");
+        boolean hasCatalogSelections = tableExists(schema, "patient_anamnesis_item_selections")
+                && tableExists(schema, "anamnesis_items");
         String alertCols = hasAnamnesis
             ? "  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis pa2" +
               "    WHERE pa2.patient_id = p.id AND pa2.clinic_id = a.clinic_id AND pa2.is_current = true" +
@@ -434,6 +437,12 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
               "         OR pa2.heart_disease)) AS has_medication_alert"
             : "  false AS has_allergy_alert," +
               "  false AS has_medication_alert";
+        String catalogAlertCol = hasCatalogSelections
+            ? ",  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis_item_selections pais" +
+              "    JOIN " + schema + ".anamnesis_items ai ON ai.id = pais.item_id" +
+              "    WHERE pais.patient_id = p.id AND pais.clinic_id = a.clinic_id" +
+              "    AND pais.resolved_at IS NULL AND ai.severity IN ('grave', 'severa')) AS has_catalog_alert"
+            : ",  false AS has_catalog_alert";
 
         jdbc.execute("DROP VIEW IF EXISTS " + schema + ".v_agenda_daily");
         jdbc.execute(
@@ -452,6 +461,7 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  sc.category AS service_category," +
             "  tpi.tooth_number AS tooth_number," +
             alertCols +
+            catalogAlertCol +
             " FROM " + schema + ".appointments a" +
             " LEFT JOIN " + schema + ".patients             p   ON p.id   = a.patient_id" +
             " LEFT JOIN " + schema + ".providers            pr  ON pr.id  = a.provider_id" +
@@ -499,6 +509,15 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
 
     private void rebuildPatientClinicalCardView(String schema) {
         jdbc.execute("DROP VIEW IF EXISTS " + schema + ".v_patient_clinical_card");
+        boolean hasCatalogSeverity = tableExists(schema, "patient_anamnesis_item_selections")
+                && tableExists(schema, "anamnesis_items");
+        String catalogCol = hasCatalogSeverity
+            ? ", mas.max_severity AS catalog_alert_severity"
+            : ", NULL::text AS catalog_alert_severity";
+        String catalogJoin = hasCatalogSeverity
+            ? " LEFT JOIN " + schema + ".v_patient_max_anamnesis_severity mas" +
+              "   ON mas.patient_id = p.id AND mas.clinic_id = p.clinic_id"
+            : "";
         jdbc.execute(
             "CREATE VIEW " + schema + ".v_patient_clinical_card AS " +
             "SELECT p.id AS patient_id, p.clinic_id," +
@@ -514,9 +533,30 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             "  pa.recorded_at AS anamnesis_date," +
             "  (SELECT COUNT(*) FROM " + schema + ".appointments a" +
             "   WHERE a.patient_id = p.id AND a.clinic_id = p.clinic_id) AS total_appointments" +
+            catalogCol +
             " FROM " + schema + ".patients p" +
             " LEFT JOIN " + schema + ".patient_anamnesis pa" +
-            "   ON pa.patient_id = p.id AND pa.clinic_id = p.clinic_id AND pa.is_current = true"
+            "   ON pa.patient_id = p.id AND pa.clinic_id = p.clinic_id AND pa.is_current = true" +
+            catalogJoin
+        );
+    }
+
+    /** Vista di supporto: severita' massima (tra le voci attive del catalogo) per paziente. */
+    private void rebuildPatientMaxAnamnesisSeverityView(String schema) {
+        jdbc.execute("DROP VIEW IF EXISTS " + schema + ".v_patient_max_anamnesis_severity");
+        if (!tableExists(schema, "patient_anamnesis_item_selections") || !tableExists(schema, "anamnesis_items")) {
+            return;
+        }
+        jdbc.execute(
+            "CREATE VIEW " + schema + ".v_patient_max_anamnesis_severity AS " +
+            "SELECT s.clinic_id, s.patient_id," +
+            "  MAX(CASE ai.severity WHEN 'severa' THEN 3 WHEN 'grave' THEN 2 ELSE 1 END) AS severity_rank," +
+            "  (ARRAY['normale', 'grave', 'severa'])[MAX(CASE ai.severity" +
+            "      WHEN 'severa' THEN 3 WHEN 'grave' THEN 2 ELSE 1 END)] AS max_severity" +
+            " FROM " + schema + ".patient_anamnesis_item_selections s" +
+            " JOIN " + schema + ".anamnesis_items ai ON ai.id = s.item_id" +
+            " WHERE s.resolved_at IS NULL" +
+            " GROUP BY s.clinic_id, s.patient_id"
         );
     }
 

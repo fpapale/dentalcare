@@ -167,6 +167,7 @@ public class PatientService {
                    p.taking_anticoagulants, p.taking_bisphosphonates,
                    p.allergy_penicillin, p.allergy_latex, p.allergy_anesthetic,
                    p.other_allergies, p.anamnesis_notes, p.anamnesis_date,
+                   p.catalog_alert_severity,
                    p.total_appointments,
                    (SELECT COUNT(*) FROM %s.treatment_plans tp
                     WHERE tp.patient_id = p.patient_id AND tp.clinic_id = p.clinic_id) AS treatment_plans_count,
@@ -299,6 +300,7 @@ public class PatientService {
                 rs.getString("anamnesis_notes"),
                 rs.getTimestamp("anamnesis_date") != null
                         ? rs.getTimestamp("anamnesis_date").toInstant().atOffset(java.time.ZoneOffset.UTC) : null,
+                rs.getString("catalog_alert_severity"),
                 rs.getLong("total_appointments"),
                 rs.getLong("treatment_plans_count"),
                 rs.getLong("open_treatment_items_count"),

@@ -1205,12 +1205,34 @@ CREATE VIEW v_agenda_daily AS
           WHERE ((pa2.patient_id = p.id) AND (pa2.clinic_id = a.clinic_id) AND (pa2.is_current = true) AND (pa2.allergy_penicillin OR pa2.allergy_latex OR pa2.allergy_anesthetic OR pa2.allergy_aspirin OR (pa2.other_allergies IS NOT NULL))))) AS has_allergy_alert,
     (EXISTS ( SELECT 1
            FROM patient_anamnesis pa2
-          WHERE ((pa2.patient_id = p.id) AND (pa2.clinic_id = a.clinic_id) AND (pa2.is_current = true) AND (pa2.taking_anticoagulants OR pa2.taking_bisphosphonates OR pa2.heart_disease)))) AS has_medication_alert
+          WHERE ((pa2.patient_id = p.id) AND (pa2.clinic_id = a.clinic_id) AND (pa2.is_current = true) AND (pa2.taking_anticoagulants OR pa2.taking_bisphosphonates OR pa2.heart_disease)))) AS has_medication_alert,
+    (EXISTS ( SELECT 1
+           FROM patient_anamnesis_item_selections pais
+           JOIN anamnesis_items ai ON ai.id = pais.item_id
+          WHERE (pais.patient_id = p.id) AND (pais.clinic_id = a.clinic_id)
+            AND pais.resolved_at IS NULL AND ai.severity IN ('grave', 'severa'))) AS has_catalog_alert
    FROM ((((appointments a
      LEFT JOIN patients p ON ((p.id = a.patient_id)))
      LEFT JOIN providers pr ON ((pr.id = a.provider_id)))
      LEFT JOIN treatment_plan_items tpi ON ((tpi.id = a.treatment_plan_item_id)))
      LEFT JOIN service_catalog sc ON ((sc.id = tpi.service_id)));
+
+CREATE VIEW v_patient_max_anamnesis_severity AS
+ SELECT s.clinic_id, s.patient_id,
+    MAX(CASE ai.severity
+        WHEN 'severa' THEN 3
+        WHEN 'grave' THEN 2
+        ELSE 1
+    END) AS severity_rank,
+    (ARRAY['normale', 'grave', 'severa'])[MAX(CASE ai.severity
+        WHEN 'severa' THEN 3
+        WHEN 'grave' THEN 2
+        ELSE 1
+    END)] AS max_severity
+   FROM patient_anamnesis_item_selections s
+   JOIN anamnesis_items ai ON ai.id = s.item_id
+   WHERE s.resolved_at IS NULL
+   GROUP BY s.clinic_id, s.patient_id;
 
 CREATE VIEW v_clinic_dashboard AS
  WITH patient_agg AS (
@@ -1269,9 +1291,11 @@ CREATE VIEW v_patient_clinical_card AS
     pa.recorded_at AS anamnesis_date,
     ( SELECT count(*) AS count
            FROM appointments a
-          WHERE ((a.patient_id = p.id) AND (a.clinic_id = p.clinic_id))) AS total_appointments
-   FROM (patients p
-     LEFT JOIN patient_anamnesis pa ON (((pa.patient_id = p.id) AND (pa.clinic_id = p.clinic_id) AND (pa.is_current = true))));
+          WHERE ((a.patient_id = p.id) AND (a.clinic_id = p.clinic_id))) AS total_appointments,
+    mas.max_severity AS catalog_alert_severity
+   FROM ((patients p
+     LEFT JOIN patient_anamnesis pa ON (((pa.patient_id = p.id) AND (pa.clinic_id = p.clinic_id) AND (pa.is_current = true))))
+     LEFT JOIN v_patient_max_anamnesis_severity mas ON ((mas.patient_id = p.id) AND (mas.clinic_id = p.clinic_id)));
 
 CREATE VIEW v_patient_dashboard AS
  SELECT p.id AS patient_id,
@@ -3463,12 +3487,39 @@ CREATE VIEW t_9d754153.v_agenda_daily AS
           WHERE ((pa2.patient_id = p.id) AND (pa2.clinic_id = a.clinic_id) AND (pa2.is_current = true) AND (pa2.allergy_penicillin OR pa2.allergy_latex OR pa2.allergy_anesthetic OR pa2.allergy_aspirin OR (pa2.other_allergies IS NOT NULL))))) AS has_allergy_alert,
     (EXISTS ( SELECT 1
            FROM t_9d754153.patient_anamnesis pa2
-          WHERE ((pa2.patient_id = p.id) AND (pa2.clinic_id = a.clinic_id) AND (pa2.is_current = true) AND (pa2.taking_anticoagulants OR pa2.taking_bisphosphonates OR pa2.heart_disease)))) AS has_medication_alert
+          WHERE ((pa2.patient_id = p.id) AND (pa2.clinic_id = a.clinic_id) AND (pa2.is_current = true) AND (pa2.taking_anticoagulants OR pa2.taking_bisphosphonates OR pa2.heart_disease)))) AS has_medication_alert,
+    (EXISTS ( SELECT 1
+           FROM t_9d754153.patient_anamnesis_item_selections pais
+           JOIN t_9d754153.anamnesis_items ai ON ai.id = pais.item_id
+          WHERE (pais.patient_id = p.id) AND (pais.clinic_id = a.clinic_id)
+            AND pais.resolved_at IS NULL AND ai.severity IN ('grave', 'severa'))) AS has_catalog_alert
    FROM ((((t_9d754153.appointments a
      LEFT JOIN t_9d754153.patients p ON ((p.id = a.patient_id)))
      LEFT JOIN t_9d754153.providers pr ON ((pr.id = a.provider_id)))
      LEFT JOIN t_9d754153.treatment_plan_items tpi ON ((tpi.id = a.treatment_plan_item_id)))
      LEFT JOIN t_9d754153.service_catalog sc ON ((sc.id = tpi.service_id)));
+
+
+--
+-- Name: v_patient_max_anamnesis_severity; Type: VIEW; Schema: t_9d754153; Owner: -
+--
+
+CREATE VIEW t_9d754153.v_patient_max_anamnesis_severity AS
+ SELECT s.clinic_id, s.patient_id,
+    MAX(CASE ai.severity
+        WHEN 'severa' THEN 3
+        WHEN 'grave' THEN 2
+        ELSE 1
+    END) AS severity_rank,
+    (ARRAY['normale', 'grave', 'severa'])[MAX(CASE ai.severity
+        WHEN 'severa' THEN 3
+        WHEN 'grave' THEN 2
+        ELSE 1
+    END)] AS max_severity
+   FROM t_9d754153.patient_anamnesis_item_selections s
+   JOIN t_9d754153.anamnesis_items ai ON ai.id = s.item_id
+   WHERE s.resolved_at IS NULL
+   GROUP BY s.clinic_id, s.patient_id;
 
 
 --
@@ -3537,9 +3588,11 @@ CREATE VIEW t_9d754153.v_patient_clinical_card AS
     pa.recorded_at AS anamnesis_date,
     ( SELECT count(*) AS count
            FROM t_9d754153.appointments a
-          WHERE ((a.patient_id = p.id) AND (a.clinic_id = p.clinic_id))) AS total_appointments
-   FROM (t_9d754153.patients p
-     LEFT JOIN t_9d754153.patient_anamnesis pa ON (((pa.patient_id = p.id) AND (pa.clinic_id = p.clinic_id) AND (pa.is_current = true))));
+          WHERE ((a.patient_id = p.id) AND (a.clinic_id = p.clinic_id))) AS total_appointments,
+    mas.max_severity AS catalog_alert_severity
+   FROM ((t_9d754153.patients p
+     LEFT JOIN t_9d754153.patient_anamnesis pa ON (((pa.patient_id = p.id) AND (pa.clinic_id = p.clinic_id) AND (pa.is_current = true))))
+     LEFT JOIN t_9d754153.v_patient_max_anamnesis_severity mas ON ((mas.patient_id = p.id) AND (mas.clinic_id = p.clinic_id)));
 
 
 --

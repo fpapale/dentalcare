@@ -80,7 +80,7 @@ public class AppointmentService {
                    v.patient_id, v.patient_full_name, v.patient_phone,
                    v.provider_id, v.provider_name, v.provider_role,
                    v.service_name, v.service_category, v.tooth_number,
-                   v.has_allergy_alert, v.has_medication_alert,
+                   v.has_allergy_alert, v.has_medication_alert, v.has_catalog_alert,
                    (SELECT COUNT(*)::integer FROM %s.patient_recalls r
                     WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
                       AND r.due_date < CURRENT_DATE
@@ -118,7 +118,7 @@ public class AppointmentService {
                    v.patient_id, v.patient_full_name, v.patient_phone,
                    v.provider_id, v.provider_name, v.provider_role,
                    v.service_name, v.service_category, v.tooth_number,
-                   v.has_allergy_alert, v.has_medication_alert,
+                   v.has_allergy_alert, v.has_medication_alert, v.has_catalog_alert,
                    (SELECT COUNT(*)::integer FROM %s.patient_recalls r
                     WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
                       AND r.due_date < CURRENT_DATE
@@ -157,7 +157,7 @@ public class AppointmentService {
                    v.patient_id, v.patient_full_name, v.patient_phone,
                    v.provider_id, v.provider_name, v.provider_role,
                    v.service_name, v.service_category, v.tooth_number,
-                   v.has_allergy_alert, v.has_medication_alert,
+                   v.has_allergy_alert, v.has_medication_alert, v.has_catalog_alert,
                    (SELECT COUNT(*)::integer FROM %s.patient_recalls r
                     WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
                       AND r.due_date < CURRENT_DATE
@@ -831,6 +831,7 @@ public class AppointmentService {
                 rs.getString("tooth_number"),
                 rs.getObject("has_allergy_alert", Boolean.class),
                 rs.getObject("has_medication_alert", Boolean.class),
+                rs.getObject("has_catalog_alert", Boolean.class),
                 rs.getObject("overdue_recall_count", Integer.class),
                 rs.getObject("upcoming_recall_count", Integer.class),
                 rs.getObject("open_estimate_count", Integer.class),
