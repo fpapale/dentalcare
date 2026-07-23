@@ -202,28 +202,51 @@ class AnamnesisDiffTest {
     }
 
     @Test
-    void diff_noteOnlyEditOnAlreadyActiveItem_doesNotCreateAChangePoint_stillReportedAsNew() throws InterruptedException {
-        // Un punto di cambiamento esiste solo se recorded_at o resolved_at cambiano: una
-        // "visita 2" che riseleziona una voce gia' attiva modificando solo le note (ramo
-        // UPDATE notes-only di savePatientAnamnesis) non tocca ne' l'una ne' l'altra colonna,
-        // quindi non produce un secondo punto di cambiamento distinto. changePoints resta a 1
-        // elemento (quello della visita 1): il caso ricade quindi nel ramo "nessuna visita
-        // precedente", e la voce continua a comparire in newItems, non in unchangedItems.
-        // Non e' un bug: e' la conseguenza diretta di definire i punti di cambiamento solo su
-        // recorded_at/resolved_at (fedele alla cronologia clinica: "chi cambia le note" non e'
-        // un evento di anamnesi diverso da "chi la conferma cosi' com'e'").
+    void diff_noteOnlyEdit_doesNotBumpRecordedAt_witnessItemStaysUnchanged() throws InterruptedException {
+        // patient_anamnesis_item_selections e' una riga per (paziente, voce): una UPDATE
+        // notes-only su Latex lascia comunque UNA SOLA riga con UN SOLO recorded_at per Latex,
+        // sia che quel recorded_at resti quello originale sia che (per ipotesi di regressione)
+        // venga sovrascritto con now(). Con un solo elemento in gioco changePoints.size() vale 1
+        // in entrambi i casi: un test che usasse solo Latex non potrebbe distinguere le due
+        // ipotesi (esattamente il difetto segnalato in review sulla versione precedente di
+        // questo test). Per distinguerle serve — come nel test
+        // diff_detectsNewResolvedAndUnchangedItems_acrossTwoVisits — un secondo punto di
+        // cambiamento genuino altrove (qui: Penicillina aggiunta per la prima volta in visita 2)
+        // che faccia scattare il vero confronto "prima/ora", piu' una voce testimone
+        // (Anestetici) mai modificata nelle note, riselezionata identica in entrambe le visite.
+        // Se la UPDATE notes-only di Latex avesse (per regressione futura) toccato anche
+        // recorded_at, lo stesso bug colpirebbe l'UPDATE notes-only di Anestetici nella stessa
+        // chiamata (stesso ramo di codice, stessa transazione, stesso now()): il recorded_at
+        // originale di Anestetici sparirebbe (sovrascritto), changePoints crollerebbe a un solo
+        // valore distinto, e Anestetici finirebbe erroneamente in newItems anziche' in
+        // unchangedItems. E' questo che l'assert su unchangedItems sotto intercetta.
         save(new SaveAnamnesisRequest(
-                List.of(new SaveAnamnesisRequest.ItemSelection(itemLatex, null)), null, null));
+                List.of(
+                        new SaveAnamnesisRequest.ItemSelection(itemLatex, null),
+                        new SaveAnamnesisRequest.ItemSelection(itemAnestetici, null)),
+                null, null));
         Thread.sleep(50);
 
+        // Visita 2: Latex riselezionato con note diverse (il caso sotto test — ramo UPDATE
+        // notes-only), Anestetici riselezionato identico (testimone, "lasciato in pace"),
+        // Penicillina selezionato per la prima volta (crea il secondo punto di cambiamento
+        // genuino senza il quale il confronto non scatterebbe affatto).
         save(new SaveAnamnesisRequest(
-                List.of(new SaveAnamnesisRequest.ItemSelection(itemLatex, "controllo di routine")), null, null));
+                List.of(
+                        new SaveAnamnesisRequest.ItemSelection(itemLatex, "controllo di routine"),
+                        new SaveAnamnesisRequest.ItemSelection(itemAnestetici, null),
+                        new SaveAnamnesisRequest.ItemSelection(itemPenicillina, null)),
+                null, null));
 
         AnamnesisDiffDto diff = service.getDiffSinceLastVisit(patientId);
 
         assertThat(diff.newItems()).extracting(AnamnesisDiffDto.AnamnesisDiffItem::code)
-                .containsExactly("ALL_LATEX");
+                .containsExactly("ALL_PENICILLINA");
         assertThat(diff.resolvedItems()).isEmpty();
-        assertThat(diff.unchangedItems()).isEmpty();
+        // L'asserzione che conta davvero (vedi commento sopra): Anestetici, mai toccato di
+        // proposito, deve restare "invariato" — non "nuovo" — a conferma che la modifica delle
+        // sole note di Latex non ha corrotto il recorded_at di nessuna riga.
+        assertThat(diff.unchangedItems()).extracting(AnamnesisDiffDto.AnamnesisDiffItem::code)
+                .containsExactlyInAnyOrder("ALL_LATEX", "ALL_ANESTETICI");
     }
 }
