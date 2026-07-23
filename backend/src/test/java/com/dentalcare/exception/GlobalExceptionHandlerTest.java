@@ -55,6 +55,21 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleCatalogItemInUse_returnsConflictResponse() {
+        // Arrange
+        String message = "Impossibile eliminare: 3 pazienti hanno questa voce selezionata nell'anamnesi.";
+        CatalogItemInUseException exception = new CatalogItemInUseException(message);
+
+        // Act
+        ErrorResponse response = handler.handleCatalogItemInUse(exception);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals("CATALOG_ITEM_IN_USE", response.code());
+        assertEquals(message, response.message());
+    }
+
+    @Test
     void handleBadCredentials_returnsUnauthorizedResponse() {
         // Arrange
         BadCredentialsException exception = new BadCredentialsException("Wrong password");
