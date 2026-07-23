@@ -108,6 +108,11 @@ export class CartellaClinicalTabComponent implements OnInit {
     if (p.heartDisease) list.push({ type: 'warning', label: 'Cardiopatia' });
     if (p.hypertension) list.push({ type: 'warning', label: 'Ipertensione' });
     if (p.diabetes) list.push({ type: 'warning', label: 'Diabete' });
+    if (p.catalogAlertSeverity === 'severa') {
+      list.push({ type: 'critical', label: 'Condizione a rischio infettivo attiva — solo appuntamenti fine giornata' });
+    } else if (p.catalogAlertSeverity === 'grave') {
+      list.push({ type: 'warning', label: 'Condizioni cliniche da anamnesi — vedi scheda anamnesi' });
+    }
     if (!p.anamnesisDate) list.push({ type: 'info', label: 'Anamnesi da completare' });
     return list;
   }
