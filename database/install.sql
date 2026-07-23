@@ -701,6 +701,141 @@ CREATE TABLE anamnesis_items (
     CONSTRAINT anamnesis_items_severity_check CHECK ((severity = ANY (ARRAY['normale'::text, 'grave'::text, 'severa'::text])))
 );
 
+INSERT INTO anamnesis_categories (code, name, sort_order) VALUES
+    ('ALLERGIE', 'Allergie e Reazioni Avverse', 10),
+    ('FARMACI', 'Farmaci e Terapie in Corso', 20),
+    ('CARDIOVASCOLARE', 'Apparato Cardiovascolare', 30),
+    ('RESPIRATORIO', 'Apparato Respiratorio', 40),
+    ('ENDOCRINO', 'Apparato Endocrino-Metabolico', 50),
+    ('RENALE_EPATICO', 'Apparato Renale ed Epatico', 60),
+    ('GASTROINTESTINALE', 'Apparato Gastrointestinale', 70),
+    ('NEUROLOGICO', 'Apparato Neurologico', 80),
+    ('IMMUNO_ONCO_COAG', 'Immunologico, Oncologico e Coagulazione', 90),
+    ('CHIRURGIA', 'Chirurgia Pregressa', 100),
+    ('ABITUDINI', 'Abitudini di Vita e Parafunzioni', 110),
+    ('FATTORI_RISCHIO', 'Fattori di Rischio Odontoiatrico', 120),
+    ('COND_ORALI', 'Condizioni Croniche Odontoiatriche', 130),
+    ('GRAVIDANZA', 'Gravidanza e Stato Ormonale', 140),
+    ('PSICOLOGICO', 'Stato Psicologico e Comportamentale', 150);
+
+INSERT INTO anamnesis_items (category_id, code, label, description, severity, sort_order) VALUES
+    -- ALLERGIE
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_PENICILLINA', 'Penicillina / Amoxicillina', 'Include tutte le betalattamine', 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ANESTETICI', 'Anestetici locali', 'Articaina, mepivacaina, lidocaina', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_LATEX', 'Lattice', NULL, 'grave', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_FANS', 'Aspirina / FANS', NULL, 'grave', 40),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_SULFAMIDICI', 'Sulfamidici', NULL, 'grave', 50),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_SOLFITI', 'Solfiti', 'Metabisolfito, stabilizzante dell''anestetico con vasocostrittore — distinto dai sulfamidici', 'grave', 60),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_CLOREXIDINA', 'Clorexidina', 'Uso quotidiano in collutori/gel — reazioni anafilattiche documentate', 'grave', 70),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ALTRI_ANTIBIOTICI', 'Altri antibiotici', 'Cefalosporine, clindamicina, macrolidi', 'grave', 80),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_BARBITURICI', 'Barbiturici / sedativi', 'Rilevante per sedazione cosciente', 'grave', 90),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_METALLI', 'Metalli', 'Nickel, oro, palladio, cromo-cobalto', 'normale', 100),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ACRILICI', 'Acrilici / resine', 'Metacrilato, protesi rimovibili', 'normale', 110),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_IODIO', 'Iodio / mezzi di contrasto', NULL, 'normale', 120),
+
+    -- FARMACI
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTICOAGULANTI', 'Anticoagulanti orali', 'TAO, NAO (warfarin, dabigatran, rivaroxaban, apixaban)', 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIAGGREGANTI', 'Antiaggreganti piastrinici', 'Aspirina, clopidogrel, ticagrelor', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_BISFOSFONATI', 'Bifosfonati', 'Alendronato, zoledronato — rischio MRONJ', 'grave', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_DENOSUMAB', 'Denosumab', 'Antiriassorbitivo anti-RANKL, stesso rischio MRONJ dei bifosfonati', 'grave', 40),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIANGIOGENETICI', 'Antiangiogenetici', 'Bevacizumab e simili — rientrano nella definizione MRONJ', 'grave', 50),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_CORTISONICI', 'Cortisonici sistemici', NULL, 'grave', 60),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_IMMUNOSOPPRESSORI', 'Immunosoppressori', 'Ciclosporina, azatioprina, metotrexato', 'grave', 70),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIDIABETICI', 'Antidiabetici orali / insulina', NULL, 'grave', 80),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIIPERTENSIVI', 'Antiipertensivi', 'Interazione con vasocostrittore in anestesia locale', 'grave', 90),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_GENGIVOIPERPLASTICI', 'Farmaci con rischio iperplasia gengivale', 'Fenitoina, ciclosporina, nifedipina', 'normale', 100),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_XEROSTOMIZZANTI', 'Farmaci xerostomizzanti', 'Antidepressivi, antistaminici, diuretici', 'normale', 110),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ALTRI', 'Altra terapia farmacologica in corso', NULL, 'normale', 120),
+
+    -- CARDIOVASCOLARE
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_ENDOCARDITE', 'Endocardite infettiva pregressa', 'Massimo rischio, profilassi antibiotica obbligatoria (ESC 2023)', 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_VALVOLARE', 'Protesi valvolare cardiaca', 'Profilassi antibiotica obbligatoria (ESC 2023 Classe I)', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_CONGENITA', 'Cardiopatia congenita', 'Non corretta o corretta con residui — profilassi obbligatoria', 'grave', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_PACEMAKER', 'Pacemaker / defibrillatore (ICD)', 'Non richiede profilassi endocardite, ma interferenza con elettrobisturi', 'grave', 40),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_FIBRILLAZIONE', 'Fibrillazione atriale', 'Gestione anticoagulanti/rischio emostatico', 'grave', 50),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_INFARTO', 'Infarto pregresso', NULL, 'grave', 60),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_ANGINA', 'Angina pectoris', NULL, 'grave', 70),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_SCOMPENSO', 'Scompenso cardiaco', 'Insufficienza cardiaca congestizia', 'grave', 80),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_BYPASS', 'Bypass / angioplastica coronarica', 'Gestione antiaggreganti/sanguinamento — non indicazione a profilassi endocardite', 'grave', 90),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_IPERTENSIONE', 'Ipertensione arteriosa', NULL, 'normale', 100),
+
+    -- RESPIRATORIO
+    ((SELECT id FROM anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_ASMA', 'Asma bronchiale', NULL, 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_BPCO', 'BPCO', 'Broncopneumopatia cronica ostruttiva', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_APNEE', 'Apnee notturne', 'OSAS, rilevante per sedazione/postura', 'normale', 30),
+
+    -- ENDOCRINO
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE1', 'Diabete tipo 1', 'Insulino-dipendente', 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE2', 'Diabete tipo 2', 'Non insulino-dipendente', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE_NS', 'Diabete non specificato', 'Per triage rapido quando il tipo non è noto', 'grave', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_IPOTIROIDISMO', 'Ipotiroidismo', NULL, 'normale', 40),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_IPERTIROIDISMO', 'Ipertiroidismo', 'Morbo di Basedow o adenoma tossico', 'grave', 50),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_CUSHING', 'Sindrome di Cushing', 'Ipercortisolismo endogeno o iatrogeno', 'grave', 60),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_OSTEOPOROSI', 'Osteoporosi', 'Il rischio MRONJ è tracciato separatamente sui farmaci (FAR_BISFOSFONATI/FAR_DENOSUMAB)', 'normale', 70),
+
+    -- RENALE_EPATICO
+    ((SELECT id FROM anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'REN_INSUFFICIENZA', 'Insufficienza renale cronica', 'IRC o dialisi', 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'EPA_EPATITE', 'Epatite B/C', 'Epatite virale cronica', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'EPA_CIRROSI', 'Cirrosi epatica', 'Rischio coagulativo differente dall''epatite semplice', 'grave', 30),
+
+    -- GASTROINTESTINALE
+    ((SELECT id FROM anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_REFLUSSO', 'Reflusso gastroesofageo', NULL, 'normale', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_ULCERA', 'Ulcera peptica', 'Controindicazione relativa ai FANS', 'normale', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_CROHN', 'Morbo di Crohn', NULL, 'normale', 30),
+
+    -- NEUROLOGICO
+    ((SELECT id FROM anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_EPILESSIA', 'Epilessia', NULL, 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_PARKINSON', 'Malattia di Parkinson', 'Gestione poltrona, tempi di trattamento, tremore', 'normale', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_SCLEROSI', 'Sclerosi multipla', NULL, 'normale', 30),
+
+    -- IMMUNO_ONCO_COAG
+    ((SELECT id FROM anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_HIV', 'HIV / immunodeficienza', 'Alert per gestione clinica (farmaci, lesioni orali) — NON usare per vincoli di scheduling: le precauzioni universali si applicano a ogni paziente indipendentemente dallo stato noto', 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_ONCOLOGICA', 'Patologia oncologica in trattamento', 'Chemioterapia o radioterapia in corso', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_COAGULOPATIA', 'Disturbi della coagulazione', 'Voce generica — vedi anche emofilia/trombocitopenia per casi specifici', 'grave', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_EMOFILIA', 'Emofilia', NULL, 'grave', 40),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_TROMBOCITOPENIA', 'Trombocitopenia', NULL, 'grave', 50),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_RADIOTERAPIA_TESTA_COLLO', 'Radioterapia testa-collo pregressa', 'Rischio osteoradionecrosi, analogo a MRONJ', 'grave', 60),
+
+    -- CHIRURGIA
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_PROTESI_ARTICOLARI', 'Protesi articolari', 'Anca, ginocchio — dal 2024 AAOS allineato ADA: profilassi routinaria NON raccomandata nella maggioranza dei casi, valutazione caso per caso', 'normale', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_TRAPIANTO', 'Trapianto d''organo', 'Immunosoppressione, rischio infettivo', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_SPLENECTOMIA', 'Splenectomia / asplenia', 'Rischio infettivo (sepsi post-splenectomia) in procedure invasive', 'grave', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_ALTRO', 'Altri interventi chirurgici', NULL, 'normale', 40),
+
+    -- ABITUDINI
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_FUMATORE_ATTIVO', 'Fumatore attivo', 'Impatto su guarigione post-chirurgica e osteointegrazione implantare', 'normale', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_EX_FUMATORE', 'Ex fumatore', 'Rischio parodontale/oncologico residuo', 'normale', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_VAPING', 'Sigaretta elettronica / vaping', 'Xerostomia, infiammazione gengivale — voce distinta dal fumo tradizionale (ADA)', 'normale', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_ALCOL', 'Consumo regolare di alcolici', 'Più di 2 unità/giorno', 'normale', 40),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_DROGHE', 'Uso di sostanze', 'Interazione con vasocostrittori/anestesia', 'grave', 50),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_BRUXISMO', 'Bruxismo / digrignamento', NULL, 'normale', 60),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_ONICOFAGIA', 'Onicofagia / morsicatura labbra', NULL, 'normale', 70),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_PIERCING', 'Piercing orale', NULL, 'normale', 80),
+
+    -- FATTORI_RISCHIO
+    ((SELECT id FROM anamnesis_categories WHERE code = 'FATTORI_RISCHIO'), 'FTR_SPORT_AGONISTICO', 'Sportivo agonista', 'Rischio trauma dento-alveolare, indicazione a paradenti/bite — non è un''abitudine di vita', 'normale', 10),
+
+    -- COND_ORALI
+    ((SELECT id FROM anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_SENSIBILITA', 'Sensibilità dentinale', NULL, 'normale', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_SANGUINAMENTO', 'Sanguinamento gengivale', NULL, 'normale', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_MOBILITA', 'Mobilità dentale', NULL, 'normale', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_ALITOSI', 'Alitosi cronica', NULL, 'normale', 40),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_ATM', 'Problemi ATM / dolore masticatorio', NULL, 'normale', 50),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_XEROSTOMIA', 'Secchezza orale', 'Xerostomia', 'normale', 60),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_AFTE', 'Afte ricorrenti', NULL, 'normale', 70),
+
+    -- GRAVIDANZA
+    ((SELECT id FROM anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_GRAVIDANZA', 'Gravidanza in corso', 'Indicare il trimestre nelle note', 'grave', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_ALLATTAMENTO', 'Allattamento', NULL, 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_ORMONI', 'Terapia ormonale', 'Pillola, HRT', 'normale', 30),
+
+    -- PSICOLOGICO
+    ((SELECT id FROM anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_ANSIA_STUDIO', 'Ansia da studio dentistico', NULL, 'normale', 10),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_FOBIA_AGHI', 'Fobia degli aghi', 'Belonefobia — impatta somministrazione anestesia', 'grave', 20),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_GAG_REFLEX', 'Riflesso del vomito accentuato', 'Difficoltà a tenere la bocca aperta a lungo', 'normale', 30),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_SEDAZIONE_PREGRESSA', 'Sedazione cosciente pregressa', NULL, 'normale', 40),
+    ((SELECT id FROM anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_ESPERIENZE_TRAUMATICHE', 'Esperienze odontoiatriche traumatiche pregresse', NULL, 'normale', 50);
+
 CREATE TABLE patient_diagnoses (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     clinic_id uuid NOT NULL,
@@ -2659,6 +2794,150 @@ CREATE TABLE t_9d754153.anamnesis_items (
 
 
 --
+-- Data seed: catalogo anamnesi ricostruito (Task 2), stesso set del template sopra,
+-- qualificato per lo schema tenant demo. Verificato a mano: la COPY di
+-- t_9d754153.patient_anamnesis_item_selections in questo dump e' vuota (nessuna riga),
+-- quindi nessuna voce referenzia il vecchio catalogo globale e non serve riuso di id
+-- espliciti (brief Task 2 Step 3).
+--
+
+INSERT INTO t_9d754153.anamnesis_categories (code, name, sort_order) VALUES
+    ('ALLERGIE', 'Allergie e Reazioni Avverse', 10),
+    ('FARMACI', 'Farmaci e Terapie in Corso', 20),
+    ('CARDIOVASCOLARE', 'Apparato Cardiovascolare', 30),
+    ('RESPIRATORIO', 'Apparato Respiratorio', 40),
+    ('ENDOCRINO', 'Apparato Endocrino-Metabolico', 50),
+    ('RENALE_EPATICO', 'Apparato Renale ed Epatico', 60),
+    ('GASTROINTESTINALE', 'Apparato Gastrointestinale', 70),
+    ('NEUROLOGICO', 'Apparato Neurologico', 80),
+    ('IMMUNO_ONCO_COAG', 'Immunologico, Oncologico e Coagulazione', 90),
+    ('CHIRURGIA', 'Chirurgia Pregressa', 100),
+    ('ABITUDINI', 'Abitudini di Vita e Parafunzioni', 110),
+    ('FATTORI_RISCHIO', 'Fattori di Rischio Odontoiatrico', 120),
+    ('COND_ORALI', 'Condizioni Croniche Odontoiatriche', 130),
+    ('GRAVIDANZA', 'Gravidanza e Stato Ormonale', 140),
+    ('PSICOLOGICO', 'Stato Psicologico e Comportamentale', 150);
+
+INSERT INTO t_9d754153.anamnesis_items (category_id, code, label, description, severity, sort_order) VALUES
+    -- ALLERGIE
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_PENICILLINA', 'Penicillina / Amoxicillina', 'Include tutte le betalattamine', 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ANESTETICI', 'Anestetici locali', 'Articaina, mepivacaina, lidocaina', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_LATEX', 'Lattice', NULL, 'grave', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_FANS', 'Aspirina / FANS', NULL, 'grave', 40),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_SULFAMIDICI', 'Sulfamidici', NULL, 'grave', 50),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_SOLFITI', 'Solfiti', 'Metabisolfito, stabilizzante dell''anestetico con vasocostrittore — distinto dai sulfamidici', 'grave', 60),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_CLOREXIDINA', 'Clorexidina', 'Uso quotidiano in collutori/gel — reazioni anafilattiche documentate', 'grave', 70),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ALTRI_ANTIBIOTICI', 'Altri antibiotici', 'Cefalosporine, clindamicina, macrolidi', 'grave', 80),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_BARBITURICI', 'Barbiturici / sedativi', 'Rilevante per sedazione cosciente', 'grave', 90),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_METALLI', 'Metalli', 'Nickel, oro, palladio, cromo-cobalto', 'normale', 100),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ACRILICI', 'Acrilici / resine', 'Metacrilato, protesi rimovibili', 'normale', 110),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_IODIO', 'Iodio / mezzi di contrasto', NULL, 'normale', 120),
+
+    -- FARMACI
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTICOAGULANTI', 'Anticoagulanti orali', 'TAO, NAO (warfarin, dabigatran, rivaroxaban, apixaban)', 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIAGGREGANTI', 'Antiaggreganti piastrinici', 'Aspirina, clopidogrel, ticagrelor', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_BISFOSFONATI', 'Bifosfonati', 'Alendronato, zoledronato — rischio MRONJ', 'grave', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_DENOSUMAB', 'Denosumab', 'Antiriassorbitivo anti-RANKL, stesso rischio MRONJ dei bifosfonati', 'grave', 40),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIANGIOGENETICI', 'Antiangiogenetici', 'Bevacizumab e simili — rientrano nella definizione MRONJ', 'grave', 50),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_CORTISONICI', 'Cortisonici sistemici', NULL, 'grave', 60),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_IMMUNOSOPPRESSORI', 'Immunosoppressori', 'Ciclosporina, azatioprina, metotrexato', 'grave', 70),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIDIABETICI', 'Antidiabetici orali / insulina', NULL, 'grave', 80),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIIPERTENSIVI', 'Antiipertensivi', 'Interazione con vasocostrittore in anestesia locale', 'grave', 90),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_GENGIVOIPERPLASTICI', 'Farmaci con rischio iperplasia gengivale', 'Fenitoina, ciclosporina, nifedipina', 'normale', 100),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_XEROSTOMIZZANTI', 'Farmaci xerostomizzanti', 'Antidepressivi, antistaminici, diuretici', 'normale', 110),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ALTRI', 'Altra terapia farmacologica in corso', NULL, 'normale', 120),
+
+    -- CARDIOVASCOLARE
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_ENDOCARDITE', 'Endocardite infettiva pregressa', 'Massimo rischio, profilassi antibiotica obbligatoria (ESC 2023)', 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_VALVOLARE', 'Protesi valvolare cardiaca', 'Profilassi antibiotica obbligatoria (ESC 2023 Classe I)', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_CONGENITA', 'Cardiopatia congenita', 'Non corretta o corretta con residui — profilassi obbligatoria', 'grave', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_PACEMAKER', 'Pacemaker / defibrillatore (ICD)', 'Non richiede profilassi endocardite, ma interferenza con elettrobisturi', 'grave', 40),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_FIBRILLAZIONE', 'Fibrillazione atriale', 'Gestione anticoagulanti/rischio emostatico', 'grave', 50),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_INFARTO', 'Infarto pregresso', NULL, 'grave', 60),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_ANGINA', 'Angina pectoris', NULL, 'grave', 70),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_SCOMPENSO', 'Scompenso cardiaco', 'Insufficienza cardiaca congestizia', 'grave', 80),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_BYPASS', 'Bypass / angioplastica coronarica', 'Gestione antiaggreganti/sanguinamento — non indicazione a profilassi endocardite', 'grave', 90),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_IPERTENSIONE', 'Ipertensione arteriosa', NULL, 'normale', 100),
+
+    -- RESPIRATORIO
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_ASMA', 'Asma bronchiale', NULL, 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_BPCO', 'BPCO', 'Broncopneumopatia cronica ostruttiva', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_APNEE', 'Apnee notturne', 'OSAS, rilevante per sedazione/postura', 'normale', 30),
+
+    -- ENDOCRINO
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE1', 'Diabete tipo 1', 'Insulino-dipendente', 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE2', 'Diabete tipo 2', 'Non insulino-dipendente', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE_NS', 'Diabete non specificato', 'Per triage rapido quando il tipo non è noto', 'grave', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_IPOTIROIDISMO', 'Ipotiroidismo', NULL, 'normale', 40),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_IPERTIROIDISMO', 'Ipertiroidismo', 'Morbo di Basedow o adenoma tossico', 'grave', 50),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_CUSHING', 'Sindrome di Cushing', 'Ipercortisolismo endogeno o iatrogeno', 'grave', 60),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_OSTEOPOROSI', 'Osteoporosi', 'Il rischio MRONJ è tracciato separatamente sui farmaci (FAR_BISFOSFONATI/FAR_DENOSUMAB)', 'normale', 70),
+
+    -- RENALE_EPATICO
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'REN_INSUFFICIENZA', 'Insufficienza renale cronica', 'IRC o dialisi', 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'EPA_EPATITE', 'Epatite B/C', 'Epatite virale cronica', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'EPA_CIRROSI', 'Cirrosi epatica', 'Rischio coagulativo differente dall''epatite semplice', 'grave', 30),
+
+    -- GASTROINTESTINALE
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_REFLUSSO', 'Reflusso gastroesofageo', NULL, 'normale', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_ULCERA', 'Ulcera peptica', 'Controindicazione relativa ai FANS', 'normale', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_CROHN', 'Morbo di Crohn', NULL, 'normale', 30),
+
+    -- NEUROLOGICO
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_EPILESSIA', 'Epilessia', NULL, 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_PARKINSON', 'Malattia di Parkinson', 'Gestione poltrona, tempi di trattamento, tremore', 'normale', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_SCLEROSI', 'Sclerosi multipla', NULL, 'normale', 30),
+
+    -- IMMUNO_ONCO_COAG
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_HIV', 'HIV / immunodeficienza', 'Alert per gestione clinica (farmaci, lesioni orali) — NON usare per vincoli di scheduling: le precauzioni universali si applicano a ogni paziente indipendentemente dallo stato noto', 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_ONCOLOGICA', 'Patologia oncologica in trattamento', 'Chemioterapia o radioterapia in corso', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_COAGULOPATIA', 'Disturbi della coagulazione', 'Voce generica — vedi anche emofilia/trombocitopenia per casi specifici', 'grave', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_EMOFILIA', 'Emofilia', NULL, 'grave', 40),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_TROMBOCITOPENIA', 'Trombocitopenia', NULL, 'grave', 50),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_RADIOTERAPIA_TESTA_COLLO', 'Radioterapia testa-collo pregressa', 'Rischio osteoradionecrosi, analogo a MRONJ', 'grave', 60),
+
+    -- CHIRURGIA
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_PROTESI_ARTICOLARI', 'Protesi articolari', 'Anca, ginocchio — dal 2024 AAOS allineato ADA: profilassi routinaria NON raccomandata nella maggioranza dei casi, valutazione caso per caso', 'normale', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_TRAPIANTO', 'Trapianto d''organo', 'Immunosoppressione, rischio infettivo', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_SPLENECTOMIA', 'Splenectomia / asplenia', 'Rischio infettivo (sepsi post-splenectomia) in procedure invasive', 'grave', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_ALTRO', 'Altri interventi chirurgici', NULL, 'normale', 40),
+
+    -- ABITUDINI
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_FUMATORE_ATTIVO', 'Fumatore attivo', 'Impatto su guarigione post-chirurgica e osteointegrazione implantare', 'normale', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_EX_FUMATORE', 'Ex fumatore', 'Rischio parodontale/oncologico residuo', 'normale', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_VAPING', 'Sigaretta elettronica / vaping', 'Xerostomia, infiammazione gengivale — voce distinta dal fumo tradizionale (ADA)', 'normale', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_ALCOL', 'Consumo regolare di alcolici', 'Più di 2 unità/giorno', 'normale', 40),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_DROGHE', 'Uso di sostanze', 'Interazione con vasocostrittori/anestesia', 'grave', 50),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_BRUXISMO', 'Bruxismo / digrignamento', NULL, 'normale', 60),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_ONICOFAGIA', 'Onicofagia / morsicatura labbra', NULL, 'normale', 70),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_PIERCING', 'Piercing orale', NULL, 'normale', 80),
+
+    -- FATTORI_RISCHIO
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'FATTORI_RISCHIO'), 'FTR_SPORT_AGONISTICO', 'Sportivo agonista', 'Rischio trauma dento-alveolare, indicazione a paradenti/bite — non è un''abitudine di vita', 'normale', 10),
+
+    -- COND_ORALI
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_SENSIBILITA', 'Sensibilità dentinale', NULL, 'normale', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_SANGUINAMENTO', 'Sanguinamento gengivale', NULL, 'normale', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_MOBILITA', 'Mobilità dentale', NULL, 'normale', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_ALITOSI', 'Alitosi cronica', NULL, 'normale', 40),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_ATM', 'Problemi ATM / dolore masticatorio', NULL, 'normale', 50),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_XEROSTOMIA', 'Secchezza orale', 'Xerostomia', 'normale', 60),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_AFTE', 'Afte ricorrenti', NULL, 'normale', 70),
+
+    -- GRAVIDANZA
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_GRAVIDANZA', 'Gravidanza in corso', 'Indicare il trimestre nelle note', 'grave', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_ALLATTAMENTO', 'Allattamento', NULL, 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_ORMONI', 'Terapia ormonale', 'Pillola, HRT', 'normale', 30),
+
+    -- PSICOLOGICO
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_ANSIA_STUDIO', 'Ansia da studio dentistico', NULL, 'normale', 10),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_FOBIA_AGHI', 'Fobia degli aghi', 'Belonefobia — impatta somministrazione anestesia', 'grave', 20),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_GAG_REFLEX', 'Riflesso del vomito accentuato', 'Difficoltà a tenere la bocca aperta a lungo', 'normale', 30),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_SEDAZIONE_PREGRESSA', 'Sedazione cosciente pregressa', NULL, 'normale', 40),
+    ((SELECT id FROM t_9d754153.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_ESPERIENZE_TRAUMATICHE', 'Esperienze odontoiatriche traumatiche pregresse', NULL, 'normale', 50);
+
+
+--
 -- Name: patient_diagnoses; Type: TABLE; Schema: t_9d754153; Owner: -
 --
 
@@ -3319,144 +3598,6 @@ CREATE VIEW t_9d754153.v_patient_estimates_summary AS
     e.created_at AS estimate_created_at
    FROM (t_9d754153.estimates e
      LEFT JOIN t_9d754153.patients p ON (((p.id = e.patient_id) AND (p.clinic_id = e.clinic_id))));
-
-
---
--- Data for Name: anamnesis_categories; Type: TABLE DATA; Schema: dentalcare; Owner: -
---
-
-COPY dentalcare.anamnesis_categories (id, code, name, description, icon, sort_order, enabled, created_at) FROM stdin;
-a1000000-0000-0000-0000-000000000001	ALLERGIE	Allergie & Reazioni	Allergie a farmaci, materiali e sostanze	warning	10	t	2026-05-06 13:36:02.017471+00
-a1000000-0000-0000-0000-000000000002	FARMACI	Farmaci in Uso	Terapie farmacologiche in corso	medication	20	t	2026-05-06 13:36:02.017471+00
-a1000000-0000-0000-0000-000000000003	PATOLOGIE	Patologie Sistemiche	Malattie sistemiche e condizioni croniche	favorite	30	t	2026-05-06 13:36:02.017471+00
-a1000000-0000-0000-0000-000000000004	CHIRURGIA	Interventi Chirurgici	Anamnesi chirurgica pregressa	healing	40	t	2026-05-06 13:36:02.017471+00
-a1000000-0000-0000-0000-000000000005	ABITUDINI	Abitudini Viziate	Fumo, alcol e abitudini para-funzionali	smoking_rooms	50	t	2026-05-06 13:36:02.017471+00
-a1000000-0000-0000-0000-000000000006	COND_ORALI	Condizioni Odontoiatriche	Sintomi e condizioni del cavo orale	dentistry	60	t	2026-05-06 13:36:02.017471+00
-a1000000-0000-0000-0000-000000000007	SINTOMI	Sintomi Attuali	Motivo della visita e sintomi in corso	personal_injury	70	t	2026-05-06 13:36:02.017471+00
-a1000000-0000-0000-0000-000000000008	ORMONI	Gravidanza & Stato Ormonale	Gravidanza, allattamento, terapia ormonale	pregnant_woman	80	t	2026-05-06 13:36:02.017471+00
-00000010-0000-0000-0000-000000000001	\N	Malattie Sistemiche	\N	medical_information	10	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000002	\N	Farmaci e Terapie	\N	medical_information	20	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000003	\N	Allergie	\N	medical_information	30	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000004	\N	Abitudini di Vita	\N	medical_information	40	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000005	\N	Apparato Cardiovascolare	\N	medical_information	50	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000006	\N	Apparato Respiratorio	\N	medical_information	60	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000007	\N	Apparato Gastrointestinale	\N	medical_information	70	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000008	\N	Apparato Endocrino	\N	medical_information	80	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000009	\N	Gravidanza e Ginecologia	\N	medical_information	90	t	2026-05-25 20:27:19.549879+00
-00000010-0000-0000-0000-000000000010	\N	Stato Psicologico	\N	medical_information	100	t	2026-05-25 20:27:19.549879+00
-\.
-
-
---
--- Data for Name: anamnesis_items; Type: TABLE DATA; Schema: dentalcare; Owner: -
---
-
-COPY dentalcare.anamnesis_items (id, category_id, code, label, description, is_alert, sort_order, enabled, created_at, has_detail) FROM stdin;
-b1000000-0000-0000-0001-000000000001	a1000000-0000-0000-0000-000000000001	ALLERG_PENICILLINA	Allergia a Penicillina / Amoxicillina	Include tutte le betalattamine	t	10	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0001-000000000002	a1000000-0000-0000-0000-000000000001	ALLERG_ANESTETICI	Allergia agli Anestetici Locali	Articaina, mepivacaina, lidocaina	t	20	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0001-000000000003	a1000000-0000-0000-0000-000000000001	ALLERG_LATEX	Allergia al Lattice	\N	t	30	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0001-000000000004	a1000000-0000-0000-0000-000000000001	ALLERG_ASPIRINA	Allergia ad Aspirina / FANS	\N	t	40	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0001-000000000005	a1000000-0000-0000-0000-000000000001	ALLERG_SULFAMIDICI	Allergia ai Sulfamidici	\N	f	50	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0001-000000000006	a1000000-0000-0000-0000-000000000001	ALLERG_NICKEL	Allergia al Nickel	\N	f	60	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0001-000000000007	a1000000-0000-0000-0000-000000000001	ALLERG_METACRILATO	Allergia al Metacrilato	Materiali da restauro / protesi	f	70	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0002-000000000001	a1000000-0000-0000-0000-000000000002	FARMACI_ANTICOAG	Anticoagulanti (TAO, EBPM, NAO)	Warfarin, Eparina, Dabigatran, Rivaroxaban	t	10	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0002-000000000002	a1000000-0000-0000-0000-000000000002	FARMACI_ANTIAGG	Antiaggreganti (Aspirina, Clopidogrel)	\N	t	20	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0002-000000000003	a1000000-0000-0000-0000-000000000002	FARMACI_BISFOSFONATI	Bifosfonati (Alendronato, Zolendronato)	Rischio ONJ - ONM	t	30	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0002-000000000004	a1000000-0000-0000-0000-000000000002	FARMACI_ANTIDIABT	Antidiabetici / Insulina	\N	f	40	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0002-000000000005	a1000000-0000-0000-0000-000000000002	FARMACI_ANTIIPERT	Antiipertensivi	\N	f	50	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0002-000000000006	a1000000-0000-0000-0000-000000000002	FARMACI_CORTISONICI	Cortisonici Sistemici	\N	t	60	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0002-000000000007	a1000000-0000-0000-0000-000000000002	FARMACI_IMMUNOSOPP	Immunosoppressori	\N	t	70	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0002-000000000008	a1000000-0000-0000-0000-000000000002	FARMACI_ALTRI	Altra terapia farmacologica in corso	\N	f	80	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000001	a1000000-0000-0000-0000-000000000003	PAT_IPERTENSIONE	Ipertensione Arteriosa	\N	f	10	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000002	a1000000-0000-0000-0000-000000000003	PAT_CARDIOPATIA	Cardiopatia / Patologie Cardiache	Valvole, pace-maker, infarto pregresso	t	20	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000003	a1000000-0000-0000-0000-000000000003	PAT_DIABETE	Diabete Mellito	\N	f	30	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000004	a1000000-0000-0000-0000-000000000003	PAT_ASMA	Asma Bronchiale / BPCO	\N	f	40	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000005	a1000000-0000-0000-0000-000000000003	PAT_EPATOPATIA	Epatopatia (Epatite, Cirrosi)	\N	t	50	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000006	a1000000-0000-0000-0000-000000000003	PAT_NEFROPATIA	Nefropatia / Insufficienza Renale	\N	t	60	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000007	a1000000-0000-0000-0000-000000000003	PAT_EPILESSIA	Epilessia	\N	t	70	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000008	a1000000-0000-0000-0000-000000000003	PAT_OSTEOPOROSI	Osteoporosi	\N	f	80	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000009	a1000000-0000-0000-0000-000000000003	PAT_COAGULOP	Disturbi della Coagulazione	\N	t	90	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000010	a1000000-0000-0000-0000-000000000003	PAT_IMMUNODEF	Immunodeficienza (HIV, terapie oncologiche)	\N	t	100	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000011	a1000000-0000-0000-0000-000000000003	PAT_ONCOLOGICA	Patologia Oncologica in trattamento	\N	t	110	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000012	a1000000-0000-0000-0000-000000000003	PAT_TIROIDEA	Patologia Tiroidea	\N	f	120	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0003-000000000013	a1000000-0000-0000-0000-000000000003	PAT_REFLUSSO	Reflusso Gastroesofageo	\N	f	130	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0004-000000000001	a1000000-0000-0000-0000-000000000004	CHIR_CARDIOCH	Cardiochirurgia / Valvole Cardiache	Profilassi antibiotica richiesta	t	10	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0004-000000000002	a1000000-0000-0000-0000-000000000004	CHIR_ENDOPROT	Protesi Articolari (Anca, Ginocchio)	\N	t	20	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0004-000000000003	a1000000-0000-0000-0000-000000000004	CHIR_BYPASS	Bypass / Angioplastica	\N	t	30	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0004-000000000004	a1000000-0000-0000-0000-000000000004	CHIR_TRAPIANTO	Trapianto d'Organo	\N	t	40	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0004-000000000005	a1000000-0000-0000-0000-000000000004	CHIR_ALTRO	Altri Interventi Chirurgici	\N	f	50	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0005-000000000001	a1000000-0000-0000-0000-000000000005	ABT_FUMO	Fumatore	\N	f	10	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0005-000000000002	a1000000-0000-0000-0000-000000000005	ABT_ALCOL	Consumo Alcolici	\N	f	20	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0005-000000000003	a1000000-0000-0000-0000-000000000005	ABT_DROGHE	Uso di Sostanze	\N	t	30	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0005-000000000004	a1000000-0000-0000-0000-000000000005	ABT_BRUXISMO	Bruxismo / Digrignamento	\N	f	40	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0005-000000000005	a1000000-0000-0000-0000-000000000005	ABT_ONICOFAGIA	Onicofagia / Morsicatura Labbra	\N	f	50	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0005-000000000006	a1000000-0000-0000-0000-000000000005	ABT_PIERCING	Piercing Orale	\N	f	60	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0006-000000000001	a1000000-0000-0000-0000-000000000006	COND_SENSIB	Sensibilità Dentinale	\N	f	10	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0006-000000000002	a1000000-0000-0000-0000-000000000006	COND_SANGU	Sanguinamento Gengivale	\N	f	20	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0006-000000000003	a1000000-0000-0000-0000-000000000006	COND_MOBIL	Mobilità Dentale	\N	f	30	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0006-000000000004	a1000000-0000-0000-0000-000000000006	COND_ALITOSI	Alitosi	\N	f	40	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0006-000000000005	a1000000-0000-0000-0000-000000000006	COND_APNEA	Apnea Notturna / Russamento	\N	f	50	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0006-000000000006	a1000000-0000-0000-0000-000000000006	COND_ATM	Problemi ATM / Dolore Masticatorio	\N	f	60	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0006-000000000007	a1000000-0000-0000-0000-000000000006	COND_XEROSTOMIA	Secchezza Orale (Xerostomia)	\N	f	70	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0006-000000000008	a1000000-0000-0000-0000-000000000006	COND_AFTE	Afte Ricorrenti	\N	f	80	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0007-000000000001	a1000000-0000-0000-0000-000000000007	SINT_DOLORE	Dolore Dentale	\N	f	10	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0007-000000000002	a1000000-0000-0000-0000-000000000007	SINT_GONFIORE	Gonfiore / Tumefazione	\N	t	20	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0007-000000000003	a1000000-0000-0000-0000-000000000007	SINT_FRATTURA	Dente Rotto / Fratturato	\N	f	30	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0007-000000000004	a1000000-0000-0000-0000-000000000007	SINT_CADUTA	Perdita di Otturazione / Corona	\N	f	40	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0007-000000000005	a1000000-0000-0000-0000-000000000007	SINT_SENSIB_TERM	Sensibilità al Caldo / Freddo	\N	f	50	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0007-000000000006	a1000000-0000-0000-0000-000000000007	SINT_URGENZA	Urgenza Odontogena	\N	t	60	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0008-000000000001	a1000000-0000-0000-0000-000000000008	GRAV_GRAVIDANZA	Gravidanza in Corso	Indicare il trimestre nelle note	t	10	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0008-000000000002	a1000000-0000-0000-0000-000000000008	GRAV_ALLATTAMENTO	Allattamento	\N	t	20	t	2026-05-06 13:36:02.017471+00	f
-b1000000-0000-0000-0008-000000000003	a1000000-0000-0000-0000-000000000008	GRAV_ORMONI	Terapia Ormonale (Pillola, HRT)	\N	f	30	t	2026-05-06 13:36:02.017471+00	f
-00000011-0000-0000-0000-000000000001	00000010-0000-0000-0000-000000000001	SIS_01	Ipertensione arteriosa	Pressione sistolica cronicamente elevata	f	10	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000002	00000010-0000-0000-0000-000000000001	SIS_02	Diabete di tipo 1	Diabete mellito insulino-dipendente	f	20	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000003	00000010-0000-0000-0000-000000000001	SIS_03	Diabete di tipo 2	Diabete mellito non insulino-dipendente	f	30	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000004	00000010-0000-0000-0000-000000000001	SIS_04	Cardiopatia	Malattia cardiaca di qualsiasi tipo	f	40	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000005	00000010-0000-0000-0000-000000000001	SIS_05	Epatite B/C	Epatite virale cronica B o C	f	50	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000006	00000010-0000-0000-0000-000000000001	SIS_06	HIV / AIDS	Sieropositivo o malattia conclamata	f	60	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000007	00000010-0000-0000-0000-000000000001	SIS_07	Osteoporosi	Riduzione della densita' ossea	f	70	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000008	00000010-0000-0000-0000-000000000001	SIS_08	Epilessia	Disturbo epilettico diagnosticato	f	80	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000009	00000010-0000-0000-0000-000000000001	SIS_09	Insufficienza renale	IRC o dialisi	f	90	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000010	00000010-0000-0000-0000-000000000001	SIS_10	Asma bronchiale	Asma diagnosticata o in terapia	f	100	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000011	00000010-0000-0000-0000-000000000002	FAR_01	Anticoagulanti orali	Warfarin, NAO (rivaroxaban, apixaban)	f	10	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000012	00000010-0000-0000-0000-000000000002	FAR_02	Antiaggreganti piastrinici	Aspirina, clopidogrel, ticagrelor	f	20	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000013	00000010-0000-0000-0000-000000000002	FAR_03	Bifosfonati	Alendronato, zoledronato e simili	f	30	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000014	00000010-0000-0000-0000-000000000002	FAR_04	Cortisonici	Steroidi sistemici (prednisone, desametasone)	f	40	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000015	00000010-0000-0000-0000-000000000002	FAR_05	Immunosoppressori	Ciclosporina, azatioprina, metotrexato	f	50	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000016	00000010-0000-0000-0000-000000000002	FAR_06	Antipertensivi	ACE-inibitori, sartani, beta-bloccanti	f	60	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000017	00000010-0000-0000-0000-000000000002	FAR_07	Insulina	Terapia insulinica per diabete	f	70	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000021	00000010-0000-0000-0000-000000000003	ALL_01	Penicillina / Amoxicillina	Allergia ad antibiotici betalattamici	f	10	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000022	00000010-0000-0000-0000-000000000003	ALL_02	Lattice	Allergia al lattice (guanti, presidi)	f	20	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000023	00000010-0000-0000-0000-000000000003	ALL_03	Anestetici locali	Lidocaina, articaina e simili	f	30	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000024	00000010-0000-0000-0000-000000000003	ALL_04	Aspirina / FANS	Ibuprofene, diclofenac, ketoprofene	f	40	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000025	00000010-0000-0000-0000-000000000003	ALL_05	Nichel	Allergia al nichel (metalli per protesi)	f	50	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000026	00000010-0000-0000-0000-000000000003	ALL_06	Metalli dentali	Allergia a oro, palladio, amalgama	f	60	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000027	00000010-0000-0000-0000-000000000003	ALL_07	Acrilici	Allergia a resine acriliche (protesi rimovibili)	f	70	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000031	00000010-0000-0000-0000-000000000004	ABT_01	Fumatore attivo	Fumo di sigaretta o sigaro	f	10	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000032	00000010-0000-0000-0000-000000000004	ABT_02	Ex fumatore	Ha smesso di fumare	f	20	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000033	00000010-0000-0000-0000-000000000004	ABT_03	Consumo regolare di alcolici	Piu' di 2 unita' alcoliche/giorno	f	30	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000034	00000010-0000-0000-0000-000000000004	ABT_04	Bruxismo	Digrignamento notturno o diurno	f	40	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000035	00000010-0000-0000-0000-000000000004	ABT_05	Sportivo agonista	Sport agonistici con rischio trauma	f	50	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000041	00000010-0000-0000-0000-000000000005	CAR_01	Pacemaker / ICD	Portatore di pacemaker o defibrillatore	f	10	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000042	00000010-0000-0000-0000-000000000005	CAR_02	Protesi valvolare cardiaca	Valvola meccanica o biologica	f	20	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000043	00000010-0000-0000-0000-000000000005	CAR_03	Infarto pregresso	Episodio infartuale nella storia clinica	f	30	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000044	00000010-0000-0000-0000-000000000005	CAR_04	Angina pectoris	Angina stabile o instabile	f	40	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000045	00000010-0000-0000-0000-000000000005	CAR_05	Insufficienza cardiaca	Scompenso cardiaco congestizio	f	50	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000051	00000010-0000-0000-0000-000000000006	RES_01	Asma bronchiale	In terapia con broncodilatatori	f	10	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000052	00000010-0000-0000-0000-000000000006	RES_02	BPCO	Broncopneumopatia cronica ostruttiva	f	20	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000053	00000010-0000-0000-0000-000000000006	RES_03	Apnee notturne	OSAS con o senza CPAP	f	30	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000061	00000010-0000-0000-0000-000000000007	GAS_01	Reflusso gastroesofageo	GERD in terapia o sintomatico	f	10	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000062	00000010-0000-0000-0000-000000000007	GAS_02	Ulcera peptica	Ulcera gastrica o duodenale	f	20	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000063	00000010-0000-0000-0000-000000000007	GAS_03	Morbo di Crohn	Malattia infiammatoria intestinale	f	30	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000071	00000010-0000-0000-0000-000000000008	END_01	Ipotiroidismo	Tiroidite cronica o ipotiroidismo idiopatico	f	10	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000072	00000010-0000-0000-0000-000000000008	END_02	Ipertiroidismo	Morbo di Basedow o adenoma tossico	f	20	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000073	00000010-0000-0000-0000-000000000008	END_03	Sindrome di Cushing	Ipercortisolismo endogeno o iatrogeno	f	30	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000081	00000010-0000-0000-0000-000000000009	GRA_01	Gravidanza in corso	Specificare trimestre	f	10	t	2026-05-25 20:27:19.549879+00	t
-00000011-0000-0000-0000-000000000082	00000010-0000-0000-0000-000000000009	GRA_02	Allattamento	Periodo di allattamento al seno	f	20	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000091	00000010-0000-0000-0000-000000000010	PSI_01	Ansia da studio dentistico	Ansia clinicamente significativa	f	10	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000092	00000010-0000-0000-0000-000000000010	PSI_02	Fobia degli aghi	Belonefobia / fobia iniezioni	f	20	t	2026-05-25 20:27:19.549879+00	f
-00000011-0000-0000-0000-000000000093	00000010-0000-0000-0000-000000000010	PSI_03	Claustrofobia	Difficolta' con bocca aperta / dentale chiuso	f	30	t	2026-05-25 20:27:19.549879+00	f
-\.
 
 
 --
