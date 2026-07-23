@@ -25,3 +25,15 @@ export interface SaveAnamnesisRequest {
   bloodType: string | null;
   generalNotes: string | null;
 }
+
+export interface AnamnesisDiffItem {
+  code: string;
+  label: string;
+  severity: 'normale' | 'grave' | 'severa';
+}
+
+export interface AnamnesisDiff {
+  newItems: AnamnesisDiffItem[];
+  resolvedItems: AnamnesisDiffItem[];
+  unchangedItems: AnamnesisDiffItem[];
+}

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AnamnesisCategoryDto, SaveAnamnesisRequest } from '../models/anamnesis.model';
+import { AnamnesisCategoryDto, AnamnesisDiff, SaveAnamnesisRequest } from '../models/anamnesis.model';
 
 @Injectable({ providedIn: 'root' })
 export class AnamnesisService {
@@ -13,5 +13,9 @@ export class AnamnesisService {
 
   saveAnamnesis(patientId: string, request: SaveAnamnesisRequest): Observable<void> {
     return this.http.put<void>(`/api/patients/${patientId}/anamnesis`, request);
+  }
+
+  getDiff(patientId: string): Observable<AnamnesisDiff> {
+    return this.http.get<AnamnesisDiff>(`/api/patients/${patientId}/anamnesis/diff`);
   }
 }
