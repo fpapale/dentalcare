@@ -674,6 +674,33 @@ CREATE TABLE patient_anamnesis_item_selections (
     recorded_by_provider_id uuid
 );
 
+CREATE TABLE anamnesis_categories (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    code text,
+    name text NOT NULL,
+    description text,
+    icon text DEFAULT 'medical_information'::text NOT NULL,
+    sort_order integer DEFAULT 100 NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT anamnesis_categories_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
+);
+
+CREATE TABLE anamnesis_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    category_id uuid NOT NULL,
+    code text NOT NULL,
+    label text NOT NULL,
+    description text,
+    severity text DEFAULT 'normale'::text NOT NULL,
+    sort_order integer DEFAULT 100 NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    has_detail boolean DEFAULT false NOT NULL,
+    CONSTRAINT anamnesis_items_label_not_empty CHECK ((length(TRIM(BOTH FROM label)) > 0)),
+    CONSTRAINT anamnesis_items_severity_check CHECK ((severity = ANY (ARRAY['normale'::text, 'grave'::text, 'severa'::text])))
+);
+
 CREATE TABLE patient_diagnoses (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     clinic_id uuid NOT NULL,
@@ -1222,6 +1249,24 @@ ALTER TABLE ONLY patient_anamnesis_item_selections
 ALTER TABLE ONLY patient_anamnesis_item_selections
     ADD CONSTRAINT patient_anamnesis_item_selections_unique UNIQUE (clinic_id, patient_id, item_id);
 
+ALTER TABLE ONLY anamnesis_categories
+    ADD CONSTRAINT anamnesis_categories_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY anamnesis_categories
+    ADD CONSTRAINT anamnesis_categories_code_unique UNIQUE (code);
+
+ALTER TABLE ONLY anamnesis_categories
+    ADD CONSTRAINT ux_anamnesis_categories_name UNIQUE (name);
+
+ALTER TABLE ONLY anamnesis_items
+    ADD CONSTRAINT anamnesis_items_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY anamnesis_items
+    ADD CONSTRAINT anamnesis_items_code_unique UNIQUE (code);
+
+ALTER TABLE ONLY anamnesis_items
+    ADD CONSTRAINT anamnesis_items_category_id_fkey FOREIGN KEY (category_id) REFERENCES anamnesis_categories(id) ON DELETE CASCADE;
+
 ALTER TABLE ONLY patient_anamnesis
     ADD CONSTRAINT patient_anamnesis_pkey PRIMARY KEY (id);
 
@@ -1395,6 +1440,12 @@ CREATE INDEX ix_odontogram_patient_tooth ON odontogram_teeth USING btree (clinic
 CREATE INDEX ix_patient_anamnesis_patient_current ON patient_anamnesis USING btree (clinic_id, patient_id, is_current, recorded_at DESC);
 
 CREATE INDEX ix_patient_anamnesis_selections_patient ON patient_anamnesis_item_selections USING btree (clinic_id, patient_id);
+
+CREATE INDEX ix_anamnesis_categories_sort ON anamnesis_categories USING btree (sort_order, code) WHERE (enabled = true);
+
+CREATE INDEX ix_anamnesis_items_category ON anamnesis_items USING btree (category_id, sort_order);
+
+CREATE INDEX ix_anamnesis_items_category_sort ON anamnesis_items USING btree (category_id, sort_order) WHERE (enabled = true);
 
 CREATE INDEX ix_patient_documents_patient_type ON patient_documents USING btree (clinic_id, patient_id, document_type, taken_at DESC);
 
@@ -1664,7 +1715,7 @@ ALTER TABLE ONLY patient_anamnesis_item_selections
     ADD CONSTRAINT patient_anamnesis_item_selections_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY patient_anamnesis_item_selections
-    ADD CONSTRAINT patient_anamnesis_item_selections_item_id_fkey FOREIGN KEY (item_id) REFERENCES dentalcare.anamnesis_items(id) ON DELETE CASCADE;
+    ADD CONSTRAINT patient_anamnesis_item_selections_item_id_fkey FOREIGN KEY (item_id) REFERENCES anamnesis_items(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY patient_documents
     ADD CONSTRAINT patient_documents_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE;
@@ -2567,6 +2618,43 @@ CREATE TABLE t_9d754153.patient_anamnesis_item_selections (
     recorded_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     recorded_by_provider_id uuid
+);
+
+
+--
+-- Name: anamnesis_categories; Type: TABLE; Schema: t_9d754153; Owner: -
+--
+
+CREATE TABLE t_9d754153.anamnesis_categories (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    code text,
+    name text NOT NULL,
+    description text,
+    icon text DEFAULT 'medical_information'::text NOT NULL,
+    sort_order integer DEFAULT 100 NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT t_9d754153_anamnesis_categories_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
+);
+
+
+--
+-- Name: anamnesis_items; Type: TABLE; Schema: t_9d754153; Owner: -
+--
+
+CREATE TABLE t_9d754153.anamnesis_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    category_id uuid NOT NULL,
+    code text NOT NULL,
+    label text NOT NULL,
+    description text,
+    severity text DEFAULT 'normale'::text NOT NULL,
+    sort_order integer DEFAULT 100 NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    has_detail boolean DEFAULT false NOT NULL,
+    CONSTRAINT t_9d754153_anamnesis_items_label_not_empty CHECK ((length(TRIM(BOTH FROM label)) > 0)),
+    CONSTRAINT t_9d754153_anamnesis_items_severity_check CHECK ((severity = ANY (ARRAY['normale'::text, 'grave'::text, 'severa'::text])))
 );
 
 
@@ -5741,6 +5829,54 @@ ALTER TABLE ONLY t_9d754153.patient_anamnesis_item_selections
 
 
 --
+-- Name: anamnesis_categories t_9d754153_anamnesis_categories_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.anamnesis_categories
+    ADD CONSTRAINT t_9d754153_anamnesis_categories_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: anamnesis_categories t_9d754153_anamnesis_categories_code_unique; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.anamnesis_categories
+    ADD CONSTRAINT t_9d754153_anamnesis_categories_code_unique UNIQUE (code);
+
+
+--
+-- Name: anamnesis_categories t_9d754153_ux_anamnesis_categories_name; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.anamnesis_categories
+    ADD CONSTRAINT t_9d754153_ux_anamnesis_categories_name UNIQUE (name);
+
+
+--
+-- Name: anamnesis_items t_9d754153_anamnesis_items_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.anamnesis_items
+    ADD CONSTRAINT t_9d754153_anamnesis_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: anamnesis_items t_9d754153_anamnesis_items_code_unique; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.anamnesis_items
+    ADD CONSTRAINT t_9d754153_anamnesis_items_code_unique UNIQUE (code);
+
+
+--
+-- Name: anamnesis_items t_9d754153_anamnesis_items_category_id_fkey; Type: FK CONSTRAINT; Schema: t_9d754153; Owner: -
+--
+
+ALTER TABLE ONLY t_9d754153.anamnesis_items
+    ADD CONSTRAINT t_9d754153_anamnesis_items_category_id_fkey FOREIGN KEY (category_id) REFERENCES t_9d754153.anamnesis_categories(id) ON DELETE CASCADE;
+
+
+--
 -- Name: patient_anamnesis patient_anamnesis_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
 --
 
@@ -6322,6 +6458,27 @@ CREATE INDEX ix_patient_anamnesis_patient_current ON t_9d754153.patient_anamnesi
 --
 
 CREATE INDEX ix_patient_anamnesis_selections_patient ON t_9d754153.patient_anamnesis_item_selections USING btree (clinic_id, patient_id);
+
+
+--
+-- Name: t_9d754153_ix_anamnesis_categories_sort; Type: INDEX; Schema: t_9d754153; Owner: -
+--
+
+CREATE INDEX t_9d754153_ix_anamnesis_categories_sort ON t_9d754153.anamnesis_categories USING btree (sort_order, code) WHERE (enabled = true);
+
+
+--
+-- Name: t_9d754153_ix_anamnesis_items_category; Type: INDEX; Schema: t_9d754153; Owner: -
+--
+
+CREATE INDEX t_9d754153_ix_anamnesis_items_category ON t_9d754153.anamnesis_items USING btree (category_id, sort_order);
+
+
+--
+-- Name: t_9d754153_ix_anamnesis_items_category_sort; Type: INDEX; Schema: t_9d754153; Owner: -
+--
+
+CREATE INDEX t_9d754153_ix_anamnesis_items_category_sort ON t_9d754153.anamnesis_items USING btree (category_id, sort_order) WHERE (enabled = true);
 
 
 --
@@ -7163,7 +7320,7 @@ ALTER TABLE ONLY t_9d754153.patient_anamnesis_item_selections
 --
 
 ALTER TABLE ONLY t_9d754153.patient_anamnesis_item_selections
-    ADD CONSTRAINT patient_anamnesis_item_selections_item_id_fkey FOREIGN KEY (item_id) REFERENCES dentalcare.anamnesis_items(id) ON DELETE CASCADE;
+    ADD CONSTRAINT patient_anamnesis_item_selections_item_id_fkey FOREIGN KEY (item_id) REFERENCES t_9d754153.anamnesis_items(id) ON DELETE CASCADE;
 
 
 --
