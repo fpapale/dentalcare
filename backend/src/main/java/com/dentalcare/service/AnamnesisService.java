@@ -1,6 +1,7 @@
 package com.dentalcare.service;
 
 import com.dentalcare.dto.AnamnesisCategoryDto;
+import com.dentalcare.dto.AnamnesisDiffDto;
 import com.dentalcare.dto.AnamnesisItemDto;
 import com.dentalcare.dto.SaveAnamnesisRequest;
 import com.dentalcare.security.TenantContext;
@@ -9,7 +10,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AnamnesisService {
@@ -205,6 +208,77 @@ public class AnamnesisService {
                         .addValue("patientId", patientId)
                         .addValue("bloodType", request.bloodType())
                         .addValue("generalNotes", request.generalNotes()));
+    }
+
+    /**
+     * Confronta le voci di anamnesi attive ora con quelle attive all'ultimo punto nel tempo,
+     * precedente a ora, in cui qualcosa e' cambiato (una voce e' diventata attiva o e' stata
+     * risolta). "Punto di cambiamento" = valore distinto tra tutti i recorded_at e resolved_at
+     * non nulli della cronologia del paziente: il piu' recente rappresenta "ora", il secondo piu'
+     * recente rappresenta l'ultima visita precedente da usare come confronto.
+     * <p>
+     * Se il paziente non ha mai avuto un'anamnesi registrata, o ne ha avuta una sola (nessun
+     * punto di cambiamento precedente disponibile), non esiste un "prima" con cui confrontare:
+     * tutte le voci attualmente attive vengono riportate come "nuove" rispetto al nulla, e le
+     * altre due liste sono vuote.
+     */
+    @Transactional(readOnly = true)
+    public AnamnesisDiffDto getDiffSinceLastVisit(UUID patientId) {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+
+        List<OffsetDateTime> changePoints = jdbc.queryForList("""
+            SELECT DISTINCT change_at FROM (
+                SELECT recorded_at AS change_at FROM %s.patient_anamnesis_item_selections
+                WHERE clinic_id = :clinicId AND patient_id = :patientId
+                UNION
+                SELECT resolved_at AS change_at FROM %s.patient_anamnesis_item_selections
+                WHERE clinic_id = :clinicId AND patient_id = :patientId AND resolved_at IS NOT NULL
+            ) t
+            ORDER BY change_at DESC
+            """.formatted(s(), s()),
+            new MapSqlParameterSource().addValue("clinicId", clinicId).addValue("patientId", patientId),
+            OffsetDateTime.class);
+
+        if (changePoints.size() < 2) {
+            List<AnamnesisDiffDto.AnamnesisDiffItem> allActive = activeItemsAt(patientId, clinicId, null);
+            return new AnamnesisDiffDto(allActive, List.of(), List.of());
+        }
+
+        OffsetDateTime previousVisitAt = changePoints.get(1);
+        List<AnamnesisDiffDto.AnamnesisDiffItem> activeNow = activeItemsAt(patientId, clinicId, null);
+        List<AnamnesisDiffDto.AnamnesisDiffItem> activeBefore = activeItemsAt(patientId, clinicId, previousVisitAt);
+
+        Set<String> codesNow = activeNow.stream().map(AnamnesisDiffDto.AnamnesisDiffItem::code).collect(Collectors.toSet());
+        Set<String> codesBefore = activeBefore.stream().map(AnamnesisDiffDto.AnamnesisDiffItem::code).collect(Collectors.toSet());
+
+        List<AnamnesisDiffDto.AnamnesisDiffItem> newItems = activeNow.stream()
+                .filter(i -> !codesBefore.contains(i.code())).toList();
+        List<AnamnesisDiffDto.AnamnesisDiffItem> resolvedItems = activeBefore.stream()
+                .filter(i -> !codesNow.contains(i.code())).toList();
+        List<AnamnesisDiffDto.AnamnesisDiffItem> unchangedItems = activeNow.stream()
+                .filter(i -> codesBefore.contains(i.code())).toList();
+
+        return new AnamnesisDiffDto(newItems, resolvedItems, unchangedItems);
+    }
+
+    /** Voci attive al momento asOf (o ora, se null): recorded_at <= asOf AND (resolved_at IS NULL OR resolved_at > asOf). */
+    private List<AnamnesisDiffDto.AnamnesisDiffItem> activeItemsAt(UUID patientId, UUID clinicId, OffsetDateTime asOf) {
+        String timeFilter = asOf != null
+                ? "AND s.recorded_at <= :asOf AND (s.resolved_at IS NULL OR s.resolved_at > :asOf)"
+                : "AND s.resolved_at IS NULL";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("clinicId", clinicId).addValue("patientId", patientId);
+        if (asOf != null) params.addValue("asOf", asOf);
+        return jdbc.query("""
+            SELECT ai.code, ai.label, ai.severity
+            FROM %s.patient_anamnesis_item_selections s
+            JOIN %s.anamnesis_items ai ON ai.id = s.item_id
+            WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId
+            %s
+            """.formatted(s(), s(), timeFilter),
+            params,
+            (rs, n) -> new AnamnesisDiffDto.AnamnesisDiffItem(
+                    rs.getString("code"), rs.getString("label"), rs.getString("severity")));
     }
 
     private List<AnamnesisCategoryDto> buildCategoryList(List<Map<String, Object>> rows) {

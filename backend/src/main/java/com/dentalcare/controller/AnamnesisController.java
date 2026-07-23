@@ -1,6 +1,7 @@
 package com.dentalcare.controller;
 
 import com.dentalcare.dto.AnamnesisCategoryDto;
+import com.dentalcare.dto.AnamnesisDiffDto;
 import com.dentalcare.dto.SaveAnamnesisRequest;
 import com.dentalcare.service.AnamnesisService;
 import jakarta.validation.Valid;
@@ -23,6 +24,11 @@ public class AnamnesisController {
     @GetMapping
     public List<AnamnesisCategoryDto> getAnamnesis(@PathVariable UUID patientId) {
         return anamnesisService.getPatientAnamnesis(patientId);
+    }
+
+    @GetMapping("/diff")
+    public AnamnesisDiffDto getDiff(@PathVariable UUID patientId) {
+        return anamnesisService.getDiffSinceLastVisit(patientId);
     }
 
     @PutMapping
