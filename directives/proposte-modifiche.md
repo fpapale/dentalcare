@@ -46,6 +46,15 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 37 | Combo impersonazione demo legata all'account demo, non allo schema del tenant | Basso (~2 ore) | **Fatta (dev) — 20/07** |
 | — | Landing/area pubblica allineata al business plan (prezzi, roadmap Fase 1/2, Giulia, logo unico, self-service Essential) | Medio | **Fatta (dev) — 20-21/07** |
 | 38 | Odontogramma AI: marcature editabili/eliminabili dal medico + rilascio su delete RX | Medio (~½ giornata) | **Fatta (dev) — 22/07** |
+| 39 | Assistente Vocale “Hands-Free” da Poltrona (Chairside Agent) — hotword “Ehi Giulia” | Alto (~43-69 gg-agente; 4-5 settimane con 3 agenti) | **Inclusa in Fase 1 — pianificata** |
+| 40 | MinIO — separazione root per ambiente (Dev / Coll / Prod) | Medio (~1 giornata + finestra migrazione prod) | Proposta |
+| 41 | Script di installazione per ambiente COLLAUDO (nuovo container Docker) | Medio (~1 giornata) | Proposta |
+| 42 | Visibilità dati clinici per ruolo: igienista/dentista/chirurgo/ortodontista vedono tutti i pazienti | Medio (~1 giornata) | Proposta |
+| 43 | Anamnesi: severità a 3 livelli (Normale/Grave/Severa) + collegamento reale agli alert clinici + vincolo appuntamento fine giornata | Alto (~2-2.5 giornate) | **Confermata (23/07/2026)** |
+| 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | Proposta |
+| 45 | Odontogramma: pannello a tutta larghezza, legenda leggibile | Basso-Medio (~½-1 giornata) | **Fatta (dev) — 23/07 (core)** |
+
+> **Priorità richiesta dal committente (23/07/2026):** #42 → #43 → #44 → #45 vanno pianificate/eseguite **prima** di #40 e #41.
 
 ---
 
@@ -213,8 +222,13 @@ Ordine di esecuzione (le voci mappano su interventi già dettagliati sotto e neg
 | **2** | **Enforcement ruoli lato server** (segreteria non vede clinico) | #24 + intervento 3 · Sprint 1.3 | 2-4h | Dipende dal #1 per il log del negato. Oggi `SecurityConfig` protegge solo `/admin` e `/tenant-admin`: le rotte cliniche sono solo `authenticated` |
 | **3** | **Finalizzazione note + addendum** e **consensi versionati** | #18 Blocco 1-2 · Sprint 1.2 / 2.2 | 8-14h | Cuore probatorio. **Non one-shot da agente**: decisioni medico-legali (hash, immutabilità, stati, versioning). Serve `/brainstorming` prima |
 | **4** | **MFA** + **export paziente art. 15** | Sprint 3.1 / 3.2 | 5-8h | Isolate, parallelizzabili mentre si progetta il #3 |
+| **5** | **Fondazioni Copilot vocale**: conversazione condivisa, policy e impostazioni | #39 Blocchi A-B | 11-18 gg BE + 17-26 gg FE + 15-25 gg QA per l'intero #39 | Può partire in parallelo al #3 dopo che contratti di audit e autorizzazione di #1-2 sono stabili; feature flag disabilitato |
+| **6** | **Vertical slice voce**: push-to-talk, STT, TTS e hotword locale | #39 Blocchi C-E | incluso nella stima #39 | Prima su dati fittizi e funzioni di lettura/navigazione; nessuna scrittura clinica |
+| **7** | **Dettatura clinica controllata e pilota Chairside** | #39 Blocchi F-G | incluso nella stima #39 | Solo dopo #1, #2, finalizzazione/addendum applicabile, chiusura #20, DPIA/fornitore e gate di go-live; revisione trascrizione e conferma dell'azione restano due gate distinti |
 
-**Totale debito dev Fase 1: ~19-33h agente · ~5-9h di tua review · ~9-16 settimane equiv. team umano.** Coerente con `piano-lungo-termine.md` §2 ("settimane, non mesi").
+**Effort aggiuntivo #39 in Fase 1:** **~43-69 giornate-agente** complessive; con tre agenti dedicati e lavoro parallelo, **~4-5 settimane calendario** incluso il pilota controllato. Questa stima si aggiunge al debito preesistente della Fase 1 e non modifica i gate normativi.
+
+**Totale debito dev preesistente Fase 1:** ~19-33h agente · ~5-9h di tua review · ~9-16 settimane equiv. team umano. Coerente con `piano-lungo-termine.md` §2 ("settimane, non mesi").
 
 Fuori da questi 4 ma parte del gate (non-codice, terzi/tuoi): DPIA, DPA fornitori, informative, AI literacy, contratto deployer, restore test, pen test. Vedi il gate completo in `piano-lungo-termine.md` §5.
 
@@ -296,7 +310,7 @@ Effort in taglie (S ≤ 1 settimana agente · M ≤ 1 mese · L > 1 mese) — **
 
 | Rilascio | Blocchi | Interventi | Effort agente | Vincolo reale |
 |---|---|---|--:|---|
-| **Fase 1 — go-live gennaio 2027** | 1 + 2 + 3 | 1-14 (+ report accessi) | **~66-90h** (solo #18) | **non il codice**: DPIA/DPA/contratti/pen test → ingaggio DPO entro **fine agosto 2026** |
+| **Fase 1 — go-live gennaio 2027** | 1 + 2 + 3 + #39 | 1-14 (+ report accessi) + Chairside Agent | **~66-90h** per #18 + **43-69 gg-agente** per #39 | **non il codice**: DPIA/DPA/contratti/pen test → ingaggio DPO entro **fine agosto 2026**; voce attivabile solo con pilota verde |
 | **Post-Fase 1** | 4 | 15-24 | mesi | mercato (19, 22) · terzi (16, 17, 20, 24) |
 | **Fase 2 — CE 2029** | — | vedi #22 | ~24 mesi | apertura solo se la Fase 1 vende (`piano-lungo-termine.md` §6.1) |
 
@@ -1726,3 +1740,639 @@ Viola la regola già data: *"install.sql deve rispecchiare il DB — rigenerarlo
 - **#29 e #23 sono lo stesso blocco:** la riga di seed che diverge dalla prod è anche quella che pubblica la password. Rigenerare il seed **dopo** aver ruotato (#23) e con l'hash sostituito da un placeholder chiude entrambi.
 
 **Da fare (ordine):** 1) ruotare la password (#23) → 2) `pg_dump --data-only` dello schema demo di prod con l'hash → placeholder → 3) sostituire il blocco seed in `install.sql`. Passi 2-3 richiedono l'accesso al DB prod (read/write **bloccati al classifier per l'agente**: li lancia il committente). Resta la decisione: **seed o prod come fonte di verità?** Oggi non lo è nessuno dei due.
+
+---
+
+## 39. Assistente Vocale “Hands-Free” da Poltrona (Chairside Agent)
+
+**Stato:** Confermata — inclusa nella Fase 1 del progetto; progettazione e piano approvati, sviluppo non avviato
+
+**Data proposta:** 2026-07-22
+
+**Impatto:** Alto (~43-69 giornate-agente; ~4-5 settimane calendario con tre agenti dedicati per l'MVP clinico; ~6-10 settimane per una versione estesa e irrobustita)
+**Valore atteso:** Alto — riduce interruzioni, contatto con tastiera/mouse e tempi di documentazione durante la seduta
+
+### Obiettivo
+
+Consentire al medico di interagire con DentalCare Pro a mani libere tramite la hotword **“Ehi Giulia”**, senza rompere la sterilità clinica. Casi d'uso iniziali:
+
+- dettare una nota clinica e rileggerla prima del salvataggio;
+- interrogare anamnesi, allergie, farmaci, diagnosi e ultime visite del paziente già aperto;
+- aprire o proiettare l'ultima radiografia o uno specifico documento;
+- navigare fra le sezioni della cartella e controllare la visualizzazione;
+- avviare un timer o creare un promemoria non clinico.
+
+### Valutazione
+
+**Raccomandazione: approvare come sperimentazione controllata, non come automazione clinica autonoma.** La feature è coerente con il Copilot esistente e può differenziare nettamente il prodotto, ma l'ambiente odontoiatrico è acusticamente difficile (aspiratore, turbina, mascherina, conversazioni) e un riconoscimento errato può produrre conseguenze cliniche o mostrare dati del paziente sbagliato.
+
+| Dimensione | Valutazione | Nota |
+|---|---|---|
+| Valore per il medico | **Alto** | Evita cambi guanti e interrompe meno il flusso operativo |
+| Fattibilità tecnica | **Medio-alta** | Riusa API, Copilot e tool applicativi; wake word e audio richiedono un client dedicato |
+| Rischio clinico/privacy | **Alto** | Audio e trascrizioni contengono dati sanitari; il contesto paziente deve essere inequivocabile |
+| Affidabilità in studio | **Media** | Va misurata sul campo con rumore reale e microfono direzionale |
+| Complessità MVP | **Alta** | Voce realtime, autorizzazioni, conferme, audit, UI e fallback manuale |
+
+Il beneficio maggiore non viene dal “parlare con un chatbot”, ma da pochi comandi affidabili e contestuali. Per questo l'MVP deve privilegiare un vocabolario operativo ristretto e azioni deterministiche; il linguaggio libero resta utile per dettatura e domande in sola lettura.
+
+### Soluzione proposta
+
+#### 1. Client Chairside locale
+
+Un'app/PWA installata sul PC della poltrona gestisce microfono, indicatore visivo e stato della sessione. La wake word viene rilevata **localmente**: prima di “Ehi Giulia” nessun audio lascia il dispositivo. Dopo l'attivazione, il client acquisisce solo la singola richiesta, mostra chiaramente che il microfono è attivo e termina per silenzio, comando “annulla” o timeout breve.
+
+Requisiti hardware consigliati: microfono direzionale o array USB vicino al monitor; evitare come configurazione certificata il microfono ambientale del portatile.
+
+#### 2. Pipeline vocale separata dal ragionamento
+
+```text
+Wake word locale
+  → Voice Gateway autenticato (sessione, tenant, utente, poltrona)
+  → Speech-to-Text con vocabolario odontoiatrico
+  → Intent Router / Copilot
+  → Tool applicativo autorizzato lato server
+  → risposta UI + sintesi vocale breve
+```
+
+Il modello non chiama direttamente database o frontend. Ogni comando viene tradotto in un **intent tipizzato** (`READ_ANAMNESIS`, `DRAFT_NOTE`, `OPEN_DOCUMENT`, ecc.) ed eseguito attraverso i tool/API di DentalCare Pro, con autorizzazione server-side derivata dal JWT e dal tenant. Il testo riconosciuto dal modello non può scegliere tenant, utente o paziente.
+
+#### 3. Contesto paziente sicuro
+
+Il Chairside Agent opera solo sul paziente già selezionato nell'interfaccia e annuncia un riferimento minimo prima di leggere o modificare dati, per esempio: “Paziente Mario R., confermi?”. Il cambio paziente via voce non è previsto nell'MVP.
+
+Per evitare divulgazioni accidentali, le risposte vocali sono sintetiche (“rilevata un'allergia, dettagli a schermo”); i dati sensibili completi vengono mostrati sul monitor e non letti ad alta voce per impostazione predefinita.
+
+#### 4. Regole di conferma
+
+| Classe | Esempi | Comportamento |
+|---|---|---|
+| Navigazione | apri radiografia, vai all'anamnesi, zoom | Esecuzione immediata, annullabile |
+| Lettura | allergie, ultima visita, farmaci | Risposta immediata con contesto paziente visibile |
+| Bozza | detta nota, prepara prescrizione | Crea anteprima; nessun dato clinico definitivo |
+| Scrittura clinica | salva nota, aggiorna anamnesi/odontogramma | **Conferma esplicita** e audit prima del commit |
+| Azione ad alto rischio | firma/finalizza, prescrive, elimina, cambia paziente | Esclusa dall'MVP o conferma manuale a schermo |
+
+La conferma deve riferirsi a una sola azione e includere un riepilogo; non va riutilizzato un generico `confirmAction` che possa confermare l'anteprima sbagliata (vedi #20).
+
+#### 5. Privacy, sicurezza e audit
+
+- opt-in per studio e per postazione, con informativa e procedura operativa per il paziente;
+- audio non conservato per default; trascrizione temporanea con retention minima configurabile;
+- cifratura in transito e a riposo, isolamento per tenant e divieto di PHI nei log tecnici;
+- audit di attivazione, trascrizione normalizzata, intent, tool invocato, utente, paziente, esito e conferma, senza salvare più contenuto del necessario;
+- pulsante/mute fisico e comando “Giulia, annulla”; indicatore visivo sempre percepibile;
+- timeout, rate limit, protezione da replay e associazione della sessione alla postazione autorizzata;
+- valutazione DPIA, fornitore STT/TTS, localizzazione dei dati e accordi di trattamento prima del pilota su pazienti reali.
+
+### Collocazione nella Fase 1 e ordine di sviluppo
+
+La funzionalità #39 è parte della **Fase 1 generale del progetto**, ma non precede le fondamenta cliniche e di sicurezza. L'ordine vincolante è:
+
+1. audit clinico append-only (#18) e autorizzazioni server-side (#24);
+2. chiusura del difetto di conferma #20 e stabilizzazione dei contratti Copilot;
+3. conversazione Copilot condivisa, policy studio e impostazioni voce/lingua, dietro feature flag;
+4. push-to-talk, STT e pannello globale in sola lettura su dati fittizi;
+5. TTS configurabile e hotword locale “Ehi Giulia”;
+6. revisione della dettatura clinica e doppio gate di conferma, integrati con finalizzazione/addendum;
+7. test avversi, DPIA/valutazione fornitore e pilota controllato su una postazione;
+8. abilitazione nel go-live Fase 1 solo al superamento dei criteri del pilota; in caso contrario il resto della Fase 1 resta rilasciabile con `enabled=false`.
+
+Le attività 3-5 possono avanzare in parallelo al completamento del modello clinico, purché usino dati fittizi e non abilitino scritture. Le attività 6-8 dipendono invece dai gate clinici e normativi.
+
+### Stima con tre agenti dedicati
+
+| Flusso | Ambito prevalente | Effort | Carico indicativo |
+|---|---|---:|---|
+| **Agente backend** | policy per tenant, catalogo voci, metadati chat/SSE, classificazione autoritativa, audit, sicurezza | **11-18 gg-agente** | più intenso nei blocchi B, D e F |
+| **Agente frontend** | conversazione condivisa, pannello globale, orchestratore audio, STT/TTS, hotword e review dettatura | **17-26 gg-agente** | percorso critico tecnico, soprattutto A, C ed E |
+| **Agente test/QA** | test automatici, cross-tenant/ruoli, E2E voce-chat, casi avversi, hardware e rumore reale, pilota | **15-25 gg-agente** | parte dal Blocco A e guida il Blocco G |
+| **Totale** | MVP clinico completo | **43-69 gg-agente** | **~4-5 settimane calendario** con parallelizzazione e una postazione disponibile |
+
+La forchetta alta si applica se hotword o browser richiedono una companion app, se il provider STT/TTS necessita integrazione dedicata o se il rumore reale impone più cicli di calibrazione. Non include tempi esterni di DPO, accordi con fornitori, acquisto hardware o attese autorizzative.
+
+### Piano di rilascio interno della feature
+
+**Voice V0 — Prototipo tecnico (3-5 giorni).** Wake word locale, dettatura, tre comandi UI, misurazione con rumore registrato in ambiente reale. Nessuna scrittura su dati clinici.
+
+**Voice V1 — MVP in sola lettura + bozze (2-3 settimane).** Anamnesi/allergie/ultime visite, apertura radiografie, dettatura di note in anteprima, conferma visuale, audit, metriche e fallback manuale.
+
+**Voice V2 — Scritture cliniche controllate (1-2 settimane).** Salvataggio note e aggiornamenti a basso rischio con conferma vocale forte o manuale; test di autorizzazione e casi avversi.
+
+**Voice V3 — Estensione (2-5 settimane).** Vocabolario configurabile, più lingue/voci, comandi odontogramma, integrazione monitor di sala e modalità degradata/offline. Solo dopo metriche positive del pilota.
+
+### Criteri di accettazione del pilota
+
+- nessuna attivazione silenziosa: wake word e ascolto sono sempre visibili;
+- zero esecuzioni sul paziente o tenant errato nei test avversi;
+- 100% delle scritture cliniche precedute da anteprima e conferma tracciata;
+- successo ≥95% sui comandi chiusi in condizioni reali di poltrona;
+- tasso di false attivazioni concordato e misurato per ora di utilizzo;
+- latenza percepita ≤2 secondi per navigazione e ≤4 secondi per domande semplici;
+- disattivazione immediata e uso completo dell'app anche senza voce.
+
+### Decisioni aperte prima dello sviluppo
+
+1. **Elaborazione audio:** STT/TTS cloud in regione UE, self-hosted oppure soluzione ibrida; la scelta cambia costi, latenza e DPIA.
+2. **Dispositivo:** browser/PWA sul PC della poltrona oppure companion app desktop; per wake word affidabile e controllo del microfono è preferibile la companion app.
+3. **Conferma clinica:** sola voce con challenge esplicita oppure click/pedale per le azioni più sensibili.
+4. **Retention:** nessun audio e trascrizione effimera come default consigliato; eventuale conservazione solo con finalità e tempi formalizzati.
+
+**Dipendenze:** #10 Fase 0 (governance Copilot), #13 (tool operativi), #18 (audit clinico) e chiusura di #20 prima di abilitare scritture. La feature può iniziare in sola lettura e navigazione senza attendere tutte le scritture cliniche, ma non deve andare su pazienti reali prima del gate di go-live applicabile.
+
+### Decisione del 22/07/2026
+
+Approvata l'integrazione come modalità del Copilot esistente: pannello globale, hotword più push-to-talk, messaggi vocali nella stessa chat, sintesi attivabile dal pannello e voce/lingue configurabili nelle Impostazioni. Le domande e la navigazione sono inviate subito; le dettature cliniche richiedono revisione della trascrizione e mantengono il successivo gate dell'azione.
+
+Documenti esecutivi:
+
+- [Spec di progettazione](../docs/superpowers/specs/2026-07-22-copilot-chairside-voice-design.md)
+- [Piano di intervento](../docs/superpowers/plans/2026-07-22-copilot-chairside-voice.md)
+
+---
+
+## 40. MinIO — separazione root per ambiente (Dev / Coll / Prod)
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-23
+**Impatto:** Medio (~1 giornata codice+config) + finestra di migrazione su prod (dati reali, esecuzione bloccata all'agente)
+
+### Problema
+Un solo MinIO (`192.168.0.72:9000`) serve sia Dev (via tunnel SSH) sia Prod (via `host.docker.internal`) — vedi `application.properties` / `application-prod.properties`. Il bucket di ogni tenant è calcolato **solo** dallo schema: `bucketFor(schema) = bucketPrefix + schema.replace('_','-')` (`MinioStorageService.java:65-67`), e `app.minio.bucket-prefix` vale `dc-` **identico** in dev e prod. Non esiste alcuna radice che distingua l'ambiente: se un tenant con lo stesso schema esiste (o viene clonato) sia in `dentalcarepro` (dev) sia in `dentalcare_prod`, i due ambienti risolvono **lo stesso** bucket MinIO — dev può leggere/scrivere/cancellare documenti reali di prod (e viceversa). Il tenant demo `t_9d754153` è l'esempio concreto oggi presente in dev; se mai comparisse con lo stesso schema in prod, la collisione è garantita.
+
+Con l'arrivo dell'ambiente COLLAUDO (proposta #41) lo stesso MinIO diventerebbe condiviso da **tre** ambienti sullo stesso bucket-namespace: il rischio si moltiplica.
+
+### Soluzione: prefisso bucket per ambiente — nessuna modifica al codice Java
+
+`MinioStorageService.bucketFor()` è già parametrico su `app.minio.bucket-prefix` (property esternalizzata, default `dc-`). Basta differenziare il prefisso per ambiente:
+
+| Ambiente | `app.minio.bucket-prefix` | Bucket tenant `t_9d754153` |
+|---|---|---|
+| Dev | `dc-dev-` | `dc-dev-t-9d754153` |
+| Coll | `dc-coll-` | `dc-coll-t-9d754153` |
+| Prod | `dc-prod-` | `dc-prod-t-9d754153` |
+
+Isolamento garantito indipendentemente da eventuali cloni/copie di schema tra ambienti: la radice ambiente fa parte del nome bucket, non solo dello schema tenant.
+
+#### Fase 1 — File di configurazione
+
+| File | Modifica |
+|---|---|
+| `backend/src/main/resources/application.properties` (profilo default = dev) | `app.minio.bucket-prefix=dc-dev-` |
+| `backend/src/main/resources/application-prod.properties` | aggiungere `app.minio.bucket-prefix=dc-prod-` (oggi assente da questo file, presente solo nel default con valore `dc-`) |
+| **nuovo** `backend/src/main/resources/application-coll.properties` | profilo `coll` — vedi proposta #41; include `app.minio.bucket-prefix=dc-coll-` |
+| `config/application-prod.properties.example` (root, template deploy) | riga MinIO aggiornata a `dc-prod-` + commento sulla radice per ambiente |
+| **nuovo** `config/application-coll.properties.example` | analogo a quello prod, con `dc-coll-` — vedi proposta #41 |
+| `backend/config/application.properties` (locale, gitignored, dev reale) | allineare `app.minio.bucket-prefix=dc-dev-` |
+| `backend/config/application-prod.properties` (locale, gitignored, sul server prod) | **non è nel repo** — va aggiornato a mano sul server `.72` in `~/docker/dentalcarepro/config/` come parte del deploy (vedi Fase 3) |
+
+#### Fase 2 — Migrazione bucket prod esistenti (dati reali già live, #4/#5 Fatta)
+
+I bucket prod attuali si chiamano `dc-<schema>` (nessun suffisso ambiente). Cambiare solo la property sposterebbe le letture su un bucket nuovo e vuoto `dc-prod-<schema>` — i documenti esistenti diventerebbero "invisibili" (i binari restano nei vecchi bucket, non più referenziati). Serve una migrazione esplicita **prima** del deploy della nuova property:
+
+1. Elencare gli schema tenant reali in `dentalcare_prod`.
+2. Per ciascuno: `mc mirror sourcealias/dc-<schema> targetalias/dc-prod-<schema>` (copia oggetti preservando le key — `object_key` in `patient_documents.file_path` non cambia formato, cambia solo il bucket che lo contiene).
+3. Verifica: conteggio oggetti sorgente = destinazione prima di procedere.
+4. Deploy della nuova config (`bucket-prefix=dc-prod-`) — da questo momento il backend legge/scrive solo sui bucket nuovi.
+5. Solo dopo una finestra di osservazione (consigliata ≥1 settimana, upload/download funzionanti in prod): eliminare i vecchi bucket `dc-<schema>` con `mc rb --force`.
+
+Script proposto: nuovo `database/scripts/migrate_minio_env_root.sh`, parametrico su alias `mc` sorgente/destinazione e prefisso. **Esecuzione su prod bloccata al classifier per l'agente**: comporta la migrazione di documenti clinici reali — la lancia il committente; un dry-run di sola verifica (conteggio oggetti, nessuna scrittura) resta eseguibile dall'agente.
+
+#### Fase 3 — Coordinamento con `install.sh` / deploy
+
+`install.sh` di prod crea `config/application-prod.properties` da `.example` **solo se assente** — chi ha già un file reale sul server non lo tocca. La riga `app.minio.bucket-prefix=dc-prod-` va quindi aggiunta **a mano** al file esistente sul server `.72` (`~/docker/dentalcarepro/config/application-prod.properties`), in coordinamento con la Fase 2 — non lasciata al solo `.example`.
+
+### File coinvolti
+| Layer | File |
+|---|---|
+| Backend (repo) | `application.properties`, `application-prod.properties`, nuovo `application-coll.properties` |
+| Config template (repo) | `config/application-prod.properties.example`, nuovo `config/application-coll.properties.example` |
+| Config locale (gitignored) | `backend/config/application.properties`, `backend/config/application-prod.properties` (server, fuori repo) |
+| Migrazione | nuovo `database/scripts/migrate_minio_env_root.sh` |
+| Nessuna modifica | `MinioStorageService.java` — già parametrico |
+
+### Note
+- Nessun impatto sul formato di `object_key` (`patients/{patientId}/{docId}/{fileName}`) — cambia solo il bucket che lo contiene.
+- La stessa tecnica isola anche COLLAUDO (#41) senza ulteriori modifiche di codice: basta il terzo prefisso.
+- Rischio se si fa il deploy della sola Fase 1 senza aver completato la Fase 2 su prod: 404 silenziosi sui download di documenti esistenti finché non si torna al bucket vecchio — **le due fasi vanno in produzione insieme**.
+- Dev e Coll non hanno dati reali da migrare: possono adottare il nuovo prefisso direttamente; eventuali bucket vecchi `dc-<schema>` sono scartabili.
+
+---
+
+## 41. Script di installazione per ambiente COLLAUDO
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-23
+**Impatto:** Medio (~1 giornata)
+**Dipendenza:** proposta #40 (radice MinIO `dc-coll-`) va introdotta insieme — altrimenti Coll condivide i bucket documenti con Dev e/o Prod.
+
+### Host confermato
+`192.168.0.72` — stesso Docker host di Prod (il `.71` nel messaggio originale era un refuso). Container Docker separato, porta pubblicata `8082`.
+
+### Problema
+Oggi esiste solo la coppia `install.sh` + `setup.sh` + `docker-compose.yml`, scritta e fissata per **Prod**: cartella fissa `~/docker/dentalcarepro`, DB `dentalcare_prod`, container `dentalcarepro-backend`/`dentalcarepro-frontend`/`dentalcare-ai-service`, porta `8181`. Non esiste un equivalente per COLLAUDO. Riusando `docker-compose.yml` così com'è in una seconda checkout sulla stessa macchina, i `container_name` **hardcoded** collidono con quelli di Prod già in esecuzione sullo stesso Docker host — impossibile avviare entrambi gli stack insieme (i nomi container sono unici per host Docker, indipendentemente dalla cartella).
+
+### Soluzione: stack Docker Compose parallelo, isolato per nome e porta
+
+`docker-compose.yml` / `install.sh` / `setup.sh` di Prod restano **invariati** (sono collaudati e in uso — CLAUDE.md §23 vieta refactoring non necessario su codice che funziona). Si aggiunge un set analogo, a fianco, per Coll.
+
+#### Fase 1 — Nuovo profilo Spring `coll`
+
+**Nuovo `backend/src/main/resources/application-coll.properties`**, ricalcato su `application-prod.properties`:
+```properties
+spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/dentalcare_coll
+spring.datasource.username=postgres
+spring.flyway.enabled=false
+app.flyway.schemas=dentalcare
+app.flyway.baseline-version=4
+app.flyway.locations=classpath:db/migration
+server.port=8080
+app.ai.base-url=http://dentalcare-ai-service:8000
+app.minio.bucket-prefix=dc-coll-
+
+# Demo mode: OFF — confermato 23/07/2026, come prod (Coll non deve esporre credenziali demo in chiaro sulla rete .72)
+app.demo.enabled=false
+
+# Log/errori: stile dev — confermato 23/07/2026, per diagnosi rapida durante il collaudo
+server.error.include-message=always
+server.error.include-binding-errors=always
+logging.level.root=INFO
+logging.level.com.dentalcare=DEBUG
+```
+
+**Nuovo `config/application-coll.properties.example`** (root repo, stesso pattern di `application-prod.properties.example`): placeholder per password DB, JWT secret, `app.encryption.master-key` **diversi** da quelli prod — se condivisi, un bug in Coll potrebbe leggere/scrivere dati cifrati con la stessa chiave di prod.
+
+#### Fase 2 — `docker-compose.coll.yml` (nuovo file, root repo)
+
+Copia di `docker-compose.yml` con differenze minime:
+- `container_name`: `dentalcarepro-coll-backend`, `dentalcarepro-coll-frontend`, `dentalcare-coll-ai-service` (nessuna collisione con Prod sullo stesso host).
+- `environment: SPRING_PROFILES_ACTIVE=coll`.
+- porta frontend: `"${FRONTEND_PORT:-8082}:4200"` (default 8082, da `.env` proprio della cartella Coll).
+- `image:` tag distinto (es. `dentalcarepro-backend:coll-${VERSION:-latest}`) per non confondersi con le immagini `:latest` di prod nella cache Docker locale dello stesso host.
+- rete `minio`: **stessa rete esterna** `minio_default` di Prod — Coll usa lo stesso MinIO fisico, isolato via bucket-prefix `dc-coll-` (proposta #40), non via rete separata.
+- rete bridge interna: nessuna modifica necessaria — Compose la prefissa col nome cartella (`dentalcarepro-coll_dentalcarepro`), già diverso da quello di Prod.
+
+#### Fase 3 — `setup-coll.sh` + `install-coll.sh` (nuovi, root repo)
+
+Copie parametrizzate 1:1 di `setup.sh`/`install.sh`, con le costanti cambiate:
+
+| Costante | Prod (esistente) | Coll (nuovo) |
+|---|---|---|
+| `DEPLOY_DIR` | `~/docker/dentalcarepro` | `~/docker/dentalcarepro-coll` |
+| `BACKEND_CONTAINER` (healthcheck) | `dentalcarepro-backend` | `dentalcarepro-coll-backend` |
+| DB | `dentalcare_prod` | `dentalcare_coll` |
+| Config file | `config/application-prod.properties` | `config/application-coll.properties` |
+| Compose file | `docker-compose.yml` | `docker-compose.coll.yml` (`docker compose -f docker-compose.coll.yml ...`) |
+| `.env` default | `FRONTEND_PORT=8181` | `FRONTEND_PORT=8082` |
+| URL stampato a fine deploy | `http://<host>:8181/` | `http://<host>:8082/` |
+
+`install-coll.sh` mantiene la stessa logica di `install.sh` (clone/pull, config da `.example`, prompt di conferma per (ri)creare il DB da `database/install.sql -v dbname=dentalcare_coll`, copia modelli AI ONNX, `docker compose -f docker-compose.coll.yml up -d --build`, healthcheck, stampa URL) — deliberatamente una **copia parametrizzata**, non una riscrittura, per non introdurre comportamenti diversi da Prod senza motivo.
+
+#### Fase 4 — Deploy directory separata sulla stessa macchina .72
+
+`~/docker/dentalcarepro-coll/` come clone **indipendente** del repo (stesso meccanismo di `setup.sh`: cartella vuota → clone; esistente → pull). Path diverso da `~/docker/dentalcarepro` → nessun rischio di sovrascrittura reciproca di `config/` o `.env` tra i due ambienti.
+
+#### Fase 5 — Database
+
+Nuovo DB `dentalcare_coll` su `192.168.0.173` (stesso host Postgres di dev/prod), creato con lo script parametrico esistente — nessuna modifica a `install.sql`, già parametrico su `dbname`:
+```bash
+psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare_coll -f database/install.sql
+```
+
+### File coinvolti
+| Layer | File |
+|---|---|
+| Backend | nuovo `application-coll.properties` |
+| Config template | nuovo `config/application-coll.properties.example` |
+| Docker | nuovo `docker-compose.coll.yml` |
+| Script | nuovo `setup-coll.sh`, nuovo `install-coll.sh` |
+| Doc | aggiornare `directives/deploy-procedures.md` con un terzo trigger ("deploy in collaudo") + nuovo `directives/manuale-installazione-coll.md` |
+| Nessuna modifica | `docker-compose.yml`, `install.sh`, `setup.sh`, `database/install.sql` |
+
+### Note
+- **Dipende da #40**: senza radice MinIO separata, Coll condivide i bucket documenti con Dev e/o Prod (stesso MinIO fisico `.72:9000`).
+- **Confermato 23/07/2026**: nessun flusso n8n/Retell dedicato a Coll — è solo stack web (BE+FE+AI+DB). Il collaudo telefonico resta su Dev/Prod. Se servirà in futuro, è un'estensione separata (nuovo numero + agente Retell + workflow n8n puntato a `:8082`), fuori da questa proposta.
+- Immagini Docker `:coll-*` vanno pulite periodicamente (`docker image prune`) come già per `:latest` — nessuna differenza operativa da Prod.
+- Il gate di go-live (`piano-lungo-termine.md` §5) resta invariato: Coll è un ambiente di test, non abilita l'uso su pazienti reali.
+
+---
+
+## 42. Visibilità dati clinici per ruolo: igienista/dentista/chirurgo/ortodontista vedono tutti i pazienti
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-23
+**Impatto:** Medio (~1 giornata)
+**Priorità:** da fare **prima** di #40/#41 (richiesto dal committente 23/07/2026)
+
+### Situazione attuale (verificata sul codice)
+Oggi i ruoli clinici (dentist/hygienist/orthodontist/surgeon) sono **auto-filtrati sul proprio `providerId`** in più punti:
+- Backend: `AppointmentService.java:57-70` definisce `callerIsMedical()`/`callerProviderId()`; tre volte (`:75,113,152`) applica `effectiveProviderId = callerIsMedical() ? callerProviderId() : providerId` — un ruolo clinico non può vedere gli appuntamenti/pazienti di un collega anche passando un `providerId` diverso.
+- Frontend: `user-context.service.ts:21-33`, segnale `filterProviderId` — oggi restituisce l'id proprio se `role() === 'doctor' || role() === 'hygienist'` (il tipo `UserRole` collassa dentist/orthodontist/surgeon tutti su `'doctor'`), altrimenti `null`. Consumato da `dashboard.component.ts:39`, `agenda.component.ts:135,181`, `paziente-detail.component.ts:202,218`, `pazienti.component.ts:28,43,80,91,98`, `preventivi.component.ts:45`, `fatturazione.component.ts:107`.
+- `PatientService.findAll/findById` (backend) **non** ha invece alcun lock-in server-side: il filtro è già opzionale lì. Il "self-only" è quindi imposto solo per gli appuntamenti (backend) e per la UI (frontend), non uniformemente.
+- **Nessun `@PreAuthorize`/controllo di ruolo esiste in scrittura**: `OdontogramController.save` non ha alcun controllo di ruolo — un igienista può **già oggi** modificare l'odontogramma di qualunque paziente lato API. L'unico gate di ruolo trovato è nel layer AI chat (`DentalCareAiTools.java`, `isMedical()`), che blocca solo la segretaria dai tool clinici — l'igienista già passa quel controllo. **Quindi il punto (a) "l'igienista può modificare i dati" non richiede sblocco backend**, solo verifica che non ci sia un vincolo `disabled`/`readonly` lato frontend legato al ruolo (da grep mirato in fase di implementazione — non ancora verificato).
+
+### Debito tecnico da sanare comunque
+`isMedical`/`MEDICAL_ROLES` è definito **3 volte indipendenti**, con un commento nel codice che segnala la necessità di tenerle sincronizzate a mano: `DentalCareAiTools.java:97-98`, `AppointmentService.java:52-55`, `user-context.service.ts:7`. Prima di modificare la logica di filtro conviene unificarle in un'unica fonte, altrimenti il rischio è di sistemare un punto e lasciarne un altro incoerente.
+
+### Soluzione
+
+#### Fase 1 — Fonte unica dei ruoli clinici
+Backend: nuova costante condivisa (es. `RoleConstants.MEDICAL_ROLES`) usata sia da `AppointmentService` sia da `DentalCareAiTools`, al posto dei due `Set.of(...)` duplicati.
+Frontend: `MEDICAL_JWT_ROLES` in `user-context.service.ts:7` resta l'unica fonte lato FE (già corretta, il collasso dentist/orthodontist/surgeon→`'doctor'` è solo un raggruppamento per label UI e non cambia con questa proposta).
+
+### Decisione del committente (23/07/2026): impostazione per-tenant, non rimozione secca
+Non si elimina il comportamento attuale — si aggiunge una **modalità configurabile** in Impostazioni Studio, coerente con lo stesso pattern già usato/pianificato per `billing_mode` (#44):
+
+| Valore | Etichetta UI | Comportamento |
+|---|---|---|
+| `per_provider` (default — **comportamento odierno**, zero impatto finché non si cambia) | **"Modalità di gestione pazienti per medico"** | Ogni ruolo clinico vede/gestisce solo i propri pazienti (comportamento attuale) |
+| `shared` | **"Modalità di gestione pazienti condivisi"** | Tutti i ruoli clinici (dentist/hygienist/orthodontist/surgeon) vedono/gestiscono tutti i pazienti dello studio, cartella clinica inclusa |
+
+Default `per_provider` = nessuna regressione per chi non tocca l'impostazione; lo switch a `shared` è una scelta esplicita e reversibile dello studio.
+
+#### Fase 2 — DB + Backend: enforcement guidato dalla nuova impostazione
+```sql
+ALTER TABLE clinics
+    ADD COLUMN IF NOT EXISTS patient_visibility_mode text NOT NULL DEFAULT 'per_provider'
+        CHECK (patient_visibility_mode IN ('per_provider', 'shared'));
+```
+- `AppointmentService.java:75,113,152`: l'override esistente non si elimina, si **condiziona** alla nuova impostazione — `effectiveProviderId = (mode == 'per_provider' && callerIsMedical()) ? callerProviderId() : providerId`.
+- `PatientService.findAll/findById`: **oggi non ha alcun lock-in server-side** (l'agente di ricerca l'ha confermato: il self-only per i pazienti è oggi solo una convenzione frontend, aggirabile da un client che non manda `providerId`). Per rendere l'impostazione una garanzia reale e non solo un default di UI, va aggiunto **qui per la prima volta** lo stesso enforcement condizionato — altrimenti "modalità per medico" non sarebbe davvero applicata lato server, riaprendo esattamente il rischio già segnalato in **#24** (`?providerId=` non è autorizzazione).
+
+> Nota residua su **#14** (GAP P0, *"relazione di cura come filtro di autorizzazione"*): il conflitto con quella voce di roadmap ora si manifesta **solo per i tenant che scelgono esplicitamente `shared`** — il default resta compatibile con #14. Da riconciliare comunque quando/se un tenant in modalità `shared` rientra anche nel perimetro di conformità cartella-clinica (#18/#21): a quel punto la scelta "vedono tutti" e "serve relazione di cura per accedere" tornano incompatibili e va deciso quale vince.
+
+#### Fase 3 — Frontend: `filterProviderId` legge l'impostazione di tenant
+`user-context.service.ts:21-33`: il segnale smette di dipendere solo dal ruolo e legge anche `clinicSettings.patientVisibilityMode` (nuovo campo, da `GET /settings/clinic`) — se `per_provider`, comportamento identico a oggi (self per ruoli clinici); se `shared`, `null` (nessun filtro) per tutti i ruoli clinici.
+
+Resta valida la distinzione già individuata con la fatturazione: **anche in modalità `shared`**, `preventivi.component.ts:45`/`fatturazione.component.ts:107` **non** seguono questo segnale — restano legati a `billingProviderId` (comportamento self, #30/#35 già Fatta), governato separatamente da `billing_mode` in #44. Visibilità pazienti/cartella clinica e attribuzione di preventivi/fatture sono due impostazioni indipendenti, anche se entrambe finiscono nella stessa schermata Impostazioni Studio.
+
+#### Fase 4 — Agenda: segue la stessa impostazione, per coerenza
+Essendo ora un'opzione esplicita e reversibile (non una rimozione definitiva), `agenda.component.ts:135,181` può seguire lo stesso `patientVisibilityMode` per coerenza con il resto della UI: `per_provider` → agenda self di default (comportamento attuale); `shared` → agenda mostra tutti i medici/poltrone senza filtro iniziale (restando comunque possibile filtrare manualmente). Da confermare in fase di implementazione se questo è il comportamento desiderato per l'agenda specificamente, ma non è più bloccante come nella versione precedente di questa proposta.
+
+#### Fase 5 — Verifica scrittura igienista (punto a)
+Grep mirato su `paziente-detail.component.html`/`odontogramma-tab.component.html`/`cartella-tab.component.html` per condizioni `role === ...` che disabilitano campi — se trovate e limitano l'igienista, rimuoverle. Se non trovate (come suggerisce l'assenza di `@PreAuthorize` lato backend), nessuna modifica necessaria: la scrittura è già aperta **indipendentemente dalla modalità di visibilità** (leggere non è scrivere: la modalità `per_provider` limita quali pazienti l'igienista vede, non se può modificarli una volta aperti).
+
+#### Fase 6 — Impostazioni Studio: nuovo campo UI
+`impostazioni.component.ts/html`, stessa area dove #44 aggiunge "Modalità di fatturazione": nuovo select "Modalità di gestione pazienti" con le due opzioni della tabella sopra, `PUT /settings/clinic` (`patientVisibilityMode`).
+
+### File coinvolti
+| Layer | File |
+|---|---|
+| DB | nuova migration (`clinics.patient_visibility_mode`) + `install.sql` |
+| Backend | `AppointmentService.java` (override condizionato, 3 punti), `PatientService.java` (**nuovo** enforcement condizionato, oggi assente), nuova costante ruoli condivisa, `DentalCareAiTools.java` (usa la costante condivisa), `ClinicSettingsController` (campo `patientVisibilityMode`) |
+| Frontend | `user-context.service.ts` (segnale legge l'impostazione), `dashboard.component.ts`, `pazienti.component.ts`, `paziente-detail.component.ts`, `agenda.component.ts` (Fase 4), `impostazioni.component.ts/html` (Fase 6) |
+| Nessuna modifica | `preventivi.component.ts`, `fatturazione.component.ts` (restano su `billingProviderId`, gestiti da #44) |
+
+### Note
+- Default `per_provider` = nessun impatto per gli studi che non toccano l'impostazione — riduce il rischio del conflitto con #14 a un caso opt-in, non più strutturale.
+- L'igienista che modifica dati clinici (punto a) è già tecnicamente permesso oggi lato API, in entrambe le modalità — il gap, se esiste, è solo nel frontend (da verificare, Fase 5).
+- `PatientService` guadagna per la prima volta un enforcement server-side reale (Fase 2) — oggi non ce l'ha nemmeno in modalità "per medico": è un rafforzamento di sicurezza collaterale a questa proposta, non solo un nuovo comportamento per `shared`.
+
+---
+
+## 43. Anamnesi: severità a 3 livelli, storico con diff, alert clinici collegati al catalogo, vincolo appuntamento fine giornata
+
+**Stato:** Confermata (23/07/2026)
+**Data proposta:** 2026-07-23
+**Impatto:** Alto (~3.5-4.5 giornate — rivisto al rialzo due volte il 23/07/2026: 1) migrazione schema globale→per-tenant, 2) ricognizione/ricostruzione contenuto catalogo [6 agenti di ricerca già eseguiti] + storico anamnesi con diff sintetico, entrambe confermate dal committente)
+**Priorità:** da fare **prima** di #40/#41 (richiesto dal committente 23/07/2026)
+
+### Correzione alla premessa: il CRUD esiste già
+Il CRUD delle voci di anamnesi **non manca** — è già implementato e funzionante:
+- DB: `dentalcare.anamnesis_categories` + `dentalcare.anamnesis_items` (`install.sql:2069,2086`), con colonna `is_alert boolean` (`:2092`). Tabelle oggi **globali** (schema condiviso `dentalcare`, non per-tenant) — **confermato dal committente il 23/07/2026: il catalogo deve essere per-tenant** (ogni studio le proprie voci). Vedi Fase 1 sotto per la migrazione.
+- Backend: `AnamnesisCatalogController.java` — REST CRUD completo (`GET/POST/PUT/DELETE /api/admin/anamnesis/categories` e `/items`).
+- Frontend: `impostazioni.component.ts` — sotto-tab "Anagrafiche → Anamnesi" (righe 68, 181-186, metodi CRUD 417-584), con toggle booleano `isAlert` per voce.
+
+### Il gap reale: gli alert clinici sono disconnessi dal catalogo
+`cartella-tab.component.ts:99-113` (`get alerts()`) e `dashboard.component.ts:150` (`hasAllergyAlert`/`hasMedicationAlert`) leggono **colonne booleane hardcoded** di `patient_anamnesis` (`allergie`, `takingAnticoagulants`, `takingBisphosphonates`, `heartDisease`, `hypertension`, `diabetes`) — **non** passano mai da `anamnesis_items.is_alert` né da `patient_anamnesis_item_selections` (la tabella che collega paziente↔voce di catalogo, `install.sql:666/2561`). Conseguenza pratica: se un admin aggiunge oggi una voce di anamnesi custom con `is_alert=true` dalle Impostazioni, **non comparirà mai** in "Alert clinici" da nessuna parte — il flag esiste solo nel catalogo, la UI degli alert non lo legge. Questo è il difetto da risolvere, non l'assenza di CRUD.
+
+### Rischio trovato: cancellazione voce/categoria — verificato sul codice (risposta alla domanda posta)
+**Sì, la cascade a DB esiste**, ma è più pericolosa di quanto sembri:
+```sql
+-- install.sql:6669-6670 (globale)
+anamnesis_items.category_id  → anamnesis_categories(id)  ON DELETE CASCADE
+-- install.sql:1667 / 7166 (per-tenant, sia dev sia ogni schema tenant)
+patient_anamnesis_item_selections.item_id → dentalcare.anamnesis_items(id)  ON DELETE CASCADE
+```
+Quindi cancellare una **categoria** cancella a cascata tutte le sue **voci**, che a loro volta cancellano a cascata **tutte le selezioni paziente** che le usavano — nessun vincolo FK bloccante, nessun errore. Il problema non è l'integrità referenziale (quella è a posto), è che:
+1. **`AnamnesisCatalogService.deleteCategory()`/`deleteItem()`** (righe 84-87, 150-154) fanno un `DELETE` diretto, **senza controllare prima quanti pazienti usano quella voce** e senza mostrare alcun avviso in UI — un admin può cancellare "Diabete" e azzerare silenziosamente lo storico anamnestico di ogni paziente che lo aveva, **senza possibilità di recupero** (hard delete, non soft delete).
+2. **Il catalogo è globale, non per-tenant** (schema `dentalcare`, non `t_XXXX`) mentre l'endpoint è raggiungibile da un ruolo **`TENANT_ADMIN`** (`SecurityConfig`: `/api/admin/**` → `hasAnyRole("ADMIN","TENANT_ADMIN")`, nessuno scoping al tenant chiamante). **Un admin di UN singolo studio può quindi cancellare, con cascata fino ai pazienti, una voce usata anche da pazienti di ALTRI studi** — non è solo un problema di UX, è un problema di isolamento multi-tenant. **Risolto strutturalmente dalla Fase 1** (catalogo spostato per-tenant, 23/07/2026): una volta che ogni studio ha la propria copia delle tabelle nel proprio schema, un `TENANT_ADMIN` può fisicamente incidere solo sui dati del proprio tenant — il raggio d'azione cross-tenant sparisce da solo. Il rischio "delete silenzioso senza controllo" (punto 1) resta comunque, **entro** il proprio tenant, e va corretto lo stesso.
+
+**Confermato dal committente (23/07/2026) — resta nella Soluzione (Fase 2, punto 0, precede la severità):**
+- `deleteCategory`/`deleteItem`: **prima** del delete, contare le selezioni pazienti collegate (`SELECT count(*) FROM ... WHERE item_id = ...`); se `count > 0`, il DELETE va **rifiutato** (409) con messaggio che indica quanti pazienti sarebbero impattati — mai un delete silenzioso di dati clinici.
+- Sostituire il DELETE fisico con **soft-delete** (`enabled = false`, colonna già presente) come via primaria per "rimuovere" una voce dall'uso futuro; il DELETE fisico resta disponibile solo per voci mai utilizzate (count=0), coerente con CLAUDE.md §7.4/§11 (niente cancellazioni distruttive senza rete di sicurezza).
+
+### Ricognizione contenuto catalogo — esito verifica di 6 agenti di ricerca (23/07/2026)
+Per rispondere alla domanda "le voci sono uniche, complete, categorizzate correttamente" ho fatto verificare il catalogo attuale — due batch di seed (06/05/2026 e 25/05/2026) mai riconciliati tra loro — da 6 agenti indipendenti con ricerca web, uno per dominio clinico. Risultato: **duplicazione sistemica confermata**. Quasi ogni categoria del batch B duplica concettualmente una del batch A, spesso con `is_alert` **discordante sullo stesso concetto** (es. "Anticoagulanti" è alert=true nel batch A e alert=false nel batch B) — non solo nomi diversi, un difetto di dato reale che avrebbe fatto sparire/comparire alert clinici a seconda di quale dei due duplicati un tenant avesse selezionato.
+
+| Dominio | Duplicati trovati | Voci mancanti importanti (con fonte, vedi ricerca) | Mis-categorizzazioni |
+|---|---|---|---|
+| Allergie | 6 concetti duplicati, `alert` discordante su 4 | Clorexidina (anafilassi documentata, uso quotidiano), solfiti dell'anestetico (≠ sulfamidici, confusione lessicale comune), iodio, altri antibiotici oltre penicillina | "Metalli dentali"/Nickel da unificare; Acrilico/Metacrilato è duplicato puro (stesso allergene) |
+| Farmaci | 7 duplicati su 15, `alert` discordante su 5 | **Denosumab** (stesso rischio ONJ dei bifosfonati, farmaco più recente — assente dal catalogo), antiangiogenetici, farmaci che causano iperplasia gengivale | Nessuna, solo duplicazione |
+| Cardiovascolare | "Cardiopatia" triplicata con codici diversi; pacemaker/valvole duplicati | **Endocardite infettiva pregressa** — priorità #1 per profilassi secondo ESC 2023, oggi completamente assente; cardiopatia congenita; fibrillazione atriale | Cardiochirurgia va raggruppata col Cardiovascolare, non in "Chirurgia" generica; "Bypass" non giustifica profilassi endocardite (motivazione esistente errata) |
+| Sistemiche (respiratorio/endocrino/renale/epatico/onco/neuro) | Categoria "Malattie Sistemiche" è quasi interamente un doppione ridondante delle categorie per apparato dello stesso batch | **Neurologico assente del tutto** (Parkinson, sclerosi multipla), coagulazione solo generica (manca emofilia/trombocitopenia), diabete/tiroide "non specificato" per triage rapido | "Malattie Sistemiche" da eliminare come contenitore ridondante — tenere solo le categorie per apparato |
+| Abitudini/chirurgia pregressa | 3 duplicati | Vaping/sigaretta elettronica (raccomandato esplicitamente da ADA come voce distinta dal fumo), splenectomia/asplenia | **"Sportivo agonista" non è un'abitudine — è un fattore di rischio traumatico**, categoria sbagliata |
+| Condizioni/gravidanza/psicologico | Gravidanza duplicata con `alert` discordante; "Apnea notturna" duplicata col dominio respiratorio | Trimestre di gravidanza come campo strutturato (non solo testo libero), scale di ansia validate (MDAS), sedazione cosciente pregressa | **"Sintomi Attuali" (dolore, gonfiore, urgenza) non è anamnesi — è motivo della visita/triage del giorno**, andrebbe tenuto fuori dal questionario anamnestico vero e proprio |
+
+**Finding critico — già discusso e deciso col committente**: il criterio "Severa = fine giornata" non può basarsi su diagnosi croniche/stato sierologico (es. HIV) — le precauzioni universali CDC prescrivono di trattare **ogni** paziente allo stesso modo indipendentemente dallo stato noto, e un precedente legale USA (DOJ vs Woodlawn Family Dentistry, violazione ADA Title III) conferma che pianificare appuntamenti in base a una diagnosi nota è discriminatorio, non solo eticamente discutibile. **Confermato dal committente (23/07/2026): "Severa" si basa su stati clinici oggettivi e contingenti** (es. un'infezione attiva il giorno della visita), non su diagnosi permanenti — con l'implicazione diretta che serve uno **storico** delle anamnesi per sapere cosa è vero *ora* rispetto a prima (Fase 3 sotto, anch'essa confermata dal committente).
+
+### Soluzione
+
+#### Fase 1 — DB: migrazione catalogo da globale a per-tenant (nuova, 23/07/2026)
+Meccanismo verificato: ogni tabella per-tenant (es. `service_catalog`/`service_categories`, già nel pattern giusto) è definita una volta nel template DDL dentro `dentalcare.create_tenant()` (`install.sql:291` — funzione che costruisce dinamicamente lo schema `t_XXXX` per un nuovo tenant) e materializzata come copia fisica in ogni schema tenant (es. `t_9d754153.service_catalog`, `install.sql:2949`). Il catalogo anamnesi va allineato allo stesso pattern:
+
+1. Aggiungere `CREATE TABLE anamnesis_categories`/`anamnesis_items` (struttura identica alle attuali `dentalcare.anamnesis_categories`/`items`, incluso il nuovo campo `severity` della Fase 2) al template DDL dentro `create_tenant()`.
+
+**Valorizzazione di default per i nuovi tenant — confermato dal committente 23/07/2026:**
+**Hardcoded, non copia dal demo a runtime.** Verificato sul codice: `create_tenant()` (`install.sql:291-1823`) oggi **non** seeda affatto `service_catalog`/`service_categories` per un tenant nuovo — quelle tabelle nascono vuote, lo studio costruisce da zero il proprio listino via CRUD. Non c'è quindi un precedente di "copia automatica da un tenant di riferimento" nel codice — se lo introducessimo per l'anamnesi, sarebbe un pattern nuovo, e copiare **dal tenant demo specificamente** ha un problema concreto: il tenant demo (`t_9d754153`) è un ambiente vivo usato per presentazioni/screenshot, con dati che nel tempo derivano (vedi storico: poltrone duplicate, credenziali normalizzate ecc. — non è un fixture stabile). Se il provisioning di un cliente vero dipendesse dal contenuto attuale del demo, un'alterazione del demo per uno screenshot si propagherebbe silenziosamente a ogni nuovo studio reale creato dopo.
+
+**Congelare il contenuto attuale** di `dentalcare.anamnesis_categories`/`items` (la lista oggi in uso, già ragionevole — allergie, cardiopatia, diabete, anticoagulanti, bifosfonati, ecc.) in una lista statica di `INSERT` letterali, incorporata **sia** nel DDL di `create_tenant()` (per i nuovi tenant) **sia** nello script di migrazione dei tenant esistenti (Fase 1 punto 2 sotto) — un'unica fonte di dati di partenza, scritta una volta, versionata su git, non ricalcolata a ogni provisioning. Da quel momento il demo è solo *uno dei* tenant con quella lista come punto di partenza, non la fonte da cui gli altri dipendono. Ogni studio (demo incluso) la personalizza poi in autonomia dalle Impostazioni, senza propagare nulla agli altri.
+2. **Migrazione dei tenant esistenti** (script una tantum, non idempotente da rieseguire): per ogni schema `t_XXXX` già presente, creare le tabelle e inserire la stessa lista statica di cui sopra come seed iniziale (stessa lista per tutti, congelata dal contenuto oggi in `dentalcare.anamnesis_categories`/`items` — punto di partenza identico, poi ogni studio la personalizza in autonomia).
+3. **Ripuntare la FK**: `patient_anamnesis_item_selections.item_id` referenzia oggi esplicitamente `dentalcare.anamnesis_items(id)` (`install.sql:1667/7166`) — va cambiata per puntare a `anamnesis_items(id)` nello **stesso schema tenant** (non più schema-qualificata verso `dentalcare`). Va fatta in ordine: creare le tabelle per-tenant (punto 1-2) **prima** di droppare/ricreare questa FK, altrimenti la constraint fallisce per righe orfane durante la transizione.
+4. Le vecchie `dentalcare.anamnesis_categories`/`items` (globali) restano temporaneamente come riferimento storico/rollback, poi vanno droppate in una slice successiva a migrazione verificata (non nella stessa release, per avere un percorso di rollback se qualcosa va storto).
+5. Backend: `AnamnesisCatalogService` oggi usa `dentalcare.anamnesis_categories`/`items` come prefisso **hardcoded** nelle query JDBC — va cambiato per usare `TenantContext.validatedSchema()` come prefisso schema, esattamente come già fa `ServiceCatalogService` (`s() { return TenantContext.validatedSchema(); }`, usato per ogni query). Stesso pattern, non un'invenzione nuova.
+6. `install.sql`: le due occorrenze (template `create_tenant` + istanza `t_9d754153`) vanno aggiornate insieme, come da convenzione già in uso per le altre tabelle per-tenant.
+
+#### Fase 2 — DB: ricostruzione contenuto catalogo + severità a 3 livelli
+Non è più un semplice `ALTER TABLE`: la ricognizione (sopra) ha trovato duplicazione sistemica e voci mancanti, quindi questa fase deduplica, aggiunge le voci mancanti trovate, corregge le mis-categorizzazioni e **poi** applica la severità — tutto nel nuovo schema per-tenant (dopo la Fase 1).
+
+```sql
+ALTER TABLE anamnesis_items    -- schema per-tenant, dopo la Fase 1
+    ADD COLUMN IF NOT EXISTS severity text NOT NULL DEFAULT 'normale'
+        CHECK (severity IN ('normale', 'grave', 'severa'));
+```
+Deduplicazione: per ogni coppia di duplicati trovati nella ricognizione, **soft-disable** (`enabled=false`) di uno dei due (mai delete fisico se già in uso da qualche tenant esistente, coerente col rischio-cancellazione trovato sopra) tenendo quello con la descrizione/struttura migliore secondo l'agente di dominio. Le voci mancanti trovate vanno aggiunte come nuovi item. Il seed statico finale (Fase 1) incorpora già la versione ricostruita, non quella originale con i duplicati.
+
+`is_alert` **non** va droppato subito ma diventa ridondante rispetto a `severity`; da marcare deprecato e rimuovere in una slice successiva quando confermato inutilizzato.
+
+Semantica di `severity` (aggiornata 23/07/2026 dopo la decisione sul criterio):
+| Severità | Effetto |
+|---|---|
+| Normale | Nessuna visualizzazione tra gli alert |
+| Grave | Visualizzata in "Alert clinici" (dashboard + cartella paziente), nessun vincolo di scheduling — assegnata nel seed a tutte le voci con giudizio "sì" dagli agenti di ricerca (allergie critiche, anticoagulanti/bifosfonati/denosumab, cardiopatie a rischio endocardite, immunosoppressione, oncologia attiva, coagulopatie, gravidanza/allattamento, ecc.) |
+| Severa | Visualizzata in "Alert clinici" **e** vincola gli appuntamenti del paziente a **solo fine giornata** — **nessuna voce del catalogo di base viene precompilata Severa** nel seed statico (coerente con la decisione: nessuna diagnosi cronica la giustifica di per sé). Resta un valore selezionabile per stati contingenti che ogni studio marca a runtime (richiede lo storico — Fase 3) |
+
+#### Fase 3 — Storico anamnesi e diff sintetico (nuova, confermata dal committente 23/07/2026)
+Un criterio "Severa" a stato contingente è inutile senza sapere cosa è vero *ora* rispetto all'ultima visita. Oggi `patient_anamnesis_item_selections` **non è uno storico**: un solo record per `(clinic_id, patient_id, item_id)` (`install.sql:1223`, vincolo UNIQUE) — ogni aggiornamento sovrascrive, nessuna traccia di "da quando" o "fino a quando" una condizione è stata vera.
+
+```sql
+-- schema per-tenant, dopo la Fase 1
+ALTER TABLE patient_anamnesis_item_selections
+    ADD COLUMN IF NOT EXISTS resolved_at timestamptz;  -- NULL = condizione tuttora attiva
+
+-- il vincolo UNIQUE esistente va sostituito da un indice unico PARZIALE:
+-- al più una riga ATTIVA per item/paziente, righe storiche risolte multiple ammesse
+ALTER TABLE patient_anamnesis_item_selections DROP CONSTRAINT patient_anamnesis_item_selections_unique;
+CREATE UNIQUE INDEX ux_pais_active ON patient_anamnesis_item_selections (clinic_id, patient_id, item_id)
+    WHERE resolved_at IS NULL;
+```
+Regole operative:
+- **Nuova selezione** = sempre `INSERT` (mai `UPDATE` che sovrascrive) — se la voce era già stata registrata e risolta in passato, la nuova occorrenza è una riga nuova: sappiamo che è ricomparsa, non solo che "è vera adesso".
+- **Rimozione/risoluzione** = mai `DELETE` — `UPDATE ... SET resolved_at = now()` sulla riga attiva.
+- **Stato corrente** (quello che la UI mostra oggi implicitamente) = `WHERE resolved_at IS NULL`.
+- **Storico completo** = tutte le righe ordinate per `recorded_at`.
+
+**Diff sintetico**: nuovo endpoint (es. `GET /api/patients/{id}/anamnesis/diff`) che confronta le voci attive **ora** con quelle attive **alla data dell'ultimo aggiornamento anamnesi precedente**, restituendo *Nuove* / *Risolte* / *Invariate*. UI: badge sintetico in cartella paziente (es. "3 nuove · 1 risolta dall'ultima visita"), espandibile allo storico completo.
+
+**Convergenza con la roadmap esistente**: questo lavoro anticipa/assorbe in larga parte l'intervento 8 del Blocco 2 GAP P0 (*"Anamnesi tri-stato + fonte, data rilevazione, data risoluzione"*, già nel piano cartella-clinica) — stesso concetto di data-rilevazione/data-risoluzione qui implementato come `recorded_at`/`resolved_at`. Da riconciliare con `piano-lungo-termine.md` in fase di esecuzione per non duplicare lavoro: probabile che questa Fase 3 chiuda anche quella voce di roadmap.
+
+#### Fase 4 — Backend: collegare davvero gli alert al catalogo
+1. Vista `v_patient_max_anamnesis_severity(patient_id, max_severity)`: `MAX` di `severity` (ordinata normale < grave < severa) tra le voci **attive** (`resolved_at IS NULL`, Fase 3) in `patient_anamnesis_item_selections`, join `anamnesis_items`.
+2. `AnamnesisCatalogController`/DTO: sostituire `isAlert` boolean con `severity` (Create/UpdateCatalogItemRequest, CatalogItemDto).
+3. Endpoint paziente (dashboard/cartella) che oggi calcola gli alert lato SQL/service dalle colonne hardcoded: **riscrivere** per includere anche il risultato di `v_patient_max_anamnesis_severity` — non sostituire le colonne di sistema esistenti (allergie/anticoagulanti/ecc. restano, sono voci "di sistema" preesistenti), ma **unire** le voci custom del catalogo. Le colonne di sistema legacy vanno trattate come severità 'grave' implicita finché non si decide di migrarle anch'esse a righe `patient_anamnesis_item_selections` vere e proprie (fuori scope minimo di questa proposta, da valutare).
+4. `AppointmentService.findAvailability` (`:580` circa) — oggi non riceve `patientId`. Aggiungere il parametro; se `v_patient_max_anamnesis_severity(patientId) = 'severa'`, filtrare gli slot proposti a quelli entro l'ultima fascia della giornata (configurabile, es. ultimi N slot prima di `clinics.work_end_time`).
+5. Creazione manuale appuntamento (non solo via `/availability`): validazione server-side equivalente — se paziente 'severa' e lo slot richiesto non è a fine giornata → **422** con messaggio esplicito (altrimenti la segreteria può bypassare la constraint scegliendo uno slot a mano, vanificando la Fase 4 punto 4).
+
+#### Fase 5 — Frontend
+- Impostazioni → Anamnesi: sostituire il toggle `isAlert` con un select a 3 valori, con testo esplicativo per "Severa" (vincolo fine giornata, richiede motivazione contingente non diagnosi permanente).
+- `cartella-tab.component.ts`/`dashboard.component.ts`: estendere `get alerts()` per includere le voci custom da catalogo (via nuovo endpoint/vista), non solo le colonne hardcoded.
+- **Nuovo**: badge/riepilogo diff sintetico in cartella paziente (Fase 3) — "N nuove · M risolte dall'ultima visita".
+- Form nuovo appuntamento/agenda: se il backend rifiuta uno slot per vincolo di severità, messaggio chiaro ("Paziente con condizione a rischio infettivo attiva — disponibili solo slot di fine giornata"), non un generico errore di validazione.
+
+### File coinvolti
+| Layer | File |
+|---|---|
+| DB | migrazione schema globale→per-tenant (Fase 1) + deduplicazione/nuove voci/severity (Fase 2) + storico `resolved_at`/indice parziale (Fase 3) + `install.sql` (template + istanza `t_9d754153`) + nuova vista + nuova query diff |
+| Backend | `AnamnesisCatalogController/Service` (**+ passaggio a `TenantContext.validatedSchema()`**, oggi hardcoded su `dentalcare.`), `CatalogItemDto`/`Create-`/`UpdateCatalogItemRequest`, nuovo endpoint diff anamnesi, endpoint alert dashboard/cartella (individuare il service esatto in fase di implementazione), `AppointmentService.findAvailability` + creazione manuale appuntamento |
+| Frontend | `impostazioni.component.ts/html` (select severità), `cartella-tab.component.ts`, `dashboard.component.ts` (+ badge diff), componente nuovo appuntamento/agenda (gestione errore 422) |
+
+### Note
+- **Confermato dal committente (23/07/2026)**: catalogo per-tenant (non più globale, Fase 1); seed statico congelato dal contenuto **ricostruito** (deduplicato + voci mancanti aggiunte, non dal contenuto originale con i duplicati); criterio "Severa" basato su stato contingente, non diagnosi permanente (implica storico, Fase 3).
+- Le colonne booleane legacy di `patient_anamnesis` (allergie, cardiopatia, ecc.) restano fonte di alert "di sistema" — questa proposta le affianca al nuovo meccanismo, non le sostituisce, per non perdere dati clinici già raccolti.
+- **Confermato dal committente (23/07/2026)**: le "voci contingenti" (es. "infezione respiratoria attiva oggi") restano nel catalogo anamnesi — severity=severa impostabile a runtime dal clinico, resa temporanea dal campo `resolved_at` della Fase 3. Non serve un meccanismo/tabella separata per il "motivo della visita"; il catalogo anamnesi copre entrambi i casi (permanente e contingente) grazie allo storico.
+- Effort alto perché il lavoro reale è cinque cose insieme: migrare il catalogo da globale a per-tenant, ricostruire il contenuto (deduplicare + integrare i risultati della ricerca su 6 domini clinici), introdurre lo storico/versioning di `patient_anamnesis_item_selections` con diff, ricollegare due sistemi oggi indipendenti (catalogo dinamico e alert hardcoded), e introdurre per la prima volta un vincolo clinico dentro il motore di scheduling (#31).
+
+---
+
+## 44. Tariffe: fatturazione Studio vs Medico, override prezzi con versioning
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-23
+**Impatto:** Alto (~2-2.5 giornate)
+**Priorità:** da fare **prima** di #40/#41 (richiesto dal committente 23/07/2026)
+**Collegata a:** #42 (il filtro `billingProviderId` per preventivi/fatture resta legato a questa proposta, vedi #42 Fase 3)
+
+### Situazione attuale (più pronta del previsto)
+- `ServiceCatalogController`/`Service` (proposta #12.A, Fatta): CRUD prestazioni **unico per tenant**, nessuna dimensione per-medico.
+- `estimate_lines` (`install.sql:486-511`): **già** salva `unit_price`/`discount_amount`/`vat_rate` propri per riga (snapshot al momento della creazione) — il prezzo di un preventivo esistente non cambia se il listino cambia dopo. `invoice_lines` (`:542-560`) è ancora più isolato: nessun FK a `service_catalog`, tutto denormalizzato.
+- **`invoices` ha già tutto l'occorrente per l'intestazione al medico**: `issuer_type enum('clinic','provider')`, `provider_id`, e colonne di snapshot (`issuer_name`, `issuer_vat_number`, `issuer_fiscal_code`, `issuer_address`, `issuer_email`, `issuer_pec`, `issuer_sdi_code`, `issuer_iban`) — `InvoiceService.createFromEstimate` (righe 177-284) le valorizza già leggendo da `providers` quando `issuerType='provider'`. **Oggi è una scelta manuale per-fattura**, non una modalità di tenant — questo è ciò che manca.
+- `providers` ha già tutti i campi di identità fiscale (`vat_number`, `fiscal_code`, `professional_register`, `billing_address_*`, `billing_pec`, `billing_iban`, `billing_sdi_code`, `invoice_prefix`) — **nessuna colonna nuova necessaria lì**.
+- `clinics` ha già lo schema giusto per ospitare impostazioni di tenant (orari, `install.sql:471-474`) — posto naturale per `billing_mode`.
+- Bug collaterale noto (**#34 follow-up**): `EstimateService.queryLines()` fa `INNER JOIN service_catalog` solo per il nome visualizzato — una riga con `service_id` NULL/cancellato sparisce dal totale. Da sistemare qui perché gli override per-medico aumentano i casi limite.
+
+### Mancano solo: override prezzi per medico, versioning, flag di modalità tenant
+
+#### Fase 1 — DB
+```sql
+ALTER TABLE clinics
+    ADD COLUMN IF NOT EXISTS billing_mode text NOT NULL DEFAULT 'studio'
+        CHECK (billing_mode IN ('studio', 'provider'));
+
+CREATE TABLE provider_price_overrides (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider_id  uuid NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+    service_id   uuid NOT NULL REFERENCES service_catalog(id) ON DELETE CASCADE,
+    price        numeric(10,2) NOT NULL,
+    valid_from   timestamptz NOT NULL DEFAULT now(),
+    valid_to     timestamptz,              -- NULL = versione corrente
+    created_by   uuid REFERENCES providers(id),
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (provider_id, service_id, valid_from)
+);
+```
+Versioning per **intervallo temporale** (`valid_from`/`valid_to`), non contatore: aggiornare un prezzo = chiudere la riga corrente (`valid_to = now()`) + inserirne una nuova, **mai** `UPDATE` in-place del prezzo (altrimenti lo storico si perde e i preventivi vecchi "cambierebbero" prezzo retroattivamente). Preventivi/fatture non hanno bisogno di un FK vivo alla versione: il prezzo è già copiato in `unit_price` al momento della riga (Fase attuale del sistema, invariata) — la versione serve solo per audit/tracciabilità, non per il calcolo.
+
+Vista `v_provider_effective_prices(provider_id, service_id, price, source)`: override attivo (`valid_to IS NULL`) se esiste, altrimenti prezzo di `service_catalog` (eredita dallo studio).
+
+#### Fase 2 — Backend
+- Nuovo `ProviderPriceOverrideController`/`Service` (`/api/providers/{id}/prices`): CRUD limitato a "crea nuova versione" (no update in-place, coerente col modello valid_from/valid_to). Sola lettura di `v_provider_effective_prices` per popolare il default-prezzo lato preventivo.
+- `EstimateService`: quando si aggiunge una riga preventivo, il prezzo di default proposto viene da `v_provider_effective_prices(providerId, serviceId)` se `clinics.billing_mode='provider'`, altrimenti da `service_catalog.price` diretto (comportamento attuale). Il prezzo resta comunque esplicito e modificabile riga per riga come oggi.
+- `EstimateService.queryLines()`: `INNER JOIN` → `LEFT JOIN` su `service_catalog` (fix #34 follow-up, ora necessario anche per gli override).
+- `InvoiceService.createFromEstimate`: oggi `issuerType`/`providerId` sono **campi client** nella request. Cambiare: il service legge `clinics.billing_mode` e **decide lui** l'intestazione — `billing_mode='provider'` → forza `issuerType='provider'` + `providerId` del medico del preventivo; `billing_mode='studio'` → forza sempre `issuerType='clinic'`, ignorando eventuale scelta client. Coerente con CLAUDE.md §11 ("non fidarsi mai solo della validazione client-side") e con lo spirito di #24 (un parametro client non deve decidere un esito di business/fiscale).
+
+#### Fase 3 — Frontend
+- Impostazioni → Studio: nuovo select "Modalità di fatturazione" (Studio / Medico) → `PUT /settings/clinic` (`billingMode`).
+- Nuova vista "Le mie tariffe" (nella stessa area Impostazioni → Prestazioni, visibile al medico loggato): elenco prestazioni con prezzo studio + campo override (vuoto = eredita); salvataggio = nuova versione, mai modifica della riga esistente.
+- Preventivo/fattura: nessuna modifica visibile — i default-prezzo derivano già dal backend aggiornato; l'intestazione fattura ora è automatica in base a `billing_mode`, non più una scelta manuale nel form.
+- **Non toccare** il filtro `preventivi.component.ts`/`fatturazione.component.ts` in questa proposta — resta `billingProviderId` (self) come oggi (#35), coerente con #42 Fase 3; quando `billing_mode='studio'` valutare se aprirlo, ma è una decisione successiva, non automatica.
+
+### File coinvolti
+| Layer | File |
+|---|---|
+| DB | nuova migration (`billing_mode` + `provider_price_overrides` + vista) + `install.sql` |
+| Backend | nuovo `ProviderPriceOverrideController/Service/DTO`, `EstimateService` (fix join + default prezzo), `InvoiceService.createFromEstimate` (enforcement lato server), `ClinicSettingsController` (campo `billingMode`) |
+| Frontend | `impostazioni.component.ts/html` (select modalità + vista "le mie tariffe"), `clinic-billing.model.ts` |
+
+### Note
+- Nessuna colonna nuova su `providers` — l'identità fiscale per fatturare al medico è già completa.
+- Il fix di `queryLines()` (`INNER`→`LEFT JOIN`) è un side-effect utile indipendente, non il cuore della proposta, ma va incluso nello stesso lavoro perché gli override aumentano la probabilità di righe con `service_id` non risolvibile.
+- Dipendenza incrociata con #42: non implementare le due proposte in ordine che rompa il filtro preventivi/fatture già consegnato con #35.
+
+---
+
+## 45. Odontogramma: pannello a tutta larghezza, legenda leggibile
+
+**Stato:** **Fatta (dev) — 23/07 (core)** — Fase 1 (`max-w-5xl mx-auto`→`w-full`) + Fase 2a (SVG `width` fisso → `w-full h-auto`, viewBox già presente) su `odontogramma-tab.component.html`. Verificato live in browser (:4200, medico@demo) e approvato. **Non fatte** (opzionali, da rifinire con verifica browser se servono): Fase 3b legenda-a-fianco su `xl`, Fase 2b `STEP` responsive via ResizeObserver.
+**Data proposta:** 2026-07-23
+**Impatto:** Basso-Medio (~½-1 giornata)
+**Priorità:** da fare **prima** di #40/#41 (richiesto dal committente 23/07/2026)
+
+### Situazione attuale (verificata sul codice)
+- `odontogramma-tab.component.html:1` — contenitore radice con `max-w-5xl mx-auto` (cap fisso a 1024px, centrato), **nessun breakpoint responsive** (`grep lg:|xl:|md:|sm:` → zero risultati in tutto il componente).
+- Il componente **non** usa il pattern a tre colonne di `LayoutService` (CLAUDE.md §5.8): nessun `#rightPanel` registrato — la colonna destra non è occupata da nient'altro, quindi allargare il centro non sposta nulla.
+- La legenda è già sopra la chart (non a fianco): `html:64-100`, riga flex-wrap a piena larghezza dentro la stessa card `max-w-5xl`.
+- La chart è un unico `<svg>` con dimensioni **pixel-fisse** calcolate da costanti (`odontogramma-tab.component.ts:12-24`: `STEP=34` → adulto 566px, bambino 362px), `style="max-width:100%"` ma non `width:100%` — quindi anche rimuovendo il cap del contenitore, il disegno **non si allarga da solo**, resta piccolo al centro dello spazio libero.
+- 32 denti adulto (2 archi × 16, quadranti Q1/Q2 sopra, Q4/Q3 sotto) o 20 da latte, denti posizionati come `<g transform>` assoluti dentro l'SVG (non CSS grid).
+
+### Soluzione proposta (di partenza — da validare con verifica visiva reale)
+
+#### Fase 1 — Rimuovere il cap di larghezza
+`max-w-5xl` → `w-full` (o rimuovere del tutto la classe) sul contenitore radice: la colonna centrale del layout a tre colonne si allarga già automaticamente quando, come qui, nessun pannello destro è registrato.
+
+#### Fase 2 — Rendere l'SVG davvero responsive
+Non basta il container più largo: serve che il disegno lo riempia. Due opzioni, effort crescente:
+- **(a) Minima**: `viewBox` sulle dimensioni attuali + `width="100%"` sull'`<svg>` (oggi solo `max-width:100%`) → il disegno scala proporzionalmente fino a riempire lo spazio, stesso rapporto dimensioni.
+- **(b) Più completa**: calcolo responsive di `STEP`/`TOOTH`/`PAD` in base alla larghezza reale disponibile (`ResizeObserver` o equivalente Angular) → i denti diventano proporzionalmente più grandi/cliccabili, non solo "più zoomati".
+Punto di partenza: (a), a basso rischio; passare a (b) solo se il medico segnala che i denti restano difficili da selezionare col mouse/touch anche a piena larghezza.
+
+#### Fase 3 — Legenda leggibile senza rubare spazio verticale
+Due opzioni:
+- **(a)** Restare sopra la chart ma renderla collassabile (accordion, default aperta) — minimo rischio.
+- **(b)** Spostarla a fianco su schermi larghi (`xl:flex xl:flex-row`, chart `flex-1`, legenda `xl:w-56 xl:shrink-0 xl:sticky`), sopra su schermi stretti — coerente con la richiesta "allargare a tutto il pannello" (la legenda sopra consuma altezza utile che potrebbe andare al disegno).
+Punto di partenza: (b), da confermare visivamente.
+
+#### Fase 4 — Responsive breakpoints
+Introdurre almeno `lg:`/`xl:` (oggi assenti) per distinguere schermo clinico allargato da schermo stretto/mobile.
+
+### Implementazione: delega a UX
+Come richiesto, la validazione finale della soluzione visiva va fatta con l'agente **frontend-dev** (specialista Angular/Tailwind di questo progetto) supportato dalla skill **frontend-design** (linee guida per scelte visive intenzionali, non default template), **con verifica reale in browser** (screenshot prima/dopo, non solo compilazione) prima di dichiarare la modifica completa — coerente con CLAUDE.md §"per modifiche UI, testare nel browser prima di riportare il task come completo". Le opzioni (a)/(b) sopra sono un punto di partenza per quella verifica, non una decisione finale.
+
+### File coinvolti
+| Layer | File |
+|---|---|
+| Frontend | `odontogramma-tab.component.html` (layout, SVG width/viewBox), `odontogramma-tab.component.ts` (se si sceglie l'opzione 2b, calcolo responsive `STEP`/`TOOTH`) |
+| Nessuna modifica | Backend, DB |
+
+### Note
+- Nessun conflitto con altri componenti: la colonna destra del layout è libera per questo tab.
+- Effort basso perché è puro lavoro di layout Angular/Tailwind, ma la stima assume che l'opzione (a) sull'SVG basti — se serve la (b) l'effort sale verso la fascia alta del range indicato.

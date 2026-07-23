@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto space-y-4" (click)="closePanel()">
+<div class="w-full space-y-4" (click)="closePanel()">
 
   @if (error()) {
     <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
@@ -110,8 +110,7 @@
         <!-- Adult dentition -->
         @if (activeArch() === 'adult') {
           <svg [attr.viewBox]="'0 0 ' + SVG_W + ' ' + SVG_H"
-            [attr.width]="SVG_W" [attr.height]="SVG_H"
-            class="overflow-visible select-none" style="max-width:100%">
+            class="overflow-visible select-none w-full h-auto">
 
             <defs>
               @for (pos of TOOTH_POS_KEYS; track pos) {
@@ -180,8 +179,7 @@
         <!-- Child (deciduous) dentition -->
         @if (activeArch() === 'child') {
           <svg [attr.viewBox]="'0 0 ' + CHILD_SVG_W + ' ' + SVG_H"
-            [attr.width]="CHILD_SVG_W" [attr.height]="SVG_H"
-            class="overflow-visible select-none" style="max-width:100%">
+            class="overflow-visible select-none w-full h-auto">
 
             <defs>
               @for (pos of TOOTH_POS_KEYS; track pos) {
