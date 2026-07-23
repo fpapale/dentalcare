@@ -131,6 +131,41 @@ class AnamnesisServiceTest {
         assertThat(activeRows).isEqualTo(0); // ma non è più attiva
     }
 
+    /**
+     * Regressione (Finding 2): i codici del catalogo ricostruito (install.sql) sono cambiati
+     * rispetto a quelli storici cablati in {@code syncLegacyAnamnesis}. Verifica che selezionare
+     * una voce del NUOVO catalogo ribalti davvero il boolean derivato in {@code patient_anamnesis}
+     * (single-code: ALL_PENICILLINA→allergy_penicillin; multi-code: END_DIABETE2→diabetes),
+     * e che una voce non selezionata resti false.
+     */
+    @Test
+    void newCatalogSelection_flipsDerivedLegacyBoolean() {
+        UUID penicillin = itemIdByCode("ALL_PENICILLINA");
+        UUID diabetes2  = itemIdByCode("END_DIABETE2");
+
+        service.savePatientAnamnesis(patientId, new SaveAnamnesisRequest(
+                List.of(new SaveAnamnesisRequest.ItemSelection(penicillin, null),
+                        new SaveAnamnesisRequest.ItemSelection(diabetes2, null)),
+                null, null));
+
+        assertThat(currentBool("allergy_penicillin")).isTrue();  // mapping single-code
+        assertThat(currentBool("diabetes")).isTrue();            // mapping IN (END_DIABETE1/2/NS)
+        assertThat(currentBool("allergy_latex")).isFalse();      // non selezionato → resta false
+    }
+
+    private UUID itemIdByCode(String code) {
+        return jdbc.queryForObject(
+                "SELECT id FROM %s.anamnesis_items WHERE code = :code".formatted(TEST_SCHEMA),
+                new MapSqlParameterSource("code", code), UUID.class);
+    }
+
+    private boolean currentBool(String column) {
+        return Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT %s FROM %s.patient_anamnesis WHERE patient_id = :pid AND is_current = true"
+                        .formatted(column, TEST_SCHEMA),
+                new MapSqlParameterSource("pid", patientId), Boolean.class));
+    }
+
     @Test
     void reselectingAResolvedItem_createsNewRow_notReactivation() {
         service.savePatientAnamnesis(patientId, new SaveAnamnesisRequest(

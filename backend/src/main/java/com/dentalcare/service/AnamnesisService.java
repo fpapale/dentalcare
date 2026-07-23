@@ -153,6 +153,11 @@ public class AnamnesisService {
                         .addValue("patientId", patientId));
 
         // Subqueries join tenant selections with tenant catalog items — entrambe le tabelle usano s() (schema per-tenant).
+        // I codici sotto DEVONO corrispondere al seed ricostruito del catalogo (database/install.sql,
+        // 15 categorie / 87 voci): un boolean derivato = true se e' attiva ALMENO una voce del gruppo clinico.
+        // Alcuni boolean legacy mappano su piu' voci nuove (IN (...)): diabete tipo1/2/NS, cardiopatie,
+        // coagulopatie, disfunzioni tiroidee. Boolean legacy senza voce corrispondente nel seed:
+        // hiv_positive e autoimmune_disease restano false (nessun item dedicato distinto da IMM_HIV / patologie autoimmuni).
         jdbc.update("""
                 INSERT INTO %s.patient_anamnesis (
                     clinic_id, patient_id,
@@ -170,28 +175,28 @@ public class AnamnesisService {
                 SELECT
                     :clinicId, :patientId,
                     :bloodType,
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_FUMO'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_FUMATORE_ATTIVO'),
                     EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_ALCOL'),
                     EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_DROGHE'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_IPERTENSIONE'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_DIABETE'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_CARDIOPATIA'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_COAGULOP'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_IMMUNODEF'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_OSTEOPOROSI'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_TIROIDEA'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_EPILESSIA'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_EPATOPATIA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'CAR_IPERTENSIONE'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code IN ('END_DIABETE1', 'END_DIABETE2', 'END_DIABETE_NS')),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code IN ('CAR_ENDOCARDITE', 'CAR_VALVOLARE', 'CAR_CONGENITA', 'CAR_PACEMAKER', 'CAR_FIBRILLAZIONE', 'CAR_INFARTO', 'CAR_ANGINA', 'CAR_SCOMPENSO', 'CAR_BYPASS')),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code IN ('IMM_COAGULOPATIA', 'IMM_EMOFILIA', 'IMM_TROMBOCITOPENIA')),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'IMM_HIV'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'END_OSTEOPOROSI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code IN ('END_IPOTIROIDISMO', 'END_IPERTIROIDISMO')),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'NEU_EPILESSIA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'EPA_EPATITE'),
                     false,
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'PAT_ONCOLOGICA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'IMM_ONCOLOGICA'),
                     false,
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_ANTICOAG'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_BISFOSFONATI'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FARMACI_CORTISONICI'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_PENICILLINA'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_LATEX'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_ANESTETICI'),
-                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALLERG_ASPIRINA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FAR_ANTICOAGULANTI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FAR_BISFOSFONATI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'FAR_CORTISONICI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALL_PENICILLINA'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALL_LATEX'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALL_ANESTETICI'),
+                    EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ALL_FANS'),
                     EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_BRUXISMO'),
                     EXISTS (SELECT 1 FROM %s.patient_anamnesis_item_selections s JOIN %s.anamnesis_items ai ON ai.id = s.item_id WHERE s.clinic_id = :clinicId AND s.patient_id = :patientId AND ai.code = 'ABT_ONICOFAGIA'),
                     :generalNotes,
