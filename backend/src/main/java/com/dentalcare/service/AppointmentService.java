@@ -577,7 +577,7 @@ public class AppointmentService {
     // cerca solo per quel medico; altrimenti considera tutti i medici clinici attivi e propone
     // il primo che risulta libero. Carica appuntamenti/medici/poltrone in poche query e calcola
     // gli slot in memoria (vedi computeAvailability) per evitare una query per candidato.
-    public List<AvailabilitySlotDto> findAvailability(int durationMin, UUID providerId, LocalDate fromDate, int limit) {
+    public List<AvailabilitySlotDto> findAvailability(int durationMin, UUID providerId, UUID patientId, LocalDate fromDate, int limit) {
         if (durationMin <= 0) {
             throw new IllegalArgumentException("durationMin deve essere maggiore di zero: " + durationMin);
         }
@@ -589,9 +589,21 @@ public class AppointmentService {
         List<AvailabilityProvider> providers = loadAvailabilityProviders(clinicId, providerId);
         List<String> chairLabels = findChairLabels();
         List<BusyAppointment> busy = loadBusyAppointments(clinicId, searchFrom, searchTo);
+        boolean endOfDayOnly = patientId != null && isSevera(clinicId, patientId);
 
         return computeAvailability(durationMin, searchFrom, effectiveLimit, providers, chairLabels, busy,
-                loadSchedule(clinicId));
+                loadSchedule(clinicId), endOfDayOnly);
+    }
+
+    /** True se la severità anamnestica massima attiva del paziente è 'severa' (vincolo fine giornata). */
+    private boolean isSevera(UUID clinicId, UUID patientId) {
+        List<String> rows = jdbc.queryForList("""
+            SELECT max_severity FROM %s.v_patient_max_anamnesis_severity
+            WHERE clinic_id = :clinicId AND patient_id = :patientId
+            """.formatted(s()),
+                new MapSqlParameterSource().addValue("clinicId", clinicId).addValue("patientId", patientId),
+                String.class);
+        return !rows.isEmpty() && "severa".equals(rows.get(0));
     }
 
     /** Medici clinici attivi in scope per la ricerca (uno solo se providerId è indicato). */
@@ -749,6 +761,18 @@ public class AppointmentService {
             int durationMin, LocalDate fromDate, int limit,
             List<AvailabilityProvider> providers, List<String> chairLabels, List<BusyAppointment> busy,
             ScheduleConfig cfg) {
+        return computeAvailability(durationMin, fromDate, limit, providers, chairLabels, busy, cfg, false);
+    }
+
+    /**
+     * @param endOfDayOnly se true (paziente con severità anamnestica massima 'severa'), propone
+     *                     un solo candidato per giornata: l'ultimo slot possibile prima di workEnd,
+     *                     non l'intera griglia (vincolo di sicurezza per gli slot di fine giornata).
+     */
+    static List<AvailabilitySlotDto> computeAvailability(
+            int durationMin, LocalDate fromDate, int limit,
+            List<AvailabilityProvider> providers, List<String> chairLabels, List<BusyAppointment> busy,
+            ScheduleConfig cfg, boolean endOfDayOnly) {
 
         List<AvailabilitySlotDto> proposals = new ArrayList<>();
         if (durationMin <= 0 || limit <= 0 || providers.isEmpty() || chairLabels.isEmpty()) return proposals;
@@ -756,11 +780,15 @@ public class AppointmentService {
         int workStartMin = cfg.workStart().toSecondOfDay() / 60;
         int workEndMin = cfg.workEnd().toSecondOfDay() / 60;
 
+        // Se il paziente e' 'severa': un solo slot candidato per giornata, quello che finisce
+        // esattamente a fine orario (l'ultimo possibile), non l'intera griglia di slot.
+        int iterationStart = endOfDayOnly ? (workEndMin - durationMin) : workStartMin;
+
         for (int day = 0; day < SEARCH_DAYS && proposals.size() < limit; day++) {
             LocalDate date = fromDate.plusDays(day);
             if (!cfg.workingDays().contains(date.getDayOfWeek())) continue;
 
-            for (int m = workStartMin; m + durationMin <= workEndMin && proposals.size() < limit; m += cfg.slotMinutes()) {
+            for (int m = iterationStart; m + durationMin <= workEndMin && proposals.size() < limit; m += cfg.slotMinutes()) {
                 LocalTime slotStart = LocalTime.ofSecondOfDay(m * 60L);
                 LocalTime slotEnd = LocalTime.ofSecondOfDay((m + durationMin) * 60L);
                 OffsetDateTime candidateStart = date.atTime(slotStart).atZone(ROME).toOffsetDateTime();
@@ -775,6 +803,8 @@ public class AppointmentService {
                             freeChair, provider.providerId(), provider.providerName()));
                     break; // un solo medico/poltrona per candidato: passa allo slot successivo
                 }
+
+                if (endOfDayOnly) break; // un solo candidato per giornata: l'ultimo slot possibile
             }
         }
         return proposals;
