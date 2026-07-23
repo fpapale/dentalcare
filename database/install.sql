@@ -671,7 +671,8 @@ CREATE TABLE patient_anamnesis_item_selections (
     notes text,
     recorded_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    recorded_by_provider_id uuid
+    recorded_by_provider_id uuid,
+    resolved_at timestamp with time zone
 );
 
 CREATE TABLE anamnesis_categories (
@@ -1381,9 +1382,6 @@ ALTER TABLE ONLY odontogram_teeth
 ALTER TABLE ONLY patient_anamnesis_item_selections
     ADD CONSTRAINT patient_anamnesis_item_selections_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY patient_anamnesis_item_selections
-    ADD CONSTRAINT patient_anamnesis_item_selections_unique UNIQUE (clinic_id, patient_id, item_id);
-
 ALTER TABLE ONLY anamnesis_categories
     ADD CONSTRAINT anamnesis_categories_pkey PRIMARY KEY (id);
 
@@ -1575,6 +1573,8 @@ CREATE INDEX ix_odontogram_patient_tooth ON odontogram_teeth USING btree (clinic
 CREATE INDEX ix_patient_anamnesis_patient_current ON patient_anamnesis USING btree (clinic_id, patient_id, is_current, recorded_at DESC);
 
 CREATE INDEX ix_patient_anamnesis_selections_patient ON patient_anamnesis_item_selections USING btree (clinic_id, patient_id);
+
+CREATE UNIQUE INDEX ux_patient_anamnesis_selections_active ON patient_anamnesis_item_selections USING btree (clinic_id, patient_id, item_id) WHERE (resolved_at IS NULL);
 
 CREATE INDEX ix_anamnesis_categories_sort ON anamnesis_categories USING btree (sort_order, code) WHERE (enabled = true);
 
@@ -2752,7 +2752,8 @@ CREATE TABLE t_9d754153.patient_anamnesis_item_selections (
     notes text,
     recorded_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    recorded_by_provider_id uuid
+    recorded_by_provider_id uuid,
+    resolved_at timestamp with time zone
 );
 
 
@@ -5962,14 +5963,6 @@ ALTER TABLE ONLY t_9d754153.patient_anamnesis_item_selections
 
 
 --
--- Name: patient_anamnesis_item_selections patient_anamnesis_item_selections_unique; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
---
-
-ALTER TABLE ONLY t_9d754153.patient_anamnesis_item_selections
-    ADD CONSTRAINT patient_anamnesis_item_selections_unique UNIQUE (clinic_id, patient_id, item_id);
-
-
---
 -- Name: anamnesis_categories t_9d754153_anamnesis_categories_pkey; Type: CONSTRAINT; Schema: t_9d754153; Owner: -
 --
 
@@ -6599,6 +6592,13 @@ CREATE INDEX ix_patient_anamnesis_patient_current ON t_9d754153.patient_anamnesi
 --
 
 CREATE INDEX ix_patient_anamnesis_selections_patient ON t_9d754153.patient_anamnesis_item_selections USING btree (clinic_id, patient_id);
+
+
+--
+-- Name: t_9d754153_ux_patient_anamnesis_selections_active; Type: INDEX; Schema: t_9d754153; Owner: -
+--
+
+CREATE UNIQUE INDEX t_9d754153_ux_patient_anamnesis_selections_active ON t_9d754153.patient_anamnesis_item_selections USING btree (clinic_id, patient_id, item_id) WHERE (resolved_at IS NULL);
 
 
 --
