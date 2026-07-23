@@ -189,6 +189,11 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         });
         runStep(schema, "invoices patient_fiscal_code_enc", () ->
                 jdbc.execute("ALTER TABLE " + schema + ".invoices ADD COLUMN IF NOT EXISTS patient_fiscal_code_enc text"));
+        // DEVE precedere le viste v_patient_max_anamnesis_severity / v_agenda_daily / v_patient_clinical_card:
+        // quelle referenziano anamnesis_items.severity e patient_anamnesis_item_selections.resolved_at. Su un
+        // tenant non ancora convergente questi oggetti non esistono e il CREATE VIEW fallirebbe DOPO il DROP,
+        // lasciando la vista cancellata fino al riavvio successivo (agenda/cartella paziente 500).
+        runStep(schema, "anamnesis catalog + storico",  () -> patchAnamnesisCatalog(schema));
         runStep(schema, "v_clinic_dashboard",           () -> rebuildDashboardView(schema));
         runStep(schema, "v_patient_max_anamnesis_severity", () -> rebuildPatientMaxAnamnesisSeverityView(schema));
         runStep(schema, "v_agenda_daily",               () -> rebuildAgendaView(schema));
@@ -342,6 +347,95 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS recorded_by_provider_id uuid");
     }
 
+    /**
+     * Converge il catalogo anamnesi ({@code anamnesis_categories}/{@code anamnesis_items}) e lo storico
+     * append-only ({@code patient_anamnesis_item_selections.resolved_at} + indice unico parziale) su un
+     * singolo schema tenant. DEVE girare PRIMA delle viste che referenziano {@code anamnesis_items.severity}
+     * e {@code ...resolved_at} (v_patient_max_anamnesis_severity, v_agenda_daily, v_patient_clinical_card):
+     * {@code create_tenant()} (Flyway, congelato) non crea queste tabelle sui tenant esistenti/nuovi, quindi
+     * la convergenza reale avviene qui — senza, il CREATE VIEW fallirebbe dopo il DROP lasciando le viste
+     * cancellate (agenda + cartella paziente 500) e savePatientAnamnesis/getPatientAnamnesis romperebbero
+     * sulla colonna resolved_at mancante.
+     * <p>
+     * Interamente idempotente: CREATE TABLE/INDEX IF NOT EXISTS, ADD/DROP ... IF (NOT) EXISTS, seed
+     * count-guarded, FK aggiunta solo se assente e senza orfani. Eseguirlo due volte non produce errori
+     * né duplica il seed. Colonne/PK/CHECK/indici identici a database/install.sql (template create_tenant).
+     */
+    private void patchAnamnesisCatalog(String schema) {
+        // 1. Tabelle catalogo. PK/FK inline assumono i nomi default Postgres (anamnesis_categories_pkey,
+        //    anamnesis_items_pkey, anamnesis_items_category_id_fkey), identici a install.sql.
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS %1$s.anamnesis_categories (
+                id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+                code text,
+                name text NOT NULL,
+                description text,
+                icon text DEFAULT 'medical_information'::text NOT NULL,
+                sort_order integer DEFAULT 100 NOT NULL,
+                enabled boolean DEFAULT true NOT NULL,
+                created_at timestamp with time zone DEFAULT now() NOT NULL,
+                CONSTRAINT anamnesis_categories_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
+            )""".formatted(schema));
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS %1$s.anamnesis_items (
+                id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+                category_id uuid NOT NULL REFERENCES %1$s.anamnesis_categories (id) ON DELETE CASCADE,
+                code text NOT NULL,
+                label text NOT NULL,
+                description text,
+                severity text DEFAULT 'normale'::text NOT NULL,
+                sort_order integer DEFAULT 100 NOT NULL,
+                enabled boolean DEFAULT true NOT NULL,
+                created_at timestamp with time zone DEFAULT now() NOT NULL,
+                has_detail boolean DEFAULT false NOT NULL,
+                CONSTRAINT anamnesis_items_label_not_empty CHECK ((length(TRIM(BOTH FROM label)) > 0)),
+                CONSTRAINT anamnesis_items_severity_check CHECK ((severity = ANY (ARRAY['normale'::text, 'grave'::text, 'severa'::text])))
+            )""".formatted(schema));
+        jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_anamnesis_categories_name ON %1$s.anamnesis_categories (name)".formatted(schema));
+        jdbc.execute("CREATE INDEX IF NOT EXISTS ix_anamnesis_items_category ON %1$s.anamnesis_items (category_id, sort_order)".formatted(schema));
+        jdbc.execute("CREATE INDEX IF NOT EXISTS ix_anamnesis_items_category_sort ON %1$s.anamnesis_items (category_id, sort_order) WHERE (enabled = true)".formatted(schema));
+
+        // 2. Seed 15 categorie / 87 voci — solo se le tabelle sono vuote (idempotente, mai duplica).
+        Integer catCount = jdbc.queryForObject("SELECT COUNT(*) FROM " + schema + ".anamnesis_categories", Integer.class);
+        if (catCount != null && catCount == 0) {
+            jdbc.execute(ANAMNESIS_CATEGORIES_SEED.replace("{schema}", schema));
+        }
+        Integer itemCount = jdbc.queryForObject("SELECT COUNT(*) FROM " + schema + ".anamnesis_items", Integer.class);
+        if (itemCount != null && itemCount == 0) {
+            jdbc.execute(ANAMNESIS_ITEMS_SEED.replace("{schema}", schema));
+        }
+
+        // 3. Storico append-only: colonna resolved_at.
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS resolved_at timestamptz");
+
+        // 4. Rimuove il vecchio vincolo unico pieno (legacy) e crea l'indice unico parziale sulle sole voci attive.
+        jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections DROP CONSTRAINT IF EXISTS patient_anamnesis_item_selections_unique");
+        jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_patient_anamnesis_selections_active ON " + schema
+                + ".patient_anamnesis_item_selections (clinic_id, patient_id, item_id) WHERE resolved_at IS NULL");
+
+        // 5. FK item_id -> anamnesis_items per-tenant. Ripuntata SOLO se non può orfanare righe esistenti:
+        //    nessuna selezione con item_id non presente nel catalogo per-tenant (i NULL sono ammessi dalla FK
+        //    e non contano). Se esistessero selezioni che referenziano id non presenti (es. vecchi id globali
+        //    dentalcare.anamnesis_items su un tenant reale con dati), NON tocchiamo la FK: il remap è manuale
+        //    e supervisionato — vedi database/patch_anamnesis_tenant_migration.sql. Oggi non esistono tenant
+        //    con pazienti reali (il demo t_9d754153 è già migrato), quindi il caso pratico è "tenant nuovo/vuoto".
+        Integer orphans = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM " + schema + ".patient_anamnesis_item_selections s "
+                + "WHERE s.item_id IS NOT NULL AND NOT EXISTS "
+                + "(SELECT 1 FROM " + schema + ".anamnesis_items ai WHERE ai.id = s.item_id)",
+                Integer.class);
+        Integer fkExists = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.table_constraints "
+                + "WHERE table_schema = ? AND table_name = 'patient_anamnesis_item_selections' "
+                + "AND constraint_name = 'patient_anamnesis_item_selections_item_id_fkey' AND constraint_type = 'FOREIGN KEY'",
+                Integer.class, schema);
+        if (orphans != null && orphans == 0 && (fkExists == null || fkExists == 0)) {
+            jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections "
+                    + "ADD CONSTRAINT patient_anamnesis_item_selections_item_id_fkey "
+                    + "FOREIGN KEY (item_id) REFERENCES " + schema + ".anamnesis_items (id) ON DELETE CASCADE");
+        }
+    }
+
     /** Rinomina oldCol→newCol solo se oldCol esiste E newCol non esiste. */
     private void renameColToTarget(String schema, String table, String oldCol, String newCol) {
         Integer oldEx = jdbc.queryForObject(
@@ -437,6 +531,8 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
               "         OR pa2.heart_disease)) AS has_medication_alert"
             : "  false AS has_allergy_alert," +
               "  false AS has_medication_alert";
+        // Il ramo false (tenant senza catalogo/storico ancora convergente) è load-bearing, non decorativo:
+        // mantiene valida la vista durante l'ordinamento di startup, prima che patchAnamnesisCatalog() giri.
         String catalogAlertCol = hasCatalogSelections
             ? ",  EXISTS (SELECT 1 FROM " + schema + ".patient_anamnesis_item_selections pais" +
               "    JOIN " + schema + ".anamnesis_items ai ON ai.id = pais.item_id" +
@@ -511,6 +607,8 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         jdbc.execute("DROP VIEW IF EXISTS " + schema + ".v_patient_clinical_card");
         boolean hasCatalogSeverity = tableExists(schema, "patient_anamnesis_item_selections")
                 && tableExists(schema, "anamnesis_items");
+        // Il ramo NULL::text (tenant senza catalogo/storico ancora convergente) è load-bearing, non decorativo:
+        // mantiene valida la vista durante l'ordinamento di startup, prima che patchAnamnesisCatalog() giri.
         String catalogCol = hasCatalogSeverity
             ? ", mas.max_severity AS catalog_alert_severity"
             : ", NULL::text AS catalog_alert_severity";
@@ -660,4 +758,117 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             " LEFT JOIN plan_agg     tpa ON tpa.clinic_id = c.id"
         );
     }
+
+    // Seed del catalogo anamnesi (15 categorie / 87 voci), copia esatta di database/install.sql
+    // (template create_tenant). Il token {schema} viene sostituito con lo schema tenant a runtime;
+    // schema validato a monte (dentalcare.tenants / pattern ^t_[0-9a-f]{8}$), nessuna interpolazione utente.
+    private static final String ANAMNESIS_CATEGORIES_SEED = """
+        INSERT INTO {schema}.anamnesis_categories (code, name, sort_order) VALUES
+            ('ALLERGIE', 'Allergie e Reazioni Avverse', 10),
+            ('FARMACI', 'Farmaci e Terapie in Corso', 20),
+            ('CARDIOVASCOLARE', 'Apparato Cardiovascolare', 30),
+            ('RESPIRATORIO', 'Apparato Respiratorio', 40),
+            ('ENDOCRINO', 'Apparato Endocrino-Metabolico', 50),
+            ('RENALE_EPATICO', 'Apparato Renale ed Epatico', 60),
+            ('GASTROINTESTINALE', 'Apparato Gastrointestinale', 70),
+            ('NEUROLOGICO', 'Apparato Neurologico', 80),
+            ('IMMUNO_ONCO_COAG', 'Immunologico, Oncologico e Coagulazione', 90),
+            ('CHIRURGIA', 'Chirurgia Pregressa', 100),
+            ('ABITUDINI', 'Abitudini di Vita e Parafunzioni', 110),
+            ('FATTORI_RISCHIO', 'Fattori di Rischio Odontoiatrico', 120),
+            ('COND_ORALI', 'Condizioni Croniche Odontoiatriche', 130),
+            ('GRAVIDANZA', 'Gravidanza e Stato Ormonale', 140),
+            ('PSICOLOGICO', 'Stato Psicologico e Comportamentale', 150)
+        """;
+
+    private static final String ANAMNESIS_ITEMS_SEED = """
+        INSERT INTO {schema}.anamnesis_items (category_id, code, label, description, severity, sort_order) VALUES
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_PENICILLINA', 'Penicillina / Amoxicillina', 'Include tutte le betalattamine', 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ANESTETICI', 'Anestetici locali', 'Articaina, mepivacaina, lidocaina', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_LATEX', 'Lattice', NULL, 'grave', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_FANS', 'Aspirina / FANS', NULL, 'grave', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_SULFAMIDICI', 'Sulfamidici', NULL, 'grave', 50),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_SOLFITI', 'Solfiti', 'Metabisolfito, stabilizzante dell''anestetico con vasocostrittore — distinto dai sulfamidici', 'grave', 60),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_CLOREXIDINA', 'Clorexidina', 'Uso quotidiano in collutori/gel — reazioni anafilattiche documentate', 'grave', 70),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ALTRI_ANTIBIOTICI', 'Altri antibiotici', 'Cefalosporine, clindamicina, macrolidi', 'grave', 80),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_BARBITURICI', 'Barbiturici / sedativi', 'Rilevante per sedazione cosciente', 'grave', 90),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_METALLI', 'Metalli', 'Nickel, oro, palladio, cromo-cobalto', 'normale', 100),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_ACRILICI', 'Acrilici / resine', 'Metacrilato, protesi rimovibili', 'normale', 110),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ALLERGIE'), 'ALL_IODIO', 'Iodio / mezzi di contrasto', NULL, 'normale', 120),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTICOAGULANTI', 'Anticoagulanti orali', 'TAO, NAO (warfarin, dabigatran, rivaroxaban, apixaban)', 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIAGGREGANTI', 'Antiaggreganti piastrinici', 'Aspirina, clopidogrel, ticagrelor', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_BISFOSFONATI', 'Bifosfonati', 'Alendronato, zoledronato — rischio MRONJ', 'grave', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_DENOSUMAB', 'Denosumab', 'Antiriassorbitivo anti-RANKL, stesso rischio MRONJ dei bifosfonati', 'grave', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIANGIOGENETICI', 'Antiangiogenetici', 'Bevacizumab e simili — rientrano nella definizione MRONJ', 'grave', 50),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_CORTISONICI', 'Cortisonici sistemici', NULL, 'grave', 60),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_IMMUNOSOPPRESSORI', 'Immunosoppressori', 'Ciclosporina, azatioprina, metotrexato', 'grave', 70),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIDIABETICI', 'Antidiabetici orali / insulina', NULL, 'grave', 80),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ANTIIPERTENSIVI', 'Antiipertensivi', 'Interazione con vasocostrittore in anestesia locale', 'grave', 90),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_GENGIVOIPERPLASTICI', 'Farmaci con rischio iperplasia gengivale', 'Fenitoina, ciclosporina, nifedipina', 'normale', 100),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_XEROSTOMIZZANTI', 'Farmaci xerostomizzanti', 'Antidepressivi, antistaminici, diuretici', 'normale', 110),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FARMACI'), 'FAR_ALTRI', 'Altra terapia farmacologica in corso', NULL, 'normale', 120),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_ENDOCARDITE', 'Endocardite infettiva pregressa', 'Massimo rischio, profilassi antibiotica obbligatoria (ESC 2023)', 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_VALVOLARE', 'Protesi valvolare cardiaca', 'Profilassi antibiotica obbligatoria (ESC 2023 Classe I)', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_CONGENITA', 'Cardiopatia congenita', 'Non corretta o corretta con residui — profilassi obbligatoria', 'grave', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_PACEMAKER', 'Pacemaker / defibrillatore (ICD)', 'Non richiede profilassi endocardite, ma interferenza con elettrobisturi', 'grave', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_FIBRILLAZIONE', 'Fibrillazione atriale', 'Gestione anticoagulanti/rischio emostatico', 'grave', 50),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_INFARTO', 'Infarto pregresso', NULL, 'grave', 60),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_ANGINA', 'Angina pectoris', NULL, 'grave', 70),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_SCOMPENSO', 'Scompenso cardiaco', 'Insufficienza cardiaca congestizia', 'grave', 80),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_BYPASS', 'Bypass / angioplastica coronarica', 'Gestione antiaggreganti/sanguinamento — non indicazione a profilassi endocardite', 'grave', 90),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CARDIOVASCOLARE'), 'CAR_IPERTENSIONE', 'Ipertensione arteriosa', NULL, 'normale', 100),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_ASMA', 'Asma bronchiale', NULL, 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_BPCO', 'BPCO', 'Broncopneumopatia cronica ostruttiva', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'RESPIRATORIO'), 'RES_APNEE', 'Apnee notturne', 'OSAS, rilevante per sedazione/postura', 'normale', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE1', 'Diabete tipo 1', 'Insulino-dipendente', 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE2', 'Diabete tipo 2', 'Non insulino-dipendente', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_DIABETE_NS', 'Diabete non specificato', 'Per triage rapido quando il tipo non è noto', 'grave', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_IPOTIROIDISMO', 'Ipotiroidismo', NULL, 'normale', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_IPERTIROIDISMO', 'Ipertiroidismo', 'Morbo di Basedow o adenoma tossico', 'grave', 50),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_CUSHING', 'Sindrome di Cushing', 'Ipercortisolismo endogeno o iatrogeno', 'grave', 60),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ENDOCRINO'), 'END_OSTEOPOROSI', 'Osteoporosi', 'Il rischio MRONJ è tracciato separatamente sui farmaci (FAR_BISFOSFONATI/FAR_DENOSUMAB)', 'normale', 70),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'REN_INSUFFICIENZA', 'Insufficienza renale cronica', 'IRC o dialisi', 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'EPA_EPATITE', 'Epatite B/C', 'Epatite virale cronica', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'RENALE_EPATICO'), 'EPA_CIRROSI', 'Cirrosi epatica', 'Rischio coagulativo differente dall''epatite semplice', 'grave', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_REFLUSSO', 'Reflusso gastroesofageo', NULL, 'normale', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_ULCERA', 'Ulcera peptica', 'Controindicazione relativa ai FANS', 'normale', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'GASTROINTESTINALE'), 'GAS_CROHN', 'Morbo di Crohn', NULL, 'normale', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_EPILESSIA', 'Epilessia', NULL, 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_PARKINSON', 'Malattia di Parkinson', 'Gestione poltrona, tempi di trattamento, tremore', 'normale', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'NEUROLOGICO'), 'NEU_SCLEROSI', 'Sclerosi multipla', NULL, 'normale', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_HIV', 'HIV / immunodeficienza', 'Alert per gestione clinica (farmaci, lesioni orali) — NON usare per vincoli di scheduling: le precauzioni universali si applicano a ogni paziente indipendentemente dallo stato noto', 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_ONCOLOGICA', 'Patologia oncologica in trattamento', 'Chemioterapia o radioterapia in corso', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_COAGULOPATIA', 'Disturbi della coagulazione', 'Voce generica — vedi anche emofilia/trombocitopenia per casi specifici', 'grave', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_EMOFILIA', 'Emofilia', NULL, 'grave', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_TROMBOCITOPENIA', 'Trombocitopenia', NULL, 'grave', 50),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'IMMUNO_ONCO_COAG'), 'IMM_RADIOTERAPIA_TESTA_COLLO', 'Radioterapia testa-collo pregressa', 'Rischio osteoradionecrosi, analogo a MRONJ', 'grave', 60),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_PROTESI_ARTICOLARI', 'Protesi articolari', 'Anca, ginocchio — dal 2024 AAOS allineato ADA: profilassi routinaria NON raccomandata nella maggioranza dei casi, valutazione caso per caso', 'normale', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_TRAPIANTO', 'Trapianto d''organo', 'Immunosoppressione, rischio infettivo', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_SPLENECTOMIA', 'Splenectomia / asplenia', 'Rischio infettivo (sepsi post-splenectomia) in procedure invasive', 'grave', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'CHIRURGIA'), 'CHI_ALTRO', 'Altri interventi chirurgici', NULL, 'normale', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_FUMATORE_ATTIVO', 'Fumatore attivo', 'Impatto su guarigione post-chirurgica e osteointegrazione implantare', 'normale', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_EX_FUMATORE', 'Ex fumatore', 'Rischio parodontale/oncologico residuo', 'normale', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_VAPING', 'Sigaretta elettronica / vaping', 'Xerostomia, infiammazione gengivale — voce distinta dal fumo tradizionale (ADA)', 'normale', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_ALCOL', 'Consumo regolare di alcolici', 'Più di 2 unità/giorno', 'normale', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_DROGHE', 'Uso di sostanze', 'Interazione con vasocostrittori/anestesia', 'grave', 50),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_BRUXISMO', 'Bruxismo / digrignamento', NULL, 'normale', 60),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_ONICOFAGIA', 'Onicofagia / morsicatura labbra', NULL, 'normale', 70),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'ABITUDINI'), 'ABT_PIERCING', 'Piercing orale', NULL, 'normale', 80),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'FATTORI_RISCHIO'), 'FTR_SPORT_AGONISTICO', 'Sportivo agonista', 'Rischio trauma dento-alveolare, indicazione a paradenti/bite — non è un''abitudine di vita', 'normale', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_SENSIBILITA', 'Sensibilità dentinale', NULL, 'normale', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_SANGUINAMENTO', 'Sanguinamento gengivale', NULL, 'normale', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_MOBILITA', 'Mobilità dentale', NULL, 'normale', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_ALITOSI', 'Alitosi cronica', NULL, 'normale', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_ATM', 'Problemi ATM / dolore masticatorio', NULL, 'normale', 50),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_XEROSTOMIA', 'Secchezza orale', 'Xerostomia', 'normale', 60),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'COND_ORALI'), 'COR_AFTE', 'Afte ricorrenti', NULL, 'normale', 70),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_GRAVIDANZA', 'Gravidanza in corso', 'Indicare il trimestre nelle note', 'grave', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_ALLATTAMENTO', 'Allattamento', NULL, 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'GRAVIDANZA'), 'GRA_ORMONI', 'Terapia ormonale', 'Pillola, HRT', 'normale', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_ANSIA_STUDIO', 'Ansia da studio dentistico', NULL, 'normale', 10),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_FOBIA_AGHI', 'Fobia degli aghi', 'Belonefobia — impatta somministrazione anestesia', 'grave', 20),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_GAG_REFLEX', 'Riflesso del vomito accentuato', 'Difficoltà a tenere la bocca aperta a lungo', 'normale', 30),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_SEDAZIONE_PREGRESSA', 'Sedazione cosciente pregressa', NULL, 'normale', 40),
+            ((SELECT id FROM {schema}.anamnesis_categories WHERE code = 'PSICOLOGICO'), 'PSI_ESPERIENZE_TRAUMATICHE', 'Esperienze odontoiatriche traumatiche pregresse', NULL, 'normale', 50)
+        """;
 }
