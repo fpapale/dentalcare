@@ -345,6 +345,22 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
         jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS recorded_at timestamptz DEFAULT now() NOT NULL");
         jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now() NOT NULL");
         jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS recorded_by_provider_id uuid");
+        // Il template V23 crea le colonne legacy anamnesis_id/anamnesis_item_id come NOT NULL (design diverso:
+        // FK verso patient_anamnesis e dentalcare.anamnesis_items globale). L'app usa clinic_id/patient_id/item_id
+        // e NON popola le legacy → su un tenant creato da V23 l'INSERT di savePatientAnamnesis violerebbe il NOT NULL.
+        // Rilasso il vincolo (non-distruttivo: colonne e dati eventuali restano). Idempotente + guardato per colonna.
+        jdbc.execute("""
+            DO $do$ BEGIN
+              IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '%1$s'
+                         AND table_name = 'patient_anamnesis_item_selections' AND column_name = 'anamnesis_id') THEN
+                EXECUTE 'ALTER TABLE %1$s.patient_anamnesis_item_selections ALTER COLUMN anamnesis_id DROP NOT NULL';
+              END IF;
+              IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '%1$s'
+                         AND table_name = 'patient_anamnesis_item_selections' AND column_name = 'anamnesis_item_id') THEN
+                EXECUTE 'ALTER TABLE %1$s.patient_anamnesis_item_selections ALTER COLUMN anamnesis_item_id DROP NOT NULL';
+              END IF;
+            END $do$;
+            """.formatted(schema));
     }
 
     /**

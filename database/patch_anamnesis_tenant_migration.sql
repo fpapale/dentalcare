@@ -180,6 +180,18 @@ BEGIN
         -- 3. Storico append-only: colonna resolved_at. --------------------------------------
         EXECUTE format('ALTER TABLE %1$I.patient_anamnesis_item_selections ADD COLUMN IF NOT EXISTS resolved_at timestamptz', tenant_schema);
 
+        -- 3b. Colonne legacy V23 (anamnesis_id/anamnesis_item_id NOT NULL): rilassa il vincolo. ---
+        --     L app usa clinic_id/patient_id/item_id e non le popola: senza questo, INSERT di
+        --     savePatientAnamnesis viola il NOT NULL su un tenant creato dal template V23.
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = tenant_schema
+                   AND table_name = 'patient_anamnesis_item_selections' AND column_name = 'anamnesis_id') THEN
+            EXECUTE format('ALTER TABLE %1$I.patient_anamnesis_item_selections ALTER COLUMN anamnesis_id DROP NOT NULL', tenant_schema);
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = tenant_schema
+                   AND table_name = 'patient_anamnesis_item_selections' AND column_name = 'anamnesis_item_id') THEN
+            EXECUTE format('ALTER TABLE %1$I.patient_anamnesis_item_selections ALTER COLUMN anamnesis_item_id DROP NOT NULL', tenant_schema);
+        END IF;
+
         -- 4. Vincolo unico: rimuove il vecchio pieno (legacy) e crea l''indice unico parziale. -
         EXECUTE format('ALTER TABLE %1$I.patient_anamnesis_item_selections DROP CONSTRAINT IF EXISTS patient_anamnesis_item_selections_unique', tenant_schema);
         EXECUTE format('CREATE UNIQUE INDEX IF NOT EXISTS ux_patient_anamnesis_selections_active ON %1$I.patient_anamnesis_item_selections (clinic_id, patient_id, item_id) WHERE resolved_at IS NULL', tenant_schema);
