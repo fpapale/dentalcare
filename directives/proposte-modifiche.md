@@ -54,7 +54,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | Proposta |
 | 45 | Odontogramma: pannello a tutta larghezza, legenda leggibile | Basso-Medio (~½-1 giornata) | **Fatta (dev) — 23/07 (core)** |
 | 46 | Piano di cura: nome dente in grassetto nell'elenco prestazioni | Basso (~15 min) | **Fatta (dev) — 24/07** |
-| 47 | Export selezionabile (una/più/tutte le cliniche del tenant) + **guardia obbligatoria pre-cancellazione** tenant/clinica, con snapshot del catalogo anamnesi condiviso, artefatto cifrato/auditato — **non** conservazione a norma | Medio (~1-1.5 giornate) | **Slice A Fatta (dev) — 24/07** · Slice B (signed URL + password) da fare |
+| 47 | Export selezionabile (una/più/tutte le cliniche del tenant) + **guardia obbligatoria pre-cancellazione** tenant/clinica, con snapshot del catalogo anamnesi condiviso, artefatto cifrato/auditato — **non** conservazione a norma | Medio (~1-1.5 giornate) | **Slice A+B Fatta (dev) — 24/07** |
 
 > **Priorità richiesta dal committente (23/07/2026):** #42 → #43 → #44 → #45 vanno pianificate/eseguite **prima** di #40 e #41.
 
@@ -2488,4 +2488,16 @@ Partizione per domini disgiunti (backend / frontend, come da pattern #31-#35). B
 
 **Frontend** (`features/admin-tenant`): flusso tenant a 3 stati (prepara → scarica copia obbligatoria + conferma nome digitato → programmato con "Annulla eliminazione"); export multi-clinica con checkbox di selezione; conferma digitata anche sulla delete di clinica.
 
-**Deferred — Slice B** (decisione B piena): **signed URL a scadenza breve + archivio con password monouso**. Oggi la protezione è: retention **cifrata a riposo** su MinIO (upload cifra) + download autenticato `tenant_admin` + token monouso. Mancano il signed URL e la password sull'archivio scaricato. Altri follow-up: evento di audit **persistente** (non solo log), check `active` nel `JwtAuthenticationFilter` per invalidare i JWT già emessi entro la finestra, token di cancellazione persistente (oggi in memoria, perso al riavvio).
+### Implementazione — Slice B (Fatta in dev, 24/07/2026)
+
+Chiude la **decisione B** (protezione dell'artefatto).
+
+**Backend**
+- Nuova `PasswordZipUtil` (Zip4j, dipendenza aggiunta): avvolge l'export in un **archivio ZIP AES-256 protetto da password monouso** (20 caratteri, alfabeto senza caratteri ambigui), apribile con qualsiasi client ZIP standard.
+- `TenantDeletionService.prepare()`: genera l'export → lo avvolge nell'archivio protetto → lo salva su MinIO (doppio strato: archivio con password **+** cifratura a riposo di `upload()`); la password è restituita **una sola volta** in `DeletionPrepareResponse.archivePassword`.
+- **"Signed URL a scadenza breve"**: realizzato a livello applicativo come endpoint `GET /tenant/deletion/export` gated dal **token monouso a TTL breve** (15′) — link firmato di fatto. Un presigned URL S3 nativo è **deliberatamente evitato**: la copia in MinIO è cifrata a riposo dall'app, quindi un presigned diretto servirebbe ciphertext non apribile. La protezione "una volta sul disco" è data dall'archivio con password.
+- Test: `PasswordZipUtilTest` (apre solo con password corretta; password robusta) + `TenantDeletionServiceTest` (prepare ritorna la password monouso). `mvn test` verde (10/10).
+
+**Frontend**: la password monouso è mostrata **una sola volta** nello step "scarica copia", con avviso di salvarla (serve ad aprire l'archivio cifrato).
+
+**Follow-up residui** (non decisione B): evento di audit **persistente** (oggi `log.info`), check `active` nel `JwtAuthenticationFilter` per invalidare i JWT già emessi entro la finestra di grazia, token di cancellazione persistente (oggi in memoria, perso al riavvio), eventuale presigned URL nativo se in futuro si separa lo storage non cifrato.

@@ -43,6 +43,7 @@ export interface TenantDeletionPrepareResponse {
   deletionToken: string;
   expiresAt: string;
   exportSizeBytes: number;
+  archivePassword: string;
 }
 
 export interface DeleteTenantRequest {

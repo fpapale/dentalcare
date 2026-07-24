@@ -63,6 +63,14 @@ class TenantDeletionServiceTest {
     }
 
     @Test
+    void prepare_returnsOneTimeArchivePassword() throws IOException {
+        when(jdbc.queryForObject(anyString(), any(SqlParameterSource.class), eq(UUID.class))).thenReturn(tenantId);
+        DeletionPrepareResponse resp = service.prepare();
+        assertThat(resp.archivePassword()).isNotBlank();
+        assertThat(resp.deletionToken()).isNotBlank();
+    }
+
+    @Test
     void confirm_withoutValidToken_isRejected() {
         assertThatThrownBy(() -> service.confirmDeleteTenant("bogus-token", "Whatever"))
                 .isInstanceOf(IllegalStateException.class);

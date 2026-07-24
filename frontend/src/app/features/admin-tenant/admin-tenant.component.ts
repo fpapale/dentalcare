@@ -78,6 +78,7 @@ export class AdminTenantComponent implements OnInit {
   readonly tenantDeletionToken = signal<string | null>(null);
   readonly tenantDeletionExpiresAt = signal<string | null>(null);
   readonly tenantExportSizeBytes = signal<number | null>(null);
+  readonly tenantArchivePassword = signal<string | null>(null);
   readonly tenantExportDownloaded = signal(false);
   readonly tenantConfirmName = signal('');
   readonly deletingTenant = signal(false);
@@ -457,6 +458,7 @@ export class AdminTenantComponent implements OnInit {
     this.tenantDeletionToken.set(null);
     this.tenantDeletionExpiresAt.set(null);
     this.tenantExportSizeBytes.set(null);
+    this.tenantArchivePassword.set(null);
     this.tenantExportDownloaded.set(false);
     this.tenantConfirmName.set('');
     this.deletingTenant.set(false);
@@ -476,6 +478,7 @@ export class AdminTenantComponent implements OnInit {
         this.tenantDeletionToken.set(res.deletionToken);
         this.tenantDeletionExpiresAt.set(res.expiresAt);
         this.tenantExportSizeBytes.set(res.exportSizeBytes);
+        this.tenantArchivePassword.set(res.archivePassword);
         this.preparingTenant.set(false);
       },
       error: (err: HttpErrorResponse) => {

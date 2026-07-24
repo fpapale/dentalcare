@@ -4,6 +4,7 @@ import com.dentalcare.dto.DeletionPrepareResponse;
 import com.dentalcare.dto.DeletionScheduledResponse;
 import com.dentalcare.security.TenantContext;
 import com.dentalcare.security.TenantSchemaRegistry;
+import com.dentalcare.util.PasswordZipUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -88,8 +89,19 @@ public class TenantDeletionService {
             exportBytes = baos.toByteArray();
         }
 
+        // Slice B: l'export scaricabile è un archivio AES protetto da password monouso,
+        // così il file resta cifrato una volta sul disco dell'utente (la password è mostrata
+        // una sola volta). La copia in MinIO è inoltre cifrata a riposo da upload().
+        String archivePassword = PasswordZipUtil.generatePassword();
+        byte[] protectedArchive;
+        try {
+            protectedArchive = PasswordZipUtil.encrypt(exportBytes, "tenant_export.zip", archivePassword.toCharArray());
+        } catch (IOException e) {
+            throw new IOException("Creazione archivio protetto fallita", e);
+        }
+
         String objectKey = "_deletion/export_" + Instant.now().toEpochMilli() + ".zip";
-        minio.upload(objectKey, exportBytes, "application/zip");
+        minio.upload(objectKey, protectedArchive, "application/zip");
 
         pruneExpired();
         String token = UUID.randomUUID().toString();
@@ -99,7 +111,7 @@ public class TenantDeletionService {
         log.info("AUDIT tenant-deletion prepare: schema={} provider={} objectKey={} sizeBytes={}",
                 schema, currentProvider(), objectKey, exportBytes.length);
 
-        return new DeletionPrepareResponse(token, expiresAt.toString(), exportBytes.length);
+        return new DeletionPrepareResponse(token, expiresAt.toString(), exportBytes.length, archivePassword);
     }
 
     /** Streamma al client la copia di export preparata (decifrata da MinIO), validando il token. */

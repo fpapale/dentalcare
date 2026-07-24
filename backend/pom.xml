@@ -136,6 +136,13 @@
 			<artifactId>s3</artifactId>
 			<version>2.25.70</version>
 		</dependency>
+
+		<!-- Zip4j — archivio AES con password monouso per l'export pre-cancellazione (#47 Slice B) -->
+		<dependency>
+			<groupId>net.lingala.zip4j</groupId>
+			<artifactId>zip4j</artifactId>
+			<version>2.11.5</version>
+		</dependency>
 	</dependencies>
 
 	<build>
