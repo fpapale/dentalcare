@@ -50,9 +50,10 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 40 | MinIO — separazione root per ambiente (Dev / Coll / Prod) | Medio (~1 giornata + finestra migrazione prod) | Proposta |
 | 41 | Script di installazione per ambiente COLLAUDO (nuovo container Docker) | Medio (~1 giornata) | Proposta |
 | 42 | Visibilità dati clinici per ruolo: igienista/dentista/chirurgo/ortodontista vedono tutti i pazienti | Medio (~1 giornata) | Proposta |
-| 43 | Anamnesi: severità a 3 livelli (Normale/Grave/Severa) + collegamento reale agli alert clinici + vincolo appuntamento fine giornata | Alto (~2-2.5 giornate) | **Confermata (23/07/2026)** |
+| 43 | Anamnesi: severità a 3 livelli (Normale/Grave/Severa) + collegamento reale agli alert clinici + vincolo appuntamento fine giornata | Alto (~2-2.5 giornate) | **Fatta (dev) — 23-24/07 (merge PR #1)** |
 | 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | Proposta |
 | 45 | Odontogramma: pannello a tutta larghezza, legenda leggibile | Basso-Medio (~½-1 giornata) | **Fatta (dev) — 23/07 (core)** |
+| 46 | Piano di cura: nome dente in grassetto nell'elenco prestazioni | Basso (~15 min) | **Fatta (dev) — 24/07** |
 
 > **Priorità richiesta dal committente (23/07/2026):** #42 → #43 → #44 → #45 vanno pianificate/eseguite **prima** di #40 e #41.
 
@@ -81,6 +82,21 @@ Proseguendo sui punti aperti del 17/07. Entrambe in `app.ts`, entrambe modi di r
 | **#28** — `getDemoConfig()` con `retry({count:5, delay:1500})` + `console.warn` invece di `catch` vuoto | Un 502 transitorio al riavvio (`docker compose up`: il frontend risponde prima che il backend sia pronto) lasciava `demoSchema=null` → menu persona demo sparito **per tutta la sessione**, in silenzio | Bastava un riavvio poco prima della presentazione per perdere il menu persona senza alcun segnale |
 
 > Verifica: build FE verde (exit 0). Da deployare in prod insieme al resto.
+
+---
+
+## Incident prod: anamnesi non salva (FK item_id) — 24/07/2026
+
+**Sintomo:** in prod il salvataggio anamnesi falliva con
+`insert or update ... violates foreign key constraint "patient_anamnesis_item_selections_item_id_fkey" — Key (item_id)=(…) is not present in table "anamnesis_items"`, anche se l'item **esisteva** nel catalogo per-tenant `t_9d754153.anamnesis_items`.
+
+**Causa:** il DB prod precede il rework anamnesi (#43). La FK `…_item_id_fkey` sullo schema del tenant puntava ancora al catalogo **globale** `dentalcare.anamnesis_items` (vecchia `create_tenant`), mentre gli item sono seedati per-tenant con `gen_random_uuid()` → id presente per-tenant ma **assente nel globale** → violazione. Il guard di convergenza (`patchAnamnesisCatalog` + `patch_anamnesis_tenant_migration.sql` step 5) aggiungeva la FK **solo se non esisteva**: con una FK già presente (verso il globale) la lasciava intatta → mai corretta.
+
+**Fix codice** (commit `3e4dbce`): il guard ora conta la FK **solo se punta già al catalogo per-tenant**; altrimenti `DROP` + `ADD` verso lo schema del tenant, sempre gated su 0 orfani. Applicato sia in `EstimateSchemaInitializer.java` sia nel percorso DBA `patch_anamnesis_tenant_migration.sql`. Self-heal per restart/tenant nuovi.
+
+**Fix dati prod (DBA, a mano):** le 27 selezioni demo esistenti referenziavano **due generazioni** di catalogo legacy (codici `ALLERG_*`/`FARMACI_*`/`SIS_*`/… — nessuno mappabile per codice al nuovo schema `ALL_*`/`FAR_*`/`COR_*`). Backup in `t_9d754153._bak_pais_legacy_orfane`, righe orfane cancellate, poi FK ripuntata al catalogo per-tenant. Verifica: `fk_points_to_tenant = true`, 0 orfani, salvataggio anamnesi OK.
+
+**Nota residua:** `install.sql` (demo-dump) può ancora contenere quelle righe/catalogo legacy → rigenerare al prossimo `pg_dump` demo (vedi #29).
 
 ---
 
