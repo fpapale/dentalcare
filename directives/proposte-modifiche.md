@@ -2434,8 +2434,22 @@ Generalizzare `exportClinicToStream` per accettare un **insieme** di `clinicId` 
 Il catalogo anamnesi (`anamnesis_categories`/`anamnesis_items`) è **per-tenant, senza `clinic_id`** (#43) → non sezionabile per clinica. Le selezioni del paziente (`patient_anamnesis_item_selections`) referenziano `item_id`: **senza il catalogo com'era, le selezioni esportate diventano illeggibili** dopo la cancellazione (perdita di valore probatorio, proprio ciò che lo storico-con-diff di #43 vuole evitare).
 → Ogni export (per-clinica o intero tenant) **include uno snapshot puntuale e datato del catalogo anamnesi di riferimento** come contesto, incluso intero. Analogo trattamento per eventuale altra anagrafica per-tenant condivisa necessaria a interpretare i dati esportati.
 
-#### Fase 3 — Guardia obbligatoria pre-cancellazione (il vero guadagno)
-Trasformare l'export "prima" da commento a **vincolo imposto** su `deleteTenant()` e `deleteClinic()`: la cancellazione è ammessa solo a fronte di un export prodotto (token/flag di conferma nella stessa sessione, oppure export server-side generato e consegnato **dentro** il flusso prima del drop). Coerente con CLAUDE.md §7.4/§11 (niente cancellazioni distruttive senza rete di sicurezza) e con la soft-delete di #43.
+#### Fase 3 — Guardia obbligatoria pre-cancellazione (il vero guadagno) — decisione C RISOLTA (committente 24/07/2026)
+
+**Principio.** La guardia si basa su **fatti verificabili dal server**, non sull'autodichiarazione dell'utente. Una checkbox "hai salvato il file?" è teatro: non verificabile, inutile su un'operazione irreversibile → **scartata**. Il server può accertare che l'export sia stato *generato* e *scaricato*; **non** può accertare che i byte siano atterrati sani sul disco dell'utente (ultimo miglio, client-side) → per quello non ci si affida a una spunta, **si conserva una copia server-side**.
+
+**Livello scelto — grace period che rende reversibile l'irreversibile.** Trasforma `deleteTenant()` da distruzione immediata a cancellazione differita annullabile (standard dei provider cloud, finestra ~30 gg):
+
+1. **Export imposto + token.** All'avvio della cancellazione il server genera l'export fresco e completo, lo streamma in download e rilascia un **token monouso a scadenza breve** legato all'export (hash export + tenant + operatore + timestamp). La conferma accetta **solo** un token valido/non scaduto corrispondente all'export appena prodotto → senza export niente cancellazione (409).
+2. **Conferma digitata** (nome tenant o `ELIMINA`), non checkbox → difesa dal click accidentale.
+3. **Copia server-side in retention.** L'export resta in uno storage di retention separato per N giorni → recuperabile anche se la copia locale è persa/corrotta.
+4. **Soft-delete del tenant.** Invece del `DROP SCHEMA` immediato: `dentalcare.tenants.active = false` + nuova colonna `scheduled_drop_at = now() + N giorni`, accesso revocato; il `DROP SCHEMA ... CASCADE` reale + `purgeBucket` avviene **solo allo scadere**, via job schedulato. Fino a lì è annullabile.
+
+`deleteClinic()`: stessa logica di export+token+conferma digitata; il grace period sul singolo schema non si applica (non c'è drop di schema), ma va coordinato con la regola esistente che rifiuta la cancellazione di una clinica con pazienti (vedi Note) — export prima dello svuotamento.
+
+Coerente con CLAUDE.md §7.4/§11 (niente cancellazioni distruttive senza rete di sicurezza) e con la soft-delete di #43.
+
+> **Trade-off GDPR art. 17:** se la cancellazione nasce da una richiesta di erasure dell'interessato, la finestra di grace va giustificata/documentata come tempo tecnico. Per l'offboarding **volontario del tenant** non c'è vincolo. La finestra non trattiene i dati oltre il necessario: è revoca d'accesso immediata + drop differito.
 
 #### Fase 4 — Protezione + audit dell'artefatto
 - **L'export decifra**: `writeCustomersCsv` + `TenantEncryptionService` scrivono `fiscal_code`/`birth_date` **in chiaro** → il file annulla la cifratura di #7 e diventa l'anello debole. L'artefatto va **protetto** (archivio cifrato / password, download firmato a scadenza breve, accesso controllato). **Decisione aperta (B):** meccanismo di protezione da confermare.
@@ -2451,7 +2465,7 @@ Trasformare l'export "prima" da commento a **vincolo imposto** su `deleteTenant(
 ### Decisioni aperte
 - **A** — dati condivisi per-tenant nell'export per-clinica: **risolta** → inclusi interi come snapshot datato (catalogo anamnesi confermato dal committente 24/07).
 - **B** — meccanismo di protezione dell'artefatto cifrato (archivio con password vs download firmato a scadenza vs cifratura con chiave del tenant): **da confermare**.
-- **C** — forma della guardia: flag di conferma vs export server-side generato dentro la transazione di cancellazione: **da confermare**.
+- **C** — forma della guardia: **risolta** (committente 24/07/2026) → **export imposto + token monouso · conferma digitata · copia server-side in retention · soft-delete del tenant con drop differito di N giorni**. Scartata la checkbox "hai salvato?" (autodichiarazione non verificabile). Dettaglio in Fase 3.
 
 ### Note
 - Distinto dall'**intervento 10** (Blocco 3, gate: *export paziente completo art. 15 + report accessi*), che è **per-paziente** e diritto dell'interessato. Il #47 è **tenant-admin, bulk, clinica-selezionabile + guardia di cancellazione**: asse diverso.
