@@ -322,7 +322,7 @@
                           <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-slate-400">
                             @if (item.serviceCategory) { <span>{{ item.serviceCategory }}</span> }
                             @if (item.durationMinutes) { <span>{{ item.durationMinutes }} min</span> }
-                            @if (item.toothNumber) { <span>Dente {{ item.toothNumber }}</span> }
+                            @if (item.toothNumber) { <span class="font-bold text-slate-600">Dente {{ item.toothNumber }}</span> }
                             @if (item.providerName) { <span>Dr. {{ item.providerName }}</span> }
                             @if (item.plannedDate) { <span>{{ item.plannedDate | date:'d MMM yyyy' : '' : 'it' }}</span> }
                           </div>
