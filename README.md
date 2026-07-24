@@ -247,6 +247,32 @@ echo "FRONTEND_PORT=9090" >> .env
 
 ---
 
+## Terminologia: tenant, clinica/sede, ruoli
+
+Tre livelli distinti — da non confondere, soprattutto perché la parola "studio" è ambigua.
+
+```
+TENANT  (account / abbonamento)      → uno schema PostgreSQL dedicato  t_XXXXXXXX
+  └── CLINIC / clinica / sede  (1..N) → righe nella tabella  clinics
+        └── PROVIDER / utenti         → medici, igienisti, segreteria
+```
+
+| Livello | Cos'è | Dove vive |
+|---|---|---|
+| **Tenant** | Lo studio come **entità/abbonamento**. È chi si registra. Ha uno schema DB isolato tutto suo | `dentalcare.tenants` + schema `t_XXXX` |
+| **Clinic** (= **clinica** = **sede**) | Una **sede fisica** dentro il tenant. Un tenant può averne **più di una**. `clinic`, `clinica` e `sede` sono sinonimi: la stessa riga in `clinics` | tabella `clinics` + mappatura `dentalcare.tenant_clinics` |
+| **Provider** | Medici e personale operativo | tabella `providers` |
+
+**Ruoli JWT (quattro):** `TENANT_ADMIN` · `DOCTOR` · `HYGIENIST` · `SECRETARY`.
+
+- **`TENANT_ADMIN`** = *chi crea l'account*. Nasce dalla registrazione self-service (migration `V24`). Amministra **tutte** le cliniche del proprio tenant: `createClinic`/`updateClinic`/`deleteClinic`, gestione utenti, fino a `deleteTenant`. È il proprietario dell'abbonamento, non l'admin di una singola sede.
+- **Non esiste un ruolo "amministratore della singola clinica"**: l'amministrazione è al livello del tenant, il `TENANT_ADMIN` opera sede per sede. Dentro una sede ci sono solo ruoli operativi (dottore/igienista/segreteria).
+- **`ADMIN` ≠ `TENANT_ADMIN`**: `ADMIN` è il ruolo **legacy/di piattaforma** (prima di `V24` la registrazione creava un `admin`) — oggi sopravvive per il tenant demo storico e per il JWT temporaneo di servizio di n8n (`POST /api/public/service-token`), non per i clienti reali.
+
+> ⚠️ **"Studio" è ambiguo:** in registrazione (`p_studio_name`) indica il **tenant** (tutta l'attività), ma nel parlato indica anche una **singola sede/clinica**. "Clinica" e "sede" invece sono sempre e solo la `clinic`.
+
+---
+
 ## Database
 
 ### Tecnologie
@@ -258,7 +284,7 @@ echo "FRONTEND_PORT=9090" >> .env
 
 | Tabella | Descrizione |
 |---|---|
-| `clinics` | Cliniche (tenant root) |
+| `clinics` | Cliniche/sedi del tenant (vedi §Terminologia) |
 | `patients` | Pazienti per clinica |
 | `providers` | Medici e personale |
 | `service_catalog` | Catalogo prestazioni con prezzi e durata |
