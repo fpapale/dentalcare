@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiPromptsComponent } from './ai-prompts.component';
 import { ClinicSettingsService } from '../../core/services/clinic-settings.service';
+import { UserContextService } from '../../core/services/user-context.service';
 import { ProviderService } from '../../core/services/provider.service';
 import { AnamnesisCatalogService } from '../../core/services/anamnesis-catalog.service';
 import { AppSettingsService, AppSettings, DEFAULT_SETTINGS } from '../../core/services/app-settings.service';
@@ -111,6 +112,12 @@ export class ImpostazioniComponent implements OnInit {
   appSettings: AppSettings = { ...DEFAULT_SETTINGS };
   appSettingsSaved = signal(false);
   appSettingsError = signal(false);
+
+  // #42 — visibilità pazienti per ruolo (per_provider | shared), modificabile solo dall'admin.
+  patientVisibilityMode = signal<'per_provider' | 'shared'>('per_provider');
+  visibilitySaved = signal(false);
+  visibilityError = signal(false);
+  canEditVisibility = () => this.userContext.authRole() === 'admin' || this.userContext.authRole() === 'tenant_admin';
   localePendingReload = signal(false);
 
   // ── Lookup data ────────────────────────────────────────────────────────────
@@ -159,7 +166,8 @@ export class ImpostazioniComponent implements OnInit {
     private clinicService: ClinicSettingsService,
     private providerService: ProviderService,
     private catalogService: AnamnesisCatalogService,
-    private appSettingsSvc: AppSettingsService
+    private appSettingsSvc: AppSettingsService,
+    private userContext: UserContextService
   ) {}
 
   ngOnInit(): void {
@@ -596,6 +604,29 @@ export class ImpostazioniComponent implements OnInit {
         if (s.workingDays)   this.appSettings.workDays        = this.isoToWorkDays(s.workingDays);
       },
       error: () => { /* tenant senza orari configurati: restano i default locali */ }
+    });
+    // #42 — modalità di visibilità pazienti della sede
+    this.clinicService.getPatientVisibility().subscribe({
+      next: v => this.patientVisibilityMode.set(v.mode === 'shared' ? 'shared' : 'per_provider'),
+      error: () => { /* colonna non ancora presente: resta il default per_provider */ }
+    });
+  }
+
+  /** #42 — cambia e persiste la modalità di visibilità (solo admin, il server rifiuta gli altri). */
+  setPatientVisibility(mode: 'per_provider' | 'shared'): void {
+    if (mode === this.patientVisibilityMode()) return;
+    const previous = this.patientVisibilityMode();
+    this.patientVisibilityMode.set(mode);
+    this.visibilityError.set(false);
+    this.clinicService.updatePatientVisibility(mode).subscribe({
+      next: () => {
+        this.visibilitySaved.set(true);
+        setTimeout(() => this.visibilitySaved.set(false), 2500);
+      },
+      error: () => {
+        this.patientVisibilityMode.set(previous);
+        this.visibilityError.set(true);
+      }
     });
   }
 

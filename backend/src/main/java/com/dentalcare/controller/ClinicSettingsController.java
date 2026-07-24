@@ -54,4 +54,16 @@ public class ClinicSettingsController {
     public void updateSchedule(@RequestBody ClinicScheduleDto request) {
         clinicSettingsService.updateSchedule(request);
     }
+
+    /** Modalità di visibilità pazienti per ruolo della sede (#42): per_provider | shared. */
+    @GetMapping("/patient-visibility")
+    public com.dentalcare.dto.PatientVisibilityDto getPatientVisibility() {
+        return clinicSettingsService.getPatientVisibility();
+    }
+
+    @PutMapping("/patient-visibility")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updatePatientVisibility(@RequestBody com.dentalcare.dto.PatientVisibilityDto request) {
+        clinicSettingsService.updatePatientVisibility(request);
+    }
 }

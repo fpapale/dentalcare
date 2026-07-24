@@ -169,6 +169,28 @@ public class ClinicSettingsService {
         return rows.isEmpty() ? new ClinicScheduleDto(null, null, null, null) : rows.get(0);
     }
 
+    /** Modalità di visibilità pazienti per ruolo della sede corrente (#42). */
+    public com.dentalcare.dto.PatientVisibilityDto getPatientVisibility() {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<String> rows = jdbc.queryForList(
+                "SELECT patient_visibility_mode FROM " + s() + ".clinics WHERE id = :id",
+                new MapSqlParameterSource("id", clinicId), String.class);
+        String mode = rows.isEmpty() || rows.get(0) == null ? "per_provider" : rows.get(0);
+        return new com.dentalcare.dto.PatientVisibilityDto(mode);
+    }
+
+    @Transactional
+    public void updatePatientVisibility(com.dentalcare.dto.PatientVisibilityDto request) {
+        String mode = request == null ? null : request.mode();
+        if (!"per_provider".equals(mode) && !"shared".equals(mode)) {
+            throw new IllegalArgumentException("Modalità non valida: usare 'per_provider' o 'shared'");
+        }
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update(
+                "UPDATE " + s() + ".clinics SET patient_visibility_mode = :mode, updated_at = now() WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", clinicId).addValue("mode", mode));
+    }
+
     @Transactional
     public void updateSchedule(ClinicScheduleDto request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());

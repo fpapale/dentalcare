@@ -35,6 +35,9 @@ class AppointmentServiceStatusTest {
     @Mock
     AppointmentEventService events;
 
+    @Mock
+    AccessScopeService accessScope;
+
     AppointmentService service;
 
     private final UUID clinicId = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -44,7 +47,7 @@ class AppointmentServiceStatusTest {
     void setup() {
         TenantContext.setCurrentSchema("t_abcd1234");
         TenantContext.setCurrentClinicId(clinicId.toString());
-        service = new AppointmentService(jdbc, events);
+        service = new AppointmentService(jdbc, events, accessScope);
     }
 
     @AfterEach

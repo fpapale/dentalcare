@@ -472,6 +472,7 @@ CREATE TABLE clinics (
     work_end_time time without time zone,
     slot_minutes integer,
     working_days text,
+    patient_visibility_mode text NOT NULL DEFAULT 'per_provider' CHECK (patient_visibility_mode IN ('per_provider', 'shared')),
     CONSTRAINT clinics_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
 );
 
@@ -2560,6 +2561,7 @@ CREATE TABLE t_9d754153.clinics (
     work_end_time time without time zone,
     slot_minutes integer,
     working_days text,
+    patient_visibility_mode text NOT NULL DEFAULT 'per_provider' CHECK (patient_visibility_mode IN ('per_provider', 'shared')),
     CONSTRAINT clinics_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
 );
 

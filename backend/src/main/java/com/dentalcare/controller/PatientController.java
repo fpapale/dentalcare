@@ -5,6 +5,7 @@ import com.dentalcare.dto.PatientDetailDto;
 import com.dentalcare.dto.PatientListDto;
 import com.dentalcare.dto.UpdatePatientRequest;
 import com.dentalcare.dto.UpdatePhotoRequest;
+import com.dentalcare.service.AccessScopeService;
 import com.dentalcare.service.PatientService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,23 +23,26 @@ import java.util.UUID;
 public class PatientController {
 
     private final PatientService patientService;
+    private final AccessScopeService accessScope;
 
-    public PatientController(PatientService patientService) {
+    public PatientController(PatientService patientService, AccessScopeService accessScope) {
         this.patientService = patientService;
+        this.accessScope = accessScope;
     }
 
     @GetMapping
     public List<PatientListDto> findAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) UUID providerId) {
-        return patientService.findAll(search, providerId);
+        // Filtro provider deciso lato server (ruolo + patient_visibility_mode), non dal client (#42/#24).
+        return patientService.findAll(search, accessScope.resolveProviderFilter(providerId));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PatientDetailDto> findById(
             @PathVariable UUID id,
             @RequestParam(required = false) UUID providerId) {
-        return patientService.findById(id, providerId)
+        return patientService.findById(id, accessScope.resolveProviderFilter(providerId))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

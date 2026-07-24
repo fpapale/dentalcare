@@ -10,8 +10,6 @@ import com.dentalcare.exception.SchedulingConstraintException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
@@ -35,10 +33,13 @@ public class AppointmentService {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final AppointmentEventService appointmentEventService;
+    private final AccessScopeService accessScope;
 
-    public AppointmentService(NamedParameterJdbcTemplate jdbc, AppointmentEventService appointmentEventService) {
+    public AppointmentService(NamedParameterJdbcTemplate jdbc, AppointmentEventService appointmentEventService,
+                              AccessScopeService accessScope) {
         this.jdbc = jdbc;
         this.appointmentEventService = appointmentEventService;
+        this.accessScope = accessScope;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -50,30 +51,11 @@ public class AppointmentService {
     private static final int SLOT_MINUTES = 15;
     private static final int SEARCH_DAYS = 21;
 
-    // Ruoli clinici abilitati alla ricerca disponibilità — mirror di
-    // DentalCareAiTools.MEDICAL_ROLES (mantenere allineati se quel set cambia).
-    private static final Set<String> MEDICAL_ROLES =
-            Set.of("dentist", "hygienist", "orthodontist", "surgeon", "doctor");
-
-    private static final Set<String> ADMIN_ROLES = Set.of("ROLE_ADMIN", "ROLE_TENANT_ADMIN", "ROLE_SECRETARY");
-
     private String s() { return TenantContext.validatedSchema(); }
-
-    private UUID callerProviderId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getPrincipal() == null) return null;
-        try { return UUID.fromString(auth.getPrincipal().toString()); } catch (IllegalArgumentException e) { return null; }
-    }
-
-    private boolean callerIsMedical() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) return false;
-        return auth.getAuthorities().stream().noneMatch(a -> ADMIN_ROLES.contains(a.getAuthority()));
-    }
 
     public List<AppointmentDto> findByDate(LocalDate date, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : providerId;
+        UUID effectiveProviderId = accessScope.resolveProviderFilter(providerId);
         String providerFilter = effectiveProviderId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
             SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
@@ -111,7 +93,7 @@ public class AppointmentService {
 
     public List<AppointmentDto> findByPatient(UUID patientId, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : providerId;
+        UUID effectiveProviderId = accessScope.resolveProviderFilter(providerId);
         String providerFilter = effectiveProviderId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
             SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
@@ -150,7 +132,7 @@ public class AppointmentService {
 
     public List<AppointmentDto> findByDateRange(LocalDate from, LocalDate to, UUID providerId) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
-        UUID effectiveProviderId = callerIsMedical() ? callerProviderId() : providerId;
+        UUID effectiveProviderId = accessScope.resolveProviderFilter(providerId);
         String providerFilter = effectiveProviderId != null ? "AND v.provider_id = :providerId\n" : "";
         String sql = """
             SELECT v.appointment_id, v.clinic_id, v.starts_at, v.ends_at, v.chair_label,
@@ -642,7 +624,7 @@ public class AppointmentService {
             """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("clinicId", clinicId)
-                .addValue("roles", MEDICAL_ROLES);
+                .addValue("roles", com.dentalcare.security.RoleConstants.MEDICAL_ROLES);
         if (providerId != null) params.addValue("providerId", providerId);
         return jdbc.query(sql, params, (rs, n) ->
                 new AvailabilityProvider(rs.getObject("id", UUID.class), rs.getString("full_name")));

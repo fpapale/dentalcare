@@ -35,4 +35,13 @@ export class ClinicSettingsService {
   updateSchedule(data: ClinicSchedule): Observable<void> {
     return this.http.put<void>(`${environment.apiBaseUrl}/settings/schedule`, data);
   }
+
+  /** #42 — modalità di visibilità pazienti per ruolo: 'per_provider' | 'shared'. */
+  getPatientVisibility(): Observable<{ mode: string }> {
+    return this.http.get<{ mode: string }>(`${environment.apiBaseUrl}/settings/patient-visibility`);
+  }
+
+  updatePatientVisibility(mode: string): Observable<void> {
+    return this.http.put<void>(`${environment.apiBaseUrl}/settings/patient-visibility`, { mode });
+  }
 }

@@ -167,6 +167,8 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS work_end_time TIME");
             jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS slot_minutes INTEGER");
             jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS working_days TEXT");
+            // #42 — visibilità pazienti per ruolo: per_provider (default, comportamento storico) | shared.
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS patient_visibility_mode TEXT NOT NULL DEFAULT 'per_provider'");
             jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true");
             jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS photo_url TEXT");
             jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS photo_url TEXT");

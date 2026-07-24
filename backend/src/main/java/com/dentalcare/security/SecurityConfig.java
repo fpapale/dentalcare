@@ -44,6 +44,9 @@ public class SecurityConfig {
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .requestMatchers("/api/tenant-admin/**").hasRole("TENANT_ADMIN")
                     .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "TENANT_ADMIN")
+                    // #42 — la modalità di visibilità pazienti la cambia solo l'amministratore.
+                    .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/settings/patient-visibility")
+                        .hasAnyRole("ADMIN", "TENANT_ADMIN")
                     .anyRequest().authenticated())
             .exceptionHandling(ex -> ex
                     .authenticationEntryPoint((req, res, e) -> {

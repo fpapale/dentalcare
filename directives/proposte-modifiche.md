@@ -49,7 +49,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 39 | Assistente Vocale “Hands-Free” da Poltrona (Chairside Agent) — hotword “Ehi Giulia” | Alto (~43-69 gg-agente; 4-5 settimane con 3 agenti) | **Inclusa in Fase 1 — pianificata** |
 | 40 | MinIO — separazione root per ambiente (Dev / Coll / Prod) | Medio (~1 giornata + finestra migrazione prod) | Proposta |
 | 41 | Script di installazione per ambiente COLLAUDO (nuovo container Docker) | Medio (~1 giornata) | Proposta |
-| 42 | Visibilità dati clinici per ruolo: igienista/dentista/chirurgo/ortodontista vedono tutti i pazienti | Medio (~1 giornata) | Proposta |
+| 42 | Visibilità dati clinici per ruolo: igienista/dentista/chirurgo/ortodontista vedono tutti i pazienti | Medio (~1 giornata) | **Fatta (dev) — 24/07** |
 | 43 | Anamnesi: severità a 3 livelli (Normale/Grave/Severa) + collegamento reale agli alert clinici + vincolo appuntamento fine giornata | Alto (~2-2.5 giornate) | **Fatta (dev) — 23-24/07 (merge PR #1)** |
 | 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | Proposta |
 | 45 | Odontogramma: pannello a tutta larghezza, legenda leggibile | Basso-Medio (~½-1 giornata) | **Fatta (dev) — 23/07 (core)** |
@@ -2144,6 +2144,18 @@ Grep mirato su `paziente-detail.component.html`/`odontogramma-tab.component.html
 - Default `per_provider` = nessun impatto per gli studi che non toccano l'impostazione — riduce il rischio del conflitto con #14 a un caso opt-in, non più strutturale.
 - L'igienista che modifica dati clinici (punto a) è già tecnicamente permesso oggi lato API, in entrambe le modalità — il gap, se esiste, è solo nel frontend (da verificare, Fase 5).
 - `PatientService` guadagna per la prima volta un enforcement server-side reale (Fase 2) — oggi non ce l'ha nemmeno in modalità "per medico": è un rafforzamento di sicurezza collaterale a questa proposta, non solo un nuovo comportamento per `shared`.
+
+### Implementazione (Fatta in dev, 24/07/2026)
+
+Chiarimento terminologico applicato: la sessione è legata a **una sede** via `clinicId` del JWT e ogni query filtra già per `clinic_id`, quindi `shared` significa **tutti i pazienti della sede corrente**, mai cross-tenant. Nessuna ambiguità tenant/sede.
+
+- **Fonte unica ruoli** (Fase 1): nuova `RoleConstants.MEDICAL_ROLES`; rimosse le due copie duplicate in `AppointmentService` e `DentalCareAiTools`.
+- **DB** (Fase 2): `clinics.patient_visibility_mode` (`per_provider` default | `shared`, CHECK) — `create_tenant`/`install.sql` (2 occorrenze) + patch runtime idempotente.
+- **Regola unica server-side** — nuovo `AccessScopeService.resolveProviderFilter(requested)`: ruolo non clinico → filtro client passthrough; clinico + `shared` → nessun filtro (tutta la sede); clinico + `per_provider` → forzato ai propri, ignorando il `providerId` del client. **Chiude #24 per i pazienti**: `PatientController` (findAll/findById) non si fida più del `?providerId=` client; `AppointmentService` (3 punti) usa la stessa regola.
+- **Impostazione** (Fase 6): `GET/PUT /api/settings/patient-visibility`; il `PUT` è ristretto a `ADMIN`/`TENANT_ADMIN` in `SecurityConfig`. Frontend: card "Modalità di gestione pazienti" nella tab Agenda di Impostazioni, visibile solo all'admin.
+- **Punto (a) igienista scrive** (Fase 5): confermato già permesso lato API; nessun blocco per ruolo trovato nel FE → nessuna modifica necessaria.
+- **Test**: `AccessScopeServiceTest` (4) — passthrough non clinico, forzatura per_provider, null in shared, default. `mvn test` verde; build FE verde.
+- **Follow-up**: `user-context.filterProviderId` (FE) resta invariato ed è ora solo indicativo (il server enforce). Conflitto con **#14** (relazione di cura) si manifesta solo per i tenant che scelgono `shared`, come previsto.
 
 ---
 
