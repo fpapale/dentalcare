@@ -2500,4 +2500,12 @@ Chiude la **decisione B** (protezione dell'artefatto).
 
 **Frontend**: la password monouso è mostrata **una sola volta** nello step "scarica copia", con avviso di salvarla (serve ad aprire l'archivio cifrato).
 
-**Follow-up residui** (non decisione B): evento di audit **persistente** (oggi `log.info`), check `active` nel `JwtAuthenticationFilter` per invalidare i JWT già emessi entro la finestra di grazia, token di cancellazione persistente (oggi in memoria, perso al riavvio), eventuale presigned URL nativo se in futuro si separa lo storage non cifrato.
+### Implementazione — follow-up residui (Fatta in dev, 24/07/2026)
+
+Chiusi i tre follow-up aperti dopo Slice A/B. Backend `mvn test` verde (15/15 sui test della feature), compile completo OK.
+
+- **Audit persistente** — nuova tabella globale `dentalcare.tenant_audit_log` (sopravvive al DROP dello schema): righe scritte su prepare/confirm/cancel/hard_drop (evento, schema, tenant, provider, dettaglio). Sostituisce il solo `log.info`. Idempotente in `install.sql` + patch runtime (`EstimateSchemaInitializer`).
+- **Check `active` nel `JwtAuthenticationFilter`** — i tenant in soft-delete sono **congelati**: ogni richiesta con JWT già emesso riceve 403, **tranne** l'endpoint di annullamento (`/tenant/deletion/cancel`), così l'admin può ancora annullare. Realizzato via `TenantSchemaRegistry` (set di schemi inattivi, popolato al soft-delete/cancel e ricaricato all'avvio) → nessuna query DB per-richiesta.
+- **Token di cancellazione persistente** — nuovo `TenantDeletionTokenStore` su tabella globale `dentalcare.tenant_deletion_tokens` (sopravvive al riavvio); consumato alla conferma, scaduti ripuliti a ogni emissione. Sostituisce la mappa in memoria.
+
+**Residuo rimanente** (opzionale, non pianificato): presigned URL S3 nativo — sensato solo se in futuro si separa uno storage non cifrato dall'app; oggi non serve (archivio con password + download autenticato a token).

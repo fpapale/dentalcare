@@ -84,6 +84,33 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             }
         }
 
+        // Tabelle globali per i follow-up #47: audit persistente + token di cancellazione persistente.
+        try {
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS dentalcare.tenant_audit_log (
+                    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                    tenant_id uuid,
+                    schema_name text NOT NULL,
+                    event text NOT NULL,
+                    provider_id text,
+                    detail text,
+                    created_at timestamptz NOT NULL DEFAULT now()
+                )""");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS ix_tenant_audit_log_schema "
+                    + "ON dentalcare.tenant_audit_log (schema_name, created_at DESC)");
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS dentalcare.tenant_deletion_tokens (
+                    token text PRIMARY KEY,
+                    schema_name text NOT NULL,
+                    tenant_id uuid,
+                    object_key text NOT NULL,
+                    expires_at timestamptz NOT NULL,
+                    created_at timestamptz NOT NULL DEFAULT now()
+                )""");
+        } catch (Exception e) {
+            log.warn("EstimateSchemaInitializer: failed to create tenant lifecycle tables: {}", e.getMessage());
+        }
+
         // AI enums — idempotent, created once in the global dentalcare schema
         try {
             jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_analysis_status AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");

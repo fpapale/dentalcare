@@ -24,6 +24,8 @@ public class TenantSchemaRegistry {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final Map<String, String> clinicToSchema = new ConcurrentHashMap<>();
+    /** Schemi in soft-delete (grace period, #47): le richieste vanno congelate tranne l'annullamento. */
+    private final java.util.Set<String> inactiveSchemas = ConcurrentHashMap.newKeySet();
 
     public TenantSchemaRegistry(NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
@@ -47,6 +49,23 @@ public class TenantSchemaRegistry {
         } catch (Exception e) {
             log.warn("TenantSchemaRegistry: tenant tables not yet available, using pattern fallback. Error: {}", e.getMessage());
             loadFromPattern();
+        }
+        loadInactiveSchemas();
+    }
+
+    /** Ricarica gli schemi in soft-delete (#47) così il congelamento sopravvive al riavvio. */
+    private void loadInactiveSchemas() {
+        try {
+            List<String> schemas = jdbc.getJdbcTemplate().queryForList(
+                    "SELECT schema_name FROM dentalcare.tenants WHERE active = false AND scheduled_drop_at IS NOT NULL",
+                    String.class);
+            inactiveSchemas.addAll(schemas);
+            if (!schemas.isEmpty()) {
+                log.info("TenantSchemaRegistry: {} schema(s) in soft-delete (grace period)", schemas.size());
+            }
+        } catch (Exception e) {
+            // Colonna scheduled_drop_at non ancora presente al primo avvio: verrà popolata ai successivi.
+            log.debug("TenantSchemaRegistry: inactive schemas load skipped: {}", e.getMessage());
         }
     }
 
@@ -111,5 +130,21 @@ public class TenantSchemaRegistry {
     /** Remove every clinic mapping pointing to the given schema (es. eliminazione tenant). */
     public void unregisterSchema(String schemaName) {
         clinicToSchema.values().removeIf(schemaName::equals);
+        inactiveSchemas.remove(schemaName);
+    }
+
+    /** Segna lo schema come in soft-delete (grace period #47): le richieste vanno congelate. */
+    public void markSchemaInactive(String schemaName) {
+        inactiveSchemas.add(schemaName);
+    }
+
+    /** Riattiva lo schema (annullamento della cancellazione #47). */
+    public void markSchemaActive(String schemaName) {
+        inactiveSchemas.remove(schemaName);
+    }
+
+    /** false se lo schema è in soft-delete (grace period): usato dal filtro JWT per congelare il tenant. */
+    public boolean isSchemaActive(String schemaName) {
+        return !inactiveSchemas.contains(schemaName);
     }
 }

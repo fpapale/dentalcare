@@ -2408,6 +2408,28 @@ CREATE TABLE dentalcare.tenants (
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+-- Audit persistente del ciclo di vita del tenant (#47 follow-up): globale, sopravvive al DROP dello schema.
+CREATE TABLE IF NOT EXISTS dentalcare.tenant_audit_log (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid,
+    schema_name text NOT NULL,
+    event text NOT NULL,
+    provider_id text,
+    detail text,
+    created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_tenant_audit_log_schema ON dentalcare.tenant_audit_log (schema_name, created_at DESC);
+
+-- Token monouso di cancellazione (#47 follow-up): persistente, sopravvive al riavvio.
+CREATE TABLE IF NOT EXISTS dentalcare.tenant_deletion_tokens (
+    token text PRIMARY KEY,
+    schema_name text NOT NULL,
+    tenant_id uuid,
+    object_key text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
 
 --
 -- Name: ai_audit_log; Type: TABLE; Schema: t_9d754153; Owner: -

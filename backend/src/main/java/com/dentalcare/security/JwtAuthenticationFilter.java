@@ -17,10 +17,14 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private static final String DELETION_CANCEL_PATH = "/api/tenant-admin/tenant/deletion/cancel";
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    private final JwtService jwtService;
+    private final TenantSchemaRegistry registry;
+
+    public JwtAuthenticationFilter(JwtService jwtService, TenantSchemaRegistry registry) {
         this.jwtService = jwtService;
+        this.registry = registry;
     }
 
     @Override
@@ -60,6 +64,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String schemaName = claims.get("schemaName", String.class);
             String role = claims.get("role", String.class);
             claims.get("tenantName", String.class);
+
+            // Tenant in soft-delete (grace period #47): congela ogni richiesta tranne l'annullamento,
+            // così i JWT già emessi non restano operativi entro la finestra. L'admin può ancora annullare.
+            if (schemaName != null && !registry.isSchemaActive(schemaName)
+                    && !DELETION_CANCEL_PATH.equals(request.getServletPath())) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Tenant in eliminazione programmata\"}");
+                return;
+            }
 
             TenantContext.setCurrentClinicId(clinicId);
             TenantContext.setCurrentSchema(schemaName);

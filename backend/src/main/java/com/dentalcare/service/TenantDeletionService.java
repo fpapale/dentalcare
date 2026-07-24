@@ -23,7 +23,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Guardia di cancellazione del tenant con grace period (#47).
@@ -46,6 +45,7 @@ public class TenantDeletionService {
     private final MinioStorageService minio;
     private final TenantExportService exportService;
     private final TenantSchemaRegistry registry;
+    private final TenantDeletionTokenStore tokenStore;
 
     @Value("${app.tenant.deletion-grace-days:30}")
     private int graceDays;
@@ -56,18 +56,14 @@ public class TenantDeletionService {
     @Value("${app.demo.schema:t_9d754153}")
     private String demoSchema;
 
-    /** Token monouso in memoria: token → dettagli. Persi al riavvio (TTL breve, accettabile). */
-    private final Map<String, PendingDeletion> tokens = new ConcurrentHashMap<>();
-
-    private record PendingDeletion(String schema, UUID tenantId, String objectKey, Instant expiresAt) {
-    }
-
     public TenantDeletionService(NamedParameterJdbcTemplate jdbc, MinioStorageService minio,
-                                 TenantExportService exportService, TenantSchemaRegistry registry) {
+                                 TenantExportService exportService, TenantSchemaRegistry registry,
+                                 TenantDeletionTokenStore tokenStore) {
         this.jdbc = jdbc;
         this.minio = minio;
         this.exportService = exportService;
         this.registry = registry;
+        this.tokenStore = tokenStore;
     }
 
     private String s() { return TenantContext.validatedSchema(); }
@@ -103,20 +99,17 @@ public class TenantDeletionService {
         String objectKey = "_deletion/export_" + Instant.now().toEpochMilli() + ".zip";
         minio.upload(objectKey, protectedArchive, "application/zip");
 
-        pruneExpired();
-        String token = UUID.randomUUID().toString();
-        Instant expiresAt = Instant.now().plus(tokenTtlMinutes, ChronoUnit.MINUTES);
-        tokens.put(token, new PendingDeletion(schema, tenantId, objectKey, expiresAt));
+        String token = tokenStore.issue(schema, tenantId, objectKey, tokenTtlMinutes);
+        String expiresAt = Instant.now().plus(tokenTtlMinutes, ChronoUnit.MINUTES).toString();
 
-        log.info("AUDIT tenant-deletion prepare: schema={} provider={} objectKey={} sizeBytes={}",
-                schema, currentProvider(), objectKey, exportBytes.length);
+        writeAudit(schema, tenantId, "prepare", "objectKey=" + objectKey + " sizeBytes=" + exportBytes.length);
 
-        return new DeletionPrepareResponse(token, expiresAt.toString(), exportBytes.length, archivePassword);
+        return new DeletionPrepareResponse(token, expiresAt, exportBytes.length, archivePassword);
     }
 
     /** Streamma al client la copia di export preparata (decifrata da MinIO), validando il token. */
     public void streamPreparedExport(String deletionToken, OutputStream out) throws IOException {
-        PendingDeletion pending = validToken(deletionToken);
+        TenantDeletionTokenStore.PendingDeletion pending = validToken(deletionToken);
         byte[] bytes = minio.download(pending.objectKey());
         out.write(bytes);
         out.flush();
@@ -129,10 +122,7 @@ public class TenantDeletionService {
     @Transactional
     public DeletionScheduledResponse confirmDeleteTenant(String deletionToken, String confirmationName) {
         String schema = s();
-        PendingDeletion pending = validToken(deletionToken);
-        if (!pending.schema().equals(schema)) {
-            throw new IllegalStateException("Token di cancellazione non valido per questo tenant");
-        }
+        TenantDeletionTokenStore.PendingDeletion pending = validToken(deletionToken);
         if (schema.equals(demoSchema)) {
             throw new IllegalStateException("Il tenant demo non può essere eliminato");
         }
@@ -151,9 +141,9 @@ public class TenantDeletionService {
                         + "WHERE schema_name = :schema",
                 new MapSqlParameterSource("schema", schema).addValue("dropAt", java.sql.Timestamp.from(dropAt)));
 
-        tokens.remove(deletionToken);
-        log.info("AUDIT tenant-deletion confirm: schema={} provider={} scheduledDropAt={}",
-                schema, currentProvider(), dropAt);
+        tokenStore.consume(deletionToken);
+        registry.markSchemaInactive(schema);   // congela subito i JWT già emessi (tranne l'annullamento)
+        writeAudit(schema, pending.tenantId(), "confirm", "scheduledDropAt=" + dropAt);
 
         return new DeletionScheduledResponse(dropAt.toString());
     }
@@ -169,7 +159,8 @@ public class TenantDeletionService {
         if (updated == 0) {
             throw new IllegalStateException("Nessuna cancellazione annullabile per questo tenant");
         }
-        log.info("AUDIT tenant-deletion cancel: schema={} provider={}", schema, currentProvider());
+        registry.markSchemaActive(schema);   // scongela il tenant
+        writeAudit(schema, null, "cancel", null);
     }
 
     /**
@@ -186,7 +177,6 @@ public class TenantDeletionService {
             UUID tenantId = (UUID) row.get("id");
             try {
                 dropTenantHard(schema, tenantId);
-                log.info("AUDIT tenant-deletion hard-drop: schema={} tenantId={}", schema, tenantId);
             } catch (Exception e) {
                 log.error("tenant-deletion hard-drop failed schema={} tenantId={}: {}", schema, tenantId, e.getMessage(), e);
             }
@@ -200,6 +190,8 @@ public class TenantDeletionService {
         if (schema.equals(demoSchema)) {
             throw new IllegalStateException("Refuse to drop demo schema");
         }
+        // Audit PRIMA del drop: la tabella audit è globale e sopravvive alla rimozione dello schema.
+        writeAudit(schema, tenantId, "hard_drop", null);
         String bucket = minio.bucketFor(schema);
         jdbc.getJdbcTemplate().execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
         jdbc.update("DELETE FROM dentalcare.tenant_clinics WHERE tenant_id = :tenantId",
@@ -214,24 +206,37 @@ public class TenantDeletionService {
         }
     }
 
-    private PendingDeletion validToken(String deletionToken) {
-        pruneExpired();
-        PendingDeletion pending = deletionToken == null ? null : tokens.get(deletionToken);
-        if (pending == null || pending.expiresAt().isBefore(Instant.now())) {
-            throw new IllegalStateException("Token di cancellazione assente o scaduto: eseguire di nuovo l'export");
+    private TenantDeletionTokenStore.PendingDeletion validToken(String deletionToken) {
+        TenantDeletionTokenStore.PendingDeletion pending = tokenStore.find(deletionToken)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Token di cancellazione assente o scaduto: eseguire di nuovo l'export"));
+        if (!pending.schema().equals(s())) {
+            throw new IllegalStateException("Token di cancellazione non valido per questo tenant");
         }
         return pending;
-    }
-
-    private void pruneExpired() {
-        Instant now = Instant.now();
-        tokens.values().removeIf(p -> p.expiresAt().isBefore(now));
     }
 
     private UUID tenantIdFor(String schema) {
         return jdbc.queryForObject(
                 "SELECT id FROM dentalcare.tenants WHERE schema_name = :schema",
                 new MapSqlParameterSource("schema", schema), UUID.class);
+    }
+
+    private void writeAudit(String schema, UUID tenantId, String event, String detail) {
+        try {
+            jdbc.update(
+                    "INSERT INTO dentalcare.tenant_audit_log (tenant_id, schema_name, event, provider_id, detail) "
+                            + "VALUES (:tenantId, :schema, :event, :provider, :detail)",
+                    new MapSqlParameterSource("schema", schema)
+                            .addValue("tenantId", tenantId)
+                            .addValue("event", event)
+                            .addValue("provider", currentProvider())
+                            .addValue("detail", detail));
+        } catch (Exception e) {
+            log.warn("tenant audit write failed schema={} event={}: {}", schema, event, e.getMessage());
+        }
+        log.info("AUDIT tenant-deletion {}: schema={} provider={} tenantId={} detail={}",
+                event, schema, currentProvider(), tenantId, detail);
     }
 
     private String currentProvider() {
