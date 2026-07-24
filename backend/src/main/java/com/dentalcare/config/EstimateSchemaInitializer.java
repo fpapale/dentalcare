@@ -440,12 +440,27 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
                 + "WHERE s.item_id IS NOT NULL AND NOT EXISTS "
                 + "(SELECT 1 FROM " + schema + ".anamnesis_items ai WHERE ai.id = s.item_id)",
                 Integer.class);
-        Integer fkExists = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.table_constraints "
-                + "WHERE table_schema = ? AND table_name = 'patient_anamnesis_item_selections' "
-                + "AND constraint_name = 'patient_anamnesis_item_selections_item_id_fkey' AND constraint_type = 'FOREIGN KEY'",
-                Integer.class, schema);
-        if (orphans != null && orphans == 0 && (fkExists == null || fkExists == 0)) {
+        // Conta la FK SOLO se punta al catalogo per-tenant giusto. Su DB pre-rework la FK esiste ma
+        // referenzia il catalogo GLOBALE dentalcare.anamnesis_items (vecchia create_tenant): gli item_id
+        // per-tenant non ci sono → insert fallisce con FK violation. Il vecchio guard (mera esistenza)
+        // la lasciava intatta. Ora la ripuntiamo: drop + re-add verso lo schema del tenant.
+        Integer fkCorrect = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM pg_constraint c "
+                + "JOIN pg_class ct ON ct.oid = c.conrelid "
+                + "JOIN pg_namespace cn ON cn.oid = ct.relnamespace "
+                + "JOIN pg_class rt ON rt.oid = c.confrelid "
+                + "JOIN pg_namespace rn ON rn.oid = rt.relnamespace "
+                + "WHERE cn.nspname = ? AND ct.relname = 'patient_anamnesis_item_selections' "
+                + "AND c.conname = 'patient_anamnesis_item_selections_item_id_fkey' "
+                + "AND rn.nspname = ? AND rt.relname = 'anamnesis_items'",
+                Integer.class, schema, schema);
+        // Ripunta la FK solo se nessuna riga verrebbe orfanata rispetto al catalogo per-tenant.
+        // Se orphans>0 esistono selezioni che referenziano id non presenti per-tenant (es. vecchi id
+        // globali su un tenant reale): remap manuale e supervisionato — vedi
+        // database/patch_anamnesis_tenant_migration.sql. Non tocchiamo la FK in quel caso.
+        if (orphans != null && orphans == 0 && (fkCorrect == null || fkCorrect == 0)) {
+            jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections "
+                    + "DROP CONSTRAINT IF EXISTS patient_anamnesis_item_selections_item_id_fkey");
             jdbc.execute("ALTER TABLE " + schema + ".patient_anamnesis_item_selections "
                     + "ADD CONSTRAINT patient_anamnesis_item_selections_item_id_fkey "
                     + "FOREIGN KEY (item_id) REFERENCES " + schema + ".anamnesis_items (id) ON DELETE CASCADE");

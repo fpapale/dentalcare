@@ -214,13 +214,24 @@ BEGIN
             'WHERE s.item_id IS NOT NULL AND NOT EXISTS '
             '(SELECT 1 FROM %1$I.anamnesis_items ai WHERE ai.id = s.item_id)', tenant_schema)
             INTO orphan_count;
+        -- Conta la FK SOLO se punta gia' al catalogo per-tenant. Su DB pre-rework la FK esiste ma
+        -- referenzia dentalcare.anamnesis_items (globale): fk_exists>0 col vecchio guard la lasciava
+        -- intatta e le INSERT continuavano a fallire. Ora la ripuntiamo: drop + re-add verso il tenant.
         SELECT count(*) INTO fk_exists
-          FROM information_schema.table_constraints
-         WHERE table_schema = tenant_schema
-           AND table_name = 'patient_anamnesis_item_selections'
-           AND constraint_name = 'patient_anamnesis_item_selections_item_id_fkey'
-           AND constraint_type = 'FOREIGN KEY';
+          FROM pg_constraint con
+          JOIN pg_class rel  ON rel.oid  = con.conrelid
+          JOIN pg_namespace n ON n.oid   = rel.relnamespace
+          JOIN pg_class frel ON frel.oid = con.confrelid
+          JOIN pg_namespace fn ON fn.oid = frel.relnamespace
+         WHERE n.nspname = tenant_schema
+           AND rel.relname = 'patient_anamnesis_item_selections'
+           AND con.conname = 'patient_anamnesis_item_selections_item_id_fkey'
+           AND frel.relname = 'anamnesis_items'
+           AND fn.nspname = tenant_schema;
         IF orphan_count = 0 AND fk_exists = 0 THEN
+            EXECUTE format(
+                'ALTER TABLE %1$I.patient_anamnesis_item_selections '
+                'DROP CONSTRAINT IF EXISTS patient_anamnesis_item_selections_item_id_fkey', tenant_schema);
             EXECUTE format(
                 'ALTER TABLE %1$I.patient_anamnesis_item_selections '
                 'ADD CONSTRAINT patient_anamnesis_item_selections_item_id_fkey '
