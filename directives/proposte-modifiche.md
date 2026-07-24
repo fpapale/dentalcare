@@ -54,6 +54,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | Proposta |
 | 45 | Odontogramma: pannello a tutta larghezza, legenda leggibile | Basso-Medio (~½-1 giornata) | **Fatta (dev) — 23/07 (core)** |
 | 46 | Piano di cura: nome dente in grassetto nell'elenco prestazioni | Basso (~15 min) | **Fatta (dev) — 24/07** |
+| 47 | Export selezionabile (una/più/tutte le cliniche del tenant) + **guardia obbligatoria pre-cancellazione** tenant/clinica, con snapshot del catalogo anamnesi condiviso, artefatto cifrato/auditato — **non** conservazione a norma | Medio (~1-1.5 giornate) | Proposta (24/07/2026) |
 
 > **Priorità richiesta dal committente (23/07/2026):** #42 → #43 → #44 → #45 vanno pianificate/eseguite **prima** di #40 e #41.
 
@@ -314,7 +315,7 @@ Effort in taglie (S ≤ 1 settimana agente · M ≤ 1 mese · L > 1 mese) — **
 | 17 | **Firma avanzata/qualificata (PAdES)** | Firma ❌ | 2, 16 | M + fornitore | La finalizzazione (2) è il **livello 2** di §9.2; PAdES è il **livello 3**. Senza 2 non c'è nulla da firmare. |
 | 18 | **Terminology service**: code system + versione su `service_code` / `condition` (oggi stringhe libere) | Terminology ❌ | — | M | **Gate tecnico di FHIR e FSE**: senza codifica governata non c'è scambio, solo export. Indipendente da tutto il resto → si può anticipare. |
 | 19 | **Esame obiettivo strutturato** (extraorale, mucose, ATM, occlusione, endodonzia) + **charting parodontale** (sondaggio, recessioni, mobilità, placca/sanguinamento) | Parodontale ❌ + §5.4 | 5 | M | Profondità clinica, indipendente dall'interoperabilità. Oggi tutto in `clinical_notes` testo libero. **È l'unico P1 che un odontoiatra nota come funzione mancante** → candidato ad anticipazione se richiesto dal mercato. |
-| 20 | **Conservazione a norma** | Conservazione ❌ | 16, 17 | dominato da fornitore/accreditamento | Oggi MinIO + `pg_dump` = **backup**, non conservazione (§9.3, errore §28.7). Distinzione non negoziabile. |
+| 20 | **Conservazione a norma** | Conservazione ❌ | 16, 17 | dominato da fornitore/accreditamento | Oggi MinIO + `pg_dump` = **backup**, non conservazione (§9.3, errore §28.7). Distinzione non negoziabile. **L'app costruisce i *feeder*, non il *caveau*:** documentazione clinica → finalizzazione + hash (intervento 2) poi PDF/A + PAdES (intervento 17) come documenti *ingeribili* da un sistema di conservazione; **fatture** → delegate a un **conservatore accreditato AgID esterno** (via SdI), non conservate in casa. L'export #47 è copia di sicurezza/portabilità, **non** entra in questo perimetro. |
 | 21 | **FHIR API** (adapter, **non** modello interno) | FHIR ❌ | 5, 6, 18 | M-L | La strategia duale §14.1 è **già corretta**: il modello interno non va rimodellato, si aggiunge un adapter. Serve encounter (5), consensi (6) e terminologia (18) o l'adapter mappa il vuoto. |
 | 22 | **DICOMweb** → proposta **#8** | DICOMweb ❌ | — | S-M (#8) | Indipendente da tutto il resto: si può fare quando serve. |
 | 23 | **Portale paziente** | Portale ❌ | 1, 6, 10 | L | Espone al paziente esattamente ciò che 1/6/10 rendono esponibile. Prima di quelli non ha contenuto da mostrare. |
@@ -2392,3 +2393,66 @@ Come richiesto, la validazione finale della soluzione visiva va fatta con l'agen
 ### Note
 - Nessun conflitto con altri componenti: la colonna destra del layout è libera per questo tab.
 - Effort basso perché è puro lavoro di layout Angular/Tailwind, ma la stima assume che l'opzione (a) sull'SVG basti — se serve la (b) l'effort sale verso la fascia alta del range indicato.
+
+---
+
+## 47. Export selezionabile per clinica + guardia obbligatoria pre-cancellazione
+
+**Stato:** Proposta
+**Data proposta:** 2026-07-24
+**Impatto:** Medio (~1-1.5 giornate)
+**Origine:** discussione committente 24/07/2026 sulla segregazione dati tenant/clinica e sull'irreversibilità di `deleteTenant`.
+
+### Situazione attuale (verificata sul codice)
+`TenantExportService` **esiste già** con due percorsi:
+- `exportClinicToStream(clinicId, out)` — ZIP di CSV filtrati per `clinic_id` (pazienti, appuntamenti, fatture, piani, storico clinico). Export di **una** clinica.
+- `exportToStream(out)` — export dell'**intero tenant** (tutte le cliniche).
+
+Quindi "una clinica" e "tutte" ci sono già; **manca la selezione di un sottoinsieme** (una o più cliniche) e soprattutto **l'aggancio alla cancellazione**.
+
+**Il buco vero — le cancellazioni non impongono l'export** (`TenantAdminService`):
+- `deleteTenant()` → `DROP SCHEMA ... CASCADE` + `purgeBucket` MinIO = **irreversibile totale**. Il commento nel codice dice *"L'export va effettuato prima (lato client)"* — è **solo una convenzione**, niente lo garantisce.
+- `deleteClinic()` → rifiuta se la clinica ha pazienti (`"Clinic has patients"`) o se è l'ultima; il flusso reale per svuotare una sede passa comunque da lì.
+
+### Distinzione da tenere netta — questo export NON è conservazione a norma
+Tre livelli, tre scopi diversi (vedi anche intervento 20 e `DentalCare_Guida_Digitalizzazione_Cartella_Clinica_Dentale.md` §"Un archivio di file o un bucket MinIO non equivale a un sistema di conservazione a norma"):
+
+| | Cos'è | Scopo |
+|---|---|---|
+| Backup | MinIO + `pg_dump` | ripristino dopo guasto |
+| **Export (#47)** | ZIP CSV/JSON leggibile | portabilità (art. 15/20) + **copia di sicurezza pre-cancellazione** |
+| Conservazione a norma | sistema conforme AgID (PDF/A, PAdES + marca temporale, pacchetti, responsabile + manuale, conservatore accreditato) | valore probatorio nel tempo — intervento 20/17, **fuori scope #47** |
+
+Questa proposta è il **secondo** livello. Va **dichiarata esplicitamente "non conservazione a norma"** nell'UI e nel README dell'export, per non ingenerare falso affidamento.
+
+### Soluzione
+
+#### Fase 1 — Export multi-clinica
+Generalizzare `exportClinicToStream` per accettare un **insieme** di `clinicId` (`WHERE clinic_id IN (:ids)`); il caso "tutte" resta `exportToStream`. UI tenant-admin con selezione multipla delle cliniche del tenant.
+
+#### Fase 2 — Snapshot del catalogo anamnesi condiviso (confermato dal committente 24/07/2026)
+Il catalogo anamnesi (`anamnesis_categories`/`anamnesis_items`) è **per-tenant, senza `clinic_id`** (#43) → non sezionabile per clinica. Le selezioni del paziente (`patient_anamnesis_item_selections`) referenziano `item_id`: **senza il catalogo com'era, le selezioni esportate diventano illeggibili** dopo la cancellazione (perdita di valore probatorio, proprio ciò che lo storico-con-diff di #43 vuole evitare).
+→ Ogni export (per-clinica o intero tenant) **include uno snapshot puntuale e datato del catalogo anamnesi di riferimento** come contesto, incluso intero. Analogo trattamento per eventuale altra anagrafica per-tenant condivisa necessaria a interpretare i dati esportati.
+
+#### Fase 3 — Guardia obbligatoria pre-cancellazione (il vero guadagno)
+Trasformare l'export "prima" da commento a **vincolo imposto** su `deleteTenant()` e `deleteClinic()`: la cancellazione è ammessa solo a fronte di un export prodotto (token/flag di conferma nella stessa sessione, oppure export server-side generato e consegnato **dentro** il flusso prima del drop). Coerente con CLAUDE.md §7.4/§11 (niente cancellazioni distruttive senza rete di sicurezza) e con la soft-delete di #43.
+
+#### Fase 4 — Protezione + audit dell'artefatto
+- **L'export decifra**: `writeCustomersCsv` + `TenantEncryptionService` scrivono `fiscal_code`/`birth_date` **in chiaro** → il file annulla la cifratura di #7 e diventa l'anello debole. L'artefatto va **protetto** (archivio cifrato / password, download firmato a scadenza breve, accesso controllato). **Decisione aperta (B):** meccanismo di protezione da confermare.
+- **Audit**: un'estrazione massiva di dati di categoria particolare (art. 9) va registrata come **evento di audit** (chi/quando/scope/conteggi), non solo `log.info` — lega all'intervento 1 (audit trail) e all'art. 30.
+
+### File coinvolti
+| Layer | File |
+|---|---|
+| Backend | `TenantExportService` (multi-clinica + snapshot catalogo anamnesi), `TenantAdminService` (`deleteTenant`/`deleteClinic` con guardia export), nuova voce audit |
+| Frontend | UI tenant-admin: selezione multipla cliniche + step export obbligatorio nel flusso di cancellazione |
+| DB | nessuna nuova tabella (usa `clinic_id` esistente); eventuale evento in audit log |
+
+### Decisioni aperte
+- **A** — dati condivisi per-tenant nell'export per-clinica: **risolta** → inclusi interi come snapshot datato (catalogo anamnesi confermato dal committente 24/07).
+- **B** — meccanismo di protezione dell'artefatto cifrato (archivio con password vs download firmato a scadenza vs cifratura con chiave del tenant): **da confermare**.
+- **C** — forma della guardia: flag di conferma vs export server-side generato dentro la transazione di cancellazione: **da confermare**.
+
+### Note
+- Distinto dall'**intervento 10** (Blocco 3, gate: *export paziente completo art. 15 + report accessi*), che è **per-paziente** e diritto dell'interessato. Il #47 è **tenant-admin, bulk, clinica-selezionabile + guardia di cancellazione**: asse diverso.
+- **Non** copre la conservazione a norma (intervento 20): per fatture → conservatore accreditato esterno; per documentazione clinica → finalizzazione+hash (intervento 2) poi PDF/A+PAdES (intervento 17).
