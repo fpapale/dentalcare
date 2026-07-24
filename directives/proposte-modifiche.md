@@ -2452,7 +2452,7 @@ Coerente con CLAUDE.md §7.4/§11 (niente cancellazioni distruttive senza rete d
 > **Trade-off GDPR art. 17:** se la cancellazione nasce da una richiesta di erasure dell'interessato, la finestra di grace va giustificata/documentata come tempo tecnico. Per l'offboarding **volontario del tenant** non c'è vincolo. La finestra non trattiene i dati oltre il necessario: è revoca d'accesso immediata + drop differito.
 
 #### Fase 4 — Protezione + audit dell'artefatto
-- **L'export decifra**: `writeCustomersCsv` + `TenantEncryptionService` scrivono `fiscal_code`/`birth_date` **in chiaro** → il file annulla la cifratura di #7 e diventa l'anello debole. L'artefatto va **protetto** (archivio cifrato / password, download firmato a scadenza breve, accesso controllato). **Decisione aperta (B):** meccanismo di protezione da confermare.
+- **L'export decifra**: `writeCustomersCsv` + `TenantEncryptionService` scrivono `fiscal_code`/`birth_date` **in chiaro** → il file annulla la cifratura di #7 e diventa l'anello debole. Protezione scelta (decisione B, vedi sotto): **signed URL a scadenza breve + archivio cifrato con password monouso mostrata una volta**.
 - **Audit**: un'estrazione massiva di dati di categoria particolare (art. 9) va registrata come **evento di audit** (chi/quando/scope/conteggi), non solo `log.info` — lega all'intervento 1 (audit trail) e all'art. 30.
 
 ### File coinvolti
@@ -2464,7 +2464,7 @@ Coerente con CLAUDE.md §7.4/§11 (niente cancellazioni distruttive senza rete d
 
 ### Decisioni aperte
 - **A** — dati condivisi per-tenant nell'export per-clinica: **risolta** → inclusi interi come snapshot datato (catalogo anamnesi confermato dal committente 24/07).
-- **B** — meccanismo di protezione dell'artefatto cifrato (archivio con password vs download firmato a scadenza vs cifratura con chiave del tenant): **da confermare**.
+- **B** — meccanismo di protezione dell'artefatto: **risolta** (committente 24/07/2026) → **signed URL a scadenza breve** (nessuna copia persistente non protetta sul server, audit del download gratis) **+ archivio cifrato con password monouso mostrata una volta** (copre l'ultimo miglio: il file resta cifrato una volta sul disco dell'utente). Coerente col pattern token/monouso della guardia (decisione C). **Scartata come default** la cifratura con chiave del tenant (opzione 3): ostacola la portabilità art. 20, che richiede dati leggibili all'interessato — resterebbe valida solo se l'export fosse concepito come backup interno anziché consegna.
 - **C** — forma della guardia: **risolta** (committente 24/07/2026) → **export imposto + token monouso · conferma digitata · copia server-side in retention · soft-delete del tenant con drop differito di N giorni**. Scartata la checkbox "hai salvato?" (autodichiarazione non verificabile). Dettaglio in Fase 3.
 
 ### Note
