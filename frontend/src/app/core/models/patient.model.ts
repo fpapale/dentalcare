@@ -46,6 +46,7 @@ export interface PatientDetail {
   otherAllergies: string | null;
   anamnesisNotes: string | null;
   anamnesisDate: string | null;
+  catalogAlertSeverity: 'normale' | 'grave' | 'severa' | null;
   photoUrl?: string | null;
   totalAppointments: number;
   treatmentPlansCount: number;

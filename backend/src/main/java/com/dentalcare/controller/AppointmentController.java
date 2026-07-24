@@ -86,9 +86,10 @@ public class AppointmentController {
     public List<AvailabilitySlotDto> findAvailability(
             @RequestParam int durationMin,
             @RequestParam(required = false) UUID providerId,
+            @RequestParam(required = false) UUID patientId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(defaultValue = "3") int limit) {
-        return appointmentService.findAvailability(durationMin, providerId, fromDate, limit);
+        return appointmentService.findAvailability(durationMin, providerId, patientId, fromDate, limit);
     }
 
     @PostMapping

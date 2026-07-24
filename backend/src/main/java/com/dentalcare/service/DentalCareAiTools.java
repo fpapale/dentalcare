@@ -475,7 +475,7 @@ public class DentalCareAiTools {
                     put("category", cat.name());
                     put("alerts", cat.items().stream()
                             .filter(AnamnesisItemDto::selected)
-                            .map(i -> i.isAlert() ? "⚠ " + i.label() : i.label())
+                            .map(i -> !"normale".equals(i.severity()) ? "⚠ " + i.label() : i.label())
                             .toList());
                 }})
                 .filter(m -> !((List<?>) m.get("alerts")).isEmpty())

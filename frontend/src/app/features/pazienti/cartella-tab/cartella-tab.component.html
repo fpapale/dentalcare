@@ -89,6 +89,22 @@
       </div>
     }
 
+    <!-- Badge diff anamnesi dall'ultima visita -->
+    @if (anamnesisDiff(); as diff) {
+      @if (diff.newItems.length > 0 || diff.resolvedItems.length > 0) {
+        <div class="text-xs text-slate-500 flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-[14px]">history</span>
+          @if (diff.newItems.length > 0) {
+            <span class="text-amber-700 font-medium">{{ diff.newItems.length }} nuov{{ diff.newItems.length > 1 ? 'e' : 'a' }}</span>
+          }
+          @if (diff.resolvedItems.length > 0) {
+            <span class="text-emerald-700 font-medium">{{ diff.resolvedItems.length }} risolt{{ diff.resolvedItems.length > 1 ? 'e' : 'a' }}</span>
+          }
+          <span>dall'ultima visita</span>
+        </div>
+      }
+    }
+
     <!-- Riga 1: Riepilogo clinico + Riepilogo anamnestico -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 

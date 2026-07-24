@@ -7,7 +7,7 @@ public record AnamnesisItemDto(
         String code,
         String label,
         String description,
-        boolean isAlert,
+        String severity,
         int sortOrder,
         boolean selected,
         String selectionNotes

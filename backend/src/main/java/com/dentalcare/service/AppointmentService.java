@@ -6,6 +6,7 @@ import com.dentalcare.dto.CreateAppointmentRequest;
 import com.dentalcare.dto.RescheduleAppointmentRequest;
 import com.dentalcare.exception.AppointmentConflictException;
 import com.dentalcare.exception.ResourceNotFoundException;
+import com.dentalcare.exception.SchedulingConstraintException;
 import com.dentalcare.security.TenantContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -80,7 +81,7 @@ public class AppointmentService {
                    v.patient_id, v.patient_full_name, v.patient_phone,
                    v.provider_id, v.provider_name, v.provider_role,
                    v.service_name, v.service_category, v.tooth_number,
-                   v.has_allergy_alert, v.has_medication_alert,
+                   v.has_allergy_alert, v.has_medication_alert, v.has_catalog_alert,
                    (SELECT COUNT(*)::integer FROM %s.patient_recalls r
                     WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
                       AND r.due_date < CURRENT_DATE
@@ -118,7 +119,7 @@ public class AppointmentService {
                    v.patient_id, v.patient_full_name, v.patient_phone,
                    v.provider_id, v.provider_name, v.provider_role,
                    v.service_name, v.service_category, v.tooth_number,
-                   v.has_allergy_alert, v.has_medication_alert,
+                   v.has_allergy_alert, v.has_medication_alert, v.has_catalog_alert,
                    (SELECT COUNT(*)::integer FROM %s.patient_recalls r
                     WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
                       AND r.due_date < CURRENT_DATE
@@ -157,7 +158,7 @@ public class AppointmentService {
                    v.patient_id, v.patient_full_name, v.patient_phone,
                    v.provider_id, v.provider_name, v.provider_role,
                    v.service_name, v.service_category, v.tooth_number,
-                   v.has_allergy_alert, v.has_medication_alert,
+                   v.has_allergy_alert, v.has_medication_alert, v.has_catalog_alert,
                    (SELECT COUNT(*)::integer FROM %s.patient_recalls r
                     WHERE r.patient_id = v.patient_id AND r.clinic_id = v.clinic_id
                       AND r.due_date < CURRENT_DATE
@@ -228,6 +229,7 @@ public class AppointmentService {
         checkWorkingDay(clinicId, request);
         checkChairConflict(clinicId, request);
         checkProviderConflict(clinicId, request);
+        checkSeveritySchedulingConstraint(clinicId, request);
 
         UUID id = UUID.randomUUID();
         String sql = """
@@ -342,6 +344,27 @@ public class AppointmentService {
                 "PROVIDER_CONFLICT",
                 "Il medico selezionato ha già un appuntamento in questo orario."
             );
+        }
+    }
+
+    /**
+     * Se il paziente ha severità anamnestica massima 'severa' (vedi {@link #isSevera}), lo slot
+     * richiesto deve essere l'ultimo possibile della giornata (vincolo di sicurezza, non solo di
+     * proposta: {@link #findAvailability} già propone solo end-of-day per questi pazienti, ma la
+     * creazione manuale/AI deve rifiutare esplicitamente uno slot fuori fascia).
+     */
+    private void checkSeveritySchedulingConstraint(UUID clinicId, CreateAppointmentRequest request) {
+        if (!isSevera(clinicId, request.patientId())) return;
+
+        LocalTime requestedStart = request.startsAt().atZoneSameInstant(ROME).toLocalTime();
+        long durationMin = java.time.Duration.between(request.startsAt(), request.endsAt()).toMinutes();
+        ScheduleConfig cfg = loadSchedule(clinicId);
+
+        if (!isEndOfDaySlot(requestedStart, durationMin, cfg)) {
+            LocalTime lastPossibleStart = cfg.workEnd().minusMinutes(durationMin);
+            throw new SchedulingConstraintException("SEVERITY_END_OF_DAY_ONLY",
+                    "Paziente con condizione a rischio infettivo attiva: disponibili solo slot di fine giornata (dalle "
+                            + lastPossibleStart.format(AVAILABILITY_TIME) + ").");
         }
     }
 
@@ -577,7 +600,7 @@ public class AppointmentService {
     // cerca solo per quel medico; altrimenti considera tutti i medici clinici attivi e propone
     // il primo che risulta libero. Carica appuntamenti/medici/poltrone in poche query e calcola
     // gli slot in memoria (vedi computeAvailability) per evitare una query per candidato.
-    public List<AvailabilitySlotDto> findAvailability(int durationMin, UUID providerId, LocalDate fromDate, int limit) {
+    public List<AvailabilitySlotDto> findAvailability(int durationMin, UUID providerId, UUID patientId, LocalDate fromDate, int limit) {
         if (durationMin <= 0) {
             throw new IllegalArgumentException("durationMin deve essere maggiore di zero: " + durationMin);
         }
@@ -589,9 +612,21 @@ public class AppointmentService {
         List<AvailabilityProvider> providers = loadAvailabilityProviders(clinicId, providerId);
         List<String> chairLabels = findChairLabels();
         List<BusyAppointment> busy = loadBusyAppointments(clinicId, searchFrom, searchTo);
+        boolean endOfDayOnly = patientId != null && isSevera(clinicId, patientId);
 
         return computeAvailability(durationMin, searchFrom, effectiveLimit, providers, chairLabels, busy,
-                loadSchedule(clinicId));
+                loadSchedule(clinicId), endOfDayOnly);
+    }
+
+    /** True se la severità anamnestica massima attiva del paziente è 'severa' (vincolo fine giornata). */
+    private boolean isSevera(UUID clinicId, UUID patientId) {
+        List<String> rows = jdbc.queryForList("""
+            SELECT max_severity FROM %s.v_patient_max_anamnesis_severity
+            WHERE clinic_id = :clinicId AND patient_id = :patientId
+            """.formatted(s()),
+                new MapSqlParameterSource().addValue("clinicId", clinicId).addValue("patientId", patientId),
+                String.class);
+        return !rows.isEmpty() && "severa".equals(rows.get(0));
     }
 
     /** Medici clinici attivi in scope per la ricerca (uno solo se providerId è indicato). */
@@ -749,6 +784,18 @@ public class AppointmentService {
             int durationMin, LocalDate fromDate, int limit,
             List<AvailabilityProvider> providers, List<String> chairLabels, List<BusyAppointment> busy,
             ScheduleConfig cfg) {
+        return computeAvailability(durationMin, fromDate, limit, providers, chairLabels, busy, cfg, false);
+    }
+
+    /**
+     * @param endOfDayOnly se true (paziente con severità anamnestica massima 'severa'), propone
+     *                     un solo candidato per giornata: l'ultimo slot possibile prima di workEnd,
+     *                     non l'intera griglia (vincolo di sicurezza per gli slot di fine giornata).
+     */
+    static List<AvailabilitySlotDto> computeAvailability(
+            int durationMin, LocalDate fromDate, int limit,
+            List<AvailabilityProvider> providers, List<String> chairLabels, List<BusyAppointment> busy,
+            ScheduleConfig cfg, boolean endOfDayOnly) {
 
         List<AvailabilitySlotDto> proposals = new ArrayList<>();
         if (durationMin <= 0 || limit <= 0 || providers.isEmpty() || chairLabels.isEmpty()) return proposals;
@@ -756,11 +803,15 @@ public class AppointmentService {
         int workStartMin = cfg.workStart().toSecondOfDay() / 60;
         int workEndMin = cfg.workEnd().toSecondOfDay() / 60;
 
+        // Se il paziente e' 'severa': un solo slot candidato per giornata, quello che finisce
+        // esattamente a fine orario (l'ultimo possibile), non l'intera griglia di slot.
+        int iterationStart = endOfDayOnly ? (workEndMin - durationMin) : workStartMin;
+
         for (int day = 0; day < SEARCH_DAYS && proposals.size() < limit; day++) {
             LocalDate date = fromDate.plusDays(day);
             if (!cfg.workingDays().contains(date.getDayOfWeek())) continue;
 
-            for (int m = workStartMin; m + durationMin <= workEndMin && proposals.size() < limit; m += cfg.slotMinutes()) {
+            for (int m = iterationStart; m + durationMin <= workEndMin && proposals.size() < limit; m += cfg.slotMinutes()) {
                 LocalTime slotStart = LocalTime.ofSecondOfDay(m * 60L);
                 LocalTime slotEnd = LocalTime.ofSecondOfDay((m + durationMin) * 60L);
                 OffsetDateTime candidateStart = date.atTime(slotStart).atZone(ROME).toOffsetDateTime();
@@ -775,9 +826,23 @@ public class AppointmentService {
                             freeChair, provider.providerId(), provider.providerName()));
                     break; // un solo medico/poltrona per candidato: passa allo slot successivo
                 }
+
+                if (endOfDayOnly) break; // un solo candidato per giornata: l'ultimo slot possibile
             }
         }
         return proposals;
+    }
+
+    /**
+     * True se lo slot che inizia a {@code requestedStart} (durata {@code durationMin}) è l'ultimo
+     * possibile della giornata secondo {@code cfg} — cioè non inizia prima di workEnd - durationMin.
+     * Calcolo puro, testabile senza JDBC (stesso pattern di {@link #computeAvailability}): usato sia
+     * per il calcolo delle proposte di disponibilità sia per l'enforcement lato create() sui pazienti
+     * con severità anamnestica massima 'severa'.
+     */
+    static boolean isEndOfDaySlot(LocalTime requestedStart, long durationMin, ScheduleConfig cfg) {
+        LocalTime lastPossibleStart = cfg.workEnd().minusMinutes(durationMin);
+        return !requestedStart.isBefore(lastPossibleStart);
     }
 
     private static boolean providerBusy(List<BusyAppointment> busy, UUID providerId,
@@ -831,6 +896,7 @@ public class AppointmentService {
                 rs.getString("tooth_number"),
                 rs.getObject("has_allergy_alert", Boolean.class),
                 rs.getObject("has_medication_alert", Boolean.class),
+                rs.getObject("has_catalog_alert", Boolean.class),
                 rs.getObject("overdue_recall_count", Integer.class),
                 rs.getObject("upcoming_recall_count", Integer.class),
                 rs.getObject("open_estimate_count", Integer.class),

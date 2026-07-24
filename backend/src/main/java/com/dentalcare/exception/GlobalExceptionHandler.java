@@ -29,10 +29,22 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("PATIENT_NOT_DELETABLE", ex.getMessage());
     }
 
+    @ExceptionHandler(CatalogItemInUseException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleCatalogItemInUse(CatalogItemInUseException ex) {
+        return new ErrorResponse("CATALOG_ITEM_IN_USE", ex.getMessage());
+    }
+
     @ExceptionHandler(AppointmentConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleAppointmentConflict(AppointmentConflictException ex) {
         return new ErrorResponse(ex.getConflictType(), ex.getMessage());
+    }
+
+    @ExceptionHandler(SchedulingConstraintException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleSchedulingConstraint(SchedulingConstraintException ex) {
+        return new ErrorResponse(ex.getCode(), ex.getMessage());
     }
 
     @ExceptionHandler(BadCredentialsException.class)

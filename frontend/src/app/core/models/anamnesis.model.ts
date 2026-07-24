@@ -3,7 +3,7 @@ export interface AnamnesisItemDto {
   code: string;
   label: string;
   description: string | null;
-  isAlert: boolean;
+  severity: 'normale' | 'grave' | 'severa';
   sortOrder: number;
   selected: boolean;
   selectionNotes: string | null;
@@ -24,4 +24,16 @@ export interface SaveAnamnesisRequest {
   selections: { itemId: string; notes: string | null }[];
   bloodType: string | null;
   generalNotes: string | null;
+}
+
+export interface AnamnesisDiffItem {
+  code: string;
+  label: string;
+  severity: 'normale' | 'grave' | 'severa';
+}
+
+export interface AnamnesisDiff {
+  newItems: AnamnesisDiffItem[];
+  resolvedItems: AnamnesisDiffItem[];
+  unchangedItems: AnamnesisDiffItem[];
 }

@@ -9,9 +9,11 @@ import { TreatmentPlanService } from '../../../core/services/treatment-plan.serv
 import { DiagnosiService } from '../../../core/services/diagnosi.service';
 import { PrescrizioneService } from '../../../core/services/prescrizione.service';
 import { PatientDocumentService } from '../../../core/services/patient-document.service';
+import { AnamnesisService } from '../../../core/services/anamnesis.service';
 import { Diagnosi } from '../../../core/models/diagnosi.model';
 import { Prescrizione } from '../../../core/models/prescrizione.model';
 import { DOCUMENT_TYPE_LABELS, PatientDocumentSummary } from '../../../core/models/patient-document.model';
+import { AnamnesisDiff } from '../../../core/models/anamnesis.model';
 
 @Component({
   selector: 'app-cartella-tab',
@@ -25,6 +27,7 @@ export class CartellaClinicalTabComponent implements OnInit {
   private readonly diagnosiService = inject(DiagnosiService);
   private readonly prescrizioneService = inject(PrescrizioneService);
   private readonly docService = inject(PatientDocumentService);
+  private readonly anamnesisService = inject(AnamnesisService);
 
   @Input({ required: true }) paziente!: any;
   @Input({ required: true }) patientId!: string;
@@ -39,6 +42,7 @@ export class CartellaClinicalTabComponent implements OnInit {
   diagnosi = signal<Diagnosi[]>([]);
   prescrizioni = signal<Prescrizione[]>([]);
   documenti = signal<PatientDocumentSummary[]>([]);
+  anamnesisDiff = signal<AnamnesisDiff | null>(null);
   loadingDiary = signal(true);
   loadingPlans = signal(true);
   loadingOdonto = signal(true);
@@ -72,6 +76,7 @@ export class CartellaClinicalTabComponent implements OnInit {
       next: d => { this.documenti.set(d); this.loadingDocumenti.set(false); },
       error: () => this.loadingDocumenti.set(false)
     });
+    this.loadAnamnesisDiff();
     const r = this.role();
     if (r !== 'secretary') {
       this.diagnosiService.findAll(this.patientId).subscribe({
@@ -86,6 +91,13 @@ export class CartellaClinicalTabComponent implements OnInit {
       this.loadingDiagnosi.set(false);
       this.loadingPrescrizioni.set(false);
     }
+  }
+
+  private loadAnamnesisDiff(): void {
+    this.anamnesisService.getDiff(this.patientId).subscribe({
+      next: diff => this.anamnesisDiff.set(diff),
+      error: () => this.anamnesisDiff.set(null)
+    });
   }
 
   get activeDiagnosi(): Diagnosi[] {
@@ -108,6 +120,11 @@ export class CartellaClinicalTabComponent implements OnInit {
     if (p.heartDisease) list.push({ type: 'warning', label: 'Cardiopatia' });
     if (p.hypertension) list.push({ type: 'warning', label: 'Ipertensione' });
     if (p.diabetes) list.push({ type: 'warning', label: 'Diabete' });
+    if (p.catalogAlertSeverity === 'severa') {
+      list.push({ type: 'critical', label: 'Condizione a rischio infettivo attiva — solo appuntamenti fine giornata' });
+    } else if (p.catalogAlertSeverity === 'grave') {
+      list.push({ type: 'warning', label: 'Condizioni cliniche da anamnesi — vedi scheda anamnesi' });
+    }
     if (!p.anamnesisDate) list.push({ type: 'info', label: 'Anamnesi da completare' });
     return list;
   }

@@ -33,6 +33,7 @@ public record PatientDetailDto(
         String otherAllergies,
         String anamnesisNotes,
         OffsetDateTime anamnesisDate,
+        String catalogAlertSeverity,
         // Stats
         Long totalAppointments,
         Long treatmentPlansCount,

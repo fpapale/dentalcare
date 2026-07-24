@@ -294,6 +294,12 @@ export class NuovoAppuntamentoComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
+        // Il backend restituisce sempre { code, message } per gli errori applicativi
+        // (404/409/422/...) e il messaggio include già i dettagli utili — es. #7
+        // SchedulingConstraintException (422, code SEVERITY_END_OF_DAY_ONLY) quando un
+        // paziente a severità anamnestica 'severa' viene prenotato fuori dallo slot di
+        // fine giornata: il messaggio contiene già l'orario minimo consentito e va
+        // mostrato così com'è, non sostituito da un messaggio generico.
         const msg = err?.error?.message;
         this.saveError.set(msg ?? 'Errore durante il salvataggio. Verifica i dati e riprova.');
       }

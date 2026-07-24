@@ -21,6 +21,7 @@ public record AppointmentDto(
         String toothNumber,
         Boolean hasAllergyAlert,
         Boolean hasMedicationAlert,
+        Boolean hasCatalogAlert,
         Integer overdueRecallCount,
         Integer upcomingRecallCount,
         Integer openEstimateCount,

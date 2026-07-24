@@ -731,8 +731,10 @@
                       @for (item of anamnesisItems(); track item.id) {
                         <div class="flex items-center justify-between px-5 py-3 hover:bg-slate-50">
                           <div class="flex items-center gap-2 min-w-0">
-                            @if (item.isAlert) {
-                              <span class="material-symbols-outlined text-[14px] text-red-500 shrink-0">warning</span>
+                            @if (item.severity !== 'normale') {
+                              <span class="material-symbols-outlined text-[14px] shrink-0"
+                                [class.text-amber-500]="item.severity === 'grave'"
+                                [class.text-red-500]="item.severity === 'severa'">warning</span>
                             }
                             <div class="min-w-0">
                               <p class="text-sm font-semibold text-slate-800 truncate">{{ item.label }}</p>
@@ -829,10 +831,17 @@
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Ordinamento</label>
                     <input type="number" [(ngModel)]="newItemForm.sortOrder" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
                   </div>
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" [(ngModel)]="newItemForm.isAlert" class="w-4 h-4 accent-red-500" />
-                    <span class="text-sm font-semibold text-red-600">Voce di allerta (richiede attenzione clinica)</span>
-                  </label>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Severità</label>
+                    <select
+                      [(ngModel)]="newItemForm.severity"
+                      name="newItemSeverity"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                      <option value="normale">Normale — nessun alert</option>
+                      <option value="grave">Grave — mostra alert clinico</option>
+                      <option value="severa">Severa — alert clinico + appuntamenti solo a fine giornata</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="flex gap-3 mt-5">
                   <button (click)="createAnamnesisItem()" [disabled]="savingAnamnesisItem() || !newItemForm.label || !newItemForm.code"
@@ -870,10 +879,17 @@
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Ordinamento</label>
                     <input type="number" [(ngModel)]="editItemForm.sortOrder" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
                   </div>
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" [(ngModel)]="editItemForm.isAlert" class="w-4 h-4 accent-red-500" />
-                    <span class="text-sm font-semibold text-red-600">Voce di allerta</span>
-                  </label>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Severità</label>
+                    <select
+                      [(ngModel)]="editItemForm.severity"
+                      name="editItemSeverity"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                      <option value="normale">Normale — nessun alert</option>
+                      <option value="grave">Grave — mostra alert clinico</option>
+                      <option value="severa">Severa — alert clinico + appuntamenti solo a fine giornata</option>
+                    </select>
+                  </div>
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" [(ngModel)]="editItemForm.enabled" class="w-4 h-4 accent-violet-600" />
                     <span class="text-sm font-semibold text-slate-600">Abilitata</span>
