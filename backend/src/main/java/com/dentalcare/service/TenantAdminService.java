@@ -183,43 +183,8 @@ public class TenantAdminService {
         registry.unregister(clinicId.toString());
     }
 
-    /**
-     * Elimina l'intero tenant corrente: drop dello schema dedicato + pulizia registry/mappature.
-     * Operazione distruttiva e irreversibile. L'export va effettuato prima (lato client).
-     */
-    @Transactional
-    public void deleteTenant() {
-        String schema = s();
-        if (!schema.matches("^t_[0-9a-f]{8}$")) {
-            throw new IllegalStateException("Invalid schema");
-        }
-        if ("t_9d754153".equals(schema)) {
-            throw new IllegalStateException("Cannot delete demo tenant");
-        }
-        UUID tenantId = currentTenantId();
-
-        final String bucket = minio.bucketFor(schema);
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override public void afterCommit() {
-                    try {
-                        minio.purgeBucket(bucket);
-                    } catch (Exception e) {
-                        log.error("purgeBucket failed for bucket={} — storage leak, manual cleanup required", bucket, e);
-                    }
-                }
-            });
-        } else {
-            minio.purgeBucket(bucket);
-        }
-
-        jdbc.getJdbcTemplate().execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
-        jdbc.update("DELETE FROM dentalcare.tenant_clinics WHERE tenant_id = :tenantId",
-                new MapSqlParameterSource("tenantId", tenantId));
-        jdbc.update("DELETE FROM dentalcare.tenants WHERE id = :tenantId",
-                new MapSqlParameterSource("tenantId", tenantId));
-        registry.unregisterSchema(schema);
-    }
+    // La cancellazione del tenant è ora guidata e differita (#47): vedi TenantDeletionService
+    // (prepare -> confirm con export+token+nome digitato -> soft-delete -> drop differito via scheduler).
 
     @Transactional(readOnly = true)
     public List<TenantUserDto> findUsers(UUID clinicId) {

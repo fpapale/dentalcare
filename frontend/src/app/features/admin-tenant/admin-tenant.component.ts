@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -13,6 +13,7 @@ import {
   TenantClinicDto,
   TenantUserDto
 } from './admin-tenant.model';
+import { formatDate } from '@angular/common';
 
 const AVAILABLE_ROLES = ['admin', 'secretary', 'doctor', 'hygienist', 'orthodontist', 'surgeon', 'assistant', 'other'] as const;
 
@@ -62,14 +63,34 @@ export class AdminTenantComponent implements OnInit {
   readonly selfAdminClinicIds = signal<Set<string>>(new Set());
   readonly enteringClinicId = signal<string | null>(null);
   readonly exportedForDelete = signal(false);
+  readonly clinicConfirmName = signal('');
+
+  // Selezione multipla cliniche per esportazione
+  readonly selectedClinicIds = signal<Set<string>>(new Set());
 
   readonly editTargetClinicId = signal<string | null>(null);
   readonly editForm = signal<CreateTenantClinicRequest>(emptyClinicForm());
   readonly savingEdit = signal(false);
 
+  // Eliminazione tenant (flusso guidato lato server)
   readonly showDeleteTenant = signal(false);
-  readonly exportedForTenant = signal(false);
+  readonly preparingTenant = signal(false);
+  readonly tenantDeletionToken = signal<string | null>(null);
+  readonly tenantDeletionExpiresAt = signal<string | null>(null);
+  readonly tenantExportSizeBytes = signal<number | null>(null);
+  readonly tenantExportDownloaded = signal(false);
+  readonly tenantConfirmName = signal('');
   readonly deletingTenant = signal(false);
+  readonly tenantScheduledDropAt = signal<string | null>(null);
+  readonly cancellingTenantDeletion = signal(false);
+  readonly tenantNotice = signal<string | null>(null);
+
+  readonly canConfirmTenantDelete = computed(() =>
+    !!this.tenantDeletionToken() &&
+    this.tenantExportDownloaded() &&
+    this.tenantConfirmName().trim() === (this.tenantName() ?? '').trim() &&
+    (this.tenantName() ?? '').trim().length > 0
+  );
 
   ngOnInit(): void {
     this.loadClinics();
@@ -227,11 +248,44 @@ export class AdminTenantComponent implements OnInit {
   askDeleteClinic(clinic: TenantClinicDto): void {
     this.deleteTargetClinic.set(clinic);
     this.exportedForDelete.set(false);
+    this.clinicConfirmName.set('');
   }
 
   cancelDeleteClinic(): void {
     this.deleteTargetClinic.set(null);
     this.exportedForDelete.set(false);
+    this.clinicConfirmName.set('');
+  }
+
+  canConfirmDeleteClinic(): boolean {
+    const clinic = this.deleteTargetClinic();
+    if (!clinic) return false;
+    return this.exportedForDelete() &&
+      this.clinicConfirmName().trim() === clinic.name.trim();
+  }
+
+  // --- Esportazione multipla cliniche ---
+  toggleClinicSelection(clinicId: string): void {
+    this.selectedClinicIds.update(s => {
+      const next = new Set(s);
+      if (next.has(clinicId)) {
+        next.delete(clinicId);
+      } else {
+        next.add(clinicId);
+      }
+      return next;
+    });
+  }
+
+  isClinicSelected(clinicId: string): boolean {
+    return this.selectedClinicIds().has(clinicId);
+  }
+
+  exportSelectedClinics(): void {
+    const ids = [...this.selectedClinicIds()];
+    if (ids.length === 0) return;
+    const token = this.auth.getToken();
+    window.location.href = `${this.apiBase}/tenant-admin/export/clinics?ids=${ids.join(',')}&token=${token}`;
   }
 
   downloadClinicExport(clinicId: string): void {
@@ -243,7 +297,7 @@ export class AdminTenantComponent implements OnInit {
   confirmDeleteClinic(): void {
     const clinic = this.deleteTargetClinic();
     if (!clinic) return;
-    if (!this.exportedForDelete()) return;
+    if (!this.canConfirmDeleteClinic()) return;
     this.deletingClinicId.set(clinic.id);
     this.error.set(null);
     this.api.deleteClinic(clinic.id).subscribe({
@@ -257,13 +311,22 @@ export class AdminTenantComponent implements OnInit {
         if (this.expandedClinicId() === clinic.id) {
           this.expandedClinicId.set(null);
         }
+        this.selectedClinicIds.update(s => {
+          const next = new Set(s);
+          next.delete(clinic.id);
+          return next;
+        });
         this.deleteTargetClinic.set(null);
+        this.exportedForDelete.set(false);
+        this.clinicConfirmName.set('');
         this.deletingClinicId.set(null);
       },
       error: (err: HttpErrorResponse) => {
         this.error.set(this.extractError(err, 'Impossibile eliminare lo studio.'));
         this.deletingClinicId.set(null);
         this.deleteTargetClinic.set(null);
+        this.exportedForDelete.set(false);
+        this.clinicConfirmName.set('');
       }
     });
   }
@@ -388,37 +451,96 @@ export class AdminTenantComponent implements OnInit {
     });
   }
 
-  // --- Eliminazione tenant ---
+  // --- Eliminazione tenant (flusso guidato lato server) ---
+  private resetTenantDeletion(): void {
+    this.preparingTenant.set(false);
+    this.tenantDeletionToken.set(null);
+    this.tenantDeletionExpiresAt.set(null);
+    this.tenantExportSizeBytes.set(null);
+    this.tenantExportDownloaded.set(false);
+    this.tenantConfirmName.set('');
+    this.deletingTenant.set(false);
+    this.tenantScheduledDropAt.set(null);
+    this.cancellingTenantDeletion.set(false);
+  }
+
   askDeleteTenant(): void {
+    this.resetTenantDeletion();
+    this.tenantNotice.set(null);
+    this.error.set(null);
     this.showDeleteTenant.set(true);
-    this.exportedForTenant.set(false);
+    // Step 1: prepara l'esportazione lato server e ottieni il token di eliminazione.
+    this.preparingTenant.set(true);
+    this.api.prepareTenantDeletion().subscribe({
+      next: (res) => {
+        this.tenantDeletionToken.set(res.deletionToken);
+        this.tenantDeletionExpiresAt.set(res.expiresAt);
+        this.tenantExportSizeBytes.set(res.exportSizeBytes);
+        this.preparingTenant.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.extractError(err, 'Impossibile preparare l\'eliminazione della clinica.'));
+        this.preparingTenant.set(false);
+        this.showDeleteTenant.set(false);
+      }
+    });
   }
 
   cancelDeleteTenant(): void {
     this.showDeleteTenant.set(false);
-    this.exportedForTenant.set(false);
+    this.resetTenantDeletion();
   }
 
   downloadTenantExport(): void {
-    const token = this.auth.getToken();
-    window.location.href = `${this.apiBase}/tenant-admin/export?token=${token}`;
-    this.exportedForTenant.set(true);
+    const token = this.tenantDeletionToken();
+    if (!token) return;
+    window.location.href = `${this.apiBase}/tenant-admin/tenant/deletion/export?deletionToken=${token}`;
+    this.tenantExportDownloaded.set(true);
   }
 
   confirmDeleteTenant(): void {
-    if (!this.exportedForTenant()) return;
+    const token = this.tenantDeletionToken();
+    if (!token || !this.canConfirmTenantDelete()) return;
     this.deletingTenant.set(true);
     this.error.set(null);
-    this.api.deleteTenant().subscribe({
-      next: () => {
+    this.api.deleteTenantGuarded({
+      deletionToken: token,
+      confirmationName: this.tenantConfirmName().trim()
+    }).subscribe({
+      next: (res) => {
         this.deletingTenant.set(false);
-        this.auth.logout();
+        this.tenantScheduledDropAt.set(res.scheduledDropAt);
       },
       error: (err: HttpErrorResponse) => {
         this.error.set(this.extractError(err, 'Impossibile eliminare la clinica.'));
         this.deletingTenant.set(false);
       }
     });
+  }
+
+  cancelScheduledTenantDeletion(): void {
+    this.cancellingTenantDeletion.set(true);
+    this.error.set(null);
+    this.api.cancelTenantDeletion().subscribe({
+      next: () => {
+        this.showDeleteTenant.set(false);
+        this.resetTenantDeletion();
+        this.tenantNotice.set('Eliminazione della clinica annullata. Nessun dato verrà rimosso.');
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.extractError(err, 'Impossibile annullare l\'eliminazione.'));
+        this.cancellingTenantDeletion.set(false);
+      }
+    });
+  }
+
+  formatScheduledDrop(iso: string | null): string {
+    if (!iso) return '';
+    try {
+      return formatDate(iso, 'dd/MM/yyyy HH:mm', 'en-US');
+    } catch {
+      return iso;
+    }
   }
 
   updateClinicField<K extends keyof CreateTenantClinicRequest>(key: K, value: CreateTenantClinicRequest[K]): void {

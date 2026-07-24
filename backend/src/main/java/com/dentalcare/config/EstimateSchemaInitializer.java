@@ -73,6 +73,17 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             log.warn("EstimateSchemaInitializer: dentalcare.tenants not found — discovered {} tenant schema(s) by pattern", schemas.size());
         }
 
+        // Colonna globale per il soft-delete/grace-period del tenant (#47): scheduled_drop_at
+        // valorizzata al confirm della cancellazione (active=false + scheduled_drop_at=now()+N gg);
+        // il DROP SCHEMA reale avviene solo allo scadere, via TenantDeletionScheduler.
+        if (tenantsTableExists != null && tenantsTableExists > 0) {
+            try {
+                jdbc.execute("ALTER TABLE dentalcare.tenants ADD COLUMN IF NOT EXISTS scheduled_drop_at timestamptz");
+            } catch (Exception e) {
+                log.warn("EstimateSchemaInitializer: failed to add dentalcare.tenants.scheduled_drop_at: {}", e.getMessage());
+            }
+        }
+
         // AI enums — idempotent, created once in the global dentalcare schema
         try {
             jdbc.execute("DO $$ BEGIN CREATE TYPE dentalcare.ai_analysis_status AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;");

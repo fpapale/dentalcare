@@ -2403,6 +2403,7 @@ CREATE TABLE dentalcare.tenants (
     phone text,
     plan text DEFAULT 'base'::text NOT NULL,
     active boolean DEFAULT true NOT NULL,
+    scheduled_drop_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );

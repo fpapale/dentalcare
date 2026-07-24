@@ -43,46 +43,55 @@ public class TenantExportService {
     }
 
     public void exportClinicToStream(UUID clinicId, OutputStream out) throws IOException {
+        exportClinicsToStream(List.of(clinicId), out);
+    }
+
+    /**
+     * Export di un sottoinsieme di cliniche del tenant (#47). `clinic_id IN (...)`.
+     * Include lo snapshot del catalogo anamnesi condiviso (per-tenant, senza clinic_id):
+     * senza, le selezioni del paziente (item_id) sarebbero illeggibili dopo la cancellazione.
+     */
+    public void exportClinicsToStream(List<UUID> clinicIds, OutputStream out) throws IOException {
         String schema = TenantContext.validatedSchema();
-        log.info("Clinic export started for schema={} clinicId={}", schema, clinicId);
+        log.info("Clinic export started for schema={} clinicIds={}", schema, clinicIds);
 
         Map<String, Integer> rowCounts = new LinkedHashMap<>();
 
         try (ZipOutputStream zip = new ZipOutputStream(out, StandardCharsets.UTF_8)) {
 
-            MapSqlParameterSource cidParam = new MapSqlParameterSource("clinicId", clinicId);
+            MapSqlParameterSource cidParam = new MapSqlParameterSource("clinicIds", clinicIds);
 
             rowCounts.put("users", writeCsvNamed(zip, "data/users.csv",
                     "SELECT id, first_name, last_name, email, role::text AS role, active " +
-                            "FROM " + schema + ".providers WHERE clinic_id = :clinicId ORDER BY last_name, first_name",
+                            "FROM " + schema + ".providers WHERE clinic_id IN (:clinicIds) ORDER BY last_name, first_name",
                     new String[]{"id", "first_name", "last_name", "email", "role", "active"}, cidParam));
 
             rowCounts.put("customers", writeCustomersCsv(zip, schema,
                     "SELECT id, first_name, last_name, fiscal_code_enc, birth_date_enc, phone, city " +
-                            "FROM " + schema + ".patients WHERE clinic_id = :clinicId ORDER BY last_name, first_name",
+                            "FROM " + schema + ".patients WHERE clinic_id IN (:clinicIds) ORDER BY last_name, first_name",
                     cidParam));
 
             rowCounts.put("appointments", writeCsvNamed(zip, "data/appointments.csv",
                     "SELECT id, patient_id, provider_id, starts_at, ends_at, status::text AS status, notes " +
-                            "FROM " + schema + ".appointments WHERE clinic_id = :clinicId ORDER BY starts_at",
+                            "FROM " + schema + ".appointments WHERE clinic_id IN (:clinicIds) ORDER BY starts_at",
                     new String[]{"id", "patient_id", "provider_id", "starts_at", "ends_at", "status", "notes"}, cidParam));
 
             if (tableExists(schema, "invoices")) {
                 rowCounts.put("invoices", writeCsvNamed(zip, "data/invoices.csv",
                         "SELECT id, invoice_number, patient_id, status::text AS status, total_amount, issued_at " +
-                                "FROM " + schema + ".invoices WHERE clinic_id = :clinicId ORDER BY invoice_number",
+                                "FROM " + schema + ".invoices WHERE clinic_id IN (:clinicIds) ORDER BY invoice_number",
                         new String[]{"id", "invoice_number", "patient_id", "status", "total_amount", "issued_at"}, cidParam));
             }
 
             List<Map<String, Object>> plans = jdbc.query(
                     "SELECT id, patient_id, name, description, status::text AS status, " +
                             "created_by_provider_id, proposed_at, accepted_at, completed_at, rejected_at, created_at " +
-                            "FROM " + schema + ".treatment_plans WHERE clinic_id = :clinicId ORDER BY created_at DESC",
+                            "FROM " + schema + ".treatment_plans WHERE clinic_id IN (:clinicIds) ORDER BY created_at DESC",
                     cidParam, (rs, n) -> rowToMap(rs));
             List<Map<String, Object>> history = jdbc.query(
                     "SELECT id, patient_id, appointment_id, provider_id, entry_date, " +
                             "tooth_number, service_code, service_name, clinical_notes, materials_used, created_at " +
-                            "FROM " + schema + ".clinical_history_entries WHERE clinic_id = :clinicId ORDER BY entry_date DESC",
+                            "FROM " + schema + ".clinical_history_entries WHERE clinic_id IN (:clinicIds) ORDER BY entry_date DESC",
                     cidParam, (rs, n) -> rowToMap(rs));
             Map<String, Object> clinical = new LinkedHashMap<>();
             clinical.put("treatment_plans", plans);
@@ -92,13 +101,16 @@ public class TenantExportService {
             zip.closeEntry();
             rowCounts.put("clinical_records", plans.size() + history.size());
 
+            // Catalogo anamnesi condiviso (per-tenant): incluso intero come snapshot datato.
+            rowCounts.put("anamnesis_catalog", writeAnamnesisCatalog(zip, schema));
+
             zip.putNextEntry(new ZipEntry("files/.gitkeep"));
             zip.closeEntry();
 
             writeAuditLog(zip);
 
             Map<String, Object> meta = new LinkedHashMap<>();
-            meta.put("clinicId", clinicId.toString());
+            meta.put("clinicIds", clinicIds.stream().map(UUID::toString).toList());
             meta.put("schema", schema);
             meta.put("exportDate", LocalDate.now().toString());
             meta.put("rowCounts", rowCounts);
@@ -107,12 +119,15 @@ public class TenantExportService {
             zip.closeEntry();
 
             zip.putNextEntry(new ZipEntry("schema/README.md"));
-            zip.write(("# Clinic Export\n\nClinic: " + clinicId + "\nSchema: " + schema +
-                    "\nData export: " + LocalDate.now() + "\n").getBytes(StandardCharsets.UTF_8));
+            zip.write(("# Clinic Export\n\nClinics: " + clinicIds + "\nSchema: " + schema +
+                    "\nData export: " + LocalDate.now() +
+                    "\n\nInclude `data/anamnesis_catalog.json`: snapshot del catalogo anamnesi" +
+                    " condiviso del tenant, necessario a interpretare le selezioni dei pazienti.\n")
+                    .getBytes(StandardCharsets.UTF_8));
             zip.closeEntry();
         }
 
-        log.info("Clinic export completed for clinicId={} counts={}", clinicId, rowCounts);
+        log.info("Clinic export completed for clinicIds={} counts={}", clinicIds, rowCounts);
     }
 
     public void exportToStream(OutputStream out) throws IOException {
@@ -147,6 +162,9 @@ public class TenantExportService {
             }
 
             rowCounts.put("clinical_records", writeClinicalRecords(zip, schema));
+
+            // Catalogo anamnesi condiviso (per-tenant): snapshot datato (#47)
+            rowCounts.put("anamnesis_catalog", writeAnamnesisCatalog(zip, schema));
 
             // /files — placeholder (allegati non ancora implementati)
             zip.putNextEntry(new ZipEntry("files/.gitkeep"));
@@ -187,6 +205,37 @@ public class TenantExportService {
         zip.closeEntry();
 
         return plans.size() + history.size();
+    }
+
+    /**
+     * Snapshot del catalogo anamnesi condiviso del tenant (categorie + voci), datato.
+     * Serve a rendere interpretabili le selezioni dei pazienti (item_id) dopo la cancellazione (#47).
+     * Restituisce il totale di righe (categorie + voci) scritte.
+     */
+    private int writeAnamnesisCatalog(ZipOutputStream zip, String schema) throws IOException {
+        if (!tableExists(schema, "anamnesis_items")) {
+            return 0;
+        }
+        List<Map<String, Object>> categories = jdbc.query(
+                "SELECT id, code, name, description, sort_order, enabled, created_at " +
+                        "FROM " + schema + ".anamnesis_categories ORDER BY sort_order, name",
+                new MapSqlParameterSource(), (rs, n) -> rowToMap(rs));
+        List<Map<String, Object>> items = jdbc.query(
+                "SELECT id, category_id, code, label, description, severity, sort_order, enabled, has_detail, created_at " +
+                        "FROM " + schema + ".anamnesis_items ORDER BY category_id, sort_order, label",
+                new MapSqlParameterSource(), (rs, n) -> rowToMap(rs));
+
+        Map<String, Object> catalog = new LinkedHashMap<>();
+        catalog.put("snapshotDate", LocalDate.now().toString());
+        catalog.put("scope", "per-tenant (condiviso da tutte le cliniche/sedi)");
+        catalog.put("categories", categories);
+        catalog.put("items", items);
+
+        zip.putNextEntry(new ZipEntry("data/anamnesis_catalog.json"));
+        zip.write(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(catalog));
+        zip.closeEntry();
+
+        return categories.size() + items.size();
     }
 
     private void writeAuditLog(ZipOutputStream zip) throws IOException {

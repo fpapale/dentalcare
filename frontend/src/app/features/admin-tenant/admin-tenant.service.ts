@@ -6,7 +6,10 @@ import { LoginResponse } from '../../core/auth/auth.model';
 import {
   CreateTenantClinicRequest,
   CreateTenantUserRequest,
+  DeleteTenantRequest,
   TenantClinicDto,
+  TenantDeletionPrepareResponse,
+  TenantDeletionScheduledResponse,
   TenantUserDto
 } from './admin-tenant.model';
 
@@ -33,6 +36,18 @@ export class AdminTenantService {
 
   deleteTenant(): Observable<void> {
     return this.http.delete<void>(`${this.base}/tenant`);
+  }
+
+  prepareTenantDeletion(): Observable<TenantDeletionPrepareResponse> {
+    return this.http.post<TenantDeletionPrepareResponse>(`${this.base}/tenant/deletion/prepare`, {});
+  }
+
+  deleteTenantGuarded(req: DeleteTenantRequest): Observable<TenantDeletionScheduledResponse> {
+    return this.http.delete<TenantDeletionScheduledResponse>(`${this.base}/tenant`, { body: req });
+  }
+
+  cancelTenantDeletion(): Observable<void> {
+    return this.http.post<void>(`${this.base}/tenant/deletion/cancel`, {});
   }
 
   getUsers(clinicId: string): Observable<TenantUserDto[]> {

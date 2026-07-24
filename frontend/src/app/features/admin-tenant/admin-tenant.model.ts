@@ -38,3 +38,18 @@ export interface CreateTenantUserRequest {
   email: string;
   role: string;
 }
+
+export interface TenantDeletionPrepareResponse {
+  deletionToken: string;
+  expiresAt: string;
+  exportSizeBytes: number;
+}
+
+export interface DeleteTenantRequest {
+  deletionToken: string;
+  confirmationName: string;
+}
+
+export interface TenantDeletionScheduledResponse {
+  scheduledDropAt: string;
+}

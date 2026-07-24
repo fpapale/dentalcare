@@ -71,6 +71,14 @@
       </div>
     }
 
+    <!-- Avviso informativo globale -->
+    @if (tenantNotice()) {
+      <div class="mb-4 px-4 py-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 flex items-start gap-2">
+        <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-[20px] shrink-0">check_circle</span>
+        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ tenantNotice() }}</p>
+      </div>
+    }
+
     <!-- Sezione cliniche -->
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
@@ -79,12 +87,22 @@
           <h2 class="font-semibold text-slate-800 dark:text-slate-100">Studi</h2>
           <span class="text-xs text-slate-400 dark:text-slate-500">({{ clinics().length }})</span>
         </div>
-        <button type="button"
-                (click)="toggleCreateClinic()"
-                class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-[18px]">{{ showCreateClinic() ? 'close' : 'add' }}</span>
-          {{ showCreateClinic() ? 'Annulla' : 'Nuovo studio' }}
-        </button>
+        <div class="flex items-center gap-2">
+          @if (selectedClinicIds().size > 0) {
+            <button type="button"
+                    (click)="exportSelectedClinics()"
+                    class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-50 hover:bg-teal-100 dark:bg-teal-900/30 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[18px]">download</span>
+              Esporta cliniche selezionate ({{ selectedClinicIds().size }})
+            </button>
+          }
+          <button type="button"
+                  (click)="toggleCreateClinic()"
+                  class="text-sm font-medium px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[18px]">{{ showCreateClinic() ? 'close' : 'add' }}</span>
+            {{ showCreateClinic() ? 'Annulla' : 'Nuovo studio' }}
+          </button>
+        </div>
       </div>
 
       <!-- Form creazione clinica -->
@@ -161,6 +179,13 @@
           @for (clinic of clinics(); track clinic.id) {
             <li class="px-6 py-4">
               <div class="flex items-start justify-between gap-4">
+                <label class="flex items-center pt-0.5 shrink-0 cursor-pointer"
+                       [title]="'Seleziona ' + clinic.name + ' per l\'esportazione'">
+                  <input type="checkbox"
+                         [checked]="isClinicSelected(clinic.id)"
+                         (change)="toggleClinicSelection(clinic.id)"
+                         class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-teal-600 focus:ring-teal-500" />
+                </label>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
                     <h3 class="font-semibold text-slate-800 dark:text-slate-100 truncate">{{ clinic.name }}</h3>
@@ -453,6 +478,19 @@
         {{ exportedForDelete() ? 'Dati scaricati' : 'Scarica tutti i dati dello studio' }}
       </button>
 
+      <!-- Conferma digitando il nome dello studio -->
+      <div>
+        <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+          Digita <strong class="text-slate-800 dark:text-slate-100">{{ clinic.name }}</strong> per confermare
+        </label>
+        <input type="text"
+               [ngModel]="clinicConfirmName()"
+               (ngModelChange)="clinicConfirmName.set($event)"
+               name="clinicConfirmName"
+               placeholder="Nome dello studio"
+               class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500" />
+      </div>
+
       <!-- Azioni -->
       <div class="flex items-center gap-3 pt-1">
         <button type="button"
@@ -463,7 +501,7 @@
         </button>
         <button type="button"
                 (click)="confirmDeleteClinic()"
-                [disabled]="!!deletingClinicId() || !exportedForDelete()"
+                [disabled]="!!deletingClinicId() || !canConfirmDeleteClinic()"
                 class="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed">
           @if (deletingClinicId()) {
             <span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
@@ -494,41 +532,99 @@
         </div>
       </div>
 
-      <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 flex items-start gap-2">
-        <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-[20px] shrink-0 mt-0.5">warning</span>
-        <p class="text-sm text-red-800 dark:text-red-200">
-          Elimina <strong>l'intera clinica e tutti gli studi associati</strong>: pazienti, appuntamenti, fatture, documenti.
-          Operazione <strong>irreversibile</strong>. <strong>Devi esportare tutti i dati prima di procedere.</strong>
-        </p>
-      </div>
+      @if (tenantScheduledDropAt(); as dropAt) {
+        <!-- Step 4: eliminazione programmata (soft delete) -->
+        <div class="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 flex items-start gap-2">
+          <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[20px] shrink-0 mt-0.5">schedule</span>
+          <p class="text-sm text-amber-800 dark:text-amber-200">
+            Studio programmato per l'eliminazione il <strong>{{ formatScheduledDrop(dropAt) }}</strong>. Puoi annullare entro tale data.
+          </p>
+        </div>
 
-      <button type="button"
-              (click)="downloadTenantExport()"
-              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 font-medium text-sm transition-colors">
-        <span class="material-symbols-outlined text-[20px]">{{ exportedForTenant() ? 'check_circle' : 'download' }}</span>
-        {{ exportedForTenant() ? 'Dati esportati' : 'Esporta tutti i dati della clinica' }}
-      </button>
+        <div class="flex items-center gap-3 pt-1">
+          <button type="button"
+                  (click)="cancelDeleteTenant()"
+                  [disabled]="cancellingTenantDeletion()"
+                  class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            Chiudi
+          </button>
+          <button type="button"
+                  (click)="cancelScheduledTenantDeletion()"
+                  [disabled]="cancellingTenantDeletion()"
+                  class="flex-1 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed">
+            @if (cancellingTenantDeletion()) {
+              <span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+              Annullamento...
+            } @else {
+              <span class="material-symbols-outlined text-[18px]">undo</span>
+              Annulla eliminazione
+            }
+          </button>
+        </div>
+      } @else if (preparingTenant()) {
+        <!-- Step 1: preparazione esportazione lato server -->
+        <div class="py-8 flex flex-col items-center text-center">
+          <span class="material-symbols-outlined text-teal-500 dark:text-teal-400 text-[32px] animate-spin">progress_activity</span>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-3">Preparazione dell'esportazione dei dati...</p>
+        </div>
+        <div class="flex items-center gap-3 pt-1">
+          <button type="button"
+                  (click)="cancelDeleteTenant()"
+                  class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+            Annulla
+          </button>
+        </div>
+      } @else {
+        <!-- Step 2/3: download obbligatorio + conferma digitando il nome -->
+        <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 flex items-start gap-2">
+          <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-[20px] shrink-0 mt-0.5">warning</span>
+          <p class="text-sm text-red-800 dark:text-red-200">
+            Elimina <strong>l'intera clinica e tutti gli studi associati</strong>: pazienti, appuntamenti, fatture, documenti.
+            L'eliminazione verrà <strong>programmata</strong> e potrà essere annullata entro la data prevista.
+            <strong>Devi scaricare la copia dei dati prima di procedere.</strong>
+          </p>
+        </div>
 
-      <div class="flex items-center gap-3 pt-1">
         <button type="button"
-                (click)="cancelDeleteTenant()"
-                [disabled]="deletingTenant()"
-                class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-          Annulla
+                (click)="downloadTenantExport()"
+                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 font-medium text-sm transition-colors">
+          <span class="material-symbols-outlined text-[20px]">{{ tenantExportDownloaded() ? 'check_circle' : 'download' }}</span>
+          {{ tenantExportDownloaded() ? 'Copia dati scaricata' : 'Scarica copia dati (obbligatorio)' }}
         </button>
-        <button type="button"
-                (click)="confirmDeleteTenant()"
-                [disabled]="deletingTenant() || !exportedForTenant()"
-                class="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed">
-          @if (deletingTenant()) {
-            <span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
-            Eliminazione...
-          } @else {
-            <span class="material-symbols-outlined text-[18px]">delete_forever</span>
-            Elimina definitivamente
-          }
-        </button>
-      </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+            Digita <strong class="text-slate-800 dark:text-slate-100">{{ tenantName() }}</strong> per confermare
+          </label>
+          <input type="text"
+                 [ngModel]="tenantConfirmName()"
+                 (ngModelChange)="tenantConfirmName.set($event)"
+                 name="tenantConfirmName"
+                 placeholder="Nome della clinica"
+                 class="w-full px-3 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500" />
+        </div>
+
+        <div class="flex items-center gap-3 pt-1">
+          <button type="button"
+                  (click)="cancelDeleteTenant()"
+                  [disabled]="deletingTenant()"
+                  class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            Annulla
+          </button>
+          <button type="button"
+                  (click)="confirmDeleteTenant()"
+                  [disabled]="deletingTenant() || !canConfirmTenantDelete()"
+                  class="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed">
+            @if (deletingTenant()) {
+              <span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+              Eliminazione...
+            } @else {
+              <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+              Conferma eliminazione
+            }
+          </button>
+        </div>
+      }
     </div>
   </div>
 }

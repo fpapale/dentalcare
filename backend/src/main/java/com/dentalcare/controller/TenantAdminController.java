@@ -2,11 +2,15 @@ package com.dentalcare.controller;
 
 import com.dentalcare.dto.CreateTenantClinicRequest;
 import com.dentalcare.dto.CreateTenantUserRequest;
+import com.dentalcare.dto.DeleteTenantRequest;
+import com.dentalcare.dto.DeletionPrepareResponse;
+import com.dentalcare.dto.DeletionScheduledResponse;
 import com.dentalcare.dto.LoginResponse;
 import com.dentalcare.dto.TenantClinicDto;
 import com.dentalcare.dto.TenantUserDto;
 import com.dentalcare.security.TenantContext;
 import com.dentalcare.service.TenantAdminService;
+import com.dentalcare.service.TenantDeletionService;
 import com.dentalcare.service.TenantExportService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,11 +37,14 @@ public class TenantAdminController {
 
     private final TenantAdminService tenantAdminService;
     private final TenantExportService tenantExportService;
+    private final TenantDeletionService tenantDeletionService;
 
     public TenantAdminController(TenantAdminService tenantAdminService,
-                                 TenantExportService tenantExportService) {
+                                 TenantExportService tenantExportService,
+                                 TenantDeletionService tenantDeletionService) {
         this.tenantAdminService = tenantAdminService;
         this.tenantExportService = tenantExportService;
+        this.tenantDeletionService = tenantDeletionService;
     }
 
     @GetMapping("/clinics")
@@ -62,10 +70,37 @@ public class TenantAdminController {
         tenantAdminService.deleteClinic(clinicId);
     }
 
+    // --- Cancellazione tenant guidata (#47): prepare -> confirm -> cancel ---
+
+    /** Genera l'export completo (retention cifrata su MinIO) e rilascia il token monouso richiesto. */
+    @PostMapping("/tenant/deletion/prepare")
+    public DeletionPrepareResponse prepareDeletion() throws IOException {
+        return tenantDeletionService.prepare();
+    }
+
+    /** Scarica la copia di export preparata, validando il token. */
+    @GetMapping("/tenant/deletion/export")
+    public void downloadPreparedExport(@RequestParam("deletionToken") String deletionToken,
+                                       HttpServletResponse response) throws IOException {
+        response.setContentType("application/zip");
+        String filename = "tenant_" + TenantContext.validatedSchema()
+                + "_predelete_export_" + LocalDate.now() + ".zip";
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        tenantDeletionService.streamPreparedExport(deletionToken, response.getOutputStream());
+        response.flushBuffer();
+    }
+
+    /** Conferma: valida token + nome digitato, soft-delete con grace period (nessun drop immediato). */
     @DeleteMapping("/tenant")
+    public DeletionScheduledResponse deleteTenant(@Valid @RequestBody DeleteTenantRequest request) {
+        return tenantDeletionService.confirmDeleteTenant(request.deletionToken(), request.confirmationName());
+    }
+
+    /** Annulla una cancellazione programmata, se ancora nella finestra di grazia. */
+    @PostMapping("/tenant/deletion/cancel")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteTenant() {
-        tenantAdminService.deleteTenant();
+    public void cancelDeletion() {
+        tenantDeletionService.cancelDeleteTenant();
     }
 
     @GetMapping("/clinics/{clinicId}/users")
@@ -118,6 +153,19 @@ public class TenantAdminController {
         String filename = "clinic_" + clinicId + "_export_" + LocalDate.now() + ".zip";
         response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
         tenantExportService.exportClinicToStream(clinicId, response.getOutputStream());
+        response.flushBuffer();
+    }
+
+    /** Export di un sottoinsieme di cliniche selezionate (#47): {@code ?ids=uuid,uuid}. */
+    @GetMapping("/export/clinics")
+    public void exportClinics(@RequestParam("ids") List<UUID> ids, HttpServletResponse response) throws IOException {
+        if (ids == null || ids.isEmpty()) {
+            throw new IllegalArgumentException("Nessuna clinica selezionata");
+        }
+        response.setContentType("application/zip");
+        String filename = "clinics_export_" + LocalDate.now() + ".zip";
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        tenantExportService.exportClinicsToStream(ids, response.getOutputStream());
         response.flushBuffer();
     }
 }

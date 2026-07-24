@@ -54,7 +54,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | Proposta |
 | 45 | Odontogramma: pannello a tutta larghezza, legenda leggibile | Basso-Medio (~½-1 giornata) | **Fatta (dev) — 23/07 (core)** |
 | 46 | Piano di cura: nome dente in grassetto nell'elenco prestazioni | Basso (~15 min) | **Fatta (dev) — 24/07** |
-| 47 | Export selezionabile (una/più/tutte le cliniche del tenant) + **guardia obbligatoria pre-cancellazione** tenant/clinica, con snapshot del catalogo anamnesi condiviso, artefatto cifrato/auditato — **non** conservazione a norma | Medio (~1-1.5 giornate) | Proposta (24/07/2026) |
+| 47 | Export selezionabile (una/più/tutte le cliniche del tenant) + **guardia obbligatoria pre-cancellazione** tenant/clinica, con snapshot del catalogo anamnesi condiviso, artefatto cifrato/auditato — **non** conservazione a norma | Medio (~1-1.5 giornate) | **Slice A Fatta (dev) — 24/07** · Slice B (signed URL + password) da fare |
 
 > **Priorità richiesta dal committente (23/07/2026):** #42 → #43 → #44 → #45 vanno pianificate/eseguite **prima** di #40 e #41.
 
@@ -2470,3 +2470,22 @@ Coerente con CLAUDE.md §7.4/§11 (niente cancellazioni distruttive senza rete d
 ### Note
 - Distinto dall'**intervento 10** (Blocco 3, gate: *export paziente completo art. 15 + report accessi*), che è **per-paziente** e diritto dell'interessato. Il #47 è **tenant-admin, bulk, clinica-selezionabile + guardia di cancellazione**: asse diverso.
 - **Non** copre la conservazione a norma (intervento 20): per fatture → conservatore accreditato esterno; per documentazione clinica → finalizzazione+hash (intervento 2) poi PDF/A+PAdES (intervento 17).
+
+### Implementazione — Slice A (Fatta in dev, 24/07/2026)
+
+Partizione per domini disgiunti (backend / frontend, come da pattern #31-#35). Backend + test scritti a mano, frontend delegato a un agente su contratto fisso; backend `mvn test` verde (TenantDeletionServiceTest 7/7, compile OK), build FE verde.
+
+**DB**
+- `dentalcare.tenants.scheduled_drop_at timestamptz` — patch globale idempotente in `EstimateSchemaInitializer` + `install.sql` (CREATE TABLE).
+
+**Backend**
+- `TenantExportService`: `exportClinicToStream` ora delega a **`exportClinicsToStream(List<UUID>)`** (`clinic_id IN (...)`, export multi-clinica); **`writeAnamnesisCatalog`** aggiunge `data/anamnesis_catalog.json` (snapshot datato del catalogo condiviso) a **ogni** export.
+- Nuovo **`TenantDeletionService`** (guardia con grace period): `prepare()` genera l'export → lo salva **cifrato a riposo su MinIO** (retention, `_deletion/...`) → rilascia token monouso TTL 15′; `streamPreparedExport()`; `confirmDeleteTenant(token, nome)` valida token + **nome digitato esatto** → soft-delete (`active=false` + `scheduled_drop_at=now()+N gg`, default N=30); `cancelDeleteTenant()` annulla in finestra; `dropExpiredTenants()` fa il DROP reale + purge bucket allo scadere.
+- Nuovo **`TenantDeletionScheduler`** (`@Scheduled` 03:00 Europe/Rome → `dropExpiredTenants`).
+- `TenantAdminController`: nuovi endpoint `POST /tenant/deletion/prepare`, `GET /tenant/deletion/export`, `POST /tenant/deletion/cancel`, `DELETE /tenant` (ora body `{deletionToken, confirmationName}` → soft-delete, non più drop immediato), `GET /export/clinics?ids=`.
+- Rimosso il vecchio `TenantAdminService.deleteTenant()` (drop immediato). Login già filtra `active=true` → il soft-delete blocca subito gli accessi. Config: `app.tenant.deletion-grace-days:30`, `app.tenant.deletion-token-ttl-minutes:15`.
+- Audit: `log.info("AUDIT tenant-deletion ...")` su prepare/confirm/cancel/hard-drop (evento durevole persistente → intervento 1, follow-up).
+
+**Frontend** (`features/admin-tenant`): flusso tenant a 3 stati (prepara → scarica copia obbligatoria + conferma nome digitato → programmato con "Annulla eliminazione"); export multi-clinica con checkbox di selezione; conferma digitata anche sulla delete di clinica.
+
+**Deferred — Slice B** (decisione B piena): **signed URL a scadenza breve + archivio con password monouso**. Oggi la protezione è: retention **cifrata a riposo** su MinIO (upload cifra) + download autenticato `tenant_admin` + token monouso. Mancano il signed URL e la password sull'archivio scaricato. Altri follow-up: evento di audit **persistente** (non solo log), check `active` nel `JwtAuthenticationFilter` per invalidare i JWT già emessi entro la finestra, token di cancellazione persistente (oggi in memoria, perso al riavvio).
