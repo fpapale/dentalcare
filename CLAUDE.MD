@@ -19,6 +19,24 @@ Respond like a caveman. No articles, no filler words, no pleasantries.
 Short. Direct. Code speaks for itself.
 ---
 
+## Convenzioni di dominio (terminologia) — concordata 2026-07-24
+
+Vocabolario ufficiale del committente. Usare **sempre** questi termini, senza ambiguità:
+
+- **tenant** = l'account/abbonamento = lo studio come entità. Uno schema PostgreSQL dedicato (`t_XXXXXXXX`), registrato in `dentalcare.tenants`. Chi lo crea/possiede è il `TENANT_ADMIN`.
+- **clinica/sede del tenant** = una sede fisica dentro il tenant (`clinic` = `clinica` = `sede`, sinonimi → stessa riga in `clinics`). Un tenant può averne **1..N**.
+- Evitare la parola **"studio"** da sola: è ambigua (a volte = tenant, a volte = sede). Se serve, scrivere "tenant" o "sede del tenant".
+
+Ruoli JWT: `TENANT_ADMIN` (proprietario account, gestisce tutte le sedi — **non** esiste un admin per-singola-sede) · `DOCTOR` · `HYGIENIST` · `SECRETARY`. `ADMIN` è legacy/service (demo + service-token n8n).
+
+Scope dati — distinzione da tenere netta:
+- **per-tenant condiviso** = tabelle nello schema tenant **senza** `clinic_id` → uguali per tutte le sedi. Es. **catalogo anamnesi** (`anamnesis_categories`/`anamnesis_items`, #43).
+- **per-sede** = tabelle con `clinic_id` → isolate per singola clinica. Es. pazienti, appuntamenti, `patient_anamnesis_item_selections`.
+
+Dettaglio completo in `README.md` §Terminologia.
+
+---
+
 # 1. Obiettivo del progetto
 
 Il progetto realizza una web application enterprise con separazione chiara tra:
