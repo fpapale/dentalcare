@@ -5,6 +5,8 @@ import { AiPromptsComponent } from './ai-prompts.component';
 import { ClinicSettingsService } from '../../core/services/clinic-settings.service';
 import { UserContextService } from '../../core/services/user-context.service';
 import { ProviderService } from '../../core/services/provider.service';
+import { ProviderPricesService } from '../../core/services/provider-prices.service';
+import { ProviderPrice } from '../../core/models/provider-price.model';
 import { AnamnesisCatalogService } from '../../core/services/anamnesis-catalog.service';
 import { AppSettingsService, AppSettings, DEFAULT_SETTINGS } from '../../core/services/app-settings.service';
 import { ClinicBilling } from '../../core/models/clinic-billing.model';
@@ -25,7 +27,7 @@ export type { AppSettings };
   templateUrl: './impostazioni.component.html'
 })
 export class ImpostazioniComponent implements OnInit {
-  activeTab = signal<'studio' | 'professionisti' | 'anagrafiche' | 'agenda' | 'preventivi' | 'fatturazione' | 'richiami' | 'ai' | 'sistema'>('studio');
+  activeTab = signal<'studio' | 'professionisti' | 'anagrafiche' | 'agenda' | 'preventivi' | 'fatturazione' | 'tariffe' | 'richiami' | 'ai' | 'sistema'>('studio');
 
   // ── Studio (Clinic) ────────────────────────────────────────────────────────
   clinic = signal<ClinicBilling | null>(null);
@@ -120,6 +122,21 @@ export class ImpostazioniComponent implements OnInit {
   canEditVisibility = () => this.userContext.authRole() === 'admin' || this.userContext.authRole() === 'tenant_admin';
   localePendingReload = signal(false);
 
+  // #44 — modalità di fatturazione: 'studio' (fatture allo studio) | 'provider' (parcella del medico). Solo admin.
+  billingMode = signal<'studio' | 'provider'>('studio');
+  billingModeSaved = signal(false);
+  billingModeError = signal(false);
+  canEditBillingMode = () => this.userContext.authRole() === 'admin' || this.userContext.authRole() === 'tenant_admin';
+
+  // #44 — "Le mie tariffe": override di prezzo per il medico loggato.
+  isClinicalProvider = () => !!this.userContext.providerId();
+  myPrices = signal<ProviderPrice[]>([]);
+  loadingPrices = signal(false);
+  priceInput: Record<string, number | null> = {};
+  savingPriceId = signal<string | null>(null);
+  savedPriceId = signal<string | null>(null);
+  pricesError = signal(false);
+
   // ── Lookup data ────────────────────────────────────────────────────────────
   readonly providerRoles = [
     { value: 'dentist',      label: 'Dentista' },
@@ -157,17 +174,22 @@ export class ImpostazioniComponent implements OnInit {
     { key: 'agenda',         icon: 'event',                label: 'Agenda' },
     { key: 'preventivi',     icon: 'description',          label: 'Preventivi' },
     { key: 'fatturazione',   icon: 'receipt_long',         label: 'Fatturazione' },
+    { key: 'tariffe',        icon: 'payments',             label: 'Le mie tariffe' },
     { key: 'richiami',       icon: 'notifications_active', label: 'Richiami' },
     { key: 'ai',             icon: 'smart_toy',            label: 'AI' },
     { key: 'sistema',        icon: 'settings',             label: 'Sistema' },
   ] as const;
+
+  /** La tab "Le mie tariffe" è visibile solo ai medici clinici (con un providerId). */
+  visibleTabs = () => this.tabs.filter(t => t.key !== 'tariffe' || this.isClinicalProvider());
 
   constructor(
     private clinicService: ClinicSettingsService,
     private providerService: ProviderService,
     private catalogService: AnamnesisCatalogService,
     private appSettingsSvc: AppSettingsService,
-    private userContext: UserContextService
+    private userContext: UserContextService,
+    private providerPricesService: ProviderPricesService
   ) {}
 
   ngOnInit(): void {
@@ -177,12 +199,20 @@ export class ImpostazioniComponent implements OnInit {
     });
     this.loadProviders();
     this.loadAppSettings();
+    // #44 — modalità di fatturazione della sede (default 'studio' finché non configurata).
+    this.clinicService.getBillingMode().subscribe({
+      next: v => this.billingMode.set(v.mode === 'provider' ? 'provider' : 'studio'),
+      error: () => { /* impostazione non ancora presente: resta il default 'studio' */ }
+    });
   }
 
   setTab(key: string): void {
-    this.activeTab.set(key as 'studio' | 'professionisti' | 'anagrafiche' | 'agenda' | 'preventivi' | 'fatturazione' | 'richiami' | 'ai' | 'sistema');
+    this.activeTab.set(key as 'studio' | 'professionisti' | 'anagrafiche' | 'agenda' | 'preventivi' | 'fatturazione' | 'tariffe' | 'richiami' | 'ai' | 'sistema');
     if (key === 'anagrafiche' && this.clinics().length === 0) {
       this.loadClinics();
+    }
+    if (key === 'tariffe' && this.myPrices().length === 0) {
+      this.loadMyPrices();
     }
   }
 
@@ -626,6 +656,69 @@ export class ImpostazioniComponent implements OnInit {
       error: () => {
         this.patientVisibilityMode.set(previous);
         this.visibilityError.set(true);
+      }
+    });
+  }
+
+  /** #44 — cambia e persiste la modalità di fatturazione (solo admin, il server rifiuta gli altri). */
+  setBillingMode(mode: 'studio' | 'provider'): void {
+    if (mode === this.billingMode()) return;
+    const previous = this.billingMode();
+    this.billingMode.set(mode);
+    this.billingModeError.set(false);
+    this.clinicService.updateBillingMode(mode).subscribe({
+      next: () => {
+        this.billingModeSaved.set(true);
+        setTimeout(() => this.billingModeSaved.set(false), 2500);
+      },
+      error: () => {
+        this.billingMode.set(previous);
+        this.billingModeError.set(true);
+      }
+    });
+  }
+
+  // ── Le mie tariffe (#44) ─────────────────────────────────────────────────────
+  loadMyPrices(): void {
+    const providerId = this.userContext.providerId();
+    if (!providerId) return;
+    this.loadingPrices.set(true);
+    this.pricesError.set(false);
+    this.providerPricesService.list(providerId).subscribe({
+      next: rows => {
+        this.myPrices.set(rows);
+        this.priceInput = {};
+        for (const r of rows) this.priceInput[r.serviceId] = r.overridePrice;
+        this.loadingPrices.set(false);
+      },
+      error: () => {
+        this.pricesError.set(true);
+        this.loadingPrices.set(false);
+      }
+    });
+  }
+
+  /** Salva l'override di una riga: valore vuoto = elimina l'override (torna al listino). */
+  savePrice(row: ProviderPrice): void {
+    const providerId = this.userContext.providerId();
+    if (!providerId) return;
+    const raw = this.priceInput[row.serviceId];
+    const empty = raw === null || raw === undefined || (raw as unknown as string) === '';
+    this.savingPriceId.set(row.serviceId);
+    this.pricesError.set(false);
+    const req = empty
+      ? this.providerPricesService.removeOverride(providerId, row.serviceId)
+      : this.providerPricesService.setOverride(providerId, row.serviceId, Number(raw));
+    req.subscribe({
+      next: () => {
+        this.savingPriceId.set(null);
+        this.savedPriceId.set(row.serviceId);
+        setTimeout(() => { if (this.savedPriceId() === row.serviceId) this.savedPriceId.set(null); }, 2500);
+        this.loadMyPrices();
+      },
+      error: () => {
+        this.savingPriceId.set(null);
+        this.pricesError.set(true);
       }
     });
   }

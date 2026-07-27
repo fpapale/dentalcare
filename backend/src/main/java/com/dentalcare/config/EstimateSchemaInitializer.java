@@ -169,6 +169,34 @@ public class EstimateSchemaInitializer implements ApplicationRunner {
             jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS working_days TEXT");
             // #42 — visibilità pazienti per ruolo: per_provider (default, comportamento storico) | shared.
             jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS patient_visibility_mode TEXT NOT NULL DEFAULT 'per_provider'");
+            // #44 — modalità di fatturazione: studio (default) | provider (parcella al medico).
+            jdbc.execute("ALTER TABLE " + schema + ".clinics ADD COLUMN IF NOT EXISTS billing_mode TEXT NOT NULL DEFAULT 'studio'");
+            // #44 — override prezzi per medico, versionati per intervallo (valid_from/valid_to; valid_to NULL = corrente).
+            jdbc.execute(("""
+                CREATE TABLE IF NOT EXISTS %1$s.provider_price_overrides (
+                    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                    provider_id uuid NOT NULL REFERENCES %1$s.providers(id) ON DELETE CASCADE,
+                    service_id  uuid NOT NULL REFERENCES %1$s.service_catalog(id) ON DELETE CASCADE,
+                    price       numeric(10,2) NOT NULL,
+                    valid_from  timestamptz NOT NULL DEFAULT now(),
+                    valid_to    timestamptz,
+                    created_by  uuid REFERENCES %1$s.providers(id),
+                    created_at  timestamptz NOT NULL DEFAULT now(),
+                    UNIQUE (provider_id, service_id, valid_from)
+                )""").formatted(schema));
+            jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_ppo_current ON " + schema
+                    + ".provider_price_overrides (provider_id, service_id) WHERE valid_to IS NULL");
+            // Prezzo effettivo per (medico, prestazione): override corrente se esiste, altrimenti listino studio.
+            jdbc.execute(("""
+                CREATE OR REPLACE VIEW %1$s.v_provider_effective_prices AS
+                SELECT p.id AS provider_id, sc.id AS service_id,
+                       COALESCE(ov.price, sc.default_price) AS price,
+                       CASE WHEN ov.price IS NOT NULL THEN 'override' ELSE 'catalog' END AS source
+                FROM %1$s.providers p
+                JOIN %1$s.service_catalog sc ON sc.clinic_id = p.clinic_id
+                LEFT JOIN %1$s.provider_price_overrides ov
+                  ON ov.provider_id = p.id AND ov.service_id = sc.id AND ov.valid_to IS NULL
+                """).formatted(schema));
             jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true");
             jdbc.execute("ALTER TABLE " + schema + ".patients ADD COLUMN IF NOT EXISTS photo_url TEXT");
             jdbc.execute("ALTER TABLE " + schema + ".providers ADD COLUMN IF NOT EXISTS photo_url TEXT");

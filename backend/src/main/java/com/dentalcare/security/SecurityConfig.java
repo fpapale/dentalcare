@@ -47,6 +47,9 @@ public class SecurityConfig {
                     // #42 — la modalità di visibilità pazienti la cambia solo l'amministratore.
                     .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/settings/patient-visibility")
                         .hasAnyRole("ADMIN", "TENANT_ADMIN")
+                    // #44 — la modalità di fatturazione la cambia solo l'amministratore.
+                    .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/settings/billing-mode")
+                        .hasAnyRole("ADMIN", "TENANT_ADMIN")
                     .anyRequest().authenticated())
             .exceptionHandling(ex -> ex
                     .authenticationEntryPoint((req, res, e) -> {

@@ -66,4 +66,16 @@ public class ClinicSettingsController {
     public void updatePatientVisibility(@RequestBody com.dentalcare.dto.PatientVisibilityDto request) {
         clinicSettingsService.updatePatientVisibility(request);
     }
+
+    /** Modalità di fatturazione della sede (#44): studio | provider. */
+    @GetMapping("/billing-mode")
+    public com.dentalcare.dto.BillingModeDto getBillingMode() {
+        return clinicSettingsService.getBillingMode();
+    }
+
+    @PutMapping("/billing-mode")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateBillingMode(@RequestBody com.dentalcare.dto.BillingModeDto request) {
+        clinicSettingsService.updateBillingMode(request);
+    }
 }

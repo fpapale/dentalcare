@@ -44,4 +44,13 @@ export class ClinicSettingsService {
   updatePatientVisibility(mode: string): Observable<void> {
     return this.http.put<void>(`${environment.apiBaseUrl}/settings/patient-visibility`, { mode });
   }
+
+  /** #44 — modalità di fatturazione: 'studio' (fatture intestate allo studio) | 'provider' (parcella del medico). */
+  getBillingMode(): Observable<{ mode: string }> {
+    return this.http.get<{ mode: string }>(`${environment.apiBaseUrl}/settings/billing-mode`);
+  }
+
+  updateBillingMode(mode: 'studio' | 'provider'): Observable<void> {
+    return this.http.put<void>(`${environment.apiBaseUrl}/settings/billing-mode`, { mode });
+  }
 }

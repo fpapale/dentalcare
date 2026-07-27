@@ -51,7 +51,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 41 | Script di installazione per ambiente COLLAUDO (nuovo container Docker) | Medio (~1 giornata) | Proposta |
 | 42 | Visibilità dati clinici per ruolo: igienista/dentista/chirurgo/ortodontista vedono tutti i pazienti | Medio (~1 giornata) | **Fatta (dev) — 24/07** |
 | 43 | Anamnesi: severità a 3 livelli (Normale/Grave/Severa) + collegamento reale agli alert clinici + vincolo appuntamento fine giornata | Alto (~2-2.5 giornate) | **Fatta (dev) — 23-24/07 (merge PR #1)** |
-| 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | Proposta |
+| 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | **Fatta (dev) — 24/07** |
 | 45 | Odontogramma: pannello a tutta larghezza, legenda leggibile | Basso-Medio (~½-1 giornata) | **Fatta (dev) — 23/07 (core)** |
 | 46 | Piano di cura: nome dente in grassetto nell'elenco prestazioni | Basso (~15 min) | **Fatta (dev) — 24/07** |
 | 47 | Export selezionabile (una/più/tutte le cliniche del tenant) + **guardia obbligatoria pre-cancellazione** tenant/clinica, con snapshot del catalogo anamnesi condiviso, artefatto cifrato/auditato — **non** conservazione a norma | Medio (~1-1.5 giornate) | **Slice A+B Fatta (dev) — 24/07** |
@@ -2356,6 +2356,27 @@ Vista `v_provider_effective_prices(provider_id, service_id, price, source)`: ove
 - Nessuna colonna nuova su `providers` — l'identità fiscale per fatturare al medico è già completa.
 - Il fix di `queryLines()` (`INNER`→`LEFT JOIN`) è un side-effect utile indipendente, non il cuore della proposta, ma va incluso nello stesso lavoro perché gli override aumentano la probabilità di righe con `service_id` non risolvibile.
 - Dipendenza incrociata con #42: non implementare le due proposte in ordine che rompa il filtro preventivi/fatture già consegnato con #35.
+
+### Implementazione (Fatta in dev, 24/07/2026)
+
+Partizione backend (a mano) / frontend (agente su contratto), come per #47.
+
+**DB**
+- `clinics.billing_mode` (`studio` default | `provider`, CHECK) — patch runtime + `install.sql`.
+- `provider_price_overrides` (versioning per intervallo `valid_from`/`valid_to`, indice unico parziale su versione corrente) + vista `v_provider_effective_prices` (override corrente o listino studio) — create in `patchSchema` (come gli orari #31; tabella/vista non in `install.sql`, colonna sì).
+
+**Backend**
+- **Fatturazione decisa dal server** (`InvoiceService.createFromEstimate`): l'intestazione non arriva più dal client — legge `clinics.billing_mode`. `provider` → `issuer_type='provider'` + `provider_id` del medico del preventivo; `studio` → `issuer_type='clinic'`, provider null. Chiude il buco lato #24 sul piano fiscale.
+- **Prezzo di default preventivo** (`EstimateService.addLine`): in modalità `provider` il default proposto viene da `v_provider_effective_prices(providerId, serviceId)`; resta modificabile riga per riga. Fix #34-follow-up: `queryLines` `INNER`→`LEFT JOIN service_catalog` (una riga con `service_id` cancellato non sparisce più dal totale).
+- **CRUD tariffe** (`ProviderPriceOverrideController`/`Service`, `/api/providers/{id}/prices`): GET effettive, POST = **nuova versione** (chiude la corrente + inserisce, mai UPDATE in-place), DELETE = torna al listino. Un medico gestisce solo le proprie (403 altrimenti), l'admin quelle di tutti.
+- **Impostazione**: `GET/PUT /api/settings/billing-mode` (endpoint dedicato, come #42); PUT ristretto a `ADMIN`/`TENANT_ADMIN` in `SecurityConfig`.
+- **Nessuna colonna nuova su `providers`** (identità fiscale già completa), come previsto.
+
+**Frontend**: card "Modalità di fatturazione" in Impostazioni→Studio (admin); nuova tab "Le mie tariffe" (visibile ai medici) con listino studio + campo override (vuoto = eredita), salvataggio = nuova versione.
+
+**Test**: `ProviderPriceOverrideServiceTest` (5: versioning close+insert, prezzo negativo, ownership 403, admin, remove). `mvn test` verde; build FE verde. Test esistenti Estimate/Invoice/Appointment invariati (16 verdi).
+
+**Non toccato** (come da proposta): filtro `preventivi/fatturazione.component` resta `billingProviderId` (#35).
 
 ---
 

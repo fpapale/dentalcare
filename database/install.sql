@@ -473,6 +473,7 @@ CREATE TABLE clinics (
     slot_minutes integer,
     working_days text,
     patient_visibility_mode text NOT NULL DEFAULT 'per_provider' CHECK (patient_visibility_mode IN ('per_provider', 'shared')),
+    billing_mode text NOT NULL DEFAULT 'studio' CHECK (billing_mode IN ('studio', 'provider')),
     CONSTRAINT clinics_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
 );
 
@@ -2562,6 +2563,7 @@ CREATE TABLE t_9d754153.clinics (
     slot_minutes integer,
     working_days text,
     patient_visibility_mode text NOT NULL DEFAULT 'per_provider' CHECK (patient_visibility_mode IN ('per_provider', 'shared')),
+    billing_mode text NOT NULL DEFAULT 'studio' CHECK (billing_mode IN ('studio', 'provider')),
     CONSTRAINT clinics_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0))
 );
 

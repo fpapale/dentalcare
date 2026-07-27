@@ -156,7 +156,7 @@ public class InvoiceService {
 
         // Load estimate + patient
         String estimateSql = """
-            SELECT e.id, e.estimate_number, e.patient_id, e.currency,
+            SELECT e.id, e.estimate_number, e.patient_id, e.provider_id, e.currency,
                    e.subtotal_amount, e.discount_amount, e.taxable_amount, e.vat_amount, e.total_amount,
                    concat_ws(' ', pat.last_name, pat.first_name) AS patient_full_name,
                    pat.fiscal_code::text AS patient_fiscal_code,
@@ -174,8 +174,17 @@ public class InvoiceService {
         }
         Map<String, Object> est = estRows.get(0);
 
+        // #44 — l'intestazione è decisa dal server in base a clinics.billing_mode, non dal client
+        // (coerente con #24: un parametro client non deve decidere un esito fiscale):
+        //   billing_mode='provider' → parcella al medico del preventivo; 'studio' → fattura dello studio.
+        List<String> billingRows = jdbc.queryForList(
+                "SELECT billing_mode FROM " + s() + ".clinics WHERE id = :clinicId",
+                new MapSqlParameterSource("clinicId", clinicId), String.class);
+        boolean providerBilling = !billingRows.isEmpty() && "provider".equals(billingRows.get(0));
+        UUID effectiveProviderId = providerBilling ? (UUID) est.get("provider_id") : null;
+
         // Resolve issuer
-        String issuerType = request.issuerType();
+        String issuerType = providerBilling ? "provider" : "clinic";
         String issuerName;
         String issuerVatNumber;
         String issuerFiscalCode;
@@ -186,7 +195,7 @@ public class InvoiceService {
         String issuerIban;
         String invoicePrefix;
 
-        if ("provider".equals(issuerType) && request.providerId() != null) {
+        if ("provider".equals(issuerType) && effectiveProviderId != null) {
             String provSql = """
                 SELECT concat_ws(' ', first_name, last_name) AS full_name,
                        vat_number, fiscal_code,
@@ -197,9 +206,9 @@ public class InvoiceService {
                 WHERE id = :pid AND clinic_id = :clinicId
                 """.formatted(s());
             List<Map<String, Object>> provRows = jdbc.queryForList(provSql,
-                    new MapSqlParameterSource().addValue("pid", request.providerId()).addValue("clinicId", clinicId));
+                    new MapSqlParameterSource().addValue("pid", effectiveProviderId).addValue("clinicId", clinicId));
             if (provRows.isEmpty()) {
-                throw new IllegalArgumentException("Provider not found: " + request.providerId());
+                throw new IllegalArgumentException("Provider not found: " + effectiveProviderId);
             }
             Map<String, Object> prov = provRows.get(0);
             issuerName = str(prov.get("full_name"));
@@ -271,7 +280,7 @@ public class InvoiceService {
                         .addValue("documentType", docType)
                         .addValue("dueDate", request.dueDate())
                         .addValue("issuerType", issuerType)
-                        .addValue("providerId", request.providerId())
+                        .addValue("providerId", effectiveProviderId)
                         .addValue("patientId", patientId)
                         .addValue("estimateId", estimateId)
                         .addValue("issuerName", issuerName)

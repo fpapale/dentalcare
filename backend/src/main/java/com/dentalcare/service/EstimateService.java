@@ -162,7 +162,7 @@ public class EstimateService {
                    el.quantity, el.unit_price, el.discount_amount, el.vat_rate,
                    el.line_subtotal, el.line_taxable, el.line_vat_amount, el.line_total
             FROM %s.estimate_lines el
-            JOIN %s.service_catalog sc ON sc.id = el.service_id AND sc.clinic_id = el.clinic_id
+            LEFT JOIN %s.service_catalog sc ON sc.id = el.service_id AND sc.clinic_id = el.clinic_id
             WHERE el.estimate_id = :estimateId AND el.clinic_id = :clinicId
             ORDER BY el.line_position
             """.formatted(s(), s());
@@ -185,6 +185,22 @@ public class EstimateService {
                         rs.getBigDecimal("line_vat_amount"),
                         rs.getBigDecimal("line_total")
                 ));
+    }
+
+    /** #44 — true se la sede fattura in modalità 'provider' (parcella al medico). */
+    private boolean providerBillingActive(UUID clinicId) {
+        List<String> rows = jdbc.queryForList(
+                "SELECT billing_mode FROM " + s() + ".clinics WHERE id = :cid",
+                new MapSqlParameterSource("cid", clinicId), String.class);
+        return !rows.isEmpty() && "provider".equals(rows.get(0));
+    }
+
+    /** Provider del preventivo (per il prezzo effettivo e l'intestazione della parcella). */
+    private UUID estimateProviderId(UUID estimateId, UUID clinicId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT provider_id FROM " + s() + ".estimates WHERE id = :id AND clinic_id = :cid",
+                new MapSqlParameterSource().addValue("id", estimateId).addValue("cid", clinicId));
+        return rows.isEmpty() ? null : (UUID) rows.get(0).get("provider_id");
     }
 
     // ── Create ───────────────────────────────────────────────────────────────
@@ -288,6 +304,18 @@ public class EstimateService {
                 new MapSqlParameterSource().addValue("id", request.serviceId()).addValue("cid", clinicId));
         String svcName = svcRows.isEmpty() ? "" : (String) svcRows.get(0).get("name");
         BigDecimal defaultPrice = svcRows.isEmpty() ? BigDecimal.ZERO : (BigDecimal) svcRows.get(0).get("default_price");
+
+        // #44 — in modalità fatturazione 'provider' il prezzo di default proposto è quello effettivo del
+        // medico del preventivo (override attivo se esiste, altrimenti listino studio). Resta modificabile.
+        UUID estProvider = providerBillingActive(clinicId) ? estimateProviderId(estimateId, clinicId) : null;
+        if (estProvider != null) {
+            List<Map<String, Object>> eff = jdbc.queryForList(
+                    "SELECT price FROM " + s() + ".v_provider_effective_prices WHERE provider_id = :p AND service_id = :svc",
+                    new MapSqlParameterSource().addValue("p", estProvider).addValue("svc", request.serviceId()));
+            if (!eff.isEmpty() && eff.get(0).get("price") != null) {
+                defaultPrice = (BigDecimal) eff.get(0).get("price");
+            }
+        }
 
         String description = (request.descriptionOverride() != null) ? request.descriptionOverride() : svcName;
         BigDecimal unitPrice = request.unitPrice() != null ? request.unitPrice() : defaultPrice;

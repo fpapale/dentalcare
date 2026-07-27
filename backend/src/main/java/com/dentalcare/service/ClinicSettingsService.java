@@ -191,6 +191,28 @@ public class ClinicSettingsService {
                 new MapSqlParameterSource().addValue("id", clinicId).addValue("mode", mode));
     }
 
+    /** Modalità di fatturazione della sede corrente (#44). */
+    public com.dentalcare.dto.BillingModeDto getBillingMode() {
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        List<String> rows = jdbc.queryForList(
+                "SELECT billing_mode FROM " + s() + ".clinics WHERE id = :id",
+                new MapSqlParameterSource("id", clinicId), String.class);
+        String mode = rows.isEmpty() || rows.get(0) == null ? "studio" : rows.get(0);
+        return new com.dentalcare.dto.BillingModeDto(mode);
+    }
+
+    @Transactional
+    public void updateBillingMode(com.dentalcare.dto.BillingModeDto request) {
+        String mode = request == null ? null : request.mode();
+        if (!"studio".equals(mode) && !"provider".equals(mode)) {
+            throw new IllegalArgumentException("Modalità non valida: usare 'studio' o 'provider'");
+        }
+        UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
+        jdbc.update(
+                "UPDATE " + s() + ".clinics SET billing_mode = :mode, updated_at = now() WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", clinicId).addValue("mode", mode));
+    }
+
     @Transactional
     public void updateSchedule(ClinicScheduleDto request) {
         UUID clinicId = UUID.fromString(TenantContext.getCurrentTenant());
