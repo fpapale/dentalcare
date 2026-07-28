@@ -1420,9 +1420,9 @@
     "semantic_hash": "5f40239867e3a9d7ca9c3901a5c1b551"
   },
   "database/install.sql": {
-    "mtime": 1785163018.0,
-    "ast_hash": "e4f1f98f862806d384f3077c102eba24",
-    "semantic_hash": "e4f1f98f862806d384f3077c102eba24"
+    "mtime": 1785233504.0,
+    "ast_hash": "5aa12e765f4b2c39570b659216060ce3",
+    "semantic_hash": "5aa12e765f4b2c39570b659216060ce3"
   },
   "database/patch_ai_audit_log.sql": {
     "mtime": 1782976546.0,
@@ -2933,5 +2933,15 @@
     "mtime": 1785163026.0,
     "ast_hash": "5672b39cc28b2f02535bd7db608cc803",
     "semantic_hash": "5672b39cc28b2f02535bd7db608cc803"
+  },
+  "database/demo_minio_upload.py": {
+    "mtime": 1785235114.0,
+    "ast_hash": "61362ef9767f57a138b524f17501c725",
+    "semantic_hash": "61362ef9767f57a138b524f17501c725"
+  },
+  "database/patch_demo_rx_panoramica_minio_paths.sql": {
+    "mtime": 1785233520.0,
+    "ast_hash": "e8acc11ce1b6c1a72c2109df7192e5cd",
+    "semantic_hash": "e8acc11ce1b6c1a72c2109df7192e5cd"
   }
 }
