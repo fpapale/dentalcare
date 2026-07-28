@@ -15,6 +15,7 @@ interface Message {
   text: string;
   time: string;
   table?: { ora: string; paziente: string; prestazione: string; stato: string }[];
+  isDisclosure?: boolean;
 }
 
 interface Call {
@@ -85,6 +86,20 @@ export class SegretariaComponent implements OnInit, OnDestroy {
     return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
   }
 
+  // Messaggio di apertura con identificazione AI — obbligo AI Act art. 50 e AI literacy
+  private disclosureMessage(): Message {
+    return {
+      role: 'ai',
+      isDisclosure: true,
+      text: '**Sono SegretarIA**, l\'assistente basato su **intelligenza artificiale** di questo studio.\n\n' +
+            'Posso supportarti con agenda, pazienti, preventivi, richiami e informazioni amministrative. ' +
+            'Le mie risposte possono contenere errori: verifica sempre i dati prima di agire. ' +
+            'Per ogni modifica (appuntamenti, pazienti, preventivi) ti chiedo sempre conferma esplicita prima di salvare.\n\n' +
+            '⚠️ Non fornisco diagnosi, indicazioni cliniche definitive o valutazioni urgenze sanitarie.',
+      time: this.currentTime()
+    };
+  }
+
   /** Contesto UI corrente (vista + paziente, se l'utente è su una scheda paziente). */
   private currentUiContext(): ChatUiContext {
     const context: ChatUiContext = { view: this.router.url };
@@ -97,6 +112,7 @@ export class SegretariaComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.messages.set([this.disclosureMessage()]);
     this.loadSessions();
     this.connectSuggestionsStream();
   }
@@ -178,7 +194,7 @@ export class SegretariaComponent implements OnInit, OnDestroy {
   }
 
   newChat(): void {
-    this.messages.set([]);
+    this.messages.set([this.disclosureMessage()]);
     this.currentSessionId.set(null);
     this.showHistory.set(false);
   }
@@ -206,10 +222,13 @@ export class SegretariaComponent implements OnInit, OnDestroy {
     this.inputText = '';
     this.isTyping.set(true);
 
-    const history = this.messages().slice(0, -1).map(m => ({
-      role: m.role === 'user' ? 'user' as const : 'assistant' as const,
-      content: m.text
-    }));
+    const history = this.messages()
+      .slice(0, -1)
+      .filter(m => !m.isDisclosure)
+      .map(m => ({
+        role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: m.text
+      }));
 
     // Messaggio AI vuoto da riempire token per token
     const aiIndex = this.messages().length;
