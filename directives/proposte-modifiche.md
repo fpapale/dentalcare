@@ -55,6 +55,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 45 | Odontogramma: pannello a tutta larghezza, legenda leggibile | Basso-Medio (~½-1 giornata) | **Fatta (dev) — 23/07 (core)** |
 | 46 | Piano di cura: nome dente in grassetto nell'elenco prestazioni | Basso (~15 min) | **Fatta (dev) — 24/07** |
 | 47 | Export selezionabile (una/più/tutte le cliniche del tenant) + **guardia obbligatoria pre-cancellazione** tenant/clinica, con snapshot del catalogo anamnesi condiviso, artefatto cifrato/auditato — **non** conservazione a norma | Medio (~1-1.5 giornate) | **Slice A+B Fatta (dev) — 24/07** |
+| 48 | Magazzino: scarico automatico prodotti al completamento prestazione del piano di cura | Medio (~1-1.5 giornate) | **Proposta** |
 
 > **Priorità richiesta dal committente (23/07/2026):** #42 → #43 → #44 → #45 vanno pianificate/eseguite **prima** di #40 e #41.
 
@@ -2542,3 +2543,28 @@ Chiusi i tre follow-up aperti dopo Slice A/B. Backend `mvn test` verde (15/15 su
 - **Token di cancellazione persistente** — nuovo `TenantDeletionTokenStore` su tabella globale `dentalcare.tenant_deletion_tokens` (sopravvive al riavvio); consumato alla conferma, scaduti ripuliti a ogni emissione. Sostituisce la mappa in memoria.
 
 **Residuo rimanente** (opzionale, non pianificato): presigned URL S3 nativo — sensato solo se in futuro si separa uno storage non cifrato dall'app; oggi non serve (archivio con password + download autenticato a token).
+
+---
+
+## #48 — Magazzino: scarico automatico prodotti al completamento prestazione — 28/07/2026
+
+**Problema attuale:** i prodotti dal magazzino non vengono mai scalati automaticamente. Lo scarico è 100% manuale (l'utente registra un movimento esplicito in Magazzino). Non esiste nessun collegamento tra preventivo, fattura o piano di cura e lo stock.
+
+**Quando scalare (analisi):**
+
+- **Al `completed` della prestazione del piano di cura** → trigger corretto. È il momento in cui il materiale è fisicamente consumato durante la visita. Il codice già scrive `completed_at = now()` e chiama `syncToothOnCompletion` in `TreatmentPlanService.updateItemStatus()` — il punto di innesto è esatto.
+- **All'emissione/pagamento della fattura** → sbagliato: la fattura è un evento contabile, può arrivare giorni dopo la visita. Il materiale era già stato usato.
+- **All'accettazione del preventivo** → troppo presto: il preventivo è una proposta, non una garanzia di esecuzione.
+
+**Il problema aperto:** `treatment_plan_items` conosce il *servizio* (`service_id` → catalogo prestazioni), ma non i *prodotti* usati. Servono due opzioni:
+
+- **Opzione A — mappatura automatica** (consigliata per prima iterazione): nuova tabella `service_product_materials(service_id, product_id, quantity_per_unit)` che associa ogni prestazione del catalogo ai materiali standard. Al `completed` si legge la mappatura e si generano automaticamente movimenti `OUT`. L'utente configura le mappature una sola volta per tipo di prestazione.
+- **Opzione B — selezione manuale al completamento**: quando il medico segna una prestazione come `completed`, appare un dialog per confermare/modificare i prodotti usati. Più preciso ma aggiunge un passo clinico.
+
+**Scelta suggerita:** Opzione A ora (~ ½ giornata backend + ½ giornata UI per configurare mappature); Opzione B come upgrade futuro.
+
+**Componenti da toccare (Opzione A):**
+- DB: nuova tabella `service_product_materials` (migrazione)
+- `TreatmentPlanService.updateItemStatus()`: al `completed`, legge mappatura e inserisce `stock_movements` con `movement_type=out`, `reference_doc=treatment_plan_item_id`
+- UI Impostazioni → Catalogo Prestazioni: editor materiali per prestazione
+- Nessuna modifica al flusso fattura/preventivo
