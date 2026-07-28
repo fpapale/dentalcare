@@ -65,7 +65,14 @@ database/dentalcarepro.sql
 /models/*.png
 /models/*.jpg
 
-# graphify: cache AST rigenerabile (48MB, invalidata a ogni upgrade) e path locali
+# graphify: cache AST rigenerabile (48MB, invalidata a ogni upgrade), path locali e file intermedi
 graphify-out/cache/
 graphify-out/.graphify_python
 graphify-out/.graphify_root
+graphify-out/.brief.txt
+graphify-out/.competitors_*.json
+graphify-out/.graphify_semantic_new.json
+graphify-out/.graphify_uncached.txt
+
+# Documenti utente (PDF/DOCX/PPTX) — binari pesanti, non in repo
+userdocument/

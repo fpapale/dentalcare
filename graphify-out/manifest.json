@@ -40,9 +40,9 @@
     "semantic_hash": "ab50dd89da7da2346b28003352eeeeeb"
   },
   "backend/pom.xml": {
-    "mtime": 1782889380.0,
-    "ast_hash": "c510a30fd07b2e4d5346864f9c0a0645",
-    "semantic_hash": "c510a30fd07b2e4d5346864f9c0a0645"
+    "mtime": 1785163018.0,
+    "ast_hash": "0a6497dbdc656a9d92f21b508260c0ac",
+    "semantic_hash": "0a6497dbdc656a9d92f21b508260c0ac"
   },
   "backend/src/main/java/com/dentalcare/config/DemoDataInitializer.java": {
     "mtime": 1779913620.0,
@@ -50,9 +50,9 @@
     "semantic_hash": "eed1e4bd838b83d335475c4eff089edd"
   },
   "backend/src/main/java/com/dentalcare/config/EstimateSchemaInitializer.java": {
-    "mtime": 1783521010.0,
-    "ast_hash": "19922dea2b6a39a5fffea01753fbc438",
-    "semantic_hash": "19922dea2b6a39a5fffea01753fbc438"
+    "mtime": 1785163018.0,
+    "ast_hash": "e2a59830587d0f16c9b0dd99b2ca50f8",
+    "semantic_hash": "e2a59830587d0f16c9b0dd99b2ca50f8"
   },
   "backend/src/main/java/com/dentalcare/config/FlywayConfig.java": {
     "mtime": 1779171934.0,
@@ -75,14 +75,14 @@
     "semantic_hash": "ca2159992705d35a7bcb5ca99dc3dc26"
   },
   "backend/src/main/java/com/dentalcare/controller/AnamnesisController.java": {
-    "mtime": 1778680018.0,
-    "ast_hash": "3ea97d5aefc3c026a00f6ab09dde7fff",
-    "semantic_hash": "3ea97d5aefc3c026a00f6ab09dde7fff"
+    "mtime": 1784875254.0,
+    "ast_hash": "1b2cc97d3a12130c25eee43c3003726c",
+    "semantic_hash": "1b2cc97d3a12130c25eee43c3003726c"
   },
   "backend/src/main/java/com/dentalcare/controller/AppointmentController.java": {
-    "mtime": 1782976004.0,
-    "ast_hash": "c744d88c7a6c72a44f2720db26d17513",
-    "semantic_hash": "c744d88c7a6c72a44f2720db26d17513"
+    "mtime": 1784875254.0,
+    "ast_hash": "84b3396ab89f13a3e7b7f61d8ba7601f",
+    "semantic_hash": "84b3396ab89f13a3e7b7f61d8ba7601f"
   },
   "backend/src/main/java/com/dentalcare/controller/AuthController.java": {
     "mtime": 1779484100.0,
@@ -95,9 +95,9 @@
     "semantic_hash": "f847c25a0205f9bd299b0ede1e0445d6"
   },
   "backend/src/main/java/com/dentalcare/controller/ClinicSettingsController.java": {
-    "mtime": 1778874876.0,
-    "ast_hash": "dfcdfed5eb2bba1302b54518bf905d4a",
-    "semantic_hash": "dfcdfed5eb2bba1302b54518bf905d4a"
+    "mtime": 1785163018.0,
+    "ast_hash": "feea8a5341e433e39e4bfa155f3b92a9",
+    "semantic_hash": "feea8a5341e433e39e4bfa155f3b92a9"
   },
   "backend/src/main/java/com/dentalcare/controller/ClinicalRecordController.java": {
     "mtime": 1782928830.0,
@@ -155,9 +155,9 @@
     "semantic_hash": "277dda6c87f95975e0998dbc43683984"
   },
   "backend/src/main/java/com/dentalcare/controller/PatientController.java": {
-    "mtime": 1782396660.0,
-    "ast_hash": "568863f704501b15473dad82b7313d51",
-    "semantic_hash": "568863f704501b15473dad82b7313d51"
+    "mtime": 1785163018.0,
+    "ast_hash": "97d4762cb797639057335d0eb0a7deb9",
+    "semantic_hash": "97d4762cb797639057335d0eb0a7deb9"
   },
   "backend/src/main/java/com/dentalcare/controller/PatientDocumentController.java": {
     "mtime": 1782462504.0,
@@ -205,9 +205,9 @@
     "semantic_hash": "849b2e01d41a4724a737ce51f0a24416"
   },
   "backend/src/main/java/com/dentalcare/controller/TenantAdminController.java": {
-    "mtime": 1782310734.0,
-    "ast_hash": "2b3a1f00f40cc5e5ba4345a86ec990b1",
-    "semantic_hash": "2b3a1f00f40cc5e5ba4345a86ec990b1"
+    "mtime": 1785163018.0,
+    "ast_hash": "65f29f519a12a31abc05025373240881",
+    "semantic_hash": "65f29f519a12a31abc05025373240881"
   },
   "backend/src/main/java/com/dentalcare/controller/TreatmentPlanController.java": {
     "mtime": 1778787214.0,
@@ -260,14 +260,14 @@
     "semantic_hash": "41e2fbda6dde95e16494787254f758ad"
   },
   "backend/src/main/java/com/dentalcare/dto/AnamnesisItemDto.java": {
-    "mtime": 1778073460.0,
-    "ast_hash": "f47223adaeeaab819d55eb24f1427334",
-    "semantic_hash": "f47223adaeeaab819d55eb24f1427334"
+    "mtime": 1784875254.0,
+    "ast_hash": "8dea2226cc9711c8274edef710f200f8",
+    "semantic_hash": "8dea2226cc9711c8274edef710f200f8"
   },
   "backend/src/main/java/com/dentalcare/dto/AppointmentDto.java": {
-    "mtime": 1779216288.0,
-    "ast_hash": "4415505cdc2086df4104d6205dc1634c",
-    "semantic_hash": "4415505cdc2086df4104d6205dc1634c"
+    "mtime": 1784875254.0,
+    "ast_hash": "6e0f56a7ed107865e78c4bebaae1f738",
+    "semantic_hash": "6e0f56a7ed107865e78c4bebaae1f738"
   },
   "backend/src/main/java/com/dentalcare/dto/CatalogCategoryDto.java": {
     "mtime": 1778877722.0,
@@ -275,9 +275,9 @@
     "semantic_hash": "66fb6499b327a1dc19b4269c31a25a84"
   },
   "backend/src/main/java/com/dentalcare/dto/CatalogItemDto.java": {
-    "mtime": 1778877724.0,
-    "ast_hash": "78c7328259b342c20e8dfd7f7c35ac59",
-    "semantic_hash": "78c7328259b342c20e8dfd7f7c35ac59"
+    "mtime": 1784875254.0,
+    "ast_hash": "6a32ed6cdeeeb00dcaa653369fc23814",
+    "semantic_hash": "6a32ed6cdeeeb00dcaa653369fc23814"
   },
   "backend/src/main/java/com/dentalcare/dto/ChangePasswordRequest.java": {
     "mtime": 1779483990.0,
@@ -340,9 +340,9 @@
     "semantic_hash": "a1317f0445dfff66d4451320384bb998"
   },
   "backend/src/main/java/com/dentalcare/dto/CreateCatalogItemRequest.java": {
-    "mtime": 1778877728.0,
-    "ast_hash": "a3c6b0245ce700c349125f20acff8eb1",
-    "semantic_hash": "a3c6b0245ce700c349125f20acff8eb1"
+    "mtime": 1784875254.0,
+    "ast_hash": "b0cdbf5101c8592392a93630257d64bf",
+    "semantic_hash": "b0cdbf5101c8592392a93630257d64bf"
   },
   "backend/src/main/java/com/dentalcare/dto/CreateClinicRequest.java": {
     "mtime": 1778874818.0,
@@ -415,9 +415,9 @@
     "semantic_hash": "fad618d7adb1f2f7eaf51086e6111a24"
   },
   "backend/src/main/java/com/dentalcare/dto/CreateServiceCategoryRequest.java": {
-    "mtime": 1782978814.0,
-    "ast_hash": "abbf7ebda36289ddb136dd26ab143d93",
-    "semantic_hash": "abbf7ebda36289ddb136dd26ab143d93"
+    "mtime": 1784551966.0,
+    "ast_hash": "d7c9f12c904c2bfd869347447c105d1a",
+    "semantic_hash": "d7c9f12c904c2bfd869347447c105d1a"
   },
   "backend/src/main/java/com/dentalcare/dto/CreateServiceRequest.java": {
     "mtime": 1782975974.0,
@@ -555,9 +555,9 @@
     "semantic_hash": "710fd8b82224edcb8017b5334b63ff4b"
   },
   "backend/src/main/java/com/dentalcare/dto/PatientDetailDto.java": {
-    "mtime": 1783083296.0,
-    "ast_hash": "69f177e0e7fffe9c992c0bccc4b99eff",
-    "semantic_hash": "69f177e0e7fffe9c992c0bccc4b99eff"
+    "mtime": 1784875254.0,
+    "ast_hash": "2dd2fa8226f40a17cabd3643bad81c4d",
+    "semantic_hash": "2dd2fa8226f40a17cabd3643bad81c4d"
   },
   "backend/src/main/java/com/dentalcare/dto/PatientDocumentSummaryDto.java": {
     "mtime": 1782462062.0,
@@ -640,9 +640,9 @@
     "semantic_hash": "19c7fca08b2861012870a8d6ad17269e"
   },
   "backend/src/main/java/com/dentalcare/dto/SaveOdontogramRequest.java": {
-    "mtime": 1778097842.0,
-    "ast_hash": "aa2691b6605f898e51c2692ce1fc4a21",
-    "semantic_hash": "aa2691b6605f898e51c2692ce1fc4a21"
+    "mtime": 1784716444.0,
+    "ast_hash": "25da6e5441a43ac00fe7bd48ca99cc15",
+    "semantic_hash": "25da6e5441a43ac00fe7bd48ca99cc15"
   },
   "backend/src/main/java/com/dentalcare/dto/ServiceAdminDto.java": {
     "mtime": 1782975972.0,
@@ -650,9 +650,9 @@
     "semantic_hash": "fb618b5175f53ad5e3348574b8fbfe25"
   },
   "backend/src/main/java/com/dentalcare/dto/ServiceCategoryDto.java": {
-    "mtime": 1782978814.0,
-    "ast_hash": "63544410c3ff9a0595ec5e9085db9a59",
-    "semantic_hash": "63544410c3ff9a0595ec5e9085db9a59"
+    "mtime": 1784551964.0,
+    "ast_hash": "11360d7b2f3048a81f7645ea19f2b4f3",
+    "semantic_hash": "11360d7b2f3048a81f7645ea19f2b4f3"
   },
   "backend/src/main/java/com/dentalcare/dto/ServiceDto.java": {
     "mtime": 1778704700.0,
@@ -720,9 +720,9 @@
     "semantic_hash": "d5f192567d220f1ea3104606761b2ee5"
   },
   "backend/src/main/java/com/dentalcare/dto/UpdateCatalogItemRequest.java": {
-    "mtime": 1778877728.0,
-    "ast_hash": "8753c753ba492f9b26d11ef417fbf3d3",
-    "semantic_hash": "8753c753ba492f9b26d11ef417fbf3d3"
+    "mtime": 1784875254.0,
+    "ast_hash": "e2e79dbd5cf6f05f7297eec2a6a28ce0",
+    "semantic_hash": "e2e79dbd5cf6f05f7297eec2a6a28ce0"
   },
   "backend/src/main/java/com/dentalcare/dto/UpdateClinicBillingRequest.java": {
     "mtime": 1779471106.0,
@@ -800,9 +800,9 @@
     "semantic_hash": "d22cf89a44f91a13afb2874fdd1ec65a"
   },
   "backend/src/main/java/com/dentalcare/dto/UpdateServiceCategoryRequest.java": {
-    "mtime": 1782978820.0,
-    "ast_hash": "ad365dda6548de8bda6a4a1593de77e5",
-    "semantic_hash": "ad365dda6548de8bda6a4a1593de77e5"
+    "mtime": 1784551966.0,
+    "ast_hash": "8f1cf6a42a90a0772c67fb0889c21f67",
+    "semantic_hash": "8f1cf6a42a90a0772c67fb0889c21f67"
   },
   "backend/src/main/java/com/dentalcare/dto/UpdateServiceRequest.java": {
     "mtime": 1782975974.0,
@@ -885,9 +885,9 @@
     "semantic_hash": "069f040059a7c1550bf98d5fcc3508f0"
   },
   "backend/src/main/java/com/dentalcare/exception/GlobalExceptionHandler.java": {
-    "mtime": 1782463452.0,
-    "ast_hash": "9f74444d3bb19025fa74a5023d866926",
-    "semantic_hash": "9f74444d3bb19025fa74a5023d866926"
+    "mtime": 1784875254.0,
+    "ast_hash": "4a4c1a7685e84fc70e0387741aa92b8d",
+    "semantic_hash": "4a4c1a7685e84fc70e0387741aa92b8d"
   },
   "backend/src/main/java/com/dentalcare/exception/PatientNotDeletableException.java": {
     "mtime": 1782394976.0,
@@ -905,9 +905,9 @@
     "semantic_hash": "922d18031c6858eae3b054ef15ffcdd7"
   },
   "backend/src/main/java/com/dentalcare/security/JwtAuthenticationFilter.java": {
-    "mtime": 1782889380.0,
-    "ast_hash": "bf26c92b7dd27b2a979397c3b11c4cfc",
-    "semantic_hash": "bf26c92b7dd27b2a979397c3b11c4cfc"
+    "mtime": 1785163018.0,
+    "ast_hash": "11aa3ed2673d361cddce55ad96aae259",
+    "semantic_hash": "11aa3ed2673d361cddce55ad96aae259"
   },
   "backend/src/main/java/com/dentalcare/security/JwtService.java": {
     "mtime": 1779442228.0,
@@ -915,19 +915,19 @@
     "semantic_hash": "cca812a5cd3c3ac1768329b6a91ae541"
   },
   "backend/src/main/java/com/dentalcare/security/SecurityConfig.java": {
-    "mtime": 1783009946.0,
-    "ast_hash": "60a827785359c39f9de77a1787143492",
-    "semantic_hash": "60a827785359c39f9de77a1787143492"
+    "mtime": 1785163018.0,
+    "ast_hash": "9a0856f49d09d1d65b5f3b108d9463a9",
+    "semantic_hash": "9a0856f49d09d1d65b5f3b108d9463a9"
   },
   "backend/src/main/java/com/dentalcare/security/TenantContext.java": {
-    "mtime": 1779027638.0,
-    "ast_hash": "8120a4b2b24ee90e054fd3371a832416",
-    "semantic_hash": "8120a4b2b24ee90e054fd3371a832416"
+    "mtime": 1784551912.0,
+    "ast_hash": "fa31c42ae5b415747fe8bf26bdcc6e66",
+    "semantic_hash": "fa31c42ae5b415747fe8bf26bdcc6e66"
   },
   "backend/src/main/java/com/dentalcare/security/TenantSchemaRegistry.java": {
-    "mtime": 1783083296.0,
-    "ast_hash": "e812643ecb6653f8bf61fdc61b2d11e9",
-    "semantic_hash": "e812643ecb6653f8bf61fdc61b2d11e9"
+    "mtime": 1785163018.0,
+    "ast_hash": "fc2479da7a930f766a68b1edd22b2b43",
+    "semantic_hash": "fc2479da7a930f766a68b1edd22b2b43"
   },
   "backend/src/main/java/com/dentalcare/security/crypto/ConfigMasterKeyProvider.java": {
     "mtime": 1783235534.0,
@@ -950,14 +950,14 @@
     "semantic_hash": "84c37d2b585034d360691831ad5128a2"
   },
   "backend/src/main/java/com/dentalcare/service/AnamnesisCatalogService.java": {
-    "mtime": 1778877748.0,
-    "ast_hash": "9e8c7b0e5aa199dbc63d886917c88f05",
-    "semantic_hash": "9e8c7b0e5aa199dbc63d886917c88f05"
+    "mtime": 1784875254.0,
+    "ast_hash": "1897ea889135db8cd69e89f6a46d1510",
+    "semantic_hash": "1897ea889135db8cd69e89f6a46d1510"
   },
   "backend/src/main/java/com/dentalcare/service/AnamnesisService.java": {
-    "mtime": 1782930992.0,
-    "ast_hash": "19161d1bfcd2bd26da0a3ba77c0ceb01",
-    "semantic_hash": "19161d1bfcd2bd26da0a3ba77c0ceb01"
+    "mtime": 1784875254.0,
+    "ast_hash": "1766cc1c399d7c423a376fb96e886cec",
+    "semantic_hash": "1766cc1c399d7c423a376fb96e886cec"
   },
   "backend/src/main/java/com/dentalcare/service/AppointmentEventService.java": {
     "mtime": 1782975994.0,
@@ -965,14 +965,14 @@
     "semantic_hash": "2670675157fd62490dd6daa3a8567f89"
   },
   "backend/src/main/java/com/dentalcare/service/AppointmentService.java": {
-    "mtime": 1782976020.0,
-    "ast_hash": "2cee093a9fd8d2f27e5e49370f3c49ec",
-    "semantic_hash": "2cee093a9fd8d2f27e5e49370f3c49ec"
+    "mtime": 1785163018.0,
+    "ast_hash": "082d5eeb6ab40b6b9a96825f55f0a3e2",
+    "semantic_hash": "082d5eeb6ab40b6b9a96825f55f0a3e2"
   },
   "backend/src/main/java/com/dentalcare/service/AuthService.java": {
-    "mtime": 1782310734.0,
-    "ast_hash": "99ecf2b44f4ab1da273659bffd0d004e",
-    "semantic_hash": "99ecf2b44f4ab1da273659bffd0d004e"
+    "mtime": 1784553978.0,
+    "ast_hash": "8e0493b3e904d8d3279e289465257dbe",
+    "semantic_hash": "8e0493b3e904d8d3279e289465257dbe"
   },
   "backend/src/main/java/com/dentalcare/service/ChatHistoryService.java": {
     "mtime": 1782891896.0,
@@ -985,9 +985,9 @@
     "semantic_hash": "d69cf87abe94b16646ddb4e3fa540f03"
   },
   "backend/src/main/java/com/dentalcare/service/ClinicSettingsService.java": {
-    "mtime": 1779471114.0,
-    "ast_hash": "a1f00a4699fde0e98e0fbf11d3fa6209",
-    "semantic_hash": "a1f00a4699fde0e98e0fbf11d3fa6209"
+    "mtime": 1785163018.0,
+    "ast_hash": "86ad75f302c04db8bbcd05bc492d2757",
+    "semantic_hash": "86ad75f302c04db8bbcd05bc492d2757"
   },
   "backend/src/main/java/com/dentalcare/service/ClinicalRecordService.java": {
     "mtime": 1782928824.0,
@@ -1010,9 +1010,9 @@
     "semantic_hash": "67711703c6780767c05c6678a2bb3076"
   },
   "backend/src/main/java/com/dentalcare/service/DentalCareAiTools.java": {
-    "mtime": 1783083296.0,
-    "ast_hash": "363eef15a01e77e2cb50cd5e1bdbfd48",
-    "semantic_hash": "363eef15a01e77e2cb50cd5e1bdbfd48"
+    "mtime": 1785163018.0,
+    "ast_hash": "abe144224d195199a4460090c8712137",
+    "semantic_hash": "abe144224d195199a4460090c8712137"
   },
   "backend/src/main/java/com/dentalcare/service/DiagnosiService.java": {
     "mtime": 1779194894.0,
@@ -1035,9 +1035,9 @@
     "semantic_hash": "706996ed115222c14230cf83ba5a6b37"
   },
   "backend/src/main/java/com/dentalcare/service/EstimateService.java": {
-    "mtime": 1783521010.0,
-    "ast_hash": "e2692397d792571049d1c428dcf1cf5b",
-    "semantic_hash": "e2692397d792571049d1c428dcf1cf5b"
+    "mtime": 1785163018.0,
+    "ast_hash": "2d2a9f2bbba09cfec181ef7bdc26a287",
+    "semantic_hash": "2d2a9f2bbba09cfec181ef7bdc26a287"
   },
   "backend/src/main/java/com/dentalcare/service/HolidayService.java": {
     "mtime": 1780341730.0,
@@ -1045,9 +1045,9 @@
     "semantic_hash": "9dbfc0ef1ccfab9dd6505e8151f3e8e9"
   },
   "backend/src/main/java/com/dentalcare/service/InvoiceService.java": {
-    "mtime": 1783521010.0,
-    "ast_hash": "4460bc205e42f50dad5ffd74423b3526",
-    "semantic_hash": "4460bc205e42f50dad5ffd74423b3526"
+    "mtime": 1785163018.0,
+    "ast_hash": "90c8a061b34b11d65b9ecc412c3ddbe0",
+    "semantic_hash": "90c8a061b34b11d65b9ecc412c3ddbe0"
   },
   "backend/src/main/java/com/dentalcare/service/MinioStorageService.java": {
     "mtime": 1782889380.0,
@@ -1060,19 +1060,19 @@
     "semantic_hash": "9bef170e43a76e4c01dbb81726218fc0"
   },
   "backend/src/main/java/com/dentalcare/service/OdontogramService.java": {
-    "mtime": 1782889380.0,
-    "ast_hash": "c0ada6f867e830e53798700ca7307024",
-    "semantic_hash": "c0ada6f867e830e53798700ca7307024"
+    "mtime": 1784716458.0,
+    "ast_hash": "8b822d99dc8400b16e9c7960e3d15d8a",
+    "semantic_hash": "8b822d99dc8400b16e9c7960e3d15d8a"
   },
   "backend/src/main/java/com/dentalcare/service/PatientDocumentService.java": {
-    "mtime": 1782889380.0,
-    "ast_hash": "f2780fdccd405e10ee58e54b79b90978",
-    "semantic_hash": "f2780fdccd405e10ee58e54b79b90978"
+    "mtime": 1784716492.0,
+    "ast_hash": "53578988ab603ec3061dda8de3e41de8",
+    "semantic_hash": "53578988ab603ec3061dda8de3e41de8"
   },
   "backend/src/main/java/com/dentalcare/service/PatientService.java": {
-    "mtime": 1783521010.0,
-    "ast_hash": "afe27034bc254986a6dd1b889263d6d3",
-    "semantic_hash": "afe27034bc254986a6dd1b889263d6d3"
+    "mtime": 1784875254.0,
+    "ast_hash": "9762c5a75e65554848af7068f4fee929",
+    "semantic_hash": "9762c5a75e65554848af7068f4fee929"
   },
   "backend/src/main/java/com/dentalcare/service/PendingActionService.java": {
     "mtime": 1782976864.0,
@@ -1105,9 +1105,9 @@
     "semantic_hash": "6b55606d7b1dee3899a8b82660fec327"
   },
   "backend/src/main/java/com/dentalcare/service/ServiceCatalogService.java": {
-    "mtime": 1783003940.0,
-    "ast_hash": "cca2b0c8553ce963550a75b73f91afcf",
-    "semantic_hash": "cca2b0c8553ce963550a75b73f91afcf"
+    "mtime": 1784552000.0,
+    "ast_hash": "4bcccca157dd25dae1329a44faddd1fd",
+    "semantic_hash": "4bcccca157dd25dae1329a44faddd1fd"
   },
   "backend/src/main/java/com/dentalcare/service/StockMovementService.java": {
     "mtime": 1780076678.0,
@@ -1120,14 +1120,14 @@
     "semantic_hash": "ef64ad18d4be41dd098db121acdf37ee"
   },
   "backend/src/main/java/com/dentalcare/service/TenantAdminService.java": {
-    "mtime": 1782889380.0,
-    "ast_hash": "e7ef94d6f031c64143bf0699221aaf2a",
-    "semantic_hash": "e7ef94d6f031c64143bf0699221aaf2a"
+    "mtime": 1785163018.0,
+    "ast_hash": "15e5e180f335f04dd3d480a52126f1db",
+    "semantic_hash": "15e5e180f335f04dd3d480a52126f1db"
   },
   "backend/src/main/java/com/dentalcare/service/TenantExportService.java": {
-    "mtime": 1783521010.0,
-    "ast_hash": "cf429ebffc5e450657d255151a8885cf",
-    "semantic_hash": "cf429ebffc5e450657d255151a8885cf"
+    "mtime": 1785163018.0,
+    "ast_hash": "dead719639de33051de9177429a91986",
+    "semantic_hash": "dead719639de33051de9177429a91986"
   },
   "backend/src/main/java/com/dentalcare/service/TenantProvisioningService.java": {
     "mtime": 1783235534.0,
@@ -1175,9 +1175,9 @@
     "semantic_hash": "2bef530c3c18515d980408dc1b718698"
   },
   "backend/src/main/java/com/dentalcare/validation/FiscalCodeValidator.java": {
-    "mtime": 1783083296.0,
-    "ast_hash": "7a4e3d11bb42ebc60323fd5f1c51a9dd",
-    "semantic_hash": "7a4e3d11bb42ebc60323fd5f1c51a9dd"
+    "mtime": 1784285736.0,
+    "ast_hash": "2fbd40f34ddf900760eb5a0c6fcdb87e",
+    "semantic_hash": "2fbd40f34ddf900760eb5a0c6fcdb87e"
   },
   "backend/src/main/java/com/dentalcare/validation/ValidFiscalCode.java": {
     "mtime": 1783083296.0,
@@ -1320,9 +1320,9 @@
     "semantic_hash": "af3e8969dbfc74518bc1338128501009"
   },
   "backend/src/test/java/com/dentalcare/exception/GlobalExceptionHandlerTest.java": {
-    "mtime": 1781003374.0,
-    "ast_hash": "77828800733dfc3b42d3dc6e3e01816c",
-    "semantic_hash": "77828800733dfc3b42d3dc6e3e01816c"
+    "mtime": 1784875254.0,
+    "ast_hash": "96fef722810af2fe0c88ab5e04579a3c",
+    "semantic_hash": "96fef722810af2fe0c88ab5e04579a3c"
   },
   "backend/src/test/java/com/dentalcare/security/HmacVerifierTest.java": {
     "mtime": 1782889380.0,
@@ -1365,9 +1365,9 @@
     "semantic_hash": "498f74466e6f452415411729dabfb378"
   },
   "backend/src/test/java/com/dentalcare/service/PatientDocumentServiceTest.java": {
-    "mtime": 1782889380.0,
-    "ast_hash": "53c7baba2b498125ed389eb13b6c491e",
-    "semantic_hash": "53c7baba2b498125ed389eb13b6c491e"
+    "mtime": 1784716712.0,
+    "ast_hash": "7ef0ef6b2dc0a9b3a797cc5a75cb1e8f",
+    "semantic_hash": "7ef0ef6b2dc0a9b3a797cc5a75cb1e8f"
   },
   "backend/src/test/java/com/dentalcare/service/PatientServiceTest.java": {
     "mtime": 1783521010.0,
@@ -1410,9 +1410,9 @@
     "semantic_hash": "f580ab2a743eb3045d3b5e99a3b8dfa6"
   },
   "backend/src/test/java/com/dentalcare/validation/FiscalCodeValidatorTest.java": {
-    "mtime": 1783083296.0,
-    "ast_hash": "3358bf2fe8ad5e844a367ff1507221e0",
-    "semantic_hash": "3358bf2fe8ad5e844a367ff1507221e0"
+    "mtime": 1784285754.0,
+    "ast_hash": "d37ec13cc6ef303f7b7b5949b96cfdad",
+    "semantic_hash": "d37ec13cc6ef303f7b7b5949b96cfdad"
   },
   "backend/start-app.ps1": {
     "mtime": 1779027638.0,
@@ -1420,9 +1420,9 @@
     "semantic_hash": "5f40239867e3a9d7ca9c3901a5c1b551"
   },
   "database/install.sql": {
-    "mtime": 1783521544.0,
-    "ast_hash": "56de3e8d3c8879ccecae0b9c4229dfe8",
-    "semantic_hash": "56de3e8d3c8879ccecae0b9c4229dfe8"
+    "mtime": 1785163018.0,
+    "ast_hash": "e4f1f98f862806d384f3077c102eba24",
+    "semantic_hash": "e4f1f98f862806d384f3077c102eba24"
   },
   "database/patch_ai_audit_log.sql": {
     "mtime": 1782976546.0,
@@ -1450,9 +1450,9 @@
     "semantic_hash": "fae8c9adf164538edfc4790cbcd36b39"
   },
   "database/purge_patients_before.sql": {
-    "mtime": 1784130902.0,
-    "ast_hash": "55e03fc17e16abea30e40bc826aef73e",
-    "semantic_hash": "55e03fc17e16abea30e40bc826aef73e"
+    "mtime": 1784553804.0,
+    "ast_hash": "9e8f508e0e328845e851c212ae2be2f8",
+    "semantic_hash": "9e8f508e0e328845e851c212ae2be2f8"
   },
   "dentalcare-ai-service/app/__init__.py": {
     "mtime": 1782481435.4,
@@ -1680,9 +1680,9 @@
     "semantic_hash": "dcc33f89e558c5ec01fd554bf7712e42"
   },
   "frontend/proxy.conf.json": {
-    "mtime": 1777893196.0,
-    "ast_hash": "760ac1aec340961e5cf41691a9514cbc",
-    "semantic_hash": "760ac1aec340961e5cf41691a9514cbc"
+    "mtime": 1784282648.0,
+    "ast_hash": "8a92bab2da26b77357443b1eab3c239d",
+    "semantic_hash": "8a92bab2da26b77357443b1eab3c239d"
   },
   "frontend/src/app/app.config.ts": {
     "mtime": 1778877366.0,
@@ -1695,9 +1695,9 @@
     "semantic_hash": "919c8019c9efd6a410ce53775ef9355d"
   },
   "frontend/src/app/app.ts": {
-    "mtime": 1782978176.0,
-    "ast_hash": "e02eed5d3b642ba107e1834a7ee4d905",
-    "semantic_hash": "e02eed5d3b642ba107e1834a7ee4d905"
+    "mtime": 1784553280.0,
+    "ast_hash": "cb1553f58157f4fde4beb54f15d1568f",
+    "semantic_hash": "cb1553f58157f4fde4beb54f15d1568f"
   },
   "frontend/src/app/core/auth/auth.model.ts": {
     "mtime": 1782310734.0,
@@ -1735,19 +1735,19 @@
     "semantic_hash": "cdfb68023ec4da96e7ddad2c95ae01df"
   },
   "frontend/src/app/core/models/anamnesis-catalog.model.ts": {
-    "mtime": 1778877822.0,
-    "ast_hash": "6f154820899c0151629da2473300787f",
-    "semantic_hash": "6f154820899c0151629da2473300787f"
+    "mtime": 1784875254.0,
+    "ast_hash": "dac3930f6cb6991901e480d330d3ab82",
+    "semantic_hash": "dac3930f6cb6991901e480d330d3ab82"
   },
   "frontend/src/app/core/models/anamnesis.model.ts": {
-    "mtime": 1778076172.0,
-    "ast_hash": "4e738c7abe44259d59901f6e11193fdd",
-    "semantic_hash": "4e738c7abe44259d59901f6e11193fdd"
+    "mtime": 1784875254.0,
+    "ast_hash": "f3181bb71149c223b7341468b06ca004",
+    "semantic_hash": "f3181bb71149c223b7341468b06ca004"
   },
   "frontend/src/app/core/models/appointment.model.ts": {
-    "mtime": 1779216344.0,
-    "ast_hash": "a14ced37b0641d874067933e054b755f",
-    "semantic_hash": "a14ced37b0641d874067933e054b755f"
+    "mtime": 1784875254.0,
+    "ast_hash": "696de10890790ac012d3972d9b5d4a3b",
+    "semantic_hash": "696de10890790ac012d3972d9b5d4a3b"
   },
   "frontend/src/app/core/models/clinic-billing.model.ts": {
     "mtime": 1778864524.0,
@@ -1785,9 +1785,9 @@
     "semantic_hash": "69a38de31094a4877ef48886df6f9378"
   },
   "frontend/src/app/core/models/odontogram.model.ts": {
-    "mtime": 1782889382.0,
-    "ast_hash": "7c59617e0aa9cc85d67e6a1ab44e1c8e",
-    "semantic_hash": "7c59617e0aa9cc85d67e6a1ab44e1c8e"
+    "mtime": 1784716552.0,
+    "ast_hash": "ae7536ed4ba416277f0f6aef65a48686",
+    "semantic_hash": "ae7536ed4ba416277f0f6aef65a48686"
   },
   "frontend/src/app/core/models/patient-analysis.model.ts": {
     "mtime": 1782889382.0,
@@ -1800,9 +1800,9 @@
     "semantic_hash": "2625e110cb0cf35db576994a5f4be1b8"
   },
   "frontend/src/app/core/models/patient.model.ts": {
-    "mtime": 1783083296.0,
-    "ast_hash": "3995189fef43c4e13bc9953bb2aaf6ae",
-    "semantic_hash": "3995189fef43c4e13bc9953bb2aaf6ae"
+    "mtime": 1784875254.0,
+    "ast_hash": "e3b10dfbe415b5fb4a04b4ca597e080a",
+    "semantic_hash": "e3b10dfbe415b5fb4a04b4ca597e080a"
   },
   "frontend/src/app/core/models/prescrizione.model.ts": {
     "mtime": 1783006412.0,
@@ -1825,9 +1825,9 @@
     "semantic_hash": "1a06e2511d14c20c96296a493ec47bee"
   },
   "frontend/src/app/core/models/service.model.ts": {
-    "mtime": 1783004090.0,
-    "ast_hash": "86c2d5adbb28f859a4c306caa9c1e708",
-    "semantic_hash": "86c2d5adbb28f859a4c306caa9c1e708"
+    "mtime": 1784552056.0,
+    "ast_hash": "69be4d4791b5b4358498dcb064103db5",
+    "semantic_hash": "69be4d4791b5b4358498dcb064103db5"
   },
   "frontend/src/app/core/models/stock-movement.model.ts": {
     "mtime": 1778865010.0,
@@ -1855,9 +1855,9 @@
     "semantic_hash": "10fb58f8b72d71830c660abc16c2836a"
   },
   "frontend/src/app/core/services/anamnesis.service.ts": {
-    "mtime": 1778076178.0,
-    "ast_hash": "e520810d1e45ef45b93d10312fb92dbd",
-    "semantic_hash": "e520810d1e45ef45b93d10312fb92dbd"
+    "mtime": 1784875254.0,
+    "ast_hash": "8349b35bf0228a86f26547a1a9a3cc6d",
+    "semantic_hash": "8349b35bf0228a86f26547a1a9a3cc6d"
   },
   "frontend/src/app/core/services/app-settings.service.ts": {
     "mtime": 1781020074.0,
@@ -1865,9 +1865,9 @@
     "semantic_hash": "fa82ef0b4efcda9ba3c6f84ee39c3945"
   },
   "frontend/src/app/core/services/appointment.service.ts": {
-    "mtime": 1779218856.0,
-    "ast_hash": "fbb19b9b66fb2976d1569585c47638c1",
-    "semantic_hash": "fbb19b9b66fb2976d1569585c47638c1"
+    "mtime": 1784550014.0,
+    "ast_hash": "aecfccf2f3d0603ed1f4b019508f83a2",
+    "semantic_hash": "aecfccf2f3d0603ed1f4b019508f83a2"
   },
   "frontend/src/app/core/services/chat.service.ts": {
     "mtime": 1783083296.0,
@@ -1875,9 +1875,9 @@
     "semantic_hash": "3a82a295f63db2e1af809bad351f1c8a"
   },
   "frontend/src/app/core/services/clinic-settings.service.ts": {
-    "mtime": 1778876800.0,
-    "ast_hash": "ea7338eed28d93b1235aa2b04110c3f4",
-    "semantic_hash": "ea7338eed28d93b1235aa2b04110c3f4"
+    "mtime": 1785163018.0,
+    "ast_hash": "fe0a675ad3938240c51b9961fcc64ee9",
+    "semantic_hash": "fe0a675ad3938240c51b9961fcc64ee9"
   },
   "frontend/src/app/core/services/clinical-record.service.ts": {
     "mtime": 1782928986.0,
@@ -1980,9 +1980,9 @@
     "semantic_hash": "c8c63d5b65e689bba2901cecdb188186"
   },
   "frontend/src/app/core/services/user-context.service.ts": {
-    "mtime": 1780129888.0,
-    "ast_hash": "abbdfdb6aaf53fc3a4ab226b58db3660",
-    "semantic_hash": "abbdfdb6aaf53fc3a4ab226b58db3660"
+    "mtime": 1784277642.0,
+    "ast_hash": "5fd1f1afa832daac08d15174b768cf66",
+    "semantic_hash": "5fd1f1afa832daac08d15174b768cf66"
   },
   "frontend/src/app/core/validators/fiscal-code.validator.ts": {
     "mtime": 1783083296.0,
@@ -1990,34 +1990,34 @@
     "semantic_hash": "b010a92826b427102d07fdda249b0116"
   },
   "frontend/src/app/features/admin-tenant/admin-tenant.component.ts": {
-    "mtime": 1782310734.0,
-    "ast_hash": "e6c3f7c15f99d6d6211bab39dc36b700",
-    "semantic_hash": "e6c3f7c15f99d6d6211bab39dc36b700"
+    "mtime": 1785163018.0,
+    "ast_hash": "1f4557c442af9421ef5ef878302c957d",
+    "semantic_hash": "1f4557c442af9421ef5ef878302c957d"
   },
   "frontend/src/app/features/admin-tenant/admin-tenant.model.ts": {
-    "mtime": 1779484300.0,
-    "ast_hash": "45789523a7854ce0f25bf54d9cc106d3",
-    "semantic_hash": "45789523a7854ce0f25bf54d9cc106d3"
+    "mtime": 1785163018.0,
+    "ast_hash": "ea31b1c337db66d9999dde0b65cbc18c",
+    "semantic_hash": "ea31b1c337db66d9999dde0b65cbc18c"
   },
   "frontend/src/app/features/admin-tenant/admin-tenant.service.ts": {
-    "mtime": 1782310734.0,
-    "ast_hash": "86e450862e2a3a8d2c6a45ea2b9459c8",
-    "semantic_hash": "86e450862e2a3a8d2c6a45ea2b9459c8"
+    "mtime": 1785163018.0,
+    "ast_hash": "ef1b290967da49084e07ab58a4769874",
+    "semantic_hash": "ef1b290967da49084e07ab58a4769874"
   },
   "frontend/src/app/features/agenda/agenda.component.ts": {
-    "mtime": 1782976088.0,
-    "ast_hash": "b5673fa12534fc36d8ae2174758b761c",
-    "semantic_hash": "b5673fa12534fc36d8ae2174758b761c"
+    "mtime": 1784279634.0,
+    "ast_hash": "d6920fab8181205fd30b1ca6fd79de0c",
+    "semantic_hash": "d6920fab8181205fd30b1ca6fd79de0c"
   },
   "frontend/src/app/features/agenda/nuovo-appuntamento/nuovo-appuntamento.component.ts": {
-    "mtime": 1782396862.0,
-    "ast_hash": "83d9fbdebbac31121f47146c92556870",
-    "semantic_hash": "83d9fbdebbac31121f47146c92556870"
+    "mtime": 1784875254.0,
+    "ast_hash": "e9d464cbb2c220c5d9b16efa78c31ed5",
+    "semantic_hash": "e9d464cbb2c220c5d9b16efa78c31ed5"
   },
   "frontend/src/app/features/dashboard/dashboard.component.ts": {
-    "mtime": 1781697390.0,
-    "ast_hash": "e348890b858d8b45e04937d2438acdc6",
-    "semantic_hash": "e348890b858d8b45e04937d2438acdc6"
+    "mtime": 1784277712.0,
+    "ast_hash": "bd9ed66ec1f6eea5847c3ac314a210d8",
+    "semantic_hash": "bd9ed66ec1f6eea5847c3ac314a210d8"
   },
   "frontend/src/app/features/fatturazione/fattura-detail/fattura-detail.component.ts": {
     "mtime": 1778859930.0,
@@ -2025,9 +2025,9 @@
     "semantic_hash": "950f86882706bc994fbcd2e8b1d0bc0d"
   },
   "frontend/src/app/features/fatturazione/fatturazione.component.ts": {
-    "mtime": 1778863112.0,
-    "ast_hash": "0c5ea882c4f50a3bdad26aee16515c4b",
-    "semantic_hash": "0c5ea882c4f50a3bdad26aee16515c4b"
+    "mtime": 1784534982.0,
+    "ast_hash": "a7b5e4c228b3ce567a36c3af7188a9dd",
+    "semantic_hash": "a7b5e4c228b3ce567a36c3af7188a9dd"
   },
   "frontend/src/app/features/impostazioni/ai-prompts.component.ts": {
     "mtime": 1783060818.0,
@@ -2035,9 +2035,9 @@
     "semantic_hash": "14dbbe7650c39decb65f28cdad610d0a"
   },
   "frontend/src/app/features/impostazioni/impostazioni.component.ts": {
-    "mtime": 1783010310.0,
-    "ast_hash": "8bae54a83240f2c72b83da3bc54be054",
-    "semantic_hash": "8bae54a83240f2c72b83da3bc54be054"
+    "mtime": 1785163018.0,
+    "ast_hash": "87745317571f80e486695300f61ece38",
+    "semantic_hash": "87745317571f80e486695300f61ece38"
   },
   "frontend/src/app/features/login/login.component.ts": {
     "mtime": 1782310734.0,
@@ -2050,9 +2050,9 @@
     "semantic_hash": "b288fc927d21ec3b741a77dbdc82a91c"
   },
   "frontend/src/app/features/pazienti/anamnesi-tab/anamnesi-tab.component.ts": {
-    "mtime": 1782929092.0,
-    "ast_hash": "3120d38cb682cf1198019b60e19f437b",
-    "semantic_hash": "3120d38cb682cf1198019b60e19f437b"
+    "mtime": 1784875254.0,
+    "ast_hash": "1ae6ebad91d658c36cc20fc6a4c4154c",
+    "semantic_hash": "1ae6ebad91d658c36cc20fc6a4c4154c"
   },
   "frontend/src/app/features/pazienti/cartella-clinica/cartella-clinica.component.ts": {
     "mtime": 1778159896.0,
@@ -2060,9 +2060,9 @@
     "semantic_hash": "d43a7209e5caa6ce80c25d8caa892b0c"
   },
   "frontend/src/app/features/pazienti/cartella-tab/cartella-tab.component.ts": {
-    "mtime": 1782929258.0,
-    "ast_hash": "5e7509e714389de9103c6453723f0e37",
-    "semantic_hash": "5e7509e714389de9103c6453723f0e37"
+    "mtime": 1784875254.0,
+    "ast_hash": "6300f934bd5cdd070f8ad4ba00311f14",
+    "semantic_hash": "6300f934bd5cdd070f8ad4ba00311f14"
   },
   "frontend/src/app/features/pazienti/diagnosi/diagnosi.component.ts": {
     "mtime": 1782929280.0,
@@ -2070,9 +2070,9 @@
     "semantic_hash": "215b45b3acf6433152f9a84feda2b216"
   },
   "frontend/src/app/features/pazienti/documenti-tab/documenti-tab.component.ts": {
-    "mtime": 1782889382.0,
-    "ast_hash": "3caddc06fd23520a562adb84b5a5823f",
-    "semantic_hash": "3caddc06fd23520a562adb84b5a5823f"
+    "mtime": 1784534774.0,
+    "ast_hash": "65e79d02b555e88ef37f4ee95f185d30",
+    "semantic_hash": "65e79d02b555e88ef37f4ee95f185d30"
   },
   "frontend/src/app/features/pazienti/documento-analisi/documento-analisi.component.ts": {
     "mtime": 1782889382.0,
@@ -2090,19 +2090,19 @@
     "semantic_hash": "7d6b8702ed3e57a8da9c640c58362ffb"
   },
   "frontend/src/app/features/pazienti/odontogramma-tab/odontogramma-tab.component.ts": {
-    "mtime": 1782935658.0,
-    "ast_hash": "803e3ca454f11588afb52df4411537ba",
-    "semantic_hash": "803e3ca454f11588afb52df4411537ba"
+    "mtime": 1784716560.0,
+    "ast_hash": "2e02eb5339d7c1ec0ce015430beb8004",
+    "semantic_hash": "2e02eb5339d7c1ec0ce015430beb8004"
   },
   "frontend/src/app/features/pazienti/paziente-detail/paziente-detail.component.ts": {
-    "mtime": 1783083296.0,
-    "ast_hash": "6331b09e22162620993581fc209b2540",
-    "semantic_hash": "6331b09e22162620993581fc209b2540"
+    "mtime": 1784277696.0,
+    "ast_hash": "8de3ed749e17d3dfcb787c47ca241f95",
+    "semantic_hash": "8de3ed749e17d3dfcb787c47ca241f95"
   },
   "frontend/src/app/features/pazienti/pazienti.component.ts": {
-    "mtime": 1782396686.0,
-    "ast_hash": "1f032156e45980e8d50140259128b5cb",
-    "semantic_hash": "1f032156e45980e8d50140259128b5cb"
+    "mtime": 1784277660.0,
+    "ast_hash": "9e10b48c449d39f580989806eda09c6c",
+    "semantic_hash": "9e10b48c449d39f580989806eda09c6c"
   },
   "frontend/src/app/features/pazienti/piano-cura-detail/piano-cura-detail.component.ts": {
     "mtime": 1778792026.0,
@@ -2130,14 +2130,14 @@
     "semantic_hash": "04767cd5aeeb156287ce190073fa5720"
   },
   "frontend/src/app/features/prestazioni/prestazioni.component.ts": {
-    "mtime": 1783004158.0,
-    "ast_hash": "155926a6c3545fe085d58272c90d710d",
-    "semantic_hash": "155926a6c3545fe085d58272c90d710d"
+    "mtime": 1784552130.0,
+    "ast_hash": "c8897ccba904935398a653551ac89b53",
+    "semantic_hash": "c8897ccba904935398a653551ac89b53"
   },
   "frontend/src/app/features/preventivi/preventivi.component.ts": {
-    "mtime": 1778793908.0,
-    "ast_hash": "9ae8dc05b6a31afdb2a0aeeb6935efbd",
-    "semantic_hash": "9ae8dc05b6a31afdb2a0aeeb6935efbd"
+    "mtime": 1784277702.0,
+    "ast_hash": "93025ce019dfe8c608e2ec3bb300f0ed",
+    "semantic_hash": "93025ce019dfe8c608e2ec3bb300f0ed"
   },
   "frontend/src/app/features/preventivi/preventivo-detail/preventivo-detail.component.ts": {
     "mtime": 1782936360.0,
@@ -2170,9 +2170,9 @@
     "semantic_hash": "13f45f5643fa35fffba0ce7e1f504844"
   },
   "frontend/src/app/features/public/registrazione/registrazione.component.ts": {
-    "mtime": 1782310734.0,
-    "ast_hash": "6ada7c5d8e545391224a23d0aeb9c0c0",
-    "semantic_hash": "6ada7c5d8e545391224a23d0aeb9c0c0"
+    "mtime": 1784562700.0,
+    "ast_hash": "14589bfa067bb270de9aeb50ae0143ee",
+    "semantic_hash": "14589bfa067bb270de9aeb50ae0143ee"
   },
   "frontend/src/app/features/public/richiami-page/richiami-page.component.ts": {
     "mtime": 1779190570.0,
@@ -2200,9 +2200,9 @@
     "semantic_hash": "0de919438ef36cd5a0ea0b8e08f981b3"
   },
   "frontend/src/environments/environment.ts": {
-    "mtime": 1779391374.0,
-    "ast_hash": "c01bfa9b16d34840b317c735b5ce6073",
-    "semantic_hash": "c01bfa9b16d34840b317c735b5ce6073"
+    "mtime": 1784282648.0,
+    "ast_hash": "41d45e9618ca5c12b24df6f168c4ce2e",
+    "semantic_hash": "41d45e9618ca5c12b24df6f168c4ce2e"
   },
   "frontend/src/main.ts": {
     "mtime": 1777892460.0,
@@ -2245,19 +2245,19 @@
     "semantic_hash": "c8f3e22a928f204ec64947a8c1574195"
   },
   "CLAUDE.MD": {
-    "mtime": 1778685386.0,
-    "ast_hash": "7026f3b2fd8e108a866edd35cce9e37b",
-    "semantic_hash": "7026f3b2fd8e108a866edd35cce9e37b"
+    "mtime": 1785163018.0,
+    "ast_hash": "5eb96b2487503ed9f3ab8ea1560ba922",
+    "semantic_hash": "5eb96b2487503ed9f3ab8ea1560ba922"
   },
   "README.md": {
-    "mtime": 1781009716.0,
-    "ast_hash": "7eac8628f08d70e904cfff6ec8f7e50e",
-    "semantic_hash": "7eac8628f08d70e904cfff6ec8f7e50e"
+    "mtime": 1785163018.0,
+    "ast_hash": "6488528b20278b27ed83ad0e57eb33ad",
+    "semantic_hash": "6488528b20278b27ed83ad0e57eb33ad"
   },
   "Segretaria/SmileDesk Agent - retell.ai.md": {
-    "mtime": 1782390984.0,
-    "ast_hash": "aca7a4d7fa294f1e02fa473462da0939",
-    "semantic_hash": "aca7a4d7fa294f1e02fa473462da0939"
+    "mtime": 1784297082.0,
+    "ast_hash": "e56fa7dbfbe43b2333d7f3244e45c660",
+    "semantic_hash": "e56fa7dbfbe43b2333d7f3244e45c660"
   },
   "backend/.github/LOMBOK_JAVA25_UPGRADE.md": {
     "mtime": 1777964614.0,
@@ -2315,14 +2315,14 @@
     "semantic_hash": "41015aceae3aecf9f114a1a76b8803f7"
   },
   "directives/deploy-gdpr-slice1-prod.md": {
-    "mtime": 1784129020.0,
-    "ast_hash": "f710d2f7f0ea63dfd771fe834a8d70a3",
-    "semantic_hash": "f710d2f7f0ea63dfd771fe834a8d70a3"
+    "mtime": 1784553770.0,
+    "ast_hash": "cc214efc5dc694b5002203110c7cfa67",
+    "semantic_hash": "cc214efc5dc694b5002203110c7cfa67"
   },
   "directives/deploy-procedures.md": {
-    "mtime": 1781003374.0,
-    "ast_hash": "7d848f97b0eaecbab67b0338d6a33cc1",
-    "semantic_hash": "7d848f97b0eaecbab67b0338d6a33cc1"
+    "mtime": 1784553770.0,
+    "ast_hash": "921bc50b26291220d416ddb7e37d20df",
+    "semantic_hash": "921bc50b26291220d416ddb7e37d20df"
   },
   "directives/feature-to-documentation-mapping.md": {
     "mtime": 1783073420.0,
@@ -2330,14 +2330,14 @@
     "semantic_hash": "150f13dbaf2d1242a04d09eb1b1aaf72"
   },
   "directives/manuale-installazione-prod.md": {
-    "mtime": 1782908706.0,
-    "ast_hash": "eaec5c2780baec2d02ba17f425ce596e",
-    "semantic_hash": "eaec5c2780baec2d02ba17f425ce596e"
+    "mtime": 1784553770.0,
+    "ast_hash": "1ae327cfebad00e6aba4dca37c6ff854",
+    "semantic_hash": "1ae327cfebad00e6aba4dca37c6ff854"
   },
   "directives/proposte-modifiche.md": {
-    "mtime": 1784210974.0,
-    "ast_hash": "64ccb5e5a366f8887ab86a86e90aed58",
-    "semantic_hash": "64ccb5e5a366f8887ab86a86e90aed58"
+    "mtime": 1785163018.0,
+    "ast_hash": "d2d8b68848a79676540b5383a4108cca",
+    "semantic_hash": "d2d8b68848a79676540b5383a4108cca"
   },
   "directives/radiographic-ai-review-design.md": {
     "mtime": 1782310734.0,
@@ -2345,9 +2345,9 @@
     "semantic_hash": "402a6f46e16165a883e964d1af490e89"
   },
   "directives/segretaria_architettura_multitenant_ai.md": {
-    "mtime": 1777386460.0,
-    "ast_hash": "427702adaa8c8cd9512ec875e56f166e",
-    "semantic_hash": "427702adaa8c8cd9512ec875e56f166e"
+    "mtime": 1784736988.0,
+    "ast_hash": "8437deef00a8220c299506e4359180b7",
+    "semantic_hash": "8437deef00a8220c299506e4359180b7"
   },
   "directives/segretaria_documento_funzionale.md": {
     "mtime": 1777386446.0,
@@ -2385,9 +2385,9 @@
     "semantic_hash": "54df7e88a050aff445828e7b681f2147"
   },
   "docs/superpowers/plans/2026-06-26-patient-documents.md": {
-    "mtime": 1782461064.0,
-    "ast_hash": "344c9efabbcd18d011b1fdefb2398c3a",
-    "semantic_hash": "344c9efabbcd18d011b1fdefb2398c3a"
+    "mtime": 1784553804.0,
+    "ast_hash": "ef9761ceaeebfe8ce72c1cf6afebd5d4",
+    "semantic_hash": "ef9761ceaeebfe8ce72c1cf6afebd5d4"
   },
   "docs/superpowers/plans/2026-07-03-p2-implementation.md": {
     "mtime": 1783062688.0,
@@ -2430,24 +2430,24 @@
     "semantic_hash": "82e1e283e0cf77c031ab0d38ef5ce8c9"
   },
   "frontend/src/app/features/admin-tenant/admin-tenant.component.html": {
-    "mtime": 1782310734.0,
-    "ast_hash": "c9b8b49b25bdad51b88214c453a7b921",
-    "semantic_hash": "c9b8b49b25bdad51b88214c453a7b921"
+    "mtime": 1785163018.0,
+    "ast_hash": "037455f99c894ee6adc87a4ad32e4137",
+    "semantic_hash": "037455f99c894ee6adc87a4ad32e4137"
   },
   "frontend/src/app/features/agenda/agenda.component.html": {
-    "mtime": 1782399558.0,
-    "ast_hash": "1708cc90a411fc75652a7a29607e2890",
-    "semantic_hash": "1708cc90a411fc75652a7a29607e2890"
+    "mtime": 1784279646.0,
+    "ast_hash": "4c52c6ff05224f0e500cd1064cb4fbcf",
+    "semantic_hash": "4c52c6ff05224f0e500cd1064cb4fbcf"
   },
   "frontend/src/app/features/agenda/nuovo-appuntamento/nuovo-appuntamento.component.html": {
-    "mtime": 1782916756.0,
-    "ast_hash": "2ba00a618c1e6674c9f1d6657853572f",
-    "semantic_hash": "2ba00a618c1e6674c9f1d6657853572f"
+    "mtime": 1784550100.0,
+    "ast_hash": "94bc102b695c2bfa0906b8d9f254a7f1",
+    "semantic_hash": "94bc102b695c2bfa0906b8d9f254a7f1"
   },
   "frontend/src/app/features/dashboard/dashboard.component.html": {
-    "mtime": 1781697400.0,
-    "ast_hash": "ee4668e09bead07aa71d6fb20ca26a35",
-    "semantic_hash": "ee4668e09bead07aa71d6fb20ca26a35"
+    "mtime": 1784875254.0,
+    "ast_hash": "f83256d104194b3a0ab148773ff992e2",
+    "semantic_hash": "f83256d104194b3a0ab148773ff992e2"
   },
   "frontend/src/app/features/fatturazione/fattura-detail/fattura-detail.component.html": {
     "mtime": 1778863790.0,
@@ -2460,9 +2460,9 @@
     "semantic_hash": "1dc6d7d007611721a9bff4ecd9d36054"
   },
   "frontend/src/app/features/impostazioni/impostazioni.component.html": {
-    "mtime": 1783010326.0,
-    "ast_hash": "6cd69abd28da016d69845ff6fbc78edc",
-    "semantic_hash": "6cd69abd28da016d69845ff6fbc78edc"
+    "mtime": 1785163018.0,
+    "ast_hash": "8a2fcb0b6c235aa5c48f42e096664320",
+    "semantic_hash": "8a2fcb0b6c235aa5c48f42e096664320"
   },
   "frontend/src/app/features/login/login.component.html": {
     "mtime": 1782310734.0,
@@ -2475,9 +2475,9 @@
     "semantic_hash": "2e6589475c1ef9db6ce896180a9366a2"
   },
   "frontend/src/app/features/pazienti/anamnesi-tab/anamnesi-tab.component.html": {
-    "mtime": 1778076226.0,
-    "ast_hash": "b3be2d9c65d97839a11bfa146875e41c",
-    "semantic_hash": "b3be2d9c65d97839a11bfa146875e41c"
+    "mtime": 1784875254.0,
+    "ast_hash": "9dc9e4ca9b2c2836c3d2f5a956cfd6fc",
+    "semantic_hash": "9dc9e4ca9b2c2836c3d2f5a956cfd6fc"
   },
   "frontend/src/app/features/pazienti/cartella-clinica/cartella-clinica.component.html": {
     "mtime": 1778160528.0,
@@ -2485,9 +2485,9 @@
     "semantic_hash": "08570f4bb256fffc1d0999ee75f1f63c"
   },
   "frontend/src/app/features/pazienti/cartella-tab/cartella-tab.component.html": {
-    "mtime": 1782929268.0,
-    "ast_hash": "166a43c4c3c917ce6d0dfb9bc2a4da34",
-    "semantic_hash": "166a43c4c3c917ce6d0dfb9bc2a4da34"
+    "mtime": 1784875254.0,
+    "ast_hash": "8e916aed89d61d7d4fc7c9cb6777ce2b",
+    "semantic_hash": "8e916aed89d61d7d4fc7c9cb6777ce2b"
   },
   "frontend/src/app/features/pazienti/diagnosi/diagnosi.component.html": {
     "mtime": 1782929308.0,
@@ -2495,9 +2495,9 @@
     "semantic_hash": "19b23ffe05f8b69780fff21438e9a686"
   },
   "frontend/src/app/features/pazienti/documenti-tab/documenti-tab.component.html": {
-    "mtime": 1782889382.0,
-    "ast_hash": "fde6d1e0ab682c296aac29bb3ee23a63",
-    "semantic_hash": "fde6d1e0ab682c296aac29bb3ee23a63"
+    "mtime": 1784534794.0,
+    "ast_hash": "ec819e3434e3e74b16c8ed5c3088ba97",
+    "semantic_hash": "ec819e3434e3e74b16c8ed5c3088ba97"
   },
   "frontend/src/app/features/pazienti/nuova-visita/nuova-visita.component.html": {
     "mtime": 1779195062.0,
@@ -2510,9 +2510,9 @@
     "semantic_hash": "b5df98142f4db4618005e4cfe4838fb9"
   },
   "frontend/src/app/features/pazienti/odontogramma-tab/odontogramma-tab.component.html": {
-    "mtime": 1782889382.0,
-    "ast_hash": "bd91a9ed15bfb288fbc0a826d89785af",
-    "semantic_hash": "bd91a9ed15bfb288fbc0a826d89785af"
+    "mtime": 1784830846.0,
+    "ast_hash": "04ddc291258f73d86d031db43d17604f",
+    "semantic_hash": "04ddc291258f73d86d031db43d17604f"
   },
   "frontend/src/app/features/pazienti/paziente-detail/paziente-detail.component.html": {
     "mtime": 1783083296.0,
@@ -2525,9 +2525,9 @@
     "semantic_hash": "b4d64b4657a6b9d9bf4f08fcbcff0dd9"
   },
   "frontend/src/app/features/pazienti/piano-cura-detail/piano-cura-detail.component.html": {
-    "mtime": 1778792042.0,
-    "ast_hash": "53e318117c21723cdb4d2fba59f57644",
-    "semantic_hash": "53e318117c21723cdb4d2fba59f57644"
+    "mtime": 1784880780.0,
+    "ast_hash": "173c852148ddd9d7fd50603226f4aeb8",
+    "semantic_hash": "173c852148ddd9d7fd50603226f4aeb8"
   },
   "frontend/src/app/features/pazienti/piano-cura-tab/piano-cura-tab.component.html": {
     "mtime": 1778787716.0,
@@ -2550,9 +2550,9 @@
     "semantic_hash": "27253e8ab888987dd08fdee871416797"
   },
   "frontend/src/app/features/prestazioni/prestazioni.component.html": {
-    "mtime": 1783004248.0,
-    "ast_hash": "7a0ded78741a1e1290bc6c9dd606bd52",
-    "semantic_hash": "7a0ded78741a1e1290bc6c9dd606bd52"
+    "mtime": 1784552130.0,
+    "ast_hash": "19ecff336f77affea44a7c61d2dde030",
+    "semantic_hash": "19ecff336f77affea44a7c61d2dde030"
   },
   "frontend/src/app/features/preventivi/preventivi.component.html": {
     "mtime": 1778793596.0,
@@ -2565,39 +2565,39 @@
     "semantic_hash": "593a8d74b5fe7189b9c6235051eec5fe"
   },
   "frontend/src/app/features/public/agenda-page/agenda-page.component.html": {
-    "mtime": 1779190690.0,
-    "ast_hash": "9eeb57a1bd9a0666634a816991104c47",
-    "semantic_hash": "9eeb57a1bd9a0666634a816991104c47"
+    "mtime": 1784563048.0,
+    "ast_hash": "09f718822436350ba90c0b3e64dd4e41",
+    "semantic_hash": "09f718822436350ba90c0b3e64dd4e41"
   },
   "frontend/src/app/features/public/cartella-page/cartella-page.component.html": {
-    "mtime": 1779190804.0,
-    "ast_hash": "c96be85afc83ce03e6d9b11a7751233a",
-    "semantic_hash": "c96be85afc83ce03e6d9b11a7751233a"
+    "mtime": 1784563048.0,
+    "ast_hash": "a09f6791a4587b0f4856134e12e715ae",
+    "semantic_hash": "a09f6791a4587b0f4856134e12e715ae"
   },
   "frontend/src/app/features/public/landing/landing.component.html": {
-    "mtime": 1779191240.0,
-    "ast_hash": "af5ca5a1013989308560ac34b495119f",
-    "semantic_hash": "af5ca5a1013989308560ac34b495119f"
+    "mtime": 1784563048.0,
+    "ast_hash": "156d3578b86a0ed988bd6b5a08d80da6",
+    "semantic_hash": "156d3578b86a0ed988bd6b5a08d80da6"
   },
   "frontend/src/app/features/public/magazzino-page/magazzino-page.component.html": {
-    "mtime": 1779191032.0,
-    "ast_hash": "86ee5e42abb05a3ff876981e99f54341",
-    "semantic_hash": "86ee5e42abb05a3ff876981e99f54341"
+    "mtime": 1784563048.0,
+    "ast_hash": "b19813c6ca6353c78f2fc4d6e2419341",
+    "semantic_hash": "b19813c6ca6353c78f2fc4d6e2419341"
   },
   "frontend/src/app/features/public/preventivi-page/preventivi-page.component.html": {
-    "mtime": 1779190916.0,
-    "ast_hash": "e8666e9715ede3e6808983f36a5bfdda",
-    "semantic_hash": "e8666e9715ede3e6808983f36a5bfdda"
+    "mtime": 1784563048.0,
+    "ast_hash": "8fe270733062a6c15aef7dd9aa61ee98",
+    "semantic_hash": "8fe270733062a6c15aef7dd9aa61ee98"
   },
   "frontend/src/app/features/public/registrazione/registrazione.component.html": {
-    "mtime": 1782310734.0,
-    "ast_hash": "12264d60559c03fe4694ea0914b33e32",
-    "semantic_hash": "12264d60559c03fe4694ea0914b33e32"
+    "mtime": 1784562946.0,
+    "ast_hash": "33371d4c56f09e442c8efb1d262bdabe",
+    "semantic_hash": "33371d4c56f09e442c8efb1d262bdabe"
   },
   "frontend/src/app/features/public/richiami-page/richiami-page.component.html": {
-    "mtime": 1779191154.0,
-    "ast_hash": "a00b7549ff3978f87719108da00235d9",
-    "semantic_hash": "a00b7549ff3978f87719108da00235d9"
+    "mtime": 1784563048.0,
+    "ast_hash": "2b9f17807d7ff3e644541563795f64d2",
+    "semantic_hash": "2b9f17807d7ff3e644541563795f64d2"
   },
   "frontend/src/app/features/richiami/richiami.component.html": {
     "mtime": 1778869772.0,
@@ -2629,11 +2629,6 @@
     "ast_hash": "bf9ea57e3357026464e8fb80ef5a2c04",
     "semantic_hash": "bf9ea57e3357026464e8fb80ef5a2c04"
   },
-  "frontend/public/ai-den-secretary.png": {
-    "mtime": 1779188830.0,
-    "ast_hash": "69348c521c9360389ba354fb85772043",
-    "semantic_hash": "69348c521c9360389ba354fb85772043"
-  },
   "frontend/src/assets/ai-den-secretary.png": {
     "mtime": 1779188478.0,
     "ast_hash": "94c6aac807af5b44713ec028a0070741",
@@ -2643,5 +2638,300 @@
     "mtime": 1779479082.0,
     "ast_hash": "c1dd179388abf7f039feb9e7fd8d0473",
     "semantic_hash": "c1dd179388abf7f039feb9e7fd8d0473"
+  },
+  "backend/src/main/java/com/dentalcare/dto/AvailabilitySlotDto.java": {
+    "mtime": 1784536222.0,
+    "ast_hash": "8d20ff8ba2e2e8664c75931b3b13c1c0",
+    "semantic_hash": "8d20ff8ba2e2e8664c75931b3b13c1c0"
+  },
+  "backend/src/main/java/com/dentalcare/dto/ClinicScheduleDto.java": {
+    "mtime": 1784550990.0,
+    "ast_hash": "42f26bc5c8b0b5053dad6c8278d1ccff",
+    "semantic_hash": "42f26bc5c8b0b5053dad6c8278d1ccff"
+  },
+  "backend/src/test/java/com/dentalcare/service/AppointmentAvailabilityTest.java": {
+    "mtime": 1784536352.0,
+    "ast_hash": "37812084ffc57b1530d2f5fccb0ba7a5",
+    "semantic_hash": "37812084ffc57b1530d2f5fccb0ba7a5"
+  },
+  "backend/src/test/java/com/dentalcare/service/AppointmentServiceStatusTest.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "e15b787c9e87a8b1e87e2b08ba7f0222",
+    "semantic_hash": "e15b787c9e87a8b1e87e2b08ba7f0222"
+  },
+  "backend/src/test/java/com/dentalcare/service/EstimateServiceTest.java": {
+    "mtime": 1784535206.0,
+    "ast_hash": "a3c83e4c89d1885f4d8a2c46cccaffd9",
+    "semantic_hash": "a3c83e4c89d1885f4d8a2c46cccaffd9"
+  },
+  "database/patch_category_roles.sql": {
+    "mtime": 1784554324.0,
+    "ast_hash": "4acfe4cb92ca90bf02f4ebfe0e1dcc0d",
+    "semantic_hash": "4acfe4cb92ca90bf02f4ebfe0e1dcc0d"
+  },
+  "database/patch_create_tenant_function.sql": {
+    "mtime": 1784554780.0,
+    "ast_hash": "1d29c0624c1d7197c45483f8572c6a61",
+    "semantic_hash": "1d29c0624c1d7197c45483f8572c6a61"
+  },
+  "database/rotate_demo_password.py": {
+    "mtime": 1784359614.0,
+    "ast_hash": "9eaba6f20cb000fc2cdee9f5760bc94c",
+    "semantic_hash": "9eaba6f20cb000fc2cdee9f5760bc94c"
+  },
+  "frontend/src/app/core/models/clinic-schedule.model.ts": {
+    "mtime": 1784551168.0,
+    "ast_hash": "4f9c14b43079375284daac36c168cf1d",
+    "semantic_hash": "4f9c14b43079375284daac36c168cf1d"
+  },
+  "Segretaria/SmileDesk Agent - retell.ai-old.md": {
+    "mtime": 1784278252.0,
+    "ast_hash": "12dff2fe2410cc3df6145134fcac6fe0",
+    "semantic_hash": "12dff2fe2410cc3df6145134fcac6fe0"
+  },
+  "directives/DentalCare_Guida_Digitalizzazione_Cartella_Clinica_Dentale.md": {
+    "mtime": 1784210336.0,
+    "ast_hash": "29e91d2982db6281bd2865b558e8e3b0",
+    "semantic_hash": "29e91d2982db6281bd2865b558e8e3b0"
+  },
+  "directives/DentalCare_Pro_EU_AI_Act_Compliance_2026.md": {
+    "mtime": 1784208826.0,
+    "ast_hash": "69cbdeea413a412be69e54e645c0ec7f",
+    "semantic_hash": "69cbdeea413a412be69e54e645c0ec7f"
+  },
+  "directives/Modello_probatorio_audit_trail_clinico_DentalCare.md": {
+    "mtime": 1784627346.0,
+    "ast_hash": "fb3fc03be742c944e69e69b6ba417731",
+    "semantic_hash": "fb3fc03be742c944e69e69b6ba417731"
+  },
+  "directives/audit-trail-tier1-mvp.md": {
+    "mtime": 1784627912.0,
+    "ast_hash": "2469565bc64c3108d973aad7f5fd09c2",
+    "semantic_hash": "2469565bc64c3108d973aad7f5fd09c2"
+  },
+  "directives/gap-analysis-cartella-clinica.md": {
+    "mtime": 1784291838.0,
+    "ast_hash": "0226a1899306ae30430e3f096fbe399d",
+    "semantic_hash": "0226a1899306ae30430e3f096fbe399d"
+  },
+  "directives/piano-lungo-termine.md": {
+    "mtime": 1785163022.0,
+    "ast_hash": "e21ce16707bff6b3cb73368ba7edf673",
+    "semantic_hash": "e21ce16707bff6b3cb73368ba7edf673"
+  },
+  "directives/proposte-archivio.md": {
+    "mtime": 1784622756.0,
+    "ast_hash": "2f4f1553cfc5176387b22020069cd19a",
+    "semantic_hash": "2f4f1553cfc5176387b22020069cd19a"
+  },
+  "directives/roadmap_certificazione.md": {
+    "mtime": 1784210936.0,
+    "ast_hash": "ce091c9ab768b791955aee2c91b3eae4",
+    "semantic_hash": "ce091c9ab768b791955aee2c91b3eae4"
+  },
+  "graphify-out/converted/DentalCare_Guida_Digitalizzazione_Cartella_Clinica_Dentale_3f5d3729.md": {
+    "mtime": 1785163024.0,
+    "ast_hash": "7685e27e8171f4d883b6d42b42e0af4b",
+    "semantic_hash": "7685e27e8171f4d883b6d42b42e0af4b"
+  },
+  "graphify-out/converted/Manuale_Utente_DentalCare_Pro v.1.0_59596e5c.md": {
+    "mtime": 1785163128.0,
+    "ast_hash": "342e9f55a3adc24da8dfc5f881056619",
+    "semantic_hash": "342e9f55a3adc24da8dfc5f881056619"
+  },
+  "userdocument/Manuale_Utente_DentalCare_Pro v.1.0.pdf": {
+    "mtime": 1785163028.0,
+    "ast_hash": "8c6ba5143474704b4dc8a2968520b024",
+    "semantic_hash": "8c6ba5143474704b4dc8a2968520b024"
+  },
+  "frontend/public/giulia-secretary.png": {
+    "mtime": 1779188830.0,
+    "ast_hash": "69348c521c9360389ba354fb85772043",
+    "semantic_hash": "69348c521c9360389ba354fb85772043"
+  },
+  "backend/src/test/java/com/dentalcare/service/OdontogramServiceTest.java": {
+    "mtime": 1784716640.0,
+    "ast_hash": "2f872ef1a47e5695b19fd929e036184c",
+    "semantic_hash": "2f872ef1a47e5695b19fd929e036184c"
+  },
+  "userdocument/DentalCare_Pro_Strategic_Briefing.pdf": {
+    "mtime": 1785163026.0,
+    "ast_hash": "6eceffc6af5f48781a81b1d0c3b63a1d",
+    "semantic_hash": "6eceffc6af5f48781a81b1d0c3b63a1d"
+  },
+  "backend/src/main/java/com/dentalcare/controller/ProviderPriceOverrideController.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "7a2be5ee09c32eccd2f035823b1b4d8d",
+    "semantic_hash": "7a2be5ee09c32eccd2f035823b1b4d8d"
+  },
+  "backend/src/main/java/com/dentalcare/dto/AnamnesisDiffDto.java": {
+    "mtime": 1784875254.0,
+    "ast_hash": "1a5bb49c5873a8943b868d650ea95ef4",
+    "semantic_hash": "1a5bb49c5873a8943b868d650ea95ef4"
+  },
+  "backend/src/main/java/com/dentalcare/dto/BillingModeDto.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "e341e822a18de473a0ff5c5a81d92a26",
+    "semantic_hash": "e341e822a18de473a0ff5c5a81d92a26"
+  },
+  "backend/src/main/java/com/dentalcare/dto/DeleteTenantRequest.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "1b5578792946457f7c5ef9cd8f4cd13f",
+    "semantic_hash": "1b5578792946457f7c5ef9cd8f4cd13f"
+  },
+  "backend/src/main/java/com/dentalcare/dto/DeletionPrepareResponse.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "41496e47eb7ad295f37b3cb5c5cfea99",
+    "semantic_hash": "41496e47eb7ad295f37b3cb5c5cfea99"
+  },
+  "backend/src/main/java/com/dentalcare/dto/DeletionScheduledResponse.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "2a340264697f860c2c414c1acf82d177",
+    "semantic_hash": "2a340264697f860c2c414c1acf82d177"
+  },
+  "backend/src/main/java/com/dentalcare/dto/PatientVisibilityDto.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "805662e4f0226e36cd182e84b07fbfcf",
+    "semantic_hash": "805662e4f0226e36cd182e84b07fbfcf"
+  },
+  "backend/src/main/java/com/dentalcare/dto/ProviderPriceDto.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "2ea9b239e519b85d7f8bebf7608e74a2",
+    "semantic_hash": "2ea9b239e519b85d7f8bebf7608e74a2"
+  },
+  "backend/src/main/java/com/dentalcare/dto/SetProviderPriceRequest.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "8b54fdb0ee4fa8cce43aeda56a4b5455",
+    "semantic_hash": "8b54fdb0ee4fa8cce43aeda56a4b5455"
+  },
+  "backend/src/main/java/com/dentalcare/exception/CatalogItemInUseException.java": {
+    "mtime": 1784875254.0,
+    "ast_hash": "2fc20731c87e6226ae173a5cdd0e252c",
+    "semantic_hash": "2fc20731c87e6226ae173a5cdd0e252c"
+  },
+  "backend/src/main/java/com/dentalcare/exception/SchedulingConstraintException.java": {
+    "mtime": 1784875254.0,
+    "ast_hash": "b1a178816cc77f08600d4992adec9542",
+    "semantic_hash": "b1a178816cc77f08600d4992adec9542"
+  },
+  "backend/src/main/java/com/dentalcare/security/RoleConstants.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "64913b591ce383ed36f319771b83fda1",
+    "semantic_hash": "64913b591ce383ed36f319771b83fda1"
+  },
+  "backend/src/main/java/com/dentalcare/service/AccessScopeService.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "b25ef771966a2e58cac30f2cb9f596a7",
+    "semantic_hash": "b25ef771966a2e58cac30f2cb9f596a7"
+  },
+  "backend/src/main/java/com/dentalcare/service/ProviderPriceOverrideService.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "b07643176bc6e8cce560a251b0bcafc3",
+    "semantic_hash": "b07643176bc6e8cce560a251b0bcafc3"
+  },
+  "backend/src/main/java/com/dentalcare/service/TenantDeletionScheduler.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "9f46268b6971e62cbbfdafa7e0f5b18a",
+    "semantic_hash": "9f46268b6971e62cbbfdafa7e0f5b18a"
+  },
+  "backend/src/main/java/com/dentalcare/service/TenantDeletionService.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "6fa7834b9df50d55d56c77315f79402f",
+    "semantic_hash": "6fa7834b9df50d55d56c77315f79402f"
+  },
+  "backend/src/main/java/com/dentalcare/service/TenantDeletionTokenStore.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "62d8752540334d1e0a70ab879420fae4",
+    "semantic_hash": "62d8752540334d1e0a70ab879420fae4"
+  },
+  "backend/src/main/java/com/dentalcare/util/PasswordZipUtil.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "3528d9dca40bc91d14da4cb0bdc61803",
+    "semantic_hash": "3528d9dca40bc91d14da4cb0bdc61803"
+  },
+  "backend/src/test/java/com/dentalcare/service/AccessScopeServiceTest.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "5cd33670ac37aab3e64faa43d31832c3",
+    "semantic_hash": "5cd33670ac37aab3e64faa43d31832c3"
+  },
+  "backend/src/test/java/com/dentalcare/service/AnamnesisCatalogServiceTest.java": {
+    "mtime": 1784875254.0,
+    "ast_hash": "264500e0420cc8a3fdaf6fb67ebcaa51",
+    "semantic_hash": "264500e0420cc8a3fdaf6fb67ebcaa51"
+  },
+  "backend/src/test/java/com/dentalcare/service/AnamnesisDiffTest.java": {
+    "mtime": 1784875254.0,
+    "ast_hash": "37a193285a9b238bfea7f9ee0b371782",
+    "semantic_hash": "37a193285a9b238bfea7f9ee0b371782"
+  },
+  "backend/src/test/java/com/dentalcare/service/AnamnesisServiceTest.java": {
+    "mtime": 1784875254.0,
+    "ast_hash": "780afdb4dc19102857be34cc23dab145",
+    "semantic_hash": "780afdb4dc19102857be34cc23dab145"
+  },
+  "backend/src/test/java/com/dentalcare/service/AppointmentAvailabilitySeverityTest.java": {
+    "mtime": 1784875254.0,
+    "ast_hash": "9ee2203e5a5a46f44766556a54217dc4",
+    "semantic_hash": "9ee2203e5a5a46f44766556a54217dc4"
+  },
+  "backend/src/test/java/com/dentalcare/service/ProviderPriceOverrideServiceTest.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "17ed00fcbb7f5525d0b145bf31c2bb9f",
+    "semantic_hash": "17ed00fcbb7f5525d0b145bf31c2bb9f"
+  },
+  "backend/src/test/java/com/dentalcare/service/TenantDeletionServiceTest.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "b8650f0cbd9299b18824412d06a1c3d0",
+    "semantic_hash": "b8650f0cbd9299b18824412d06a1c3d0"
+  },
+  "backend/src/test/java/com/dentalcare/service/TenantDeletionTokenStoreTest.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "90e257f4df81eecb4ae6eab4ec12111e",
+    "semantic_hash": "90e257f4df81eecb4ae6eab4ec12111e"
+  },
+  "backend/src/test/java/com/dentalcare/util/PasswordZipUtilTest.java": {
+    "mtime": 1785163018.0,
+    "ast_hash": "261458d7fef63a9d6a08626c535c352f",
+    "semantic_hash": "261458d7fef63a9d6a08626c535c352f"
+  },
+  "database/patch_anamnesis_tenant_migration.sql": {
+    "mtime": 1784879682.0,
+    "ast_hash": "436f06e5af094b2aa7300fc9381e4504",
+    "semantic_hash": "436f06e5af094b2aa7300fc9381e4504"
+  },
+  "frontend/src/app/core/models/provider-price.model.ts": {
+    "mtime": 1785163018.0,
+    "ast_hash": "4e497862be52c18611a233e18a739740",
+    "semantic_hash": "4e497862be52c18611a233e18a739740"
+  },
+  "frontend/src/app/core/services/provider-prices.service.ts": {
+    "mtime": 1785163018.0,
+    "ast_hash": "01bd65e3a332efc326cd7dbdbf2e76d6",
+    "semantic_hash": "01bd65e3a332efc326cd7dbdbf2e76d6"
+  },
+  "directives/Chairside-Voice-Agent-Spec.md": {
+    "mtime": 1785163024.0,
+    "ast_hash": "6e94f91b5c8e071b0cee042148853771",
+    "semantic_hash": "6e94f91b5c8e071b0cee042148853771"
+  },
+  "docs/superpowers/plans/2026-07-22-copilot-chairside-voice.md": {
+    "mtime": 1785163024.0,
+    "ast_hash": "959e94dea1224b9f87245e7371d0d9e1",
+    "semantic_hash": "959e94dea1224b9f87245e7371d0d9e1"
+  },
+  "docs/superpowers/plans/2026-07-23-anamnesi-catalogo-storico.md": {
+    "mtime": 1784875254.0,
+    "ast_hash": "8a7b1ac7fd9f4664765da4616cbe3828",
+    "semantic_hash": "8a7b1ac7fd9f4664765da4616cbe3828"
+  },
+  "docs/superpowers/specs/2026-07-22-copilot-chairside-voice-design.md": {
+    "mtime": 1785163024.0,
+    "ast_hash": "aa1af0d307aeb95d838c31040fa42bc6",
+    "semantic_hash": "aa1af0d307aeb95d838c31040fa42bc6"
+  },
+  "userdocument/FSE 2.0_ cosa sapere prima che diventi un problema.pdf": {
+    "mtime": 1785163026.0,
+    "ast_hash": "5672b39cc28b2f02535bd7db608cc803",
+    "semantic_hash": "5672b39cc28b2f02535bd7db608cc803"
   }
 }

@@ -32,7 +32,7 @@ Con il target "primo studio pagante entro 6 mesi", quell'evento è previsto per 
 
 Questo è il secondo effetto, ed è il più importante per pianificare.
 
-Il progetto ha un rapporto di compressione misurato di **~50-100x** sulle ore umane (vedi metriche storiche: 68 commit / ~29k righe / ~7-8h umane nei primi 7 giorni). Alla velocità reale di questo progetto, **tutto il debito tecnico della Fase 1 vale ~85-120 ore agente** — cioè settimane, non mesi.
+Il progetto ha un rapporto di compressione misurato di **~50-100x** sulle ore umane (vedi metriche storiche: 68 commit / ~29k righe / ~7-8h umane nei primi 7 giorni). Alla velocità reale di questo progetto, il **debito tecnico preesistente della Fase 1 vale ~85-120 ore agente**. Dal 22/07/2026 si aggiunge #39 Chairside Agent, stimato separatamente in **43-69 giornate-agente** con tre agenti dedicati (~4-5 settimane calendario in parallelo).
 
 > **Correzione 17/07/2026.** Qui c'era *"~65-100 ore agente"*: era sbagliato già alla stesura — gli sprint del §4 sommavano a 80-114h. Con l'intervento *admin tecnico + break glass* aggiunto allo Sprint 3 si arriva a **84-117h**, arrotondato a ~85-120h. Somma verificata: Sprint 0 (10-14) + Sprint 1 (20-25) + Sprint 2 (20-30) + Sprint 3 (24-33) + Sprint 4 (10-15).
 >
@@ -127,6 +127,19 @@ Riordinato: **prima le voci del gate** (§5), poi il resto.
 
 > Dettaglio, dipendenze ed effort per intervento: *Piano di intervento — cartella clinica*, Blocco 3, in `proposte-modifiche.md`.
 
+### Binario parallelo — #39 Chairside Agent (Fase 1) · ~43-69 gg-agente
+
+Tre agenti dedicati — backend, frontend e test/QA — lavorano in parallelo per una durata stimata di **~4-5 settimane calendario**:
+
+1. **dopo Sprint 1 / contratti stabili:** conversazione Copilot condivisa, policy per tenant e impostazioni di voce/lingua, dietro feature flag;
+2. **in parallelo a Sprint 2-3:** push-to-talk, STT, TTS e hotword locale, solo su dati fittizi e funzioni di lettura/navigazione;
+3. **dopo #20, audit, autorizzazioni e finalizzazione/addendum:** revisione dettatura, doppio gate di conferma e audit vocale;
+4. **prima dell'attivazione:** test avversi, DPIA/valutazione del fornitore e pilota controllato su una postazione.
+
+Allocazione: **backend 11-18 gg**, **frontend 17-26 gg**, **test/QA 15-25 gg**. Il frontend/hotword e il pilota costituiscono il percorso critico. Se il pilota non supera i criteri, la Fase 1 resta rilasciabile con la voce installata ma `enabled=false`.
+
+Piano di dettaglio: `docs/superpowers/plans/2026-07-22-copilot-chairside-voice.md`.
+
 ### Binario parallelo — Governance (settembre–dicembre 2026) · dipende dal DPO
 
 - **DPIA** completa e approvata;
@@ -170,6 +183,15 @@ Nessun paziente reale prima che **tutte** siano verde:
 - [ ] restore testato almeno una volta
 - [ ] pen test eseguito e remediation chiusa
 - [ ] export paziente (art. 15) funzionante
+
+Se #39 viene **attivata** al go-live, devono inoltre essere verdi:
+
+- [ ] audio non persistito per default e hotword elaborata localmente
+- [ ] zero esecuzioni su paziente/tenant errato nei test avversi
+- [ ] 100% delle dettature cliniche revisionate e 100% delle scritture confermate e auditate
+- [ ] DPIA/DPA del provider STT/TTS coperti e pilota su postazione target superato
+
+Queste quattro voci condizionano l'**attivazione della voce**, non il rilascio del gestionale: in caso contrario #39 resta disabilitata tramite policy server-side.
 
 > **Voce aggiunta il 17/07/2026 — amministratore tecnico.** Il gate copriva la segregazione della **segreteria** ma non quella dell'**admin tecnico**, che §11.1 della guida vieta e che `gap-analysis-cartella-clinica.md` §8 marca già come errore **§28.18 ❌ presente**. Senza questa voce il gate sarebbe passato **con una non conformità nota e attiva** — l'unica cosa peggiore di un controllo mancante è un controllo che dichiara verde ciò che è rosso.
 >
