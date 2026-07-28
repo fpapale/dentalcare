@@ -7,8 +7,8 @@ genera immagini placeholder JPEG minime.
 Eseguire DOPO patch_demo_rx_panoramica_minio_paths.sql.
 
 Usage:
-    python database/demo_minio_upload.py
-    python database/demo_minio_upload.py --endpoint 127.0.0.1:9000 --key fpapale --secret ViaGoceano2021
+    python database/demo_minio_upload.py --key <access-key> --secret <secret-key>
+    python database/demo_minio_upload.py --endpoint 127.0.0.1:9000 --key <access-key> --secret <secret-key>
 
 Prerequisiti:
     pip install minio pillow
@@ -103,9 +103,9 @@ def upload(client, bucket: str, key: str, data: bytes) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="Carica immagini demo rx_panoramica in MinIO")
-    parser.add_argument("--endpoint", default="127.0.0.1:9000")
-    parser.add_argument("--key", default="fpapale")
-    parser.add_argument("--secret", default="ViaGoceano2021")
+    parser.add_argument("--endpoint", default=os.environ.get("MINIO_ENDPOINT", "127.0.0.1:9000"))
+    parser.add_argument("--key", required=True, help="MinIO access key (o imposta MINIO_ACCESS_KEY)")
+    parser.add_argument("--secret", required=True, help="MinIO secret key (o imposta MINIO_SECRET_KEY)")
     parser.add_argument("--secure", action="store_true")
     args = parser.parse_args()
 
