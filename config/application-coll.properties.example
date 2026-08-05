@@ -1,0 +1,49 @@
+# DentalCare Pro — Config esterna di COLLAUDO (#41)
+# 1. Copiare come: config/application-coll.properties (nella cartella di deploy Coll)
+# 2. Montato dal compose coll su /app/config e caricato da Spring (profilo coll).
+#    Sovrascrive i default del classpath. Tiene le credenziali fuori dall'immagine.
+#
+# Punta al database dentalcare_coll sulla macchina 192.168.0.173.
+# IMPORTANTE: JWT secret, password DB e master-key DEVONO essere DIVERSI da quelli di prod.
+# Se condivisi, un bug in Coll potrebbe leggere/scrivere dati cifrati con la chiave di prod.
+
+# ---- Database (PostgreSQL) ----
+spring.datasource.url=jdbc:postgresql://192.168.0.173:5432/dentalcare_coll
+spring.datasource.username=postgres
+spring.datasource.password=REPLACE_WITH_COLL_DB_PASSWORD
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=2
+spring.datasource.hikari.connection-timeout=20000
+
+# ---- JWT — OBBLIGATORIO (genera con: openssl rand -base64 48; DIVERSO da prod) ----
+app.jwt.secret=REPLACE_ME
+app.jwt.expiration-ms=86400000
+
+# ---- Demo mode: OFF anche in collaudo ----
+app.demo.enabled=false
+
+# ---- GDPR field encryption (#7) — OBBLIGATORIO (openssl rand -hex 32; DIVERSO da prod) ----
+app.encryption.key-source=config
+app.encryption.master-key=REPLACE_WITH_OPENSSL_RAND_HEX_32
+
+# ---- n8n service account (Coll non ha flussi n8n dedicati; valorizzare solo se servirà) ----
+app.n8n.service-key=REPLACE_WITH_N8N_SERVICE_KEY
+
+# ---- MinIO object storage ----
+app.minio.endpoint=http://host.docker.internal:9000
+app.minio.access-key=REPLACE_WITH_MINIO_USER
+app.minio.secret-key=REPLACE_WITH_MINIO_PASSWORD
+# #40 — radice bucket per AMBIENTE: collaudo usa dc-coll-<schema>, isolato da dev (dc-dev-)
+# e prod (dc-prod-) pur condividendo lo stesso MinIO fisico.
+app.minio.bucket-prefix=dc-coll-
+
+# ---- Mail (SMTP) ----
+spring.mail.host=192.168.0.68
+spring.mail.port=25
+app.mail.from=noreply@dentalcare.it
+app.mail.send-real-emails=false
+
+# ---- Errori esposti in collaudo (diagnosi rapida) ----
+server.error.include-message=always
+server.error.include-binding-errors=always

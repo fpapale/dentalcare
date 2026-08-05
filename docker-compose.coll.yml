@@ -1,0 +1,97 @@
+# DentalCare Pro — Deploy COLLAUDO (#41), stack parallelo a prod sulla stessa macchina .72.
+# Eseguire da: ~/docker/dentalcarepro-coll/
+#   docker compose -f docker-compose.coll.yml up -d --build
+#
+# Isolato da prod per: container_name (dentalcarepro-coll-*), tag immagine (:coll-*),
+# porta frontend (8082 di default), profilo Spring "coll" (db dentalcare_coll,
+# radice MinIO dc-coll- via #40). I nomi-servizio restano invariati: la rete bridge
+# interna è già separata perché Compose la prefissa col nome cartella (dentalcarepro-coll_*).
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        JDK_VERSION: "25"
+    image: dentalcarepro-backend:coll-${VERSION:-latest}
+    container_name: dentalcarepro-coll-backend
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+    environment:
+      - SPRING_PROFILES_ACTIVE=coll
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:/app/config/
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/public/demo-config > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      - dentalcarepro
+      - minio
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: dentalcarepro-frontend:coll-${VERSION:-latest}
+    container_name: dentalcarepro-coll-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8082}:4200"
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    networks:
+      - dentalcarepro
+
+  dentalcare-ai-service:
+    build:
+      context: ./dentalcare-ai-service
+      dockerfile: Dockerfile
+    image: dentalcare-ai-service:coll-${VERSION:-latest}
+    container_name: dentalcare-coll-ai-service
+    restart: unless-stopped
+    env_file:
+      - path: ./dentalcare-ai-service/.env
+        required: false
+    volumes:
+      - ./dentalcare-ai-service/models:/app/models:ro
+      - ./dentalcare-ai-service/tmp:/tmp/dentalcare-ai
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+    networks:
+      - dentalcarepro
+      - minio
+
+networks:
+  dentalcarepro:
+    driver: bridge
+  # Stesso container MinIO di prod (rete esterna minio_default). L'isolamento dei
+  # documenti Coll è per bucket (dc-coll-), non per rete (#40).
+  minio:
+    external: true
+    name: minio_default

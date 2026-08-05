@@ -112,6 +112,39 @@ App: `http://<server-app>:8181/` — login `admin@demo.dentalcare.it` / `<passwo
 
 ---
 
+## Trigger: "deploy in collaudo" (#41)
+
+Stack Docker **parallelo** a prod sulla **stessa** macchina `<server-app>`, cartella
+`~/docker/dentalcarepro-coll`, DB `dentalcare_coll` su `<host-db>`, frontend su porta
+**8082**. Prod resta invariato: nomi container, tag immagine, porta e profilo sono
+distinti, quindi i due stack convivono. File dedicati (tutti già nel repo):
+
+- **`backend/src/main/resources/application-coll.properties`** — profilo `coll`: DB
+  `dentalcare_coll`, `app.minio.bucket-prefix=dc-coll-` (#40), demo **off**, errori/log
+  stile dev per la diagnosi.
+- **`config/application-coll.properties.example`** — template segreti coll: JWT,
+  password DB e `app.encryption.master-key` **DIVERSI da prod** (non condividere la
+  chiave: separa i dati cifrati dei due ambienti).
+- **`docker-compose.coll.yml`** — `container_name` `dentalcarepro-coll-*`, immagini
+  `:coll-*`, `SPRING_PROFILES_ACTIVE=coll`, `FRONTEND_PORT:-8082`. Stesso MinIO fisico di
+  prod, isolato via bucket `dc-coll-`.
+- **`setup-coll.sh`** / **`install-coll.sh`** — copie parametrizzate di `setup.sh`/`install.sh`
+  (cartella, DB, container, compose `-f docker-compose.coll.yml`, porta).
+
+Comandi sul server:
+```bash
+# bootstrap prima volta
+curl -fsSL https://raw.githubusercontent.com/fpapale/dentalcare/master/setup-coll.sh -o /tmp/setup-coll.sh
+bash /tmp/setup-coll.sh
+# oppure, repo già clonato in ~/docker/dentalcarepro-coll
+cd ~/docker/dentalcarepro-coll && ./setup-coll.sh            # aggiornamento completo
+cd ~/docker/dentalcarepro-coll && ./setup-coll.sh --update   # solo pull + rebuild
+```
+App collaudo: `http://<server-app>:8082/` (demo disabilitata: nessuna credenziale demo esposta).
+Coll è un ambiente di test: **non** abilita l'uso su pazienti reali (gate go-live invariato).
+
+---
+
 ## Trigger: "lavoriamo in dev"
 
 Riportare tutto alla configurazione di sviluppo:
@@ -136,3 +169,10 @@ Riportare tutto alla configurazione di sviluppo:
   usano `dentalcare.<tipo>`, non lo schema tenant).
 - `database/install.sql` è lo script unico parametrico (`-v dbname=...`) che crea
   schema globale + tenant demo `t_9d754153` con dati di esempio.
+- **Radice bucket MinIO per ambiente (#40):** `app.minio.bucket-prefix` vale `dc-dev-`
+  (dev), `dc-coll-` (coll), `dc-prod-` (prod) → i documenti di un tenant non collidono
+  tra ambienti anche a parità di schema. **Su un prod esistente** il passaggio a
+  `dc-prod-` richiede la migrazione degli oggetti PRIMA del deploy della property, con
+  `database/scripts/migrate_minio_env_root.sh` (dry-run di default; `--apply` reale lo
+  lancia il committente): copia `dc-<schema>` → `dc-prod-<schema>`, poi si rimuovono i
+  vecchi bucket solo dopo una finestra di osservazione. Le due cose vanno in prod insieme.

@@ -54,6 +54,18 @@ app.n8n.service-key=REPLACE_WITH_N8N_SERVICE_KEY
 app.n8n.admin-email=demo@demo.dentalcare.it
 app.n8n.admin-password=REPLACE_WITH_DEMO_PASSWORD
 
+# ---- MinIO object storage ----
+app.minio.endpoint=http://host.docker.internal:9000
+app.minio.access-key=REPLACE_WITH_MINIO_USER
+app.minio.secret-key=REPLACE_WITH_MINIO_PASSWORD
+# #40 — radice bucket per AMBIENTE: prod usa dc-prod-<schema>. Isola i documenti da
+# dev (dc-dev-) e collaudo (dc-coll-) anche se uno schema tenant coincide tra ambienti.
+# ATTENZIONE: cambiando questo valore su un prod esistente, i documenti già caricati
+# (bucket dc-<schema>) diventano irraggiungibili finché non si esegue la migrazione
+# database/scripts/migrate_minio_env_root.sh (copia dc-<schema> -> dc-prod-<schema>).
+# Le due cose vanno in produzione INSIEME.
+app.minio.bucket-prefix=dc-prod-
+
 # ---- Mail (SMTP) ----
 spring.mail.host=192.168.0.68
 spring.mail.port=25

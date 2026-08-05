@@ -47,8 +47,8 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | — | Landing/area pubblica allineata al business plan (prezzi, roadmap Fase 1/2, Giulia, logo unico, self-service Essential) | Medio | **Fatta (dev) — 20-21/07** |
 | 38 | Odontogramma AI: marcature editabili/eliminabili dal medico + rilascio su delete RX | Medio (~½ giornata) | **Fatta (dev) — 22/07** |
 | 39 | Assistente Vocale “Hands-Free” da Poltrona (Chairside Agent) — hotword “Ehi Giulia” | Alto (~43-69 gg-agente; 4-5 settimane con 3 agenti) | **Inclusa in Fase 1 — pianificata** |
-| 40 | MinIO — separazione root per ambiente (Dev / Coll / Prod) | Medio (~1 giornata + finestra migrazione prod) | Proposta |
-| 41 | Script di installazione per ambiente COLLAUDO (nuovo container Docker) | Medio (~1 giornata) | Proposta |
+| 40 | MinIO — separazione root per ambiente (Dev / Coll / Prod) | Medio (~1 giornata + finestra migrazione prod) | **Fatta (dev) — 24/07** · migrazione prod da eseguire (committente) |
+| 41 | Script di installazione per ambiente COLLAUDO (nuovo container Docker) | Medio (~1 giornata) | **Fatta (dev) — 24/07** |
 | 42 | Visibilità dati clinici per ruolo: igienista/dentista/chirurgo/ortodontista vedono tutti i pazienti | Medio (~1 giornata) | **Fatta (dev) — 24/07** |
 | 43 | Anamnesi: severità a 3 livelli (Normale/Grave/Severa) + collegamento reale agli alert clinici + vincolo appuntamento fine giornata | Alto (~2-2.5 giornate) | **Fatta (dev) — 23-24/07 (merge PR #1)** |
 | 44 | Tariffe: fatturazione Studio vs Medico, override prezzi per provider con versioning | Alto (~2-2.5 giornate) | **Fatta (dev) — 24/07** |
@@ -1975,6 +1975,13 @@ Script proposto: nuovo `database/scripts/migrate_minio_env_root.sh`, parametrico
 - Rischio se si fa il deploy della sola Fase 1 senza aver completato la Fase 2 su prod: 404 silenziosi sui download di documenti esistenti finché non si torna al bucket vecchio — **le due fasi vanno in produzione insieme**.
 - Dev e Coll non hanno dati reali da migrare: possono adottare il nuovo prefisso direttamente; eventuali bucket vecchi `dc-<schema>` sono scartabili.
 
+### Implementazione (Fatta in dev, 24/07/2026)
+
+Nessuna modifica a `MinioStorageService.java` (già parametrico). Solo config + script.
+- **Prefissi per ambiente**: `application.properties` → `dc-dev-`; `application-prod.properties` → `dc-prod-`; nuovo `application-coll.properties` → `dc-coll-`; template `config/application-prod.properties.example` (aggiunta sezione MinIO con avviso migrazione) e nuovo `config/application-coll.properties.example`.
+- **Script di migrazione** `database/scripts/migrate_minio_env_root.sh`: enumera i bucket `dc-<schema>`, **dry-run di default** (confronto conteggio oggetti, nessuna scrittura), `--apply` esegue `mc mb`+`mc mirror` verso `dc-prod-<schema>` e verifica il conteggio; **non** cancella mai i vecchi bucket. Alias `mc` da CLI (nessuna topologia hardcoded). `bash -n` OK.
+- **Da eseguire dal committente** (bloccato al classifier): l'`--apply` su prod (dati clinici reali) + l'aggiornamento a mano di `~/docker/dentalcarepro/config/application-prod.properties` sul server, in coordinamento (le due fasi vanno in prod insieme). L'agente può lanciare solo il dry-run.
+
 ---
 
 ## 41. Script di installazione per ambiente COLLAUDO
@@ -2072,6 +2079,16 @@ psql -U postgres -h 192.168.0.173 -d postgres -v dbname=dentalcare_coll -f datab
 - **Confermato 23/07/2026**: nessun flusso n8n/Retell dedicato a Coll — è solo stack web (BE+FE+AI+DB). Il collaudo telefonico resta su Dev/Prod. Se servirà in futuro, è un'estensione separata (nuovo numero + agente Retell + workflow n8n puntato a `:8082`), fuori da questa proposta.
 - Immagini Docker `:coll-*` vanno pulite periodicamente (`docker image prune`) come già per `:latest` — nessuna differenza operativa da Prod.
 - Il gate di go-live (`piano-lungo-termine.md` §5) resta invariato: Coll è un ambiente di test, non abilita l'uso su pazienti reali.
+
+### Implementazione (Fatta in dev, 24/07/2026)
+
+`docker-compose.yml`/`install.sh`/`setup.sh` di prod **invariati**. Nuovi file, tutti nel repo:
+- `backend/src/main/resources/application-coll.properties` (profilo `coll`: DB `dentalcare_coll`, `dc-coll-`, demo off, log/errori dev).
+- `config/application-coll.properties.example` (segreti coll, monito "DIVERSI da prod"); `config/.gitignore` ignora ora anche il file reale coll.
+- `docker-compose.coll.yml` (`container_name` `dentalcarepro-coll-*`, immagini `:coll-*`, `SPRING_PROFILES_ACTIVE=coll`, `FRONTEND_PORT:-8082`, stessa rete esterna `minio_default`). Nomi-servizio invariati → `app.ai.base-url` resta valido nella rete interna del progetto. `docker compose config` valido.
+- `setup-coll.sh` / `install-coll.sh` (copie parametrizzate: cartella `~/docker/dentalcarepro-coll`, DB `dentalcare_coll`, container/compose/porta coll). `bash -n` OK.
+- Doc: nuovo `directives/manuale-installazione-coll.md` + trigger "deploy in collaudo" in `directives/deploy-procedures.md`.
+- **Esecuzione sul server** (creazione DB `dentalcare_coll`, config con segreti reali, `docker compose up`): la fa il committente sulla macchina `.72` — l'agente non ha accesso agli host.
 
 ---
 

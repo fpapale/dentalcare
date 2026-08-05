@@ -1,4 +1,5 @@
 # Config reale (con credenziali) — non committare. Tieni solo gli .example.
 application-prod.properties
+application-coll.properties
 application.properties
 *.local.properties
