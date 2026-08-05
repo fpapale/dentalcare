@@ -382,17 +382,29 @@ public class DentalCareAiTools {
             if (p != null) toRun.add(p);
         }
         // Il modello spesso non riporta il codice tra i turni (non è nella history visibile):
-        // se nessun codice combacia, conferma le anteprime in sospeso per questo utente.
+        // se nessun codice combacia, conferma SOLO l'ultima anteprima in sospeso di questo utente
+        // (#20) — mai in blocco: ogni proposta richiede una conferma esplicita.
+        long remainingAfterFallback = -1; // -1 = fallback non usato
         if (toRun.isEmpty()) {
-            toRun = pendingActions.consumeAllForScope(currentProviderId());
-            log.info("confirmAction fallback scope: pending={}", toRun.size());
+            java.util.Optional<PendingActionService.Pending> latest =
+                    pendingActions.consumeLatestForScope(currentProviderId());
+            if (latest.isPresent()) {
+                toRun.add(latest.get());
+                remainingAfterFallback = pendingActions.countForScope(currentProviderId());
+                log.info("confirmAction fallback latest: remaining={}", remainingAfterFallback);
+            }
         }
         if (toRun.isEmpty())
             return "Nessuna azione in attesa di conferma. Indica di nuovo la modifica da fare.";
 
         List<String> results = new java.util.ArrayList<>();
         for (PendingActionService.Pending p : toRun) results.add(execute(p));
-        return String.join("\n", results);
+        String out = String.join("\n", results);
+        if (remainingAfterFallback > 0) {
+            out += "\n\nHo confermato solo l'ultima anteprima. Ne restano " + remainingAfterFallback
+                    + " in attesa: se vuoi confermarle, richiamale una alla volta indicando il codice di ciascuna.";
+        }
+        return out;
     }
 
     private String execute(PendingActionService.Pending p) {

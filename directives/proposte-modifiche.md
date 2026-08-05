@@ -14,7 +14,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 |---|--------|---------|-------|
 | 1 | Aggiornamento agenda in tempo reale (SSE) | Medio-basso (~½ giornata) | Fatta (dev) |
 | 2 | Retell multi-studio: agente per sede/poltrona | Medio (~1 giornata) | Proposta |
-| 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | Proposta |
+| 3 | Validazione codice fiscale con bypass stranieri | Medio (~¾ giornata) | **Fatta (dev) — già implementata** |
 | 4 | Documenti paziente: tab CRUD con allegati (MinIO storage) | Medio (~1 giornata) | Fatta |
 | 5 | Object storage MinIO per documenti grandi (CBCT/DICOM) | Medio (~1 giornata) | Proposta |
 | 6 | AI YOLO: rilevamento carie su ortopanoramica + retraining | Alto (~3-5 giorni) | Fatta |
@@ -31,7 +31,7 @@ Stati: **Proposta** (in attesa di tua conferma) · **Confermata** (da fare) · *
 | 17 | Prompt Manager AI: prompt multilingua editabili (tabella chiave-valore) | Medio | Fatta (dev) |
 | 18 | Cartella clinica — **GAP P0**: valore probatorio (audit clinico, finalizzazione/addendum, consensi, encounter) | Alto (~66-90h agente, 3 blocchi) | Proposta |
 | 19 | Conformità EU AI Act (perimetro non-MDR): gate no-clinical radiologia + governance AI | Medio-alto (~2-3 settimane) | Proposta |
-| 20 | Copilot: fallback `confirmAction` conferma tutte le anteprime invece dell'ultima | Basso (~1-2 ore) | Proposta |
+| 20 | Copilot: fallback `confirmAction` conferma tutte le anteprime invece dell'ultima | Basso (~1-2 ore) | **Fatta (dev) — 24/07** |
 | 21 | Cartella clinica — **GAP P1**: firma, conservazione, terminologia, FHIR, portale, FSE | Alto (~multi-mese, dopo Fase 1) | Proposta |
 | 22 | Cartella clinica — **GAP P2**: AI certificata, secondary use, EHDS, federazione, mobile offline | Alto (~Fase 2 / non pianificato) | Proposta |
 | 23 | Ruotare la password demo: è pubblica su GitHub e non è cancellabile dalla storia | Basso (~1 ora) | **Proposta — aperta** |
@@ -525,6 +525,15 @@ Aggiornare `install.sql` e la funzione `create_tenant`.
 - Il flag `foreign_patient` in DB è utile per report fiscali e fatturazione (le fatture a stranieri senza CF italiano hanno trattamento diverso)
 - La validazione algoritmica del carattere di controllo (Luhn-like) è opzionale — regex + cross-check data coprono il 99% degli errori di battitura; aggiungibile in una seconda iterazione
 
+### Implementazione — già presente (verificata 24/07/2026)
+
+Rilevato completo durante la verifica per questa attività, non re-implementato:
+- **DB**: `patients.foreign_patient` in `install.sql` (template + demo) e patch runtime idempotente (`EstimateSchemaInitializer`).
+- **Validator**: `validation/ValidFiscalCode` + `FiscalCodeValidator` (class-level su `CreatePatientRequest`/`UpdatePatientRequest`) → regex `^[A-Z]{6}[0-9]{2}[ABCDEHLMPRST][0-9]{2}[A-Z][0-9]{3}[A-Z]$` + cross-check anno/mese/giorno con `+40` femmine; bypass se `foreignPatient=true`.
+- **Refinement rispetto alla proposta**: il CF è **opzionale anche per gli italiani** (blank → valido, "si completa dopo"), coerente con la decisione `09dc68b`/#26 (l'assistente vocale non lo chiede, per minimizzazione) — non "obbligatorio per italiani" come nella bozza originale.
+- **Service/DTO**: `PatientService` salva `foreign_patient` in INSERT/UPDATE ed espone `foreignPatient`; `PatientDetailDto` lo riporta.
+- **Frontend**: `core/validators/fiscal-code.validator.ts` + checkbox straniero in `nuovo-paziente` e `paziente-detail`.
+
 ---
 
 ## 4. Documenti paziente: tab CRUD con allegati base64
@@ -1016,6 +1025,13 @@ In `confirmAction`, il ramo di fallback usa `consumeLatestForScope(...)` e, se r
 ### Note
 - `store` è in-memory (`ConcurrentHashMap`): pending perse al restart e **non funziona multi-istanza**. Prod = container singolo → ok oggi; stesso limite del registry SSE (#1). Da rivedere se si scala.
 - Il `summary` finisce in audit sia in caso di successo sia di scope mismatch: buona base per il logging AI esteso richiesto da #19.
+
+### Implementazione (Fatta in dev, 24/07/2026)
+
+- `PendingActionService`: `consumeAllForScope` **sostituito** da `consumeLatestForScope(scope)` (`Optional<Pending>`, solo la più recente per `expiresAt`) + `countForScope(scope)`.
+- `DentalCareAiTools.confirmAction`: il ramo di fallback (nessun codice esplicito) ora conferma **solo l'ultima** anteprima e, se ne restano altre, lo dice all'utente (*"Ho confermato solo l'ultima… ne restano N: richiamale una alla volta col codice"*). Conferma esplicita per codice invariata (esegue esattamente quelle indicate).
+- Il gate strutturale (closure server-side, scope check, audit) resta intatto: cambia solo la **granularità del consenso** nel fallback (§16.2 AI Act: nessuna conferma in blocco pre-selezionata).
+- **Test**: `PendingActionServiceTest` (5): singola, N→solo la più recente + le altre restano, isolamento per scope, scope vuoto, conferma per codice esatto. `mvn test` verde.
 
 ---
 

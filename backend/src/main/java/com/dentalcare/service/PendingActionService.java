@@ -4,7 +4,10 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -59,20 +62,25 @@ public class PendingActionService {
     }
 
     /**
-     * Rimuove e ritorna tutte le azioni in sospeso per lo scope indicato, più recenti prima.
-     * Serve a confermare l'ultima anteprima quando il modello non riporta il codice tra i turni.
+     * Rimuove e ritorna la SOLA anteprima più recente per lo scope indicato (#20).
+     * Serve a confermare l'ultima anteprima quando il modello non riporta il codice tra i turni,
+     * senza eseguire in blocco anche le altre in sospeso: ciascuna richiede una conferma esplicita.
      */
-    public java.util.List<Pending> consumeAllForScope(UUID scope) {
+    public Optional<Pending> consumeLatestForScope(UUID scope) {
         purge();
-        java.util.List<Map.Entry<String, Pending>> mine = store.entrySet().stream()
-                .filter(e -> java.util.Objects.equals(e.getValue().providerScope(), scope))
-                .sorted((a, b) -> b.getValue().expiresAt().compareTo(a.getValue().expiresAt()))
-                .toList();
-        java.util.List<Pending> out = new java.util.ArrayList<>();
-        for (Map.Entry<String, Pending> e : mine) {
-            if (store.remove(e.getKey()) != null) out.add(e.getValue());
-        }
-        return out;
+        return store.entrySet().stream()
+                .filter(e -> Objects.equals(e.getValue().providerScope(), scope))
+                .max(Comparator.comparing(e -> e.getValue().expiresAt()))
+                .filter(e -> store.remove(e.getKey()) != null)
+                .map(Map.Entry::getValue);
+    }
+
+    /** Numero di anteprime ancora in sospeso per lo scope indicato (per avvisare l'utente). */
+    public long countForScope(UUID scope) {
+        purge();
+        return store.values().stream()
+                .filter(p -> Objects.equals(p.providerScope(), scope))
+                .count();
     }
 
     private String nextCode() {
