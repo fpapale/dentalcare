@@ -153,11 +153,38 @@ export class App implements OnInit {
     return url.startsWith('/landing') || url.startsWith('/registrati') || url.startsWith('/features/') || url.startsWith('/login') || url.startsWith('/admin-tenant');
   }
 
+  /**
+   * Pagine di marketing disegnate SOLO per il tema chiaro (nessuna variante dark:).
+   * Il dark auto-applicato in index.html (in base a prefers-color-scheme dell'OS) le
+   * rende illeggibili su mobile in dark mode: gli override schiariscono il testo, ma i
+   * gradienti / colori hex custom degli sfondi restano chiari → testo chiaro su fondo chiaro.
+   */
+  private isLightOnly(url: string): boolean {
+    return url === '/' || url.startsWith('/landing') || url.startsWith('/registrati') || url.startsWith('/features/');
+  }
+
+  /** Forza il tema chiaro sulle pagine di marketing; altrove segue la preferenza di sistema. */
+  private applyColorScheme(url: string): void {
+    const html = document.documentElement;
+    if (this.isLightOnly(url)) {
+      html.classList.remove('dark');
+    } else {
+      html.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+  }
+
   ngOnInit(): void {
     // Identity sync is handled reactively by the effect in the constructor.
     this.isPublicRoute.set(this.isPublic(this.router.url));
+    this.applyColorScheme(this.router.url);
     this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(e => {
-      this.isPublicRoute.set(this.isPublic((e as NavigationEnd).urlAfterRedirects));
+      const url = (e as NavigationEnd).urlAfterRedirects;
+      this.isPublicRoute.set(this.isPublic(url));
+      this.applyColorScheme(url);
+    });
+    // Cambio dark/light del sistema a pagina aperta: riapplica in base alla rotta corrente.
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      this.applyColorScheme(this.router.url);
     });
   }
 
